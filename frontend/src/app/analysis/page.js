@@ -41,46 +41,32 @@ const SEVERITY_DESCRIPTIONS = {
   },
 };
 
-// Function to decode Base64 PowerShell commands
+// Function to decode Base64 PowerShell commands robustly
 function decodeBase64Command(cmd) {
+  // Extract Base64 payload from -EncodedCommand, -enc, or -e flags
+  const match = /(?:-EncodedCommand|-enc(?:odedcommand)?|-e)\s+(['"]?)([A-Za-z0-9+/=]+)\1/i.exec(cmd);
+  if (!match) return null;
+  const base64 = match[2];
   try {
-    // Check if command contains -EncodedCommand or similar
-    const encodedMatch = cmd.match(/(-EncodedCommand|-enc|-e\s+)([A-Za-z0-9+/=]+)/i);
-    if (encodedMatch && encodedMatch[2]) {
-      const base64String = encodedMatch[2];
-      
-      try {
-        // First try to decode as UTF-16LE (PowerShell default)
-        const decoded = atob(base64String);
-        let result = '';
-        
-        // Convert from UTF-16LE (PowerShell encoding) to readable text
-        for (let i = 0; i < decoded.length; i += 2) {
-          if (i + 1 < decoded.length) {
-            const charCode = decoded.charCodeAt(i) + (decoded.charCodeAt(i + 1) << 8);
-            if (charCode !== 0) { // Skip null characters
-              result += String.fromCharCode(charCode);
-            }
-          }
-        }
-        
-        // If result looks valid, return it
-        if (result && result.length > 0 && /[a-zA-Z]/.test(result)) {
-          return result;
-        }
-        
-        // Fallback: try direct UTF-8 decoding
-        return atob(base64String);
-        
-      } catch (decodeError) {
-        console.log('Base64 decode error:', decodeError);
-        return null;
-      }
+    // Decode Base64 to binary string
+    const binary = atob(base64);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binary.charCodeAt(i);
     }
+    // Decode as UTF-16LE
+    let text = new TextDecoder('utf-16le').decode(bytes);
+    if (/[\u0001-\u007F]/.test(text)) {
+      return text;
+    }
+    // Fallback to UTF-8
+    text = new TextDecoder('utf-8').decode(bytes);
+    return text;
   } catch (error) {
-    console.log('Error decoding Base64:', error);
+    console.error('decodeBase64Command error:', error);
+    return null;
   }
-  return null;
 }
 
 function analyzeCommand(cmd, signatures = []) {
@@ -153,6 +139,18 @@ export default function AnalysisPage() {
   const [result, setResult] = useState(null);
   const [cmd, setCmd] = useState("");
   const [signatures, setSignatures] = useState([]);
+  const decodedResult = result && result.decodedCommand ? analyzeCommand(result.decodedCommand, signatures) : null;
+  // Combine and dedupe indicators from original and decoded command
+  const allSignatures = result
+    ? decodedResult
+      ? [...result.signatures, ...decodedResult.signatures]
+      : result.signatures
+    : [];
+  const mergedSignatures = Array.from(
+    new Map(allSignatures.map(sig => [sig.name, sig])).values()
+  );
+  // Calculate total risk score from merged indicators
+  const mergedScore = mergedSignatures.reduce((sum, sig) => sum + sig.score, 0);
   // Autenticação
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -214,6 +212,14 @@ export default function AnalysisPage() {
 
       {/* Severity Legend */}
       <SeverityLegend />
+      {/* Decoded Command Display */}
+      {result && result.decodedCommand && (
+        <AnalysisCard title="Decoded Command" variant="info">
+          <pre className="font-mono text-xs sm:text-sm break-all" style={{color: 'var(--foreground)'}}>
+            {result.decodedCommand}
+          </pre>
+        </AnalysisCard>
+      )}
 
       {/* Results */}
       {result && (
@@ -233,7 +239,7 @@ export default function AnalysisPage() {
                 Risk Score
               </h3>
               <span className="font-mono text-xl sm:text-2xl font-bold" style={{color: 'var(--foreground)'}}>
-                {result.score}
+                {mergedScore}
               </span>
               <span className="font-mono text-xs block mt-1" style={{color: 'var(--accent)', opacity: 0.7}}>
                 Cumulative score from all indicators
@@ -248,7 +254,7 @@ export default function AnalysisPage() {
           )}
 
           {/* Scored Indicators */}
-          <IndicatorTable signatures={result.signatures} />
+          <IndicatorTable signatures={mergedSignatures} />
 
           {/* Notes Section */}
           <AnalysisCard title="Analysis Notes" variant="warning">
@@ -274,9 +280,9 @@ export default function AnalysisPage() {
                 </div>
               )}
               
-              {result.score > 50 && (
+              {mergedScore > 50 && (
                 <div>
-                  • High risk score ({result.score}) indicates multiple suspicious patterns detected.
+                  • High risk score ({mergedScore}) indicates multiple suspicious patterns detected.
                 </div>
               )}
               
@@ -303,4 +309,4 @@ export default function AnalysisPage() {
       </ThemedButton>
     </div>
   );
-} 
+}

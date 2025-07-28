@@ -55,7 +55,7 @@
   },
   {
     "name": "ATOMIC T1059.001 - Test #1: Mimikatz Download and Execute",
-    "regex": "(IEX.*\\(New-Object.*Net\\.WebClient\\)\\.DownloadString.*Invoke-Mimikatz|powershell\\.exe.*IEX.*New-Object.*Net\\.WebClient.*DownloadString.*Invoke-Mimikatz|Invoke-Mimikatz.*-DumpCreds)",
+    "regex": "(\\bmimikatz\\b|IEX.*\\(New-Object.*Net\\.WebClient\\)\\.DownloadString.*Invoke-Mimikatz|powershell\\.exe.*IEX.*New-Object.*Net\\.WebClient.*DownloadString.*Invoke-Mimikatz|Invoke-Mimikatz.*-DumpCreds)",
     "flags": "i",
     "score": 100,
     "severity": "critical",
