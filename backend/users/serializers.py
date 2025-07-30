@@ -22,12 +22,12 @@ class RegisterUserSerializer(ModelSerializer):
     
     def validate_email(self, value):
         if CustomUser.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Um usuário com este email já existe.")
+            raise serializers.ValidationError("A user with this email already exists.")
         return value
     
     def validate_username(self, value):
         if CustomUser.objects.filter(username=value).exists():
-            raise serializers.ValidationError("Um usuário com este nome já existe.")
+            raise serializers.ValidationError("A user with this username already exists.")
         return value
     
     def create(self, validated_data):
@@ -60,13 +60,13 @@ class PowerShellSearchSerializer(ModelSerializer):
         read_only_fields = ['id', 'created_at']
 
     def create(self, validated_data):
-        # Remove o usuário dos dados validados pois será definido na view
+        # Remove user from validated data as it will be set in the view
         validated_data.pop('user', None)
         return super().create(validated_data)
 
 
 class PowerShellSearchCreateSerializer(ModelSerializer):
-    """Serializer específico para criação de pesquisas"""
+    """Specific serializer for creating searches"""
     class Meta:
         model = PowerShellSearch
         fields = [

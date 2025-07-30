@@ -37,9 +37,9 @@ export default function registerPage() {
             return;
         }
         
-        // Validação de username
+        // Username validation
         if (username.length < 3) {
-            setError("O nome de usuário deve ter pelo menos 3 caracteres");
+            setError("Username must be at least 3 characters long");
             return;
         }
         
@@ -51,17 +51,17 @@ export default function registerPage() {
             const data = await registerUser(email, username, password);
             setSuccess(true);
             
-            // Se o usuário foi criado com sucesso e retornou dados do usuário
+            // If user was created successfully and returned user data
             if (data && data.user) {
                 setRedirecting(true);
-                // Aguardar um pouco para mostrar a mensagem de sucesso
+                // Wait a bit to show success message
                 setTimeout(() => {
-                    // Fazer login automático após registro
+                    // Auto login after registration
                     login(data.user);
                 }, 1500);
             } else {
                 setRedirecting(true);
-                // Se não retornou dados do usuário, aguardar um pouco antes de redirecionar
+                // If no user data returned, wait a bit before redirecting
                 setTimeout(() => {
                     window.location.href = '/login';
                 }, 2000);
@@ -69,10 +69,10 @@ export default function registerPage() {
         } catch (e) {
             console.error('Registration error:', e);
             if (e.message.includes('{') && e.message.includes('}')) {
-                // Se a mensagem é um JSON, parse e exiba os erros específicos
+                // If message is JSON, parse and display specific errors
                 try {
                     const errorObj = JSON.parse(e.message);
-                    let errorMessage = "Erro ao criar usuário:\n";
+                    let errorMessage = "Error creating user:\n";
                     Object.keys(errorObj).forEach(field => {
                         if (Array.isArray(errorObj[field])) {
                             errorMessage += `${field}: ${errorObj[field].join(', ')}\n`;
@@ -82,10 +82,10 @@ export default function registerPage() {
                     });
                     setError(errorMessage);
                 } catch (parseError) {
-                    setError("Erro ao criar usuário: " + e.message);
+                    setError("Error creating user: " + e.message);
                 }
             } else {
-                setError("Erro ao criar usuário: " + e.message);
+                setError("Error creating user: " + e.message);
             }
         } finally {
             setLoading(false);
@@ -95,13 +95,13 @@ export default function registerPage() {
     return (
         <div className="flex items-center justify-center min-h-screen" style={{backgroundColor: 'var(--background)'}}>
             <form onSubmit={handleSubmit} className="p-8 rounded-lg shadow-lg w-full max-w-md space-y-6 border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
-                <h2 className="text-2xl font-bold text-center mb-6 font-mono" style={{color: 'var(--accent)'}}>Crie sua conta</h2>
+                <h2 className="text-2xl font-bold text-center mb-6 font-mono" style={{color: 'var(--accent)'}}>Create your account</h2>
                 
                 <FormInput
                     type="text"
                     id="username"
                     name="username"
-                    label="Usuário"
+                    label="Username"
                     value={username}
                     onChange={e => setUserName(e.target.value)}
                     disabled={loading || redirecting}
@@ -123,7 +123,7 @@ export default function registerPage() {
                     type="password"
                     id="password"
                     name="password"
-                    label="Senha"
+                    label="Password"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     disabled={loading || redirecting}
@@ -132,7 +132,7 @@ export default function registerPage() {
                 
                 <ErrorMessage message={error} className="text-center" />
                 <SuccessMessage 
-                    message={success ? "Usuário criado com sucesso! Redirecionando..." : ""} 
+                    message={success ? "User created successfully! Redirecting..." : ""} 
                     className="text-center" 
                 />
                 
@@ -142,13 +142,13 @@ export default function registerPage() {
                     disabled={loading || redirecting}
                     className="w-full"
                 >
-                    {redirecting ? "Redirecionando..." : "Criar Conta"}
+                    {redirecting ? "Redirecting..." : "Create Account"}
                 </ThemedButton>
                 
                 <div className="text-center mt-2">
                     {!redirecting && (
                         <a href="/login" className="font-mono hover:underline" style={{color: 'var(--accent)'}}>
-                            Já tem conta? Faça login
+                            Already have an account? Login
                         </a>
                     )}
                 </div>

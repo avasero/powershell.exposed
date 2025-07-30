@@ -35,7 +35,7 @@ class UserRegistrationView(CreateAPIView):
             user = serializer.save()
             print(f"User created successfully: {user.email}")
             return Response({
-                "message": "Usuário criado com sucesso!",
+                "message": "User created successfully!",
                 "user": CustomUserSerializer(user).data
             }, status=status.HTTP_201_CREATED)
         print(f"Serializer errors: {serializer.errors}")
@@ -98,13 +98,24 @@ class CookieTokenRefreshView(TokenRefreshView):
             refresh = RefreshToken(refresh_token)
             access_token = str(refresh.access_token)
 
-            response = Response({"message": "Access token refreshed successfully"}, status= status.HTTP_200_OK)  # Corrigido: era "Acess"
+            response = Response({"message": "Access token refreshed successfully"}, status= status.HTTP_200_OK)
+            
+            # Set the new access token cookie
+            response.set_cookie(
+                key="access_token",
+                value=access_token,
+                httponly=True,
+                secure=False,
+                samesite="Lax"
+            )
+            
+            # Update refresh token cookie (for rotation)
             response.set_cookie(
                 key="refresh_token",
                 value=str(refresh),
                 httponly=True,
-                secure=False,  # Mudado para False para desenvolvimento em localhost
-                samesite="Lax"  # Mudado de "None" para "Lax" para localhost
+                secure=False,
+                samesite="Lax"
             )
             return response
         except InvalidToken:
@@ -113,13 +124,13 @@ class CookieTokenRefreshView(TokenRefreshView):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class PowerShellSearchCreateView(CreateAPIView):
-    """View para criar uma nova pesquisa de PowerShell"""
+    """View to create a new PowerShell search"""
     permission_classes = [IsAuthenticated]
     serializer_class = PowerShellSearchCreateSerializer
     
     def perform_create(self, serializer):
-        # Automaticamente associa o usuário autenticado
-        # Captura IP e User-Agent do request
+        # Automatically associates the authenticated user
+        # Captures IP and User-Agent from request
         ip_address = self.get_client_ip(self.request)
         user_agent = self.request.META.get('HTTP_USER_AGENT', '')
         
@@ -130,7 +141,7 @@ class PowerShellSearchCreateView(CreateAPIView):
         )
     
     def get_client_ip(self, request):
-        """Obtém o IP real do cliente"""
+        """Gets the real client IP"""
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         if x_forwarded_for:
             ip = x_forwarded_for.split(',')[0]
@@ -139,25 +150,25 @@ class PowerShellSearchCreateView(CreateAPIView):
         return ip
     
     def create(self, request, *args, **kwargs):
-        # Log simplificado: apenas usuário, comando e resultado
+        # Simplified log: only user, command and result
         command = request.data.get('command', 'N/A')
         severity = request.data.get('severity', 'N/A')
         risk_score = request.data.get('risk_score', 'N/A')
         
-        print(f"📊 ANÁLISE SALVA - Usuário: {request.user.email} | Comando: {command[:50]}{'...' if len(command) > 50 else ''} | Severidade: {severity} | Score: {risk_score}")
+        print(f"📊 ANALYSIS SAVED - User: {request.user.email} | Command: {command[:50]}{'...' if len(command) > 50 else ''} | Severity: {severity} | Score: {risk_score}")
         
         response = super().create(request, *args, **kwargs)
         return Response({
-            "message": "Pesquisa salva com sucesso!",
+            "message": "Search saved successfully!",
             "data": response.data
         }, status=status.HTTP_201_CREATED)
 
 
 class PowerShellSearchListView(ListAPIView):
-    """View para listar as pesquisas do usuário autenticado"""
+    """View to list searches from authenticated user"""
     permission_classes = [IsAuthenticated]
     serializer_class = PowerShellSearchSerializer
     
     def get_queryset(self):
-        # Retorna apenas as pesquisas do usuário autenticado
+        # Returns only searches from authenticated user
         return PowerShellSearch.objects.filter(user=self.request.user)

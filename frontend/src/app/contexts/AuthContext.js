@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Páginas que não precisam de autenticação
+  // Pages that don't need authentication
   const publicRoutes = ['/login', '/register'];
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
           setUser(parsedUser);
         } else {
           setUser(null);
-          // Se não está autenticado e não está em uma rota pública, redireciona para login
+          // If not authenticated and not on a public route, redirect to login
           if (!publicRoutes.includes(pathname)) {
             router.push('/login');
           }
@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }) => {
     return user !== null;
   };
 
-  // Se está carregando, mostra loading
+  // If loading, show loading spinner
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen" style={{backgroundColor: 'var(--background)'}}>
@@ -75,7 +75,7 @@ export const AuthProvider = ({ children }) => {
     );
   }
 
-  // Se não está autenticado e não está em uma rota pública, não renderiza nada (já redirecionou)
+  // If not authenticated and not on a public route, don't render anything (already redirected)
   if (!isAuthenticated() && !publicRoutes.includes(pathname)) {
     return null;
   }

@@ -17,25 +17,25 @@ class PowerShellSearch(models.Model):
         on_delete=models.CASCADE, 
         related_name='searches'
     )
-    command = models.TextField(help_text='O comando PowerShell que foi analisado')
+    command = models.TextField(help_text='The PowerShell command that was analyzed')
     created_at = models.DateTimeField(auto_now_add=True)
     ip_address = models.GenericIPAddressField(blank=True, null=True)
     user_agent = models.TextField(blank=True, null=True)
     analysis_result = models.JSONField(
         blank=True, 
         null=True, 
-        help_text='Resultado da análise em JSON'
+        help_text='Analysis result in JSON format'
     )
     risk_score = models.IntegerField(
         blank=True, 
         null=True, 
-        help_text='Score de risco da análise'
+        help_text='Risk score from analysis'
     )
     severity = models.CharField(
         max_length=20, 
         blank=True, 
         null=True, 
-        help_text='Severidade encontrada'
+        help_text='Severity level found'
     )
 
     class Meta:

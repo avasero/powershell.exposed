@@ -35,7 +35,7 @@ export default function loginPage() {
     return (
         <div className="flex items-center justify-center min-h-screen" style={{backgroundColor: 'var(--background)'}}>
             <form onSubmit={handleSubmit} className="p-8 rounded-lg shadow-lg w-full max-w-md space-y-6 border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
-                <h2 className="text-2xl font-bold text-center mb-6 font-mono" style={{color: 'var(--accent)'}}>Entrar</h2>
+                <h2 className="text-2xl font-bold text-center mb-6 font-mono" style={{color: 'var(--accent)'}}>Login</h2>
                 
                 <FormInput
                     type="email"
@@ -51,25 +51,25 @@ export default function loginPage() {
                     type="password"
                     id="password"
                     name="password"
-                    label="Senha"
+                    label="Password"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     required
                 />
                 
                 <ErrorMessage message={error} className="text-center" />
-                <SuccessMessage message={success ? "Login realizado com sucesso!" : ""} className="text-center" />
+                <SuccessMessage message={success ? "Login successful!" : ""} className="text-center" />
                 
                 <ThemedButton 
                     type="submit" 
                     loading={loading}
                     className="w-full"
                 >
-                    Entrar
+                    Login
                 </ThemedButton>
                 
                 <div className="text-center mt-2">
-                    <a href="/register" className="font-mono hover:underline" style={{color: 'var(--accent)'}}>Não tem conta? Registre-se</a>
+                    <a href="/register" className="font-mono hover:underline" style={{color: 'var(--accent)'}}>Don't have an account? Register</a>
                 </div>
             </form>
         </div>

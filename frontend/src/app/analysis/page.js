@@ -168,14 +168,14 @@ export default function AnalysisPage() {
     loadSignatures();
   }, []);
 
-  // Função para salvar a pesquisa no banco de dados
+  // Function to save search to database
   const saveSearchToDatabase = async (command, analysisResult) => {
     if (!isAuthenticated) {
-      console.log('Usuário não autenticado, não salvando pesquisa');
+      console.log('User not authenticated, not saving search');
       return;
     }
     
-    console.log('Salvando pesquisa no banco de dados:', { command, analysisResult });
+    console.log('Saving search to database:', { command, analysisResult });
     
     try {
       const searchData = {
@@ -186,9 +186,9 @@ export default function AnalysisPage() {
       };
       
       const data = await savePowerShellSearch(searchData);
-      console.log('Pesquisa salva com sucesso:', data);
+      console.log('Search saved successfully:', data);
     } catch (error) {
-      console.error('Erro ao salvar pesquisa:', error);
+      console.error('Error saving search:', error);
     }
   };
 
