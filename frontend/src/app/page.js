@@ -1,7 +1,6 @@
 "use client"
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "./contexts/AuthContext";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { ErrorMessage, InfoMessage } from "./components/Messages";
 import CommandInput from "./components/CommandInput";
@@ -9,7 +8,6 @@ import ThemedButton from "./components/ThemedButton";
 
 export default function Home() {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
   const [error, setError] = useState("");
   const [command, setCommand] = useState("");
   const [result, setResult] = useState(null); // { type: 'safe'|'malicious', severity: 'leve'|'médio'|'crítico' }

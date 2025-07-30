@@ -1,8 +1,6 @@
 "use client";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useAuth } from "../contexts/AuthContext";
-import { savePowerShellSearch } from "../../../utils/auth";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SeverityLegend from "../components/SeverityLegend";
 import AnalysisCard from "../components/AnalysisCard";
@@ -138,7 +136,6 @@ function analyzeCommand(cmd, signatures = []) {
 export default function AnalysisPage() {
   const params = useSearchParams();
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
   const [result, setResult] = useState(null);
   const [cmd, setCmd] = useState("");
   const [signatures, setSignatures] = useState([]);
@@ -168,43 +165,14 @@ export default function AnalysisPage() {
     loadSignatures();
   }, []);
 
-  // Function to save search to database
-  const saveSearchToDatabase = async (command, analysisResult) => {
-    if (!isAuthenticated) {
-      console.log('User not authenticated, not saving search');
-      return;
-    }
-    
-    console.log('Saving search to database:', { command, analysisResult });
-    
-    try {
-      const searchData = {
-        command: command,
-        analysis_result: analysisResult,
-        risk_score: analysisResult.score || 0,
-        severity: analysisResult.severity || 'info'
-      };
-      
-      const data = await savePowerShellSearch(searchData);
-      console.log('Search saved successfully:', data);
-    } catch (error) {
-      console.error('Error saving search:', error);
-    }
-  };
-
   useEffect(() => {
     const command = params.get("cmd") || "";
     setCmd(command);
     if (signatures.length > 0) {
       const analysisResult = analyzeCommand(command, signatures);
       setResult(analysisResult);
-      
-      // Salvar a pesquisa no banco de dados
-      if (command && analysisResult) {
-        saveSearchToDatabase(command, analysisResult);
-      }
     }
-  }, [params, signatures, isAuthenticated]);
+  }, [params, signatures]);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">

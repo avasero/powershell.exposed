@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../contexts/AuthContext";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SeverityBadge from "../components/SeverityBadge";
 import ThemedButton from "../components/ThemedButton";
@@ -44,7 +43,6 @@ const CATEGORY_COLORS = {
 
 export default function SignaturesPage() {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
   const [signatures, setSignatures] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");

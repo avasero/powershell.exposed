@@ -3,9 +3,8 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useDrawer } from "../contexts/DrawerContext";
 import ThemeToggle from "./ThemeToggle";
-import { logoutUser } from "../../../utils/auth";
 
-export default function SideDrawer({ user, onLogout }) {
+export default function SideDrawer() {
   const { isDrawerOpen, closeDrawer } = useDrawer();
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -31,18 +30,6 @@ export default function SideDrawer({ user, onLogout }) {
       document.body.style.overflow = 'unset';
     };
   }, [isDrawerOpen, closeDrawer]);
-
-  const handleLogout = async () => {
-    try {
-      await logoutUser();
-      localStorage.removeItem("user");
-      onLogout();
-      closeDrawer();
-      window.location.reload();
-    } catch (e) {
-      console.error("Erro ao deslogar");
-    }
-  };
 
   const handleLinkClick = () => {
     closeDrawer();
@@ -103,69 +90,20 @@ export default function SideDrawer({ user, onLogout }) {
           </div>
 
           {/* Navigation Links */}
-          {user && (
-            <div className="border-t pt-4" style={{ borderColor: 'var(--border-color)' }}>
-              <Link 
-                href="/signatures" 
-                onClick={handleLinkClick}
-                className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm border transition-all duration-200 hover:opacity-80 hover:scale-[0.98] text-center"
-                style={{
-                  backgroundColor: 'transparent', 
-                  color: 'var(--accent)',
-                  borderColor: 'var(--accent)'
-                }}
-              >
-                Signatures
-              </Link>
-            </div>
-          )}
-
-          {/* Login prompt for non-authenticated users */}
-          {!user && (
-            <div className="border-t pt-4 space-y-3" style={{ borderColor: 'var(--border-color)' }}>
-              <div className="text-center p-3 rounded-md" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
-                <span className="font-mono text-sm block mb-3" style={{ color: 'var(--foreground)' }}>
-                  Access more features
-                </span>
-                <Link
-                  href="/login"
-                  onClick={handleLinkClick}
-                  className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm transition-all duration-200 hover:opacity-80 hover:scale-[0.98] text-center"
-                  style={{
-                    backgroundColor: 'var(--accent)', 
-                    color: 'var(--background)'
-                  }}
-                >
-                  Login
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {/* User Info and Logout */}
-          {user && (
-            <div className="border-t pt-4 space-y-3" style={{ borderColor: 'var(--border-color)' }}>
-              <div className="text-center p-3 rounded-md" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
-                <span className="font-mono text-sm block mb-1" style={{ color: 'var(--foreground)' }}>
-                  Logged in as:
-                </span>
-                <div className="font-mono text-sm font-semibold" style={{ color: 'var(--accent)' }}>
-                  {user.username || user.email}
-                </div>
-              </div>
-              
-              <button
-                onClick={handleLogout}
-                className="w-full px-4 py-3 font-mono font-semibold rounded text-sm transition-all duration-200 hover:opacity-80 hover:scale-[0.98]"
-                style={{
-                  backgroundColor: 'var(--accent)', 
-                  color: 'var(--background)'
-                }}
-              >
-                Logout
-              </button>
-            </div>
-          )}
+          <div className="space-y-2">
+            <Link 
+              href="/signatures" 
+              onClick={handleLinkClick}
+              className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm border transition-all duration-200 hover:opacity-80 hover:scale-[0.98] text-center"
+              style={{
+                backgroundColor: 'transparent', 
+                color: 'var(--accent)',
+                borderColor: 'var(--accent)'
+              }}
+            >
+              Signatures
+            </Link>
+          </div>
         </div>
       </div>
     </div>
