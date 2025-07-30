@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../contexts/AuthContext";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SeverityBadge from "../components/SeverityBadge";
 import ThemedButton from "../components/ThemedButton";
@@ -43,23 +44,12 @@ const CATEGORY_COLORS = {
 
 export default function SignaturesPage() {
   const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
   const [signatures, setSignatures] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSeverity, setSelectedSeverity] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
-
-  // Autenticação
-  useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      setUser(JSON.parse(userData));
-    } else {
-      router.push("/login");
-      return;
-    }
-  }, [router]);
 
   // Carregar signatures
   useEffect(() => {
@@ -80,10 +70,6 @@ export default function SignaturesPage() {
 
   if (loading) {
     return <LoadingSpinner />;
-  }
-
-  if (!user) {
-    return null;
   }
 
   // Filtrar signatures

@@ -1,36 +1,28 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { logoutUser } from "../../../utils/auth";
-import { useRouter } from "next/navigation";
+import { useAuth } from "../contexts/AuthContext";
 import ThemeToggle from "./ThemeToggle";
 import HamburgerButton from "./HamburgerButton";
 import SideDrawer from "./SideDrawer";
 
 export default function Navbar() {
-  const [user, setUser] = useState(null);
-  const router = useRouter();
-
-  useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-  }, []);
+  const { user, logout, isAuthenticated } = useAuth();
 
   const handleLogout = async () => {
     try {
       await logoutUser();
-      localStorage.removeItem("user");
-      setUser(null);
-      window.location.reload();
+      logout();
     } catch (e) {
       console.error("Erro ao deslogar");
+      // Mesmo se houver erro na API, fazer logout local
+      logout();
     }
   };
 
   const handleUserLogout = () => {
-    setUser(null);
+    handleLogout();
   };
 
   return (

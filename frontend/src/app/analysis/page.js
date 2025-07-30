@@ -1,6 +1,8 @@
 "use client";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { savePowerShellSearch } from "../../../utils/auth";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SeverityLegend from "../components/SeverityLegend";
 import AnalysisCard from "../components/AnalysisCard";
@@ -136,6 +138,7 @@ function analyzeCommand(cmd, signatures = []) {
 export default function AnalysisPage() {
   const params = useSearchParams();
   const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
   const [result, setResult] = useState(null);
   const [cmd, setCmd] = useState("");
   const [signatures, setSignatures] = useState([]);
@@ -151,9 +154,6 @@ export default function AnalysisPage() {
   );
   // Calculate total risk score from merged indicators
   const mergedScore = mergedSignatures.reduce((sum, sig) => sum + sig.score, 0);
-  // Autenticação
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
   // Carregar signatures do arquivo JSON
   useEffect(() => {
     const loadSignatures = async () => {
@@ -168,32 +168,43 @@ export default function AnalysisPage() {
     loadSignatures();
   }, []);
 
-  useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      setUser(JSON.parse(userData));
-      setLoading(false);
-    } else {
-      setUser(null);
-      setLoading(false);
-      router.push("/login");
+  // Função para salvar a pesquisa no banco de dados
+  const saveSearchToDatabase = async (command, analysisResult) => {
+    if (!isAuthenticated) {
+      console.log('Usuário não autenticado, não salvando pesquisa');
+      return;
     }
-  }, [router]);
+    
+    console.log('Salvando pesquisa no banco de dados:', { command, analysisResult });
+    
+    try {
+      const searchData = {
+        command: command,
+        analysis_result: analysisResult,
+        risk_score: analysisResult.score || 0,
+        severity: analysisResult.severity || 'info'
+      };
+      
+      const data = await savePowerShellSearch(searchData);
+      console.log('Pesquisa salva com sucesso:', data);
+    } catch (error) {
+      console.error('Erro ao salvar pesquisa:', error);
+    }
+  };
 
   useEffect(() => {
     const command = params.get("cmd") || "";
     setCmd(command);
     if (signatures.length > 0) {
-      setResult(analyzeCommand(command, signatures));
+      const analysisResult = analyzeCommand(command, signatures);
+      setResult(analysisResult);
+      
+      // Salvar a pesquisa no banco de dados
+      if (command && analysisResult) {
+        saveSearchToDatabase(command, analysisResult);
+      }
     }
-  }, [params, signatures]);
-
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-  if (!user) {
-    return null;
-  }
+  }, [params, signatures, isAuthenticated]);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">

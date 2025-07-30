@@ -1,30 +1,18 @@
 "use client"
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "./contexts/AuthContext";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { ErrorMessage, InfoMessage } from "./components/Messages";
 import CommandInput from "./components/CommandInput";
 import ThemedButton from "./components/ThemedButton";
 
 export default function Home() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
   const [error, setError] = useState("");
   const [command, setCommand] = useState("");
   const [result, setResult] = useState(null); // { type: 'safe'|'malicious', severity: 'leve'|'médio'|'crítico' }
-  const router = useRouter();
-
-  useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      setUser(JSON.parse(userData));
-      setLoading(false);
-    } else {
-      setUser(null);
-      setLoading(false);
-      router.push("/login");
-    }
-  }, []);
 
   // Função para validar se o input é um comando PowerShell válido
   const validatePowerShellCommand = (input) => {
@@ -176,13 +164,6 @@ export default function Home() {
       }
     }
   };
-
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-  if (!user) {
-    return null; // Evita flicker
-  }
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">

@@ -2,6 +2,7 @@
 import React from 'react'
 import { useState } from 'react'
 import { registerUser } from '../../../utils/auth'
+import { useAuth } from '../contexts/AuthContext'
 import FormInput from '../components/FormInput'
 import ThemedButton from '../components/ThemedButton'
 import { ErrorMessage, SuccessMessage } from '../components/Messages'
@@ -13,6 +14,8 @@ export default function registerPage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
     const [success, setSuccess] = useState(false)
+    const [redirecting, setRedirecting] = useState(false)
+    const { login } = useAuth()
     
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -21,18 +24,68 @@ export default function registerPage() {
             return;
         }
         
+        // Validação de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setError("Por favor, insira um email válido");
+            return;
+        }
+        
+        // Validação de senha
+        if (password.length < 8) {
+            setError("A senha deve ter pelo menos 8 caracteres");
+            return;
+        }
+        
+        // Validação de username
+        if (username.length < 3) {
+            setError("O nome de usuário deve ter pelo menos 3 caracteres");
+            return;
+        }
+        
         setLoading(true);
         setError("");
         setSuccess(false);
         
         try {
-            await registerUser(email, username, password);
+            const data = await registerUser(email, username, password);
             setSuccess(true);
-        } catch (e) {
-            if (e.response && e.response.data) {
-                setError("Erro ao criar usuário: " + JSON.stringify(e.response.data));
+            
+            // Se o usuário foi criado com sucesso e retornou dados do usuário
+            if (data && data.user) {
+                setRedirecting(true);
+                // Aguardar um pouco para mostrar a mensagem de sucesso
+                setTimeout(() => {
+                    // Fazer login automático após registro
+                    login(data.user);
+                }, 1500);
             } else {
-                setError("Erro ao criar usuário. Tente novamente.");
+                setRedirecting(true);
+                // Se não retornou dados do usuário, aguardar um pouco antes de redirecionar
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 2000);
+            }
+        } catch (e) {
+            console.error('Registration error:', e);
+            if (e.message.includes('{') && e.message.includes('}')) {
+                // Se a mensagem é um JSON, parse e exiba os erros específicos
+                try {
+                    const errorObj = JSON.parse(e.message);
+                    let errorMessage = "Erro ao criar usuário:\n";
+                    Object.keys(errorObj).forEach(field => {
+                        if (Array.isArray(errorObj[field])) {
+                            errorMessage += `${field}: ${errorObj[field].join(', ')}\n`;
+                        } else {
+                            errorMessage += `${field}: ${errorObj[field]}\n`;
+                        }
+                    });
+                    setError(errorMessage);
+                } catch (parseError) {
+                    setError("Erro ao criar usuário: " + e.message);
+                }
+            } else {
+                setError("Erro ao criar usuário: " + e.message);
             }
         } finally {
             setLoading(false);
@@ -51,6 +104,7 @@ export default function registerPage() {
                     label="Usuário"
                     value={username}
                     onChange={e => setUserName(e.target.value)}
+                    disabled={loading || redirecting}
                     required
                 />
                 
@@ -61,6 +115,7 @@ export default function registerPage() {
                     label="Email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
+                    disabled={loading || redirecting}
                     required
                 />
                 
@@ -71,22 +126,31 @@ export default function registerPage() {
                     label="Senha"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
+                    disabled={loading || redirecting}
                     required
                 />
                 
                 <ErrorMessage message={error} className="text-center" />
-                <SuccessMessage message={success ? "Usuário criado com sucesso!" : ""} className="text-center" />
+                <SuccessMessage 
+                    message={success ? "Usuário criado com sucesso! Redirecionando..." : ""} 
+                    className="text-center" 
+                />
                 
                 <ThemedButton 
                     type="submit" 
                     loading={loading}
+                    disabled={loading || redirecting}
                     className="w-full"
                 >
-                    Criar Conta
+                    {redirecting ? "Redirecionando..." : "Criar Conta"}
                 </ThemedButton>
                 
                 <div className="text-center mt-2">
-                    <a href="/login" className="font-mono hover:underline" style={{color: 'var(--accent)'}}>Já tem conta? Faça login</a>
+                    {!redirecting && (
+                        <a href="/login" className="font-mono hover:underline" style={{color: 'var(--accent)'}}>
+                            Já tem conta? Faça login
+                        </a>
+                    )}
                 </div>
             </form>
         </div>

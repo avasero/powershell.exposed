@@ -1,7 +1,7 @@
 "use client"
 import React, { useState } from 'react'
 import { loginUser } from '../../../utils/auth'
-import { useRouter } from 'next/navigation'
+import { useAuth } from '../contexts/AuthContext'
 import FormInput from '../components/FormInput'
 import ThemedButton from '../components/ThemedButton'
 import { ErrorMessage, SuccessMessage } from '../components/Messages'
@@ -12,7 +12,7 @@ export default function loginPage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
     const [success, setSuccess] = useState(false)
-    const router = useRouter()
+    const { login } = useAuth()
 
     const handleSubmit = async (e) => {
         e.preventDefault()
@@ -22,10 +22,9 @@ export default function loginPage() {
         try {
             const data = await loginUser(email, password)
             if (data && data.user) {
-                localStorage.setItem('user', JSON.stringify(data.user))
+                login(data.user)
+                setSuccess(true)
             }
-            setSuccess(true)
-            router.push('/')
         } catch (e) {
             setError(e.message)
         } finally {
