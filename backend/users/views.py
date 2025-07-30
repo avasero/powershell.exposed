@@ -123,9 +123,6 @@ class PowerShellSearchCreateView(CreateAPIView):
         ip_address = self.get_client_ip(self.request)
         user_agent = self.request.META.get('HTTP_USER_AGENT', '')
         
-        print(f"Salvando pesquisa para usuário: {self.request.user}")
-        print(f"Dados da pesquisa: {serializer.validated_data}")
-        
         serializer.save(
             user=self.request.user,
             ip_address=ip_address,
@@ -142,17 +139,14 @@ class PowerShellSearchCreateView(CreateAPIView):
         return ip
     
     def create(self, request, *args, **kwargs):
-        print(f"=== DEBUG POWERSHELL SEARCH ===")
-        print(f"Request data: {request.data}")
-        print(f"Request user: {request.user}")
-        print(f"User is authenticated: {request.user.is_authenticated if hasattr(request.user, 'is_authenticated') else 'No user'}")
-        print(f"All cookies: {dict(request.COOKIES)}")
-        print(f"Access token: {request.COOKIES.get('access_token', 'NOT FOUND')}")
-        print(f"Request headers: {dict(request.headers)}")
-        print(f"=== END DEBUG ===")
+        # Log simplificado: apenas usuário, comando e resultado
+        command = request.data.get('command', 'N/A')
+        severity = request.data.get('severity', 'N/A')
+        risk_score = request.data.get('risk_score', 'N/A')
+        
+        print(f"📊 ANÁLISE SALVA - Usuário: {request.user.email} | Comando: {command[:50]}{'...' if len(command) > 50 else ''} | Severidade: {severity} | Score: {risk_score}")
         
         response = super().create(request, *args, **kwargs)
-        print(f"Pesquisa criada com sucesso: {response.data}")
         return Response({
             "message": "Pesquisa salva com sucesso!",
             "data": response.data
