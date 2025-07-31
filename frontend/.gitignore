@@ -16,7 +16,7 @@ backend/venv/
 *.sqlite3
 media/
 staticfiles/
-
+backend/
 # VSCode
 .vscode/
 
@@ -39,3 +39,5 @@ Thumbs.db
 
 # Node.js
 node_modules/ 
+env/
+venv/

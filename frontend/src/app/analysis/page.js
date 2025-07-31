@@ -2,7 +2,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { savePowerShellSearch } from "../../../utils/auth";
+import { savePowerShellAnalysis } from "../../../utils/database";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SeverityLegend from "../components/SeverityLegend";
 import AnalysisCard from "../components/AnalysisCard";
@@ -168,27 +168,27 @@ export default function AnalysisPage() {
     loadSignatures();
   }, []);
 
-  // Function to save search to database
-  const saveSearchToDatabase = async (command, analysisResult) => {
-    if (!isAuthenticated) {
-      console.log('User not authenticated, not saving search');
+  // Função para salvar análise no Supabase
+  const saveAnalysisToDatabase = async (command, analysisResult) => {
+    if (!isAuthenticated()) {
+      console.log('Usuário não autenticado, não salvando análise');
       return;
     }
     
-    console.log('Saving search to database:', { command, analysisResult });
-    
     try {
-      const searchData = {
+      const analysisData = {
         command: command,
         analysis_result: analysisResult,
         risk_score: analysisResult.score || 0,
-        severity: analysisResult.severity || 'info'
+        severity: analysisResult.severity || 'info',
+        signatures_detected: analysisResult.signatures || [],
+        decoded_command: analysisResult.decodedCommand || null
       };
       
-      const data = await savePowerShellSearch(searchData);
-      console.log('Search saved successfully:', data);
+      const savedAnalysis = await savePowerShellAnalysis(analysisData);
+      console.log('Análise salva com sucesso:', savedAnalysis);
     } catch (error) {
-      console.error('Error saving search:', error);
+      console.error('Erro ao salvar análise:', error);
     }
   };
 
@@ -199,9 +199,9 @@ export default function AnalysisPage() {
       const analysisResult = analyzeCommand(command, signatures);
       setResult(analysisResult);
       
-      // Salvar a pesquisa no banco de dados
+      // Salvar análise no banco de dados se o usuário estiver autenticado
       if (command && analysisResult) {
-        saveSearchToDatabase(command, analysisResult);
+        saveAnalysisToDatabase(command, analysisResult);
       }
     }
   }, [params, signatures, isAuthenticated]);

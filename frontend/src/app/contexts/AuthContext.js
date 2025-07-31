@@ -1,6 +1,7 @@
 "use client"
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { supabase } from '../../../lib/supabase';
 
 const AuthContext = createContext();
 
@@ -19,47 +20,83 @@ export const AuthProvider = ({ children }) => {
   const pathname = usePathname();
 
   // Pages that don't need authentication
-  const publicRoutes = ['/login', '/register'];
+  const publicRoutes = ['/login', '/register', '/', '/signatures', '/analysis'];
 
   useEffect(() => {
-    const checkAuth = () => {
-      try {
-        const userData = localStorage.getItem('user');
-        if (userData) {
-          const parsedUser = JSON.parse(userData);
-          setUser(parsedUser);
-        } else {
-          setUser(null);
-          // If not authenticated and not on a public route, redirect to login
-          if (!publicRoutes.includes(pathname)) {
-            router.push('/login');
-          }
-        }
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        setUser(null);
-        localStorage.removeItem('user');
-        if (!publicRoutes.includes(pathname)) {
-          router.push('/login');
-        }
-      } finally {
-        setLoading(false);
+    // Get initial session
+    const getInitialSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error('Error getting session:', error);
+      } else if (session) {
+        setUser(session.user);
       }
+      setLoading(false);
     };
 
-    checkAuth();
-  }, [pathname, router]);
+    getInitialSession();
 
-  const login = (userData) => {
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
-    router.push('/');
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session);
+        
+        if (session) {
+          setUser(session.user);
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
+      }
+    );
+
+    return () => subscription?.unsubscribe();
+  }, []);
+
+  const signUp = async (email, password, username) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username: username,
+            full_name: username
+          }
+        }
+      });
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
-    router.push('/login');
+  const signIn = async (email, password) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setUser(null);
+      router.push('/');
+      return { error: null };
+    } catch (error) {
+      return { error };
+    }
   };
 
   const isAuthenticated = () => {
@@ -75,15 +112,11 @@ export const AuthProvider = ({ children }) => {
     );
   }
 
-  // If not authenticated and not on a public route, don't render anything (already redirected)
-  if (!isAuthenticated() && !publicRoutes.includes(pathname)) {
-    return null;
-  }
-
   const value = {
     user,
-    login,
-    logout,
+    signUp,
+    signIn,
+    signOut,
     isAuthenticated,
     loading
   };
