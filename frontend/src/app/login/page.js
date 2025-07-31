@@ -93,7 +93,7 @@ export default function LoginPage() {
 
           <div className="mt-6 text-center">
             <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-              Don't have an account?{' '}
+              Does not have an account?
               <Link href="/register" className="font-semibold hover:underline" style={{color: 'var(--accent)'}}>
                 Sign up
               </Link>

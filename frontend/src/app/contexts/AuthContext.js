@@ -64,7 +64,7 @@ export const AuthProvider = ({ children }) => {
         router.push('/landing');
       }
     }
-  }, [user, loading, pathname, router]);
+  }, [user, loading, pathname, router, publicRoutes]);
 
   const signUp = async (email, password, username) => {
     try {

@@ -46,7 +46,6 @@ export default function SideDrawer() {
     }
   };
 
-  // Don't render if drawer is not open and not animating
   if (!isDrawerOpen && !isAnimating) return null;
 
   return (

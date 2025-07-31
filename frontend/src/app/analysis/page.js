@@ -1,6 +1,6 @@
 "use client";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { savePowerShellAnalysis } from "../../../utils/database";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -176,7 +176,7 @@ export default function AnalysisPage() {
   }, []);
 
   // Function to save analysis to Supabase
-  const saveAnalysisToDatabase = async (command, analysisResult) => {
+  const saveAnalysisToDatabase = useCallback(async (command, analysisResult) => {
     if (!isAuthenticated()) {
       console.log('User not authenticated, not saving analysis');
       return;
@@ -197,7 +197,7 @@ export default function AnalysisPage() {
     } catch (error) {
       console.error('Error saving analysis:', error);
     }
-  };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const command = params.get("cmd") || "";
@@ -211,7 +211,7 @@ export default function AnalysisPage() {
         saveAnalysisToDatabase(command, analysisResult);
       }
     }
-  }, [params, signatures, isAuthenticated]);
+  }, [params, signatures, isAuthenticated, saveAnalysisToDatabase]);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
