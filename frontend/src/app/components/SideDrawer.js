@@ -2,10 +2,12 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useDrawer } from "../contexts/DrawerContext";
+import { useAuth } from "../contexts/AuthContext";
 import ThemeToggle from "./ThemeToggle";
 
 export default function SideDrawer() {
   const { isDrawerOpen, closeDrawer } = useDrawer();
+  const { user, signOut, isAuthenticated } = useAuth();
   const [isAnimating, setIsAnimating] = useState(false);
 
   // Close drawer when clicking outside
@@ -33,6 +35,15 @@ export default function SideDrawer() {
 
   const handleLinkClick = () => {
     closeDrawer();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      closeDrawer();
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    }
   };
 
   // Don't render if drawer is not open and not animating
@@ -103,7 +114,73 @@ export default function SideDrawer() {
             >
               Signatures
             </Link>
+            
+            {isAuthenticated() && (
+              <Link 
+                href="/dashboard" 
+                onClick={handleLinkClick}
+                className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm border transition-all duration-200 hover:opacity-80 hover:scale-[0.98] text-center"
+                style={{
+                  backgroundColor: 'transparent', 
+                  color: 'var(--accent)',
+                  borderColor: 'var(--accent)'
+                }}
+              >
+                Dashboard
+              </Link>
+            )}
           </div>
+
+          {/* Authentication Section */}
+          {isAuthenticated() ? (
+            <div className="border-t pt-4 space-y-3" style={{ borderColor: 'var(--border-color)' }}>
+              <div className="text-center p-3 rounded-md" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
+                <span className="font-mono text-sm block mb-1" style={{ color: 'var(--foreground)' }}>
+                  Logado como:
+                </span>
+                <div className="font-mono text-sm font-semibold" style={{ color: 'var(--accent)' }}>
+                  {user?.user_metadata?.username || user?.email}
+                </div>
+              </div>
+              
+              <button
+                onClick={handleLogout}
+                className="w-full px-4 py-3 font-mono font-semibold rounded text-sm transition-all duration-200 hover:opacity-80 hover:scale-[0.98]"
+                style={{
+                  backgroundColor: 'var(--accent)', 
+                  color: 'var(--background)'
+                }}
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <div className="border-t pt-4 space-y-3" style={{ borderColor: 'var(--border-color)' }}>
+              <Link
+                href="/login"
+                onClick={handleLinkClick}
+                className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm border transition-all duration-200 hover:opacity-80 hover:scale-[0.98] text-center"
+                style={{
+                  backgroundColor: 'transparent', 
+                  color: 'var(--accent)',
+                  borderColor: 'var(--accent)'
+                }}
+              >
+                Login
+              </Link>
+              <Link
+                href="/register"
+                onClick={handleLinkClick}
+                className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm transition-all duration-200 hover:opacity-80 hover:scale-[0.98] text-center"
+                style={{
+                  backgroundColor: 'var(--accent)', 
+                  color: 'var(--background)'
+                }}
+              >
+                Registrar
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </div>

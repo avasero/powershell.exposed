@@ -1,6 +1,8 @@
 "use client";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { savePowerShellAnalysis } from "../../../utils/database";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SeverityLegend from "../components/SeverityLegend";
 import AnalysisCard from "../components/AnalysisCard";
@@ -136,6 +138,7 @@ function analyzeCommand(cmd, signatures = []) {
 export default function AnalysisPage() {
   const params = useSearchParams();
   const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
   const [result, setResult] = useState(null);
   const [cmd, setCmd] = useState("");
   const [signatures, setSignatures] = useState([]);
@@ -165,14 +168,43 @@ export default function AnalysisPage() {
     loadSignatures();
   }, []);
 
+  // Função para salvar análise no Supabase
+  const saveAnalysisToDatabase = async (command, analysisResult) => {
+    if (!isAuthenticated()) {
+      console.log('Usuário não autenticado, não salvando análise');
+      return;
+    }
+    
+    try {
+      const analysisData = {
+        command: command,
+        analysis_result: analysisResult,
+        risk_score: analysisResult.score || 0,
+        severity: analysisResult.severity || 'info',
+        signatures_detected: analysisResult.signatures || [],
+        decoded_command: analysisResult.decodedCommand || null
+      };
+      
+      const savedAnalysis = await savePowerShellAnalysis(analysisData);
+      console.log('Análise salva com sucesso:', savedAnalysis);
+    } catch (error) {
+      console.error('Erro ao salvar análise:', error);
+    }
+  };
+
   useEffect(() => {
     const command = params.get("cmd") || "";
     setCmd(command);
     if (signatures.length > 0) {
       const analysisResult = analyzeCommand(command, signatures);
       setResult(analysisResult);
+      
+      // Salvar análise no banco de dados se o usuário estiver autenticado
+      if (command && analysisResult) {
+        saveAnalysisToDatabase(command, analysisResult);
+      }
     }
-  }, [params, signatures]);
+  }, [params, signatures, isAuthenticated]);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">

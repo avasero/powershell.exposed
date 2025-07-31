@@ -3,6 +3,7 @@ import Navbar from "./components/navbar";
 import Footer from "./components/footer";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { DrawerProvider } from "./contexts/DrawerContext";
+import { AuthProvider } from "./contexts/AuthContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,13 +29,13 @@ export default function RootLayout({ children }) {
         style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
       >
         <ThemeProvider>
-          <DrawerProvider>
-        
+          <AuthProvider>
+            <DrawerProvider>
               <Navbar />
               <main className="flex-1">{children}</main>
               <Footer />
-           
-          </DrawerProvider>
+            </DrawerProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
