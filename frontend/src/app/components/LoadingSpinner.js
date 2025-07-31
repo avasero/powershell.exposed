@@ -1,6 +1,6 @@
 "use client";
 
-export default function LoadingSpinner({ message = "Carregando...", size = "xl" }) {
+export default function LoadingSpinner({ message = "Loading...", size = "xl" }) {
   const sizeClasses = {
     sm: "text-sm",
     md: "text-base", 

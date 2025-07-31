@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
   const pathname = usePathname();
 
   // Pages that don't need authentication
-  const publicRoutes = ['/login', '/register', '/', '/signatures', '/analysis'];
+  const publicRoutes = ['/login', '/register', '/signatures', '/landing'];
 
   useEffect(() => {
     // Get initial session
@@ -52,6 +52,19 @@ export const AuthProvider = ({ children }) => {
 
     return () => subscription?.unsubscribe();
   }, []);
+
+  // Redirect logic
+  useEffect(() => {
+    if (!loading) {
+      const isPublicRoute = publicRoutes.includes(pathname);
+      const userIsAuthenticated = user !== null;
+
+      if (!userIsAuthenticated && !isPublicRoute) {
+        // User is not authenticated and trying to access protected route
+        router.push('/landing');
+      }
+    }
+  }, [user, loading, pathname, router]);
 
   const signUp = async (email, password, username) => {
     try {
@@ -92,7 +105,7 @@ export const AuthProvider = ({ children }) => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       setUser(null);
-      router.push('/');
+      router.push('/login');
       return { error: null };
     } catch (error) {
       return { error };
@@ -110,6 +123,12 @@ export const AuthProvider = ({ children }) => {
         <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{borderColor: 'var(--accent)'}}></div>
       </div>
     );
+  }
+
+  // If not authenticated and not on a public route, don't render anything (already redirected)
+  const isPublicRoute = publicRoutes.includes(pathname);
+  if (!isAuthenticated() && !isPublicRoute) {
+    return null;
   }
 
   const value = {

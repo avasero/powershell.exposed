@@ -22,22 +22,22 @@ export default function RegisterPage() {
 
   const validateForm = () => {
     if (!email || !username || !password || !confirmPassword) {
-      setError('Todos os campos são obrigatórios');
+      setError('All fields are required');
       return false;
     }
 
     if (password !== confirmPassword) {
-      setError('As senhas não coincidem');
+      setError('Passwords do not match');
       return false;
     }
 
     if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres');
+      setError('Password must be at least 6 characters');
       return false;
     }
 
     if (username.length < 3) {
-      setError('O nome de usuário deve ter pelo menos 3 caracteres');
+      setError('Username must be at least 3 characters');
       return false;
     }
 
@@ -60,20 +60,20 @@ export default function RegisterPage() {
       
       if (error) {
         if (error.message.includes('User already registered')) {
-          setError('Este email já está cadastrado');
+          setError('This email is already registered');
         } else if (error.message.includes('Password should be at least')) {
-          setError('A senha deve ter pelo menos 6 caracteres');
+          setError('Password must be at least 6 characters');
         } else {
           setError(error.message);
         }
       } else {
-        setMessage('Cadastro realizado! Verifique seu email para confirmar a conta.');
+        setMessage('Registration successful! Check your email to confirm your account.');
         setTimeout(() => {
           router.push('/login');
         }, 3000);
       }
     } catch (err) {
-      setError('Erro inesperado durante o cadastro');
+      setError('Unexpected error during registration');
       console.error('Registration error:', err);
     } finally {
       setLoading(false);
@@ -85,10 +85,10 @@ export default function RegisterPage() {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <h1 className="text-2xl sm:text-3xl font-mono font-bold" style={{color: 'var(--accent)'}}>
-            Registro
+            Register
           </h1>
           <p className="mt-2 font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-            Crie sua conta
+            Create your account
           </p>
         </div>
 
@@ -99,12 +99,12 @@ export default function RegisterPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="seu@email.com"
+              placeholder="your@email.com"
               required
             />
 
             <FormInput
-              label="Nome de usuário"
+              label="Username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -113,7 +113,7 @@ export default function RegisterPage() {
             />
 
             <FormInput
-              label="Senha"
+              label="Password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -122,7 +122,7 @@ export default function RegisterPage() {
             />
 
             <FormInput
-              label="Confirmar senha"
+              label="Confirm password"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
@@ -138,15 +138,15 @@ export default function RegisterPage() {
               disabled={loading}
               className="w-full"
             >
-              {loading ? <LoadingSpinner size="sm" /> : 'Cadastrar'}
+              {loading ? <LoadingSpinner size="sm" /> : 'Sign Up'}
             </ThemedButton>
           </form>
 
           <div className="mt-6 text-center">
             <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-              Já tem uma conta?{' '}
+              Already have an account?{' '}
               <Link href="/login" className="font-semibold hover:underline" style={{color: 'var(--accent)'}}>
-                Faça login
+                Sign in
               </Link>
             </p>
           </div>

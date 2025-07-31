@@ -48,7 +48,7 @@ export default function ThemedButton({
       {loading ? (
         <div className="flex items-center space-x-2">
           <div className="animate-spin rounded-full h-4 w-4 border-b-2" style={{borderColor: 'currentColor'}}></div>
-          <span>Carregando...</span>
+          <span>Loading...</span>
         </div>
       ) : (
         children

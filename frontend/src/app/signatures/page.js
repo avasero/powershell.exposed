@@ -57,7 +57,7 @@ export default function SignaturesPage() {
         const signaturesData = await response.json();
         setSignatures(signaturesData);
       } catch (error) {
-        console.error('Erro ao carregar signatures:', error);
+        console.error('Error loading signatures:', error);
       } finally {
         setLoading(false);
       }

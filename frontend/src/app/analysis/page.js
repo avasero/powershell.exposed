@@ -142,6 +142,13 @@ export default function AnalysisPage() {
   const [result, setResult] = useState(null);
   const [cmd, setCmd] = useState("");
   const [signatures, setSignatures] = useState([]);
+
+  // Verificar autenticação
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      router.push('/landing');
+    }
+  }, [isAuthenticated, router]);
   const decodedResult = result && result.decodedCommand ? analyzeCommand(result.decodedCommand, signatures) : null;
   // Combine and dedupe indicators from original and decoded command
   const allSignatures = result
@@ -168,10 +175,10 @@ export default function AnalysisPage() {
     loadSignatures();
   }, []);
 
-  // Função para salvar análise no Supabase
+  // Function to save analysis to Supabase
   const saveAnalysisToDatabase = async (command, analysisResult) => {
     if (!isAuthenticated()) {
-      console.log('Usuário não autenticado, não salvando análise');
+      console.log('User not authenticated, not saving analysis');
       return;
     }
     
@@ -186,9 +193,9 @@ export default function AnalysisPage() {
       };
       
       const savedAnalysis = await savePowerShellAnalysis(analysisData);
-      console.log('Análise salva com sucesso:', savedAnalysis);
+      console.log('Analysis saved successfully:', savedAnalysis);
     } catch (error) {
-      console.error('Erro ao salvar análise:', error);
+      console.error('Error saving analysis:', error);
     }
   };
 
@@ -199,7 +206,7 @@ export default function AnalysisPage() {
       const analysisResult = analyzeCommand(command, signatures);
       setResult(analysisResult);
       
-      // Salvar análise no banco de dados se o usuário estiver autenticado
+      // Save analysis to database if user is authenticated
       if (command && analysisResult) {
         saveAnalysisToDatabase(command, analysisResult);
       }

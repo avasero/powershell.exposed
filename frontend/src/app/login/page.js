@@ -29,18 +29,18 @@ export default function LoginPage() {
       
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
-          setError('Email ou senha incorretos');
+          setError('Incorrect email or password');
         } else if (error.message.includes('Email not confirmed')) {
-          setError('Por favor, confirme seu email antes de fazer login');
+          setError('Please confirm your email before logging in');
         } else {
           setError(error.message);
         }
       } else if (data.user) {
-        setMessage('Login realizado com sucesso!');
+        setMessage('Login successful!');
         router.push('/');
       }
     } catch (err) {
-      setError('Erro inesperado durante o login');
+      setError('Unexpected error during login');
       console.error('Login error:', err);
     } finally {
       setLoading(false);
@@ -55,7 +55,7 @@ export default function LoginPage() {
             Login
           </h1>
           <p className="mt-2 font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-            Entre na sua conta
+            Sign in to your account
           </p>
         </div>
 
@@ -66,12 +66,12 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="seu@email.com"
+              placeholder="your@email.com"
               required
             />
 
             <FormInput
-              label="Senha"
+              label="Password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -87,15 +87,15 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full"
             >
-              {loading ? <LoadingSpinner size="sm" /> : 'Entrar'}
+              {loading ? <LoadingSpinner size="sm" /> : 'Sign In'}
             </ThemedButton>
           </form>
 
           <div className="mt-6 text-center">
             <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-              Não tem uma conta?{' '}
+              Don't have an account?{' '}
               <Link href="/register" className="font-semibold hover:underline" style={{color: 'var(--accent)'}}>
-                Registre-se
+                Sign up
               </Link>
             </p>
           </div>

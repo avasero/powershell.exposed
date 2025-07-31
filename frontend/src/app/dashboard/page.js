@@ -31,24 +31,24 @@ export default function DashboardPage() {
       const data = await getUserAnalyses(50);
       setAnalyses(data);
     } catch (err) {
-      setError('Erro ao carregar análises: ' + err.message);
+      setError('Error loading analyses: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteAnalysis = async (analysisId) => {
-    if (!confirm('Tem certeza que deseja deletar esta análise?')) {
+    if (!confirm('Are you sure you want to delete this analysis?')) {
       return;
     }
 
     try {
       await deleteAnalysis(analysisId);
-      setMessage('Análise deletada com sucesso');
+      setMessage('Analysis deleted successfully');
       setAnalyses(analyses.filter(a => a.id !== analysisId));
       setTimeout(() => setMessage(""), 3000);
     } catch (err) {
-      setError('Erro ao deletar análise: ' + err.message);
+      setError('Error deleting analysis: ' + err.message);
     }
   };
 
@@ -73,7 +73,7 @@ export default function DashboardPage() {
             Dashboard
           </h1>
           <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-            Suas análises de PowerShell salvas
+            Your saved PowerShell analyses
           </p>
         </div>
 
@@ -83,10 +83,10 @@ export default function DashboardPage() {
         {analyses.length === 0 ? (
           <div className="text-center py-12">
             <p className="font-mono text-lg mb-4" style={{color: 'var(--muted-foreground)'}}>
-              Nenhuma análise encontrada
+              No analysis found
             </p>
             <ThemedButton onClick={() => router.push('/')}>
-              Fazer primeira análise
+              Run first analysis
             </ThemedButton>
           </div>
         ) : (
@@ -115,7 +115,7 @@ export default function DashboardPage() {
                       variant="outline"
                       onClick={() => handleViewAnalysis(analysis.command)}
                     >
-                      Ver Análise
+                      View Analysis
                     </ThemedButton>
                     <button
                       onClick={() => handleDeleteAnalysis(analysis.id)}

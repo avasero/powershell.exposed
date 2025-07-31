@@ -42,7 +42,7 @@ export default function SideDrawer() {
       await signOut();
       closeDrawer();
     } catch (error) {
-      console.error("Erro ao fazer logout:", error);
+      console.error("Error logging out:", error);
     }
   };
 
@@ -102,19 +102,6 @@ export default function SideDrawer() {
 
           {/* Navigation Links */}
           <div className="space-y-2">
-            <Link 
-              href="/signatures" 
-              onClick={handleLinkClick}
-              className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm border transition-all duration-200 hover:opacity-80 hover:scale-[0.98] text-center"
-              style={{
-                backgroundColor: 'transparent', 
-                color: 'var(--accent)',
-                borderColor: 'var(--accent)'
-              }}
-            >
-              Signatures
-            </Link>
-            
             {isAuthenticated() && (
               <Link 
                 href="/dashboard" 
@@ -136,7 +123,7 @@ export default function SideDrawer() {
             <div className="border-t pt-4 space-y-3" style={{ borderColor: 'var(--border-color)' }}>
               <div className="text-center p-3 rounded-md" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
                 <span className="font-mono text-sm block mb-1" style={{ color: 'var(--foreground)' }}>
-                  Logado como:
+                  Logged in as:
                 </span>
                 <div className="font-mono text-sm font-semibold" style={{ color: 'var(--accent)' }}>
                   {user?.user_metadata?.username || user?.email}
@@ -177,7 +164,7 @@ export default function SideDrawer() {
                   color: 'var(--background)'
                 }}
               >
-                Registrar
+                Register
               </Link>
             </div>
           )}

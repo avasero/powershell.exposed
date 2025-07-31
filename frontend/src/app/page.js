@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "./contexts/AuthContext";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { ErrorMessage, InfoMessage } from "./components/Messages";
 import CommandInput from "./components/CommandInput";
@@ -8,9 +9,17 @@ import ThemedButton from "./components/ThemedButton";
 
 export default function Home() {
   const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
   const [error, setError] = useState("");
   const [command, setCommand] = useState("");
   const [result, setResult] = useState(null); // { type: 'safe'|'malicious', severity: 'leve'|'médio'|'crítico' }
+
+  // Verificar autenticação
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      router.push('/landing');
+    }
+  }, [isAuthenticated, router]);
 
   // Função para validar se o input é um comando PowerShell válido
   const validatePowerShellCommand = (input) => {
@@ -123,7 +132,7 @@ export default function Home() {
     return { isValid: true, error: null };
   };
 
-  // Simulação de análise de comando
+  // Command analysis simulation
   const handleAnalyze = (e) => {
     e.preventDefault();
     
@@ -133,7 +142,7 @@ export default function Home() {
       return;
     }
     
-    setError(""); // Limpa erro anterior
+    setError(""); // Clear previous error
     router.push(`/analysis?cmd=${encodeURIComponent(command.trim())}`);
   };
 
@@ -142,13 +151,13 @@ export default function Home() {
     const newCommand = e.target.value;
     setCommand(newCommand);
     
-    // Limpa erro se o campo estiver vazio
+    // Clear error if field is empty
     if (!newCommand.trim()) {
       setError("");
       return;
     }
     
-    // Validação básica em tempo real (apenas para erros óbvios)
+    // Basic real-time validation (only for obvious errors)
     if (newCommand.trim().length > 5) {
       const validation = validatePowerShellCommand(newCommand);
       if (!validation.isValid && (

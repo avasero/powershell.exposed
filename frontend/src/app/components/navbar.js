@@ -13,7 +13,7 @@ export default function Navbar() {
     try {
       await signOut();
     } catch (error) {
-      console.error("Erro ao fazer logout:", error);
+      console.error("Error logging out:", error);
     }
   };
 
@@ -24,22 +24,14 @@ export default function Navbar() {
           <Link href="/" className="font-mono text-lg sm:text-xl font-bold" style={{color: 'var(--accent)'}}>
             powershell.exposed
           </Link>
+          <span className="font-mono text-sm ml-2" style={{color: 'var(--muted-foreground)'}}>
+            by avasero
+          </span>
         </div>
         
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-4">
           <ThemeToggle />
-          <Link 
-            href="/signatures" 
-            className="px-4 py-2 font-mono font-semibold rounded text-sm border transition-colors hover:opacity-80"
-            style={{
-              backgroundColor: 'transparent', 
-              color: 'var(--accent)',
-              borderColor: 'var(--accent)'
-            }}
-          >
-            Signatures
-          </Link>
           
           {isAuthenticated() ? (
             <>
@@ -89,7 +81,7 @@ export default function Navbar() {
                   color: 'var(--background)'
                 }}
               >
-                Registrar
+                Register
               </Link>
             </>
           )}
