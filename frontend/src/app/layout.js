@@ -3,6 +3,7 @@ import Navbar from "./components/navbar";
 import Footer from "./components/footer";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { DrawerProvider } from "./contexts/DrawerContext";
+import { AnalysisDrawerProvider } from "./contexts/AnalysisDrawerContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import "./globals.css";
 
@@ -31,9 +32,11 @@ export default function RootLayout({ children }) {
         <ThemeProvider>
           <AuthProvider>
             <DrawerProvider>
-              <Navbar />
-              <main className="flex-1">{children}</main>
-              <Footer />
+              <AnalysisDrawerProvider>
+                <Navbar />
+                <main className="flex-1">{children}</main>
+                <Footer />
+              </AnalysisDrawerProvider>
             </DrawerProvider>
           </AuthProvider>
         </ThemeProvider>

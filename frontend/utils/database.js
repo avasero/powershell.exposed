@@ -50,9 +50,50 @@ export const getUserAnalyses = async (limit = 20, offset = 0) => {
       .range(offset, offset + limit - 1);
 
     if (error) throw error;
-    return data;
+    return data || [];
   } catch (error) {
     console.error('Erro ao buscar análises:', error);
+    throw error;
+  }
+};
+
+// Função para deletar as últimas 5 análises do usuário
+export const deleteRecentAnalyses = async () => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    // Buscar as 5 análises mais recentes
+    const { data: recentAnalyses, error: fetchError } = await supabase
+      .from('powershell_analyses')
+      .select('id')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    if (fetchError) throw fetchError;
+
+    if (!recentAnalyses || recentAnalyses.length === 0) {
+      return { success: true, message: 'No analyses to delete' };
+    }
+
+    // Extrair IDs das análises
+    const idsToDelete = recentAnalyses.map(analysis => analysis.id);
+
+    // Deletar as análises
+    const { error: deleteError } = await supabase
+      .from('powershell_analyses')
+      .delete()
+      .in('id', idsToDelete);
+
+    if (deleteError) throw deleteError;
+
+    return { success: true, deletedCount: recentAnalyses.length };
+  } catch (error) {
+    console.error('Erro ao deletar análises:', error);
     throw error;
   }
 };

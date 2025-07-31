@@ -101,20 +101,7 @@ export default function SideDrawer() {
 
           {/* Navigation Links */}
           <div className="space-y-2">
-            {isAuthenticated() && (
-              <Link 
-                href="/dashboard" 
-                onClick={handleLinkClick}
-                className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm border transition-all duration-200 hover:opacity-80 hover:scale-[0.98] text-center"
-                style={{
-                  backgroundColor: 'transparent', 
-                  color: 'var(--accent)',
-                  borderColor: 'var(--accent)'
-                }}
-              >
-                Dashboard
-              </Link>
-            )}
+            {/* Removido o link do Dashboard */}
           </div>
 
           {/* Authentication Section */}
