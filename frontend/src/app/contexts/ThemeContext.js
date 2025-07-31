@@ -38,6 +38,8 @@ export const ThemeProvider = ({ children }) => {
       root.style.setProperty('--secondary', '#5B2C87');
       root.style.setProperty('--border-color', '#DEE2E6');
       root.style.setProperty('--card-bg', '#FFFFFF');
+      root.style.setProperty('--muted', '#F1F3F4');
+      root.style.setProperty('--muted-foreground', '#6C757D');
     } else {
       root.style.setProperty('--primary-green', '#9CFE41');
       root.style.setProperty('--primary-purple', '#703FEC');
@@ -50,6 +52,8 @@ export const ThemeProvider = ({ children }) => {
       root.style.setProperty('--secondary', '#703FEC');
       root.style.setProperty('--border-color', '#9CFE41');
       root.style.setProperty('--card-bg', '#000000');
+      root.style.setProperty('--muted', '#1A1A1A');
+      root.style.setProperty('--muted-foreground', '#9CA3AF');
     }
     
     localStorage.setItem('theme', theme);

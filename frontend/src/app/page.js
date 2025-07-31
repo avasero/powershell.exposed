@@ -6,6 +6,7 @@ import LoadingSpinner from "./components/LoadingSpinner";
 import { ErrorMessage, InfoMessage } from "./components/Messages";
 import CommandInput from "./components/CommandInput";
 import ThemedButton from "./components/ThemedButton";
+import AnalysisChat from "./components/AnalysisChat";
 
 export default function Home() {
   const router = useRouter();
@@ -173,10 +174,15 @@ export default function Home() {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
-      <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center px-2" style={{color: 'var(--accent)'}}>
-        powershell.exposed
-      </h1>
+    <div className="flex h-full">
+      {/* Chat lateral - apenas para usuários autenticados no desktop */}
+      {isAuthenticated() && <AnalysisChat />}
+      
+      {/* Conteúdo principal */}
+      <div className={`flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 ${isAuthenticated() ? 'md:ml-0' : ''}`}>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center px-2" style={{color: 'var(--accent)'}}>
+          powershell.exposed
+        </h1>
         
         <form onSubmit={handleAnalyze} className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
@@ -227,6 +233,7 @@ export default function Home() {
             </div>
           )}
         </div>
+      </div>
     </div>
   );
 }
