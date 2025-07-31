@@ -102,12 +102,22 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      // Immediately set user to null for faster UI update
       setUser(null);
-      router.push('/login');
+      
+      // Redirect immediately
+      router.push('/landing');
+      
+      // Then handle Supabase signout in background
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Supabase signout error:', error);
+        // Don't throw error here since user is already redirected
+      }
+      
       return { error: null };
     } catch (error) {
+      console.error('SignOut error:', error);
       return { error };
     }
   };

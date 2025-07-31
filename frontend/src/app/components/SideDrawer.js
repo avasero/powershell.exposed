@@ -9,6 +9,7 @@ export default function SideDrawer() {
   const { isDrawerOpen, closeDrawer } = useDrawer();
   const { user, signOut, isAuthenticated } = useAuth();
   const [isAnimating, setIsAnimating] = useState(false);
+  const [showRegisterPopup, setShowRegisterPopup] = useState(false);
 
   // Close drawer when clicking outside
   useEffect(() => {
@@ -44,6 +45,11 @@ export default function SideDrawer() {
     } catch (error) {
       console.error("Error logging out:", error);
     }
+  };
+
+  const handleRegisterClick = (e) => {
+    e.preventDefault();
+    setShowRegisterPopup(true);
   };
 
   if (!isDrawerOpen && !isAnimating) return null;
@@ -141,9 +147,8 @@ export default function SideDrawer() {
               >
                 Login
               </Link>
-              <Link
-                href="/register"
-                onClick={handleLinkClick}
+              <button
+                onClick={handleRegisterClick}
                 className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm transition-all duration-200 hover:opacity-80 hover:scale-[0.98] text-center"
                 style={{
                   backgroundColor: 'var(--accent)', 
@@ -151,11 +156,65 @@ export default function SideDrawer() {
                 }}
               >
                 Register
-              </Link>
+              </button>
             </div>
           )}
         </div>
       </div>
+
+      {/* Registration Popup */}
+      {showRegisterPopup && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black bg-opacity-50"
+            onClick={() => setShowRegisterPopup(false)}
+          />
+          <div 
+            className="relative bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl"
+            style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', border: '1px solid' }}
+          >
+            <div className="text-center">
+              <div className="mb-4">
+                <svg 
+                  className="w-12 h-12 mx-auto text-yellow-500" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" 
+                  />
+                </svg>
+              </div>
+              <h3 
+                className="text-lg font-mono font-semibold mb-2" 
+                style={{ color: 'var(--foreground)' }}
+              >
+                Feature Not Available
+              </h3>
+              <p 
+                className="text-sm font-mono mb-4" 
+                style={{ color: 'var(--muted-foreground)' }}
+              >
+                Registration is temporarily disabled. This feature will be available soon.
+              </p>
+              <button
+                onClick={() => setShowRegisterPopup(false)}
+                className="px-4 py-2 font-mono font-semibold rounded text-sm transition-all duration-200 hover:opacity-80"
+                style={{
+                  backgroundColor: 'var(--accent)', 
+                  color: 'var(--background)'
+                }}
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
