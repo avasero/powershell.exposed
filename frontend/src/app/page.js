@@ -190,7 +190,8 @@ export default function Home() {
               <CommandInput
                 value={command}
                 onChange={handleCommandChange}
-                placeholder="Type a PowerShell command (e.g., Get-Process, ls | sort, Start-Service -Name...)"
+                onSubmit={() => handleAnalyze({ preventDefault: () => {} })}
+                placeholder="Type a PowerShell command (e.g., Get-Process, ls | sort, Start-Service -Name...) • Press Enter to analyze"
                 error={error}
               />
             </div>

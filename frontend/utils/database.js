@@ -17,9 +17,11 @@ export const savePowerShellAnalysis = async (analysisData) => {
           command: analysisData.command,
           analysis_result: analysisData.analysis_result,
           risk_score: analysisData.risk_score,
-          severity: analysisData.severity,
           signatures_detected: analysisData.signatures_detected || [],
           decoded_command: analysisData.decoded_command || null,
+          signature_file: analysisData.signature_file || 'yaml_signatures',
+          tactics: analysisData.tactics || [],
+          techniques: analysisData.techniques || [],
           created_at: new Date().toISOString()
         }
       ])

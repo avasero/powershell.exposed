@@ -17,9 +17,11 @@ CREATE TABLE powershell_analyses (
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   command TEXT NOT NULL,
   analysis_result JSONB,
-  risk_score INTEGER DEFAULT 0,
-  severity TEXT CHECK (severity IN ('info', 'medium', 'high', 'critical')) DEFAULT 'info',
+  risk_score DECIMAL(3,1) DEFAULT 0.0, -- Score baseado nas signatures YAML
   signatures_detected JSONB DEFAULT '[]'::jsonb,
+  signature_file TEXT, -- Nome do arquivo YAML da signature que detectou
+  tactics JSONB DEFAULT '[]'::jsonb, -- Táticas MITRE ATT&CK
+  techniques JSONB DEFAULT '[]'::jsonb, -- Técnicas MITRE ATT&CK
   decoded_command TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -43,8 +45,10 @@ CREATE POLICY "Users can delete own analyses" ON powershell_analyses FOR DELETE 
 -- 6. Criar índices para performance
 CREATE INDEX idx_powershell_analyses_user_id ON powershell_analyses(user_id);
 CREATE INDEX idx_powershell_analyses_created_at ON powershell_analyses(created_at DESC);
-CREATE INDEX idx_powershell_analyses_severity ON powershell_analyses(severity);
 CREATE INDEX idx_powershell_analyses_risk_score ON powershell_analyses(risk_score DESC);
+CREATE INDEX idx_powershell_analyses_signature_file ON powershell_analyses(signature_file);
+CREATE INDEX idx_powershell_analyses_tactics ON powershell_analyses USING GIN(tactics);
+CREATE INDEX idx_powershell_analyses_techniques ON powershell_analyses USING GIN(techniques);
 
 -- 7. Criar função para atualizar updated_at automaticamente
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -86,12 +90,18 @@ CREATE VIEW user_analysis_stats AS
 SELECT 
   user_id,
   COUNT(*) as total_analyses,
-  COUNT(*) FILTER (WHERE severity = 'critical') as critical_count,
-  COUNT(*) FILTER (WHERE severity = 'high') as high_count,
-  COUNT(*) FILTER (WHERE severity = 'medium') as medium_count,
-  COUNT(*) FILTER (WHERE severity = 'info') as info_count,
+  COUNT(*) FILTER (WHERE risk_score >= 8.1) as critical_count,
+  COUNT(*) FILTER (WHERE risk_score >= 6.1 AND risk_score <= 8.0) as high_count,
+  COUNT(*) FILTER (WHERE risk_score >= 4.1 AND risk_score <= 6.0) as medium_count,
+  COUNT(*) FILTER (WHERE risk_score >= 2.1 AND risk_score <= 4.0) as low_count,
+  COUNT(*) FILTER (WHERE risk_score >= 1.0 AND risk_score <= 2.0) as very_low_count,
   AVG(risk_score) as avg_risk_score,
-  MAX(created_at) as last_analysis_date
+  MAX(created_at) as last_analysis_date,
+  -- Estatísticas por táticas MITRE ATT&CK
+  COUNT(*) FILTER (WHERE tactics ? 'Persistence') as persistence_count,
+  COUNT(*) FILTER (WHERE tactics ? 'Defense Evasion') as defense_evasion_count,
+  COUNT(*) FILTER (WHERE tactics ? 'Execution') as execution_count,
+  COUNT(*) FILTER (WHERE tactics ? 'Privilege Escalation') as privilege_escalation_count
 FROM powershell_analyses
 GROUP BY user_id;
 

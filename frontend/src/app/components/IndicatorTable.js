@@ -3,68 +3,117 @@ import SeverityBadge from './SeverityBadge';
 
 export default function IndicatorTable({ signatures = [] }) {
   return (
-    <div className="border rounded-lg overflow-hidden mb-6 sm:mb-8" style={{borderColor: 'var(--border-color)'}}>
-      <div className="p-3 sm:p-4 border-b" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
-        <h3 className="font-mono text-base sm:text-lg font-bold" style={{color: 'var(--accent)'}}>
-          Scored Indicators ({signatures.length})
-        </h3>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full">
-          <thead style={{backgroundColor: 'var(--card-bg)'}}>
-            <tr>
-              <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-mono text-xs sm:text-sm border-b" style={{color: 'var(--accent)', borderColor: 'var(--border-color)'}}>
-                Severity
-              </th>
-              <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-mono text-xs sm:text-sm border-b" style={{color: 'var(--accent)', borderColor: 'var(--border-color)'}}>
-                Indicator Name
-              </th>
-              <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-mono text-xs sm:text-sm border-b hidden sm:table-cell" style={{color: 'var(--accent)', borderColor: 'var(--border-color)'}}>
-                Matched Pattern
-              </th>
-              <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-mono text-xs sm:text-sm border-b" style={{color: 'var(--accent)', borderColor: 'var(--border-color)'}}>
-                Score
-              </th>
-              <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-mono text-xs sm:text-sm border-b hidden md:table-cell" style={{color: 'var(--accent)', borderColor: 'var(--border-color)'}}>
-                Description
-              </th>
-            </tr>
-          </thead>
-          <tbody style={{backgroundColor: 'var(--card-bg)'}}>
-            {signatures.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-2 sm:px-4 py-4 sm:py-6 text-center font-mono text-xs sm:text-sm" style={{color: 'var(--accent)'}}>
-                  No indicators detected. This command appears to be safe.
-                </td>
-              </tr>
-            ) : (
-              signatures.map((sig, idx) => (
-                <tr key={idx} className="border-b" style={{borderColor: 'var(--border-color)'}}>
-                  <td className="px-2 sm:px-4 py-2 sm:py-3">
-                    <SeverityBadge severity={sig.severity} />
-                  </td>
-                  <td className="px-2 sm:px-4 py-2 sm:py-3 font-mono text-xs sm:text-sm font-bold" style={{color: 'var(--foreground)'}}>
+    <div className="space-y-6">
+      {signatures.length === 0 ? (
+        <div className="border rounded-lg p-6 text-center" style={{borderColor: 'var(--border-color)', backgroundColor: 'var(--card-bg)'}}>
+          <h3 className="font-mono text-lg font-bold mb-2" style={{color: 'var(--accent)'}}>
+            No Indicators Detected
+          </h3>
+          <p className="font-mono text-sm" style={{color: 'var(--foreground)', opacity: 0.8}}>
+            This command appears to be safe.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="border rounded-lg overflow-hidden" style={{borderColor: 'var(--border-color)'}}>
+            <div className="p-4 border-b" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
+              <h3 className="font-mono text-lg font-bold" style={{color: 'var(--accent)'}}>
+                Detected Signatures ({signatures.length})
+              </h3>
+            </div>
+          </div>
+          
+          {signatures.map((sig, idx) => (
+            <div key={idx} className="border rounded-lg overflow-hidden" style={{borderColor: 'var(--border-color)', backgroundColor: 'var(--card-bg)'}}>
+              {/* Header with Score and Name */}
+              <div className="p-4 border-b flex items-center justify-between" style={{borderColor: 'var(--border-color)', backgroundColor: 'rgba(156, 254, 65, 0.05)'}}>
+                <div className="flex items-center gap-3">
+                  <SeverityBadge score={sig.score} />
+                  <h4 className="font-mono text-lg font-bold" style={{color: 'var(--foreground)'}}>
                     {sig.name}
-                  </td>
-                  <td className="px-2 sm:px-4 py-2 sm:py-3 font-mono text-xs hidden sm:table-cell" style={{color: 'var(--accent)', backgroundColor: 'rgba(156, 254, 65, 0.1)'}}>
-                    <div className="max-w-xs truncate" title={sig.keyword}>
+                  </h4>
+                </div>
+                <div className="text-right">
+                  <div className="font-mono text-sm text-opacity-75" style={{color: 'var(--accent)'}}>Score</div>
+                  <div className="font-mono text-xl font-bold" style={{color: 'var(--accent)'}}>+{sig.score}</div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-4 space-y-4">
+                {/* Description */}
+                <div>
+                  <h5 className="font-mono text-sm font-bold mb-2" style={{color: 'var(--accent)'}}>Description:</h5>
+                  <p className="font-mono text-sm" style={{color: 'var(--foreground)', opacity: 0.9}}>
+                    {sig.description}
+                  </p>
+                </div>
+
+                {/* Matched Pattern */}
+                {sig.keyword && (
+                  <div>
+                    <h5 className="font-mono text-sm font-bold mb-2" style={{color: 'var(--accent)'}}>Matched Pattern:</h5>
+                    <code className="font-mono text-xs p-2 rounded block" style={{backgroundColor: 'rgba(156, 254, 65, 0.1)', color: 'var(--accent)'}}>
                       {sig.keyword}
+                    </code>
+                  </div>
+                )}
+
+                {/* MITRE ATT&CK Info */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Tactics */}
+                  {sig.tactic && sig.tactic.length > 0 && (
+                    <div>
+                      <h5 className="font-mono text-sm font-bold mb-2" style={{color: 'var(--accent)'}}>MITRE Tactics:</h5>
+                      <div className="flex flex-wrap gap-1">
+                        {sig.tactic.map((tactic, tacticIdx) => (
+                          <span key={tacticIdx} className="font-mono text-xs px-2 py-1 rounded" 
+                                style={{backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'rgb(59, 130, 246)', border: '1px solid rgba(59, 130, 246, 0.3)'}}>
+                            {tactic}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </td>
-                  <td className="px-2 sm:px-4 py-2 sm:py-3 font-mono text-xs sm:text-sm font-bold" style={{color: 'var(--foreground)'}}>
-                    +{sig.score}
-                  </td>
-                  <td className="px-2 sm:px-4 py-2 sm:py-3 font-mono text-xs hidden md:table-cell" style={{color: 'var(--foreground)', opacity: 0.8}}>
-                    <div className="max-w-sm">
-                      {sig.description}
+                  )}
+
+                  {/* Techniques */}
+                  {sig.technique && sig.technique.length > 0 && (
+                    <div>
+                      <h5 className="font-mono text-sm font-bold mb-2" style={{color: 'var(--accent)'}}>MITRE Techniques:</h5>
+                      <div className="flex flex-wrap gap-1">
+                        {sig.technique.map((technique, techIdx) => (
+                          <span key={techIdx} className="font-mono text-xs px-2 py-1 rounded" 
+                                style={{backgroundColor: 'rgba(168, 85, 247, 0.1)', color: 'rgb(168, 85, 247)', border: '1px solid rgba(168, 85, 247, 0.3)'}}>
+                            {technique}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                  )}
+                </div>
+
+                {/* References */}
+                {sig.reference && sig.reference.length > 0 && (
+                  <div>
+                    <h5 className="font-mono text-sm font-bold mb-2" style={{color: 'var(--accent)'}}>References:</h5>
+                    <ul className="space-y-1">
+                      {sig.reference.map((ref, refIdx) => (
+                        <li key={refIdx}>
+                          <a href={ref} target="_blank" rel="noopener noreferrer" 
+                             className="font-mono text-xs hover:underline break-all"
+                             style={{color: 'rgb(34, 197, 94)'}}>
+                            {ref}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </>
+      )}
     </div>
   );
 }
