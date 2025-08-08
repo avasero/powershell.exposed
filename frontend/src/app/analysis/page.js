@@ -33,7 +33,9 @@ function parseYamlSignature(yamlText) {
     const signature = {};
     let currentKey = null;
     let inReferenceSection = false;
+    let inRegexSection = false;
     let references = [];
+    let regexPatterns = [];
     
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
@@ -46,9 +48,21 @@ function parseYamlSignature(yamlText) {
         continue;
       }
       
+      // Handle regex list items
+      if (inRegexSection && line.startsWith('- ')) {
+        const regex = line.slice(2).trim(); // Remove "- " prefix
+        regexPatterns.push(regex);
+        continue;
+      }
+      
       // If we're in reference section but encounter a non-list item, end the section
       if (inReferenceSection && !line.startsWith('- ') && line.includes(':')) {
         inReferenceSection = false;
+      }
+      
+      // If we're in regex section but encounter a non-list item, end the section
+      if (inRegexSection && !line.startsWith('- ') && line.includes(':')) {
+        inRegexSection = false;
       }
       
       if (line.includes(':')) {
@@ -67,7 +81,14 @@ function parseYamlSignature(yamlText) {
             inReferenceSection = false;
             break;
           case 'regex':
-            signature.regex = value;
+            if (value && value !== '') {
+              // Single regex value on same line
+              signature.regex = [value];
+            } else {
+              // Multi-line regex array
+              inRegexSection = true;
+              regexPatterns = [];
+            }
             signature.flags = 'i'; // Default case insensitive
             inReferenceSection = false;
             break;
@@ -110,6 +131,11 @@ function parseYamlSignature(yamlText) {
       signature.reference = references;
     }
     
+    // Add regex patterns to signature if any were found
+    if (regexPatterns.length > 0) {
+      signature.regex = regexPatterns;
+    }
+    
     return signature;
   } catch (error) {
     console.error('Erro ao parsear YAML:', error);
@@ -123,19 +149,36 @@ function analyzeCommand(cmd, signatures = []) {
   let maxScore = 0;
   
   for (const sig of signatures) {
-    // Convert JSON regex string to RegExp object
-    const regex = new RegExp(sig.regex, sig.flags || 'i');
-    const match = cmd.match(regex);
-    if (match) {
+    // Handle both single regex string and array of regex patterns
+    const regexPatterns = Array.isArray(sig.regex) ? sig.regex : [sig.regex];
+    
+    // All regex patterns must match for the signature to trigger
+    let allMatch = true;
+    let matchedKeywords = [];
+    
+    for (const regexPattern of regexPatterns) {
+      // Remove inline flags like (?i) that are not supported in JavaScript RegExp constructor
+      const cleanPattern = regexPattern.replace(/^\(\?\w+\)/, '');
+      const regex = new RegExp(cleanPattern, sig.flags || 'i');
+      const match = cmd.match(regex);
+      if (match) {
+        matchedKeywords.push(match[0]);
+      } else {
+        allMatch = false;
+        break;
+      }
+    }
+    
+    if (allMatch) {
       found.push({
         name: sig.name,
-        keyword: match[0],
+        keyword: matchedKeywords.join(', '),
         score: sig.score,
         description: sig.description,
         category: sig.category,
         tactic: sig.tactic,
         technique: sig.technique,
-        reference: sig.reference  // Add references here!
+        reference: sig.reference
       });
       totalScore += sig.score;
       if (sig.score > maxScore) {
@@ -167,17 +210,18 @@ export default function AnalysisPage() {
   
   // Calculate total risk score from signatures
   const totalScore = result ? result.signatures.reduce((sum, sig) => sum + sig.score, 0) : 0;
-  // Carregar signatures dos 5 arquivos YAML principais
+  // Carregar signatures dos 6 arquivos YAML principais
   useEffect(() => {
     const loadSignatures = async () => {
       try {
-        // Lista dos 5 arquivos YAML principais
+        // Lista dos 6 arquivos YAML principais
         const yamlFiles = [
           'ps_indicator_scheduled_task_modification.yaml',
           'ps_indicator_ms_defender_tampering.yaml',
           'ps_indicator_web_client_traces.yaml',
           'ps_indicator_service_creation.yaml',
-          'ps_indicator_invoke_expression.yaml'
+          'ps_indicator_invoke_expression.yaml',
+          'ps_indicator_long_base64_string.yaml'
         ];
 
         const loadedSignatures = [];
