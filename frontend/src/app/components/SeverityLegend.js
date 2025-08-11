@@ -19,7 +19,7 @@ const SCORE_RANGES = {
     description: "Elevated Risk: High-risk activities requiring immediate attention.",
   },
   critical: {
-    label: "8.1 - 10.0",
+    label: "8.15 - 10.0",
     description: "Critical Risk: Highly dangerous commands requiring immediate action!",
   },
 };
