@@ -9,13 +9,61 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+// Cache simples para análises (limpa a cada 5 minutos)
+const analysisCache = new Map()
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
+
+// Função para limpar cache expirado
+function cleanExpiredCache() {
+  const now = Date.now()
+  for (const [key, value] of analysisCache.entries()) {
+    if (now - value.timestamp > CACHE_DURATION) {
+      analysisCache.delete(key)
+    }
+  }
+}
+
+// Gerar chave de cache baseada no comando
+function getCacheKey(command) {
+  return command.toLowerCase().trim()
+}
+
+// Função para limpar todo o cache manualmente
+export function clearAnalysisCache() {
+  analysisCache.clear()
+  console.log('Analysis cache cleared')
+}
+
+// Função para verificar tamanho do cache
+export function getCacheStats() {
+  cleanExpiredCache()
+  return {
+    size: analysisCache.size,
+    keys: Array.from(analysisCache.keys())
+  }
+}
+
 // Função para analisar comando PowerShell
 export async function analyzeCommand(command) {
+  // Limpar cache expirado
+  cleanExpiredCache()
+  
+  // Verificar cache primeiro
+  const cacheKey = getCacheKey(command)
+  const cached = analysisCache.get(cacheKey)
+  
+  if (cached) {
+    console.log('Cache hit for command:', command)
+    return cached.result
+  }
+
   const { data: { session } } = await supabase.auth.getSession()
   
   if (!session) {
     throw new Error('User not authenticated')
   }
+
+  console.log('Cache miss - fetching from backend for command:', command)
 
   const response = await fetch(`${supabaseUrl}/functions/v1/analyze-command`, {
     method: 'POST',
@@ -43,6 +91,13 @@ export async function analyzeCommand(command) {
 
   const result = await response.json()
   console.log('Analysis result:', result)
+  
+  // Armazenar no cache
+  analysisCache.set(cacheKey, {
+    result: result,
+    timestamp: Date.now()
+  })
+  
   return result
 }
 

@@ -6,6 +6,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Cache simples para signatures (renovado a cada 10 minutos)
+let signaturesCache: any[] | null = null
+let cacheTimestamp = 0
+const CACHE_DURATION = 10 * 60 * 1000 // 10 minutos
+
 interface AnalysisResult {
   command: string
   is_malicious: boolean
@@ -134,6 +139,14 @@ serve(async (req) => {
 
 async function loadSignatures() {
   try {
+    // Verificar cache primeiro
+    const now = Date.now()
+    if (signaturesCache && (now - cacheTimestamp) < CACHE_DURATION) {
+      console.log('Using cached signatures')
+      return signaturesCache
+    }
+
+    console.log('Loading signatures from database...')
     // Carregar signatures diretamente do banco de dados
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -167,7 +180,11 @@ async function loadSignatures() {
       reference: Array.isArray(sig.reference) ? sig.reference : (sig.reference ? [sig.reference] : [])
     }))
 
-    console.log(`Loaded ${convertedSignatures.length} signatures from database`)
+    // Armazenar no cache
+    signaturesCache = convertedSignatures
+    cacheTimestamp = now
+
+    console.log(`Loaded and cached ${convertedSignatures.length} signatures from database`)
     return convertedSignatures
 
   } catch (error) {

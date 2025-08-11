@@ -9,6 +9,7 @@ import SeverityBadge from "../components/SeverityBadge";
 import IndicatorTable from "../components/IndicatorTable";
 import ThemedButton from "../components/ThemedButton";
 import LoadingSpinner from "../components/LoadingSpinner";
+import AnalysisSkeleton from "../components/AnalysisSkeleton";
 
 // Score-based color system (5 bins from 1-10)
 function getScoreColor(score) {
@@ -69,7 +70,21 @@ export default function AnalysisPage() {
       setLoading(true);
       setError("");
       
-      const response = await analyzeCommand(command);
+      // Garantir que o skeleton apareça por pelo menos 800ms para UX
+      const minDelay = new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Timeout de 15 segundos para análise
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Analysis timeout - taking too long')), 15000)
+      );
+      
+      const analysisPromise = analyzeCommand(command);
+      
+      // Executar análise e delay mínimo em paralelo
+      const [response] = await Promise.all([
+        Promise.race([analysisPromise, timeoutPromise]),
+        minDelay
+      ]);
       
       if (response.success) {
         const analysisData = response.analysis.analysis_result;
@@ -107,16 +122,7 @@ export default function AnalysisPage() {
   const totalScore = result ? result.score : 0;
 
   if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <LoadingSpinner />
-          <p className="font-mono text-sm mt-4" style={{color: 'var(--muted-foreground)'}}>
-            Analyzing command...
-          </p>
-        </div>
-      </div>
-    );
+    return <AnalysisSkeleton />;
   }
 
   return (
