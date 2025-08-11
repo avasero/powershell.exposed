@@ -268,35 +268,15 @@ async function analyzeCommand(command: string, signatures: any[]): Promise<Analy
   for (const signature of signatures) {
     for (const pattern of signature.patterns) {
       try {
-        // Primeiro tentar busca simples case-insensitive
-        if (command.toLowerCase().includes(pattern.toLowerCase())) {
-          detectedSignatures.push({
-            name: signature.name,
-            pattern: pattern,
-            severity: signature.severity,
-            score: signature.score,
-            description: signature.description,
-            tactics: signature.tactics,
-            techniques: signature.techniques,
-            reference: signature.reference
-          })
-          
-          signature.tactics.forEach((tactic: string) => tactics.add(tactic))
-          signature.techniques.forEach((technique: string) => techniques.add(technique))
-          
-          indicators.push(`${signature.name}: ${pattern}`)
-          patterns_found.push(pattern)
-          totalScore += signature.score
-          console.log(`Pattern matched: ${pattern} in signature: ${signature.name}`)
-          break // Uma detecção por assinatura para performance
-        }
-        
-        // Se busca simples falhar, tentar regex
+        // Usar apenas regex matching com os patterns completos dos YAMLs
         const regex = new RegExp(pattern, 'i')
-        if (regex.test(command)) {
+        const match = command.match(regex)
+        if (match) {
           detectedSignatures.push({
             name: signature.name,
             pattern: pattern,
+            matched_text: match[0], // O texto específico que fez match
+            matched_command: command, // Comando completo para highlight
             severity: signature.severity,
             score: signature.score,
             description: signature.description,
@@ -308,11 +288,11 @@ async function analyzeCommand(command: string, signatures: any[]): Promise<Analy
           signature.tactics.forEach((tactic: string) => tactics.add(tactic))
           signature.techniques.forEach((technique: string) => techniques.add(technique))
           
-          indicators.push(`${signature.name}: ${pattern}`)
-          patterns_found.push(pattern)
+          indicators.push(`${signature.name}: ${match[0]}`)
+          patterns_found.push(match[0])
           totalScore += signature.score
-          console.log(`Regex matched: ${pattern} in signature: ${signature.name}`)
-          break
+          console.log(`Regex matched: "${match[0]}" from pattern "${pattern}" in signature: ${signature.name}`)
+          break // Uma detecção por assinatura para performance
         }
       } catch (regexError) {
         console.warn(`Error with pattern "${pattern}":`, regexError)

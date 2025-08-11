@@ -174,6 +174,8 @@ export default function AnalysisPage() {
                 severity={signature.severity}
                 score={signature.score}
                 pattern={signature.pattern}
+                matched_text={signature.matched_text}
+                matched_command={signature.matched_command}
                 keywords={signature.pattern || signature.keyword}
                 tactic={signature.tactics || signature.tactic}
                 technique={signature.techniques || signature.technique}
@@ -210,10 +212,6 @@ export default function AnalysisPage() {
           </div>
         </div>
       )}
-
-     
-      
-
       {/* Error Display */}
       {error && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-4 border-red-500" style={{backgroundColor: 'var(--card-bg)'}}>
@@ -229,15 +227,9 @@ export default function AnalysisPage() {
      
 
       {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-8">
+      <div className="flex justify-center mb-8">
         <ThemedButton onClick={() => router.push('/')}>
           Analyze Another Command
-        </ThemedButton>
-        <ThemedButton 
-          onClick={() => router.push('/dashboard')} 
-          variant="outline"
-        >
-          View Dashboard
         </ThemedButton>
       </div>
     </div>

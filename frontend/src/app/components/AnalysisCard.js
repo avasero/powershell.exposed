@@ -8,6 +8,8 @@ export default function AnalysisCard({
   severity,
   score,
   pattern,
+  matched_text,
+  matched_command,
   keywords,
   tactic,
   technique,
@@ -35,6 +37,25 @@ export default function AnalysisCard({
     default: 'var(--accent)',
     info: 'var(--primary-blue)',
     warning: 'var(--secondary)'
+  };
+
+  // Função para destacar o texto que fez match
+  const highlightMatch = (command, matchedText) => {
+    if (!command || !matchedText) return command || '';
+    
+    const regex = new RegExp(`(${matchedText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = command.split(regex);
+    
+    return parts.map((part, index) => {
+      if (part.toLowerCase() === matchedText.toLowerCase()) {
+        return (
+          <span key={index} className="bg-yellow-400 text-black px-1 rounded font-bold">
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
   };
 
   // Se tem detalhes de signature, mostrar layout detalhado
@@ -70,15 +91,22 @@ export default function AnalysisCard({
           </div>
         )}
 
-        {(pattern || keywords) && (
+        {(matched_text || matched_command || pattern || keywords) && (
           <div className="mb-4">
             <div className="text-sm font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
               Matched Pattern:
             </div>
-            <div className="text-sm font-mono p-2 rounded break-all" 
-              style={{backgroundColor: 'var(--muted)', color: 'var(--foreground)'}}>
-              {pattern || keywords}
-            </div>
+            {matched_text && matched_command ? (
+              <div className="text-sm font-mono p-2 rounded break-all" 
+                style={{backgroundColor: 'var(--muted)', color: 'var(--foreground)'}}>
+                {highlightMatch(matched_command, matched_text)}
+              </div>
+            ) : (
+              <div className="text-sm font-mono p-2 rounded break-all" 
+                style={{backgroundColor: 'var(--muted)', color: 'var(--foreground)'}}>
+                {pattern || keywords}
+              </div>
+            )}
           </div>
         )}
 
