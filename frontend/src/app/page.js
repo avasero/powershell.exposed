@@ -7,13 +7,15 @@ import { ErrorMessage, InfoMessage } from "./components/Messages";
 import CommandInput from "./components/CommandInput";
 import ThemedButton from "./components/ThemedButton";
 import AnalysisChat from "./components/AnalysisChat";
+import { analyzeCommand } from "../../lib/supabase";
 
 export default function Home() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const [error, setError] = useState("");
   const [command, setCommand] = useState("");
-  const [result, setResult] = useState(null); // { type: 'safe'|'malicious', severity: 'leve'|'médio'|'crítico' }
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   // Verificar autenticação
   useEffect(() => {
@@ -133,7 +135,7 @@ export default function Home() {
     return { isValid: true, error: null };
   };
 
-  // Command analysis simulation
+  // Command analysis - REVERTED to original behavior
   const handleAnalyze = (e) => {
     e.preventDefault();
     
@@ -213,7 +215,7 @@ export default function Home() {
           />
         </form>
 
-        {/* Result area */}
+        {/* Result area - REVERTED to original */}
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl min-h-[80px] sm:min-h-[100px] flex items-center justify-center border rounded-lg p-4 sm:p-6" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
           {result ? (
             <div className="text-center">

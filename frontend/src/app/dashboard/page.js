@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
-import { getUserAnalyses, deleteAnalysis } from "../../../utils/database";
+import { getUserAnalyses, getDashboardStats } from "../../../lib/supabase";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SeverityBadge from "../components/SeverityBadge";
 import ThemedButton from "../components/ThemedButton";
@@ -11,6 +11,7 @@ import { ErrorMessage, InfoMessage } from "../components/Messages";
 export default function DashboardPage() {
   const { user, isAuthenticated } = useAuth();
   const [analyses, setAnalyses] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -22,39 +23,27 @@ export default function DashboardPage() {
       return;
     }
 
-    loadAnalyses();
+    loadDashboardData();
   }, [isAuthenticated, router]);
 
-  const loadAnalyses = async () => {
+  const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const data = await getUserAnalyses(50);
-      setAnalyses(data);
+      setError("");
+      
+      const response = await getUserAnalyses(1, 10);
+      setAnalyses(response.analyses || []);
+      setStats(response.stats || {});
+      
     } catch (err) {
-      setError('Error loading analyses: ' + err.message);
+      setError(err.message || "Failed to load dashboard data");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteAnalysis = async (analysisId) => {
-    if (!confirm('Are you sure you want to delete this analysis?')) {
-      return;
-    }
-
-    try {
-      await deleteAnalysis(analysisId);
-      setMessage('Analysis deleted successfully');
-      setAnalyses(analyses.filter(a => a.id !== analysisId));
-      setTimeout(() => setMessage(""), 3000);
-    } catch (err) {
-      setError('Error deleting analysis: ' + err.message);
-    }
-  };
-
-  const handleViewAnalysis = (command) => {
-    const encodedCommand = encodeURIComponent(command);
-    router.push(`/analysis?cmd=${encodedCommand}`);
+  const handleViewAnalysis = (analysisId) => {
+    router.push(`/analysis/${analysisId}`);
   };
 
   if (loading) {
@@ -80,6 +69,59 @@ export default function DashboardPage() {
         {error && <ErrorMessage message={error} />}
         {message && <InfoMessage message={message} />}
 
+        {/* Statistics Cards */}
+        {stats && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div 
+              className="p-4 rounded-lg border text-center"
+              style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}
+            >
+              <div className="text-2xl font-mono font-bold mb-1" style={{color: 'var(--accent)'}}>
+                {stats.total_analyses || 0}
+              </div>
+              <div className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+                Total Analyses
+              </div>
+            </div>
+            
+            <div 
+              className="p-4 rounded-lg border text-center"
+              style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}
+            >
+              <div className="text-2xl font-mono font-bold mb-1 text-red-500">
+                {stats.critical_count || 0}
+              </div>
+              <div className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+                Critical
+              </div>
+            </div>
+            
+            <div 
+              className="p-4 rounded-lg border text-center"
+              style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}
+            >
+              <div className="text-2xl font-mono font-bold mb-1 text-orange-500">
+                {(stats.high_count || 0) + (stats.medium_count || 0)}
+              </div>
+              <div className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+                High/Medium
+              </div>
+            </div>
+            
+            <div 
+              className="p-4 rounded-lg border text-center"
+              style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}
+            >
+              <div className="text-2xl font-mono font-bold mb-1" style={{color: 'var(--accent)'}}>
+                {(stats.avg_risk_score || 0).toFixed(1)}
+              </div>
+              <div className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+                Avg Risk Score
+              </div>
+            </div>
+          </div>
+        )}
+
         {analyses.length === 0 ? (
           <div className="text-center py-12">
             <p className="font-mono text-lg mb-4" style={{color: 'var(--muted-foreground)'}}>
@@ -99,35 +141,27 @@ export default function DashboardPage() {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1 min-w-0">
+                    <h3 className="font-mono font-bold text-lg mb-2 break-all" style={{color: 'var(--foreground)'}}>
+                      <code>{analysis.command.length > 100 ? analysis.command.substring(0, 100) + '...' : analysis.command}</code>
+                    </h3>
                     <div className="flex items-center gap-2 mb-2">
-                      <SeverityBadge severity={analysis.severity} />
+                      <SeverityBadge severity={analysis.analysis_result?.severity || 'unknown'} />
                       <span className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-                        Score: {analysis.risk_score}
+                        Score: {analysis.risk_score || 0}/10
                       </span>
                     </div>
-                    <p className="font-mono text-sm break-all" style={{color: 'var(--muted-foreground)'}}>
-                      {new Date(analysis.created_at).toLocaleString('pt-BR')}
+                    <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+                      {new Date(analysis.created_at).toLocaleString()}
                     </p>
                   </div>
                   <div className="flex gap-2 ml-4">
                     <ThemedButton
                       size="sm"
                       variant="outline"
-                      onClick={() => handleViewAnalysis(analysis.command)}
+                      onClick={() => handleViewAnalysis(analysis.id)}
                     >
                       View Analysis
                     </ThemedButton>
-                    <button
-                      onClick={() => handleDeleteAnalysis(analysis.id)}
-                      className="px-3 py-1 font-mono text-sm rounded border transition-colors hover:opacity-80"
-                      style={{
-                        backgroundColor: 'transparent',
-                        color: 'var(--destructive)',
-                        borderColor: 'var(--destructive)'
-                      }}
-                    >
-                      Deletar
-                    </button>
                   </div>
                 </div>
                 

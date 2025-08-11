@@ -1,0 +1,22 @@
+# Configure estas variáveis de ambiente no Supabase Dashboard
+
+## Acesse: https://supabase.com/dashboard/project/vluiqlsotcncfpizwmhb/functions
+
+## Vá em Settings → Edge Functions → Environment Variables e adicione:
+
+## 1. SUPABASE_URL
+https://vluiqlsotcncfpizwmhb.supabase.co
+
+## 2. SUPABASE_ANON_KEY  
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsdWlxbHNvdGNuY2ZwaXp3bWhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NTA2MTgsImV4cCI6MjA3MDEyNjYxOH0.e6_tAYo4aiAfJCTnxPjuha2IJOhxC7TybERLWjg_aJY
+
+## 3. SUPABASE_SERVICE_ROLE_KEY
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsdWlxbHNvdGNuY2ZwaXp3bWhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NTA2MTgsImV4cCI6MjA3MDEyNjYxOH0.e6_tAYo4aiAfJCTnxPjuha2IJOhxC7TybERLWjg_aJY
+
+## ⚠️ IMPORTANTE: Você precisará obter a SERVICE_ROLE_KEY real do seu projeto Supabase
+## A chave acima é a mesma que a ANON_KEY, mas você precisa da SERVICE_ROLE_KEY
+## Vá em Settings → API → Project API keys → service_role (secret)
+
+## Depois de configurar as variáveis, teste as functions em:
+## https://supabase.com/dashboard/project/vluiqlsotcncfpizwmhb/functions/analyze-command
+## https://supabase.com/dashboard/project/vluiqlsotcncfpizwmhb/functions/get-user-analyses

@@ -1,13 +1,14 @@
 "use client";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { savePowerShellAnalysis } from "../../../utils/database";
+import { analyzeCommand } from "../../../lib/supabase";
 import SeverityLegend from "../components/SeverityLegend";
 import AnalysisCard from "../components/AnalysisCard";
 import SeverityBadge from "../components/SeverityBadge";
 import IndicatorTable from "../components/IndicatorTable";
 import ThemedButton from "../components/ThemedButton";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 // Score-based color system (5 bins from 1-10)
 function getScoreColor(score) {
@@ -26,180 +27,14 @@ function getScoreLabel(score) {
   return "VERY LOW";
 }
 
-// Simple YAML parser for signature files
-function parseYamlSignature(yamlText) {
-  try {
-    const lines = yamlText.split('\n');
-    const signature = {};
-    let currentKey = null;
-    let inReferenceSection = false;
-    let inRegexSection = false;
-    let references = [];
-    let regexPatterns = [];
-    
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line || line.startsWith('#')) continue;
-      
-      // Handle reference list items
-      if (inReferenceSection && line.startsWith('- ')) {
-        const ref = line.slice(2).trim(); // Remove "- " prefix
-        references.push(ref);
-        continue;
-      }
-      
-      // Handle regex list items
-      if (inRegexSection && line.startsWith('- ')) {
-        const regex = line.slice(2).trim(); // Remove "- " prefix
-        regexPatterns.push(regex);
-        continue;
-      }
-      
-      // If we're in reference section but encounter a non-list item, end the section
-      if (inReferenceSection && !line.startsWith('- ') && line.includes(':')) {
-        inReferenceSection = false;
-      }
-      
-      // If we're in regex section but encounter a non-list item, end the section
-      if (inRegexSection && !line.startsWith('- ') && line.includes(':')) {
-        inRegexSection = false;
-      }
-      
-      if (line.includes(':')) {
-        const colonIndex = line.indexOf(':');
-        const key = line.slice(0, colonIndex).trim();
-        const value = line.slice(colonIndex + 1).trim();
-        currentKey = key;
-        
-        switch (currentKey) {
-          case 'name':
-            signature.name = value;
-            inReferenceSection = false;
-            break;
-          case 'description':
-            signature.description = value;
-            inReferenceSection = false;
-            break;
-          case 'regex':
-            if (value && value !== '') {
-              // Single regex value on same line
-              signature.regex = [value];
-            } else {
-              // Multi-line regex array
-              inRegexSection = true;
-              regexPatterns = [];
-            }
-            signature.flags = 'i'; // Default case insensitive
-            inReferenceSection = false;
-            break;
-          case 'basescore':
-            signature.score = parseFloat(value) || 0;
-            inReferenceSection = false;
-            break;
-          case 'tactic':
-            // Parse array format [item1, item2] or simple value
-            if (value.startsWith('[') && value.endsWith(']')) {
-              signature.tactic = value.slice(1, -1).split(',').map(t => t.trim());
-            } else {
-              signature.tactic = [value];
-            }
-            inReferenceSection = false;
-            break;
-          case 'technique':
-            // Parse array format [item1, item2] or simple value
-            if (value.startsWith('[') && value.endsWith(']')) {
-              signature.technique = value.slice(1, -1).split(',').map(t => t.trim());
-            } else {
-              signature.technique = [value];
-            }
-            inReferenceSection = false;
-            break;
-          case 'reference':
-            inReferenceSection = true;
-            references = [];
-            // If there's a value on the same line after "reference:"
-            if (value && value !== '') {
-              references.push(value);
-            }
-            break;
-        }
-      }
-    }
-    
-    // Add references to signature if any were found
-    if (references.length > 0) {
-      signature.reference = references;
-    }
-    
-    // Add regex patterns to signature if any were found
-    if (regexPatterns.length > 0) {
-      signature.regex = regexPatterns;
-    }
-    
-    return signature;
-  } catch (error) {
-    console.error('Erro ao parsear YAML:', error);
-    return null;
-  }
-}
-
-function analyzeCommand(cmd, signatures = []) {
-  const found = [];
-  let totalScore = 0;
-  let maxScore = 0;
-  
-  for (const sig of signatures) {
-    // Handle both single regex string and array of regex patterns
-    const regexPatterns = Array.isArray(sig.regex) ? sig.regex : [sig.regex];
-    
-    // All regex patterns must match for the signature to trigger
-    let allMatch = true;
-    let matchedKeywords = [];
-    
-    for (const regexPattern of regexPatterns) {
-      // Remove inline flags like (?i) that are not supported in JavaScript RegExp constructor
-      const cleanPattern = regexPattern.replace(/^\(\?\w+\)/, '');
-      const regex = new RegExp(cleanPattern, sig.flags || 'i');
-      const match = cmd.match(regex);
-      if (match) {
-        matchedKeywords.push(match[0]);
-      } else {
-        allMatch = false;
-        break;
-      }
-    }
-    
-    if (allMatch) {
-      found.push({
-        name: sig.name,
-        keyword: matchedKeywords.join(', '),
-        score: sig.score,
-        description: sig.description,
-        category: sig.category,
-        tactic: sig.tactic,
-        technique: sig.technique,
-        reference: sig.reference
-      });
-      totalScore += sig.score;
-      if (sig.score > maxScore) {
-        maxScore = sig.score;
-      }
-    }
-  }
-  return {
-    maxScore: maxScore,
-    score: totalScore,
-    signatures: found
-  };
-}
-
 export default function AnalysisPage() {
   const params = useSearchParams();
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const [result, setResult] = useState(null);
   const [cmd, setCmd] = useState("");
-  const [signatures, setSignatures] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   // Verificar autenticação
   useEffect(() => {
@@ -207,101 +42,82 @@ export default function AnalysisPage() {
       router.push('/landing');
     }
   }, [isAuthenticated, router]);
-  
-  // Calculate total risk score from signatures
-  const totalScore = result ? result.signatures.reduce((sum, sig) => sum + sig.score, 0) : 0;
-  // Carregar signatures dos 6 arquivos YAML principais
-  useEffect(() => {
-    const loadSignatures = async () => {
-      try {
-        // Lista dos 6 arquivos YAML principais
-        const yamlFiles = [
-          'ps_indicator_scheduled_task_modification.yaml',
-          'ps_indicator_ms_defender_tampering.yaml',
-          'ps_indicator_web_client_traces.yaml',
-          'ps_indicator_service_creation.yaml',
-          'ps_indicator_invoke_expression.yaml',
-          'ps_indicator_long_base64_string.yaml'
-        ];
 
-        const loadedSignatures = [];
-
-        // Carregar cada arquivo YAML
-        for (const fileName of yamlFiles) {
-          try {
-            const response = await fetch(`/signatures/${fileName}`);
-            if (response.ok) {
-              const yamlText = await response.text();
-              const signature = parseYamlSignature(yamlText);
-              if (signature) {
-                loadedSignatures.push(signature);
-              }
-            }
-          } catch (error) {
-            console.warn(`Erro ao carregar ${fileName}:`, error);
-          }
-        }
-
-        setSignatures(loadedSignatures);
-      } catch (error) {
-        console.error('Erro ao carregar signatures:', error);
-      }
-    };
-    loadSignatures();
-  }, []);
-
-  // Function to save analysis to Supabase
-  const saveAnalysisToDatabase = useCallback(async (command, analysisResult) => {
-    if (!isAuthenticated()) {
-      console.log('User not authenticated, not saving analysis');
-      return;
-    }
-    
-    try {
-      // Extract tactics and techniques from signatures
-      const allTactics = [];
-      const allTechniques = [];
-      
-      analysisResult.signatures.forEach(sig => {
-        if (sig.tactic) {
-          allTactics.push(...(Array.isArray(sig.tactic) ? sig.tactic : [sig.tactic]));
-        }
-        if (sig.technique) {
-          allTechniques.push(...(Array.isArray(sig.technique) ? sig.technique : [sig.technique]));
-        }
-      });
-
-      const analysisData = {
-        command: command,
-        analysis_result: analysisResult,
-        risk_score: analysisResult.score || 0,
-        signatures_detected: analysisResult.signatures || [],
-        decoded_command: null,
-        signature_file: 'yaml_signatures', // Identificador para sistema YAML
-        tactics: [...new Set(allTactics)], // Remove duplicatas
-        techniques: [...new Set(allTechniques)] // Remove duplicatas
-      };
-      
-      const savedAnalysis = await savePowerShellAnalysis(analysisData);
-      console.log('Analysis saved successfully:', savedAnalysis);
-    } catch (error) {
-      console.error('Error saving analysis:', error);
-    }
-  }, [isAuthenticated]);
-
+  // Análise otimizada usando backend
   useEffect(() => {
     const command = params.get("cmd") || "";
     setCmd(command);
-    if (signatures.length > 0) {
-      const analysisResult = analyzeCommand(command, signatures);
-      setResult(analysisResult);
-      
-      // Save analysis to database if user is authenticated
-      if (command && analysisResult) {
-        saveAnalysisToDatabase(command, analysisResult);
-      }
+    
+    if (command.trim() && isAuthenticated()) {
+      performAnalysis(command);
+    } else if (command.trim()) {
+      // Fallback para análise local simples se não autenticado
+      setLoading(false);
+      setResult({
+        score: 0,
+        severity: "safe",
+        signatures: [],
+        decoded: null,
+        indicators: [],
+        details: "Please login to get detailed analysis"
+      });
     }
-  }, [params, signatures, isAuthenticated, saveAnalysisToDatabase]);
+  }, [params, isAuthenticated]);
+
+  const performAnalysis = async (command) => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      const response = await analyzeCommand(command);
+      
+      if (response.success) {
+        const analysisData = response.analysis.analysis_result;
+        
+        // Converter para formato esperado pelo frontend
+        setResult({
+          score: analysisData.risk_score,
+          severity: analysisData.is_malicious ? "malicious" : "safe",
+          signatures: analysisData.signatures_detected || [],
+          decoded: analysisData.decoded_command,
+          indicators: analysisData.analysis_details?.indicators || [],
+          details: analysisData.analysis_details?.recommendations?.join(", ") || "",
+          tactics: analysisData.tactics || [],
+          techniques: analysisData.techniques || []
+        });
+      }
+    } catch (err) {
+      console.error('Analysis error:', err);
+      setError(err.message);
+      // Fallback para análise básica
+      setResult({
+        score: 0,
+        severity: "unknown",
+        signatures: [],
+        decoded: null,
+        indicators: ["Error: " + err.message],
+        details: "Analysis failed, showing basic info"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Calculate total risk score from result
+  const totalScore = result ? result.score : 0;
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <LoadingSpinner />
+          <p className="font-mono text-sm mt-4" style={{color: 'var(--muted-foreground)'}}>
+            Analyzing command...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
@@ -313,87 +129,117 @@ export default function AnalysisPage() {
       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-3 sm:p-4" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
         <div className="font-mono text-xs sm:text-sm mb-2" style={{color: 'var(--accent)'}}>Command analyzed:</div>
         <div className="flex items-start">
-          <span className="font-mono mr-2 text-sm" style={{color: 'var(--accent)'}}>PS &gt;</span>
-          <span className="font-mono text-xs sm:text-sm break-all" style={{color: 'var(--foreground)'}}>{cmd}</span>
+          <span className="font-mono text-sm sm:text-base break-all" style={{color: 'var(--foreground)'}}>
+            {cmd}
+          </span>
         </div>
       </div>
 
-      {/* Score Legend */}
-      <SeverityLegend />
-      
-      {/* Results */}
+     
+ {/* Severity Legend */}
+      <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+        <SeverityLegend />
+      </div>
+      {/* Risk Score Display */}
       {result && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-          {/* Session Score & Risk Score */}
-          <div className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 sm:mb-8">
-            <div className="border rounded-lg p-4 sm:p-6 text-center max-w-md mx-auto" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
-              <h3 className="font-mono text-base sm:text-lg font-bold mb-2" style={{color: 'var(--accent)'}}>
-                Risk Score
-              </h3>
-              <span className="font-mono text-xl sm:text-2xl font-bold" style={{color: 'var(--foreground)'}}>
-                {totalScore.toFixed(1)}
-              </span>
-              <span className="font-mono text-xs block mt-1" style={{color: 'var(--accent)', opacity: 0.7}}>
-                Cumulative score from all indicators
-              </span>
+          <div 
+            className="p-6 sm:p-8 rounded-lg border-2 border-green-400 text-center"
+            style={{backgroundColor: '#000000'}}
+          >
+            <div className="text-xl sm:text-2xl font-mono font-bold mb-4 text-green-400">
+              Risk Score
+            </div>
+            <div className="text-5xl sm:text-6xl font-mono font-bold mb-4 text-white">
+              {totalScore.toFixed(1)}
+            </div>
+            <div className="text-sm sm:text-base font-mono text-green-400">
+              {totalScore === 0 ? "No indicators detected" : "Cumulative score from all indicators"}
             </div>
           </div>
-
-          {/* Scored Indicators */}
-          <IndicatorTable signatures={result.signatures} />
-
-          {/* Notes Section */}
-          <div className="mt-8 mb-6">
-            <AnalysisCard title="Analysis Notes" variant="warning">
-            <div className="space-y-2 sm:space-y-3">
-              {result.maxScore <= 2.0 && (
-                <div>
-                  • This command contains basic PowerShell operations with minimal security implications.
-                </div>
-              )}
-              {result.maxScore > 2.0 && result.maxScore <= 4.0 && (
-                <div>
-                  • This command contains common administrative operations that are generally safe.
-                </div>
-              )}
-              {result.maxScore > 4.0 && result.maxScore <= 6.0 && (
-                <div>
-                  • This command shows potentially suspicious activity. While not immediately dangerous, it should be reviewed in context.
-                </div>
-              )}
-              {result.maxScore > 6.0 && result.maxScore <= 8.0 && (
-                <div>
-                  • This command contains strong indicators of malicious intent. Review the execution context and source carefully.
-                </div>
-              )}
-              {result.maxScore > 8.0 && (
-                <div>
-                  • This command is highly dangerous and likely malicious. Immediate investigation and containment may be required.
-                </div>
-              )}
-              
-              {totalScore > 20 && (
-                <div>
-                  • High cumulative risk score ({totalScore.toFixed(1)}) indicates multiple suspicious patterns detected.
-                </div>
-              )}
-              
-              <div>
-                • Analysis completed with {signatures.length} detection signatures using MITRE ATT&CK framework.
-              </div>
-            </div>
-          </AnalysisCard>
+        </div>
+      )}
+      {/* Individual Indicators Details */}
+      {result && result.signatures && result.signatures.length > 0 && (
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+          <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{color: 'var(--foreground)'}}>
+            Indicator Details
+          </h2>
+          <div className="space-y-4">
+            {result.signatures.map((signature, index) => (
+              <AnalysisCard
+                key={index}
+                title={signature.name}
+                description={signature.description || `Pattern detected: ${signature.pattern}`}
+                severity={signature.severity}
+                score={signature.score}
+                pattern={signature.pattern}
+                keywords={signature.pattern || signature.keyword}
+                tactic={signature.tactics || signature.tactic}
+                technique={signature.techniques || signature.technique}
+                reference={signature.reference}
+              />
+            ))}
           </div>
         </div>
       )}
 
-      {/* Back Button */}
-      <ThemedButton
-        onClick={() => router.push("/")}
-        className="mb-6 sm:mb-8"
-      >
-        Analyze another command
-      </ThemedButton>
+      {/* No Indicators Message */}
+      {result && (!result.signatures || result.signatures.length === 0) && totalScore === 0 && (
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+          <div className="bg-gray-800 border border-gray-600 rounded-lg p-6 text-center">
+            <div className="text-6xl mb-4">✅</div>
+            <h2 className="text-lg sm:text-xl font-mono font-bold mb-2 text-green-400">
+              No Malicious Indicators Detected
+            </h2>
+            <p className="text-sm sm:text-base font-mono" style={{color: 'var(--muted-foreground)'}}>
+              This command appears to be safe based on our signature database.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Decoded Content */}
+      {result && result.decoded && (
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-4" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
+          <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--foreground)'}}>
+            Decoded Content
+          </h2>
+          <div className="font-mono text-sm break-all p-3 rounded" style={{backgroundColor: 'var(--muted)', color: 'var(--foreground)'}}>
+            {result.decoded}
+          </div>
+        </div>
+      )}
+
+     
+      
+
+      {/* Error Display */}
+      {error && (
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-4 border-red-500" style={{backgroundColor: 'var(--card-bg)'}}>
+          <h2 className="text-lg font-mono font-bold mb-3 text-red-500">
+            Error
+          </h2>
+          <div className="font-mono text-sm text-red-400">
+            {error}
+          </div>
+        </div>
+      )}
+
+     
+
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-8">
+        <ThemedButton onClick={() => router.push('/')}>
+          Analyze Another Command
+        </ThemedButton>
+        <ThemedButton 
+          onClick={() => router.push('/dashboard')} 
+          variant="outline"
+        >
+          View Dashboard
+        </ThemedButton>
+      </div>
     </div>
   );
 }
