@@ -9,6 +9,21 @@
       "name": "get-user-analyses",
       "source": "get-user-analyses/index.ts", 
       "verify_jwt": true
+    },
+    {
+      "name": "setup-database",
+      "source": "setup-database/index.ts",
+      "verify_jwt": false
+    },
+    {
+      "name": "update-database",
+      "source": "update-database/index.ts",
+      "verify_jwt": false
+    },
+    {
+      "name": "parse-yaml-indicator",
+      "source": "parse-yaml-indicator/index.ts",
+      "verify_jwt": false
     }
   ],
   "env_vars": {
