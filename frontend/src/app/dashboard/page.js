@@ -192,6 +192,33 @@ export default function DashboardPage() {
                     </div>
                   )}
                   
+                  {analysis.cmdlets_detected && analysis.cmdlets_detected.length > 0 && (
+                    <div className="mb-4">
+                      <h3 className="font-mono text-sm font-semibold mb-2" style={{color: 'var(--foreground)'}}>
+                        Cmdlets PowerShell:
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {analysis.cmdlets_detected.slice(0, 3).map((cmdlet, index) => (
+                          <span 
+                            key={index}
+                            className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800"
+                            title={`${cmdlet.alias} → ${cmdlet.cmdlet_name}`}
+                          >
+                            {cmdlet.alias}
+                          </span>
+                        ))}
+                        {analysis.cmdlets_detected.length > 3 && (
+                          <span 
+                            className="px-2 py-1 rounded text-xs font-mono"
+                            style={{color: 'var(--muted-foreground)'}}
+                          >
+                            +{analysis.cmdlets_detected.length - 3} mais
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
                   {analysis.signatures_detected && analysis.signatures_detected.length > 0 && (
                     <div>
                       <h3 className="font-mono text-sm font-semibold mb-2" style={{color: 'var(--foreground)'}}>

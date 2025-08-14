@@ -155,6 +155,31 @@ export default function AnalysisChat() {
                   </p>
                 </div>
 
+                {/* Cmdlets detected */}
+                {analysis.cmdlets_detected && Array.isArray(analysis.cmdlets_detected) && analysis.cmdlets_detected.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {analysis.cmdlets_detected.slice(0, 2).map((cmdlet, index) => {
+                      const displayName = cmdlet.alias || 'Unknown';
+                      const shortName = displayName.length > 12 ? displayName.substring(0, 12) + '...' : displayName;
+                      
+                      return (
+                        <span
+                          key={index}
+                          className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800"
+                          title={`${cmdlet.alias} → ${cmdlet.cmdlet_name}`}
+                        >
+                          {shortName}
+                        </span>
+                      );
+                    })}
+                    {analysis.cmdlets_detected.length > 2 && (
+                      <span className="px-2 py-1 rounded text-xs font-mono" style={{backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)'}}>
+                        +{analysis.cmdlets_detected.length - 2} cmdlets
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {analysis.signatures_detected && Array.isArray(analysis.signatures_detected) && analysis.signatures_detected.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {analysis.signatures_detected.slice(0, 2).map((sig, index) => {
@@ -291,6 +316,31 @@ export default function AnalysisChat() {
                           {truncateCommand(analysis.command)}
                         </p>
                       </div>
+
+                      {/* Cmdlets detected */}
+                      {analysis.cmdlets_detected && Array.isArray(analysis.cmdlets_detected) && analysis.cmdlets_detected.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {analysis.cmdlets_detected.slice(0, 2).map((cmdlet, index) => {
+                            const displayName = cmdlet.alias || 'Unknown';
+                            const shortName = displayName.length > 12 ? displayName.substring(0, 12) + '...' : displayName;
+                            
+                            return (
+                              <span
+                                key={index}
+                                className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800"
+                                title={`${cmdlet.alias} → ${cmdlet.cmdlet_name}`}
+                              >
+                                {shortName}
+                              </span>
+                            );
+                          })}
+                          {analysis.cmdlets_detected.length > 2 && (
+                            <span className="px-2 py-1 rounded text-xs font-mono" style={{backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)'}}>
+                              +{analysis.cmdlets_detected.length - 2} cmdlets
+                            </span>
+                          )}
+                        </div>
+                      )}
 
                       {analysis.signatures_detected && Array.isArray(analysis.signatures_detected) && analysis.signatures_detected.length > 0 && (
                         <div className="flex flex-wrap gap-1">

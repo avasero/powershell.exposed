@@ -149,6 +149,36 @@ export default function AnalysisDetailsPage() {
           </div>
         </div>
 
+        {/* Detected Cmdlets */}
+        {analysisResult.cmdlets_detected && analysisResult.cmdlets_detected.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--foreground)'}}>
+              PowerShell Cmdlets Detected
+            </h2>
+            <div className="space-y-3">
+              {analysisResult.cmdlets_detected.map((cmdlet, index) => (
+                <div 
+                  key={index}
+                  className="p-4 rounded-lg border"
+                  style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-mono font-bold" style={{color: 'var(--foreground)'}}>
+                      {cmdlet.alias} → {cmdlet.cmdlet_name}
+                    </h3>
+                    <span className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800">
+                      Score: {cmdlet.score}
+                    </span>
+                  </div>
+                  <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+                    {cmdlet.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Detected Signatures */}
         {analysisResult.signatures_detected && analysisResult.signatures_detected.length > 0 && (
           <div className="mb-6">

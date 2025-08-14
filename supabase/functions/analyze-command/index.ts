@@ -17,6 +17,7 @@ interface AnalysisResult {
   risk_score: number
   severity: string
   signatures_detected: any[]
+  cmdlets_detected?: any[] // Novo campo para cmdlets
   tactics: string[]
   techniques: string[]
   decoded_command?: string
@@ -24,6 +25,8 @@ interface AnalysisResult {
     indicators: string[]
     patterns_found: string[]
     recommendations: string[]
+    cmdlet_score?: number // Novo campo para score dos cmdlets
+    signature_score?: number // Novo campo para score das signatures
   }
 }
 
@@ -77,23 +80,27 @@ serve(async (req) => {
     console.log('Signatures loaded:', signatures.length)
     
     console.log('Starting analysis...')
-    const analysis = await analyzeCommand(command, signatures)
+    const analysis = await analyzeCommand(command, signatures, supabase) // Passar supabase para a função
     console.log('Analysis completed:', analysis)
 
-    // Salvar no banco
+    // Salvar no banco - incluir cmdlets no analysis_result como fallback
+    const analysisData: any = {
+      user_id: user.id,
+      command: analysis.command,
+      is_malicious: analysis.is_malicious,
+      risk_score: analysis.risk_score,
+      severity: analysis.severity,
+      signatures_detected: analysis.signatures_detected,
+      tactics: analysis.tactics,
+      techniques: analysis.techniques,
+      decoded_command: analysis.decoded_command,
+      analysis_result: analysis, // Incluir toda a análise aqui como backup
+      cmdlets_detected: analysis.cmdlets_detected || [] // Tentar incluir na coluna dedicada
+    }
+
     const { data: savedAnalysis, error: dbError } = await supabase
       .from('powershell_analyses')
-      .insert({
-        user_id: user.id,
-        command: analysis.command,
-        is_malicious: analysis.is_malicious,
-        risk_score: analysis.risk_score,
-        severity: analysis.severity,
-        signatures_detected: analysis.signatures_detected,
-        tactics: analysis.tactics,
-        techniques: analysis.techniques,
-        decoded_command: analysis.decoded_command
-      })
+      .insert(analysisData)
       .select()
       .single()
 
@@ -273,13 +280,143 @@ function getFallbackSignatures() {
   ]
 }
 
-async function analyzeCommand(command: string, signatures: any[]): Promise<AnalysisResult> {
+async function analyzeCommand(command: string, signatures: any[], supabase: any): Promise<AnalysisResult> {
   const detectedSignatures: any[] = []
   const tactics = new Set<string>()
   const techniques = new Set<string>()
   const indicators: string[] = []
   const patterns_found: string[] = []
   let totalScore = 0
+  let cmdletScore = 0
+  const detectedCmdlets: any[] = []
+
+  // Primeiro, verificar cmdlets comuns (score 0.1 cada) - TRATANDO COMO SIGNATURES
+  try {
+    console.log('=== CMDLET DETECTION START ===')
+    console.log('Checking cmdlets for command:', command)
+    
+    // Usar o mesmo cliente supabase que já foi criado no início da função
+    console.log('Querying powershell_cmdlets table...')
+    const { data: cmdlets, error: cmdletError } = await supabase
+      .from('powershell_cmdlets')
+      .select('alias, cmdlet_name, basescore, description, patterns, severity, tactics, techniques, reference')
+      .eq('is_active', true)
+      .limit(200) // Limitar para debug
+    
+    console.log('Cmdlets query result:')
+    console.log('- Total cmdlets found:', cmdlets?.length || 0)
+    console.log('- Error:', cmdletError)
+    
+    if (cmdletError) {
+      console.error('❌ Error querying cmdlets:', cmdletError)
+      console.error('Error details:', JSON.stringify(cmdletError, null, 2))
+    } else if (cmdlets && cmdlets.length > 0) {
+      console.log('✅ Found cmdlets in database:', cmdlets.length)
+      console.log('First 3 cmdlets:', cmdlets.slice(0, 3))
+      
+      for (const cmdlet of cmdlets) {
+        let detected = false
+        let matchedPattern = ''
+        
+        // Testar contra patterns (se existirem) - igual às signatures
+        if (cmdlet.patterns && Array.isArray(cmdlet.patterns)) {
+          for (const pattern of cmdlet.patterns) {
+            try {
+              const regex = new RegExp(pattern, 'i')
+              if (regex.test(command)) {
+                detected = true
+                matchedPattern = pattern
+                console.log(`✅ PATTERN MATCH: ${pattern} matched in ${cmdlet.alias} for command: ${command}`)
+                break // Parar no primeiro match para evitar duplicatas
+              }
+            } catch (regexError) {
+              console.warn(`Invalid regex pattern "${pattern}":`, regexError)
+            }
+          }
+        } else {
+          // Fallback: testar alias e cmdlet_name diretamente com word boundaries mais específicos
+          const aliasPattern = new RegExp(`(^|\\s)${cmdlet.alias}(\\s|$)`, 'i')
+          const cmdletPattern = new RegExp(`\\b${cmdlet.cmdlet_name.replace('-', '\\-?')}\\b`, 'i')
+          
+          if (aliasPattern.test(command)) {
+            detected = true
+            matchedPattern = cmdlet.alias
+            console.log(`✅ ALIAS MATCH: ${cmdlet.alias}`)
+          } else if (cmdletPattern.test(command)) {
+            detected = true
+            matchedPattern = cmdlet.cmdlet_name
+            console.log(`✅ CMDLET MATCH: ${cmdlet.cmdlet_name}`)
+          }
+        }
+        
+        if (detected) {
+          // Verificar se já detectamos este cmdlet para evitar duplicatas
+          const alreadyDetected = detectedCmdlets.some(existing => 
+            existing.alias === cmdlet.alias || existing.cmdlet_name === cmdlet.cmdlet_name
+          )
+          
+          if (!alreadyDetected) {
+            console.log(`✅ NEW CMDLET DETECTED: ${cmdlet.alias} -> ${cmdlet.cmdlet_name}`)
+            
+            // Adicionar aos detectedCmdlets (formato antigo para compatibilidade)
+            detectedCmdlets.push({
+              alias: cmdlet.alias,
+              cmdlet_name: cmdlet.cmdlet_name,
+              score: cmdlet.basescore,
+              description: cmdlet.description
+            })
+            
+            // IMPORTANTE: Também adicionar às signatures detectadas (NOVO - para aparecer na mesma seção)
+            detectedSignatures.push({
+              name: `${cmdlet.alias} (${cmdlet.cmdlet_name})`,
+              pattern: matchedPattern,
+              matched_text: matchedPattern,
+              matched_command: command,
+              severity: cmdlet.severity || 'very_low',
+              score: cmdlet.basescore,
+              description: cmdlet.description,
+              tactics: cmdlet.tactics || ['Execution'],
+              techniques: cmdlet.techniques || ['T1059.001'],
+              reference: cmdlet.reference || []
+            })
+            
+            cmdletScore += cmdlet.basescore
+            totalScore += cmdlet.basescore // Adicionar ao score total também
+            
+            // Adicionar táticas e técnicas
+            if (cmdlet.tactics && Array.isArray(cmdlet.tactics)) {
+              cmdlet.tactics.forEach((tactic: string) => tactics.add(tactic))
+            } else {
+              tactics.add('Execution')
+            }
+            
+            if (cmdlet.techniques && Array.isArray(cmdlet.techniques)) {
+              cmdlet.techniques.forEach((technique: string) => techniques.add(technique))
+            } else {
+              techniques.add('T1059.001')
+            }
+            
+            indicators.push(`PowerShell cmdlet: ${cmdlet.alias} (${cmdlet.cmdlet_name})`)
+            patterns_found.push(cmdlet.alias)
+            
+            console.log(`✅ Added cmdlet: ${cmdlet.alias} -> ${cmdlet.cmdlet_name} (score: ${cmdlet.basescore})`)
+          } else {
+            console.log(`⚠️ DUPLICATE: ${cmdlet.alias} already detected, skipping`)
+          }
+        }
+      }
+      
+      console.log('Final detected cmdlets count:', detectedCmdlets.length)
+      console.log('Final detected cmdlets:', detectedCmdlets)
+      console.log('Total cmdlet score:', cmdletScore)
+    } else {
+      console.log('❌ No cmdlets found - empty result set')
+    }
+    console.log('=== CMDLET DETECTION END ===')
+  } catch (cmdletError) {
+    console.error('❌ Exception in cmdlet detection:', cmdletError)
+    console.error('Error stack:', cmdletError.stack)
+  }
 
   // Análise usando patterns das signatures (busca simples primeiro)
   for (const signature of signatures) {
@@ -330,20 +467,28 @@ async function analyzeCommand(command: string, signatures: any[]): Promise<Analy
     }
   }
 
-  // Score final - SOMA dos scores das signatures detectadas (sem limite máximo)
-  const finalScore = totalScore
+  // Score final - SOMA dos scores das signatures detectadas + cmdlets comuns
+  const finalScore = totalScore + cmdletScore
 
   const severity = getSeverityLevel(finalScore)
-  const is_malicious = finalScore >= 5.0
+  const is_malicious = totalScore >= 5.0 // Só malicioso se tiver signatures suspeitas
 
   // Recomendações baseadas na análise
   const recommendations: string[] = []
+  
+  // Informar sobre cmdlets detectados
+  if (detectedCmdlets.length > 0) {
+    recommendations.push(`📋 ${detectedCmdlets.length} common PowerShell cmdlet(s) detected`)
+  }
+  
   if (is_malicious) {
     recommendations.push("⚠️ Potentially malicious command detected")
     recommendations.push("🔒 Review and isolate if necessary")
     if (decodedCommand) {
       recommendations.push("🔍 Base64 decoded content found - analyze carefully")
     }
+  } else if (detectedCmdlets.length > 0) {
+    recommendations.push("✅ Contains legitimate PowerShell cmdlets")
   } else {
     recommendations.push("✅ Command appears safe")
   }
@@ -354,13 +499,16 @@ async function analyzeCommand(command: string, signatures: any[]): Promise<Analy
     risk_score: Math.round(finalScore * 10) / 10,
     severity,
     signatures_detected: detectedSignatures,
+    cmdlets_detected: detectedCmdlets, // Adicionar cmdlets detectados
     tactics: Array.from(tactics),
     techniques: Array.from(techniques),
     decoded_command: decodedCommand,
     analysis_details: {
       indicators,
       patterns_found,
-      recommendations
+      recommendations,
+      cmdlet_score: cmdletScore, // Score dos cmdlets
+      signature_score: totalScore // Score das signatures
     }
   }
 }
