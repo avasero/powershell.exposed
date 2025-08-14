@@ -493,12 +493,15 @@ async function analyzeCommand(command: string, signatures: any[], supabase: any)
     recommendations.push("✅ Command appears safe")
   }
 
+  // Ordenar signatures detectadas por score (maior primeiro)
+  const sortedSignatures = detectedSignatures.sort((a, b) => b.score - a.score)
+
   return {
     command,
     is_malicious,
     risk_score: Math.round(finalScore * 10) / 10,
     severity,
-    signatures_detected: detectedSignatures,
+    signatures_detected: sortedSignatures,
     cmdlets_detected: detectedCmdlets, // Adicionar cmdlets detectados
     tactics: Array.from(tactics),
     techniques: Array.from(techniques),

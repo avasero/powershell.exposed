@@ -93,7 +93,7 @@ export default function AnalysisPage() {
         setResult({
           score: analysisData.risk_score,
           severity: analysisData.is_malicious ? "malicious" : "safe",
-          signatures: analysisData.signatures_detected || [],
+          signatures: (analysisData.signatures_detected || []).sort((a, b) => (b.score || 0) - (a.score || 0)),
           decoded: analysisData.decoded_command,
           indicators: analysisData.analysis_details?.indicators || [],
           details: analysisData.analysis_details?.recommendations?.join(", ") || "",
@@ -118,7 +118,7 @@ export default function AnalysisPage() {
     }
   };
   
-  // Calculate total risk score from result
+  // Calculate total risk score from result - soma de TUDO (sem remover duplicatas do total)
   const totalScore = result ? result.score : 0;
 
   if (loading) {
@@ -159,36 +159,122 @@ export default function AnalysisPage() {
             <div className="text-5xl sm:text-6xl font-mono font-bold mb-4 text-white">
               {totalScore.toFixed(1)}
             </div>
-            <div className="text-sm sm:text-base font-mono text-green-400">
+            <div className="text-sm sm:text-base font-mono text-green-400 mb-2">
               {totalScore === 0 ? "No indicators detected" : "Cumulative score from all indicators"}
             </div>
+            {/* Mostrar breakdown do score se houver indicators */}
+            {result.signatures && result.signatures.length > 0 && (
+              <div className="text-xs font-mono text-gray-400 border-t border-gray-600 pt-3 mt-3">
+                {(() => {
+                  // Para o breakdown, mostrar TODOS os cmdlets (incluindo duplicados)
+                  const securitySigs = result.signatures.filter(sig => 
+                    !sig.name.includes('(') || sig.score >= 4.0 || !sig.techniques?.includes('T1059.001') || sig.tactics?.length > 1
+                  );
+                  const allCmdlets = result.signatures.filter(sig => 
+                    sig.name.includes('(') && sig.score < 4.0 && sig.techniques?.includes('T1059.001') && sig.tactics?.length <= 1
+                  );
+                  
+                  const securityScore = securitySigs.reduce((sum, sig) => sum + (sig.score || 0), 0);
+                  const allCmdletScore = allCmdlets.reduce((sum, sig) => sum + (sig.score || 0), 0);
+                  
+                  return (
+                    <>
+                      {securityScore > 0 && <div>Security Indicators: {securityScore.toFixed(1)}</div>}
+                      {allCmdletScore > 0 && <div>PowerShell Cmdlets: {allCmdletScore.toFixed(1)}</div>}
+                    </>
+                  );
+                })()}
+              </div>
+            )}
           </div>
         </div>
       )}
       {/* Individual Indicators Details */}
       {result && result.signatures && result.signatures.length > 0 && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-          <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{color: 'var(--foreground)'}}>
-            Indicator Details
-          </h2>
-          <div className="space-y-4">
-            {result.signatures.map((signature, index) => (
-              <AnalysisCard
-                key={index}
-                title={signature.name}
-                description={signature.description || `Pattern detected: ${signature.pattern}`}
-                severity={signature.severity}
-                score={signature.score}
-                pattern={signature.pattern}
-                matched_text={signature.matched_text}
-                matched_command={signature.matched_command}
-                keywords={signature.pattern || signature.keyword}
-                tactic={signature.tactics || signature.tactic}
-                technique={signature.techniques || signature.technique}
-                reference={signature.reference}
-              />
-            ))}
-          </div>
+          {/* Filtrar signatures reais (não cmdlets básicos) */}
+          {(() => {
+            const realSignatures = result.signatures.filter(sig => 
+              !sig.name.includes('(') || // Não contém parênteses (não é cmdlet)
+              sig.score >= 4.0 || // Score alto o suficiente
+              !sig.techniques?.includes('T1059.001') || // Não é apenas execução básica
+              sig.tactics?.length > 1 // Tem múltiplas táticas
+            );
+            
+            // Extrair nomes de cmdlets que já aparecem nas signatures importantes
+            const importantCmdletNames = realSignatures
+              .filter(sig => sig.name.includes('('))
+              .map(sig => {
+                const match = sig.name.match(/\((.*?)\)$/);
+                return match ? match[1] : null;
+              })
+              .filter(Boolean);
+            
+            // Para exibição, mostrar TODOS os cmdlets básicos (não filtrar duplicados)
+            const basicCmdlets = result.signatures.filter(sig => 
+              sig.name.includes('(') && // Contém parênteses (é cmdlet)
+              sig.score < 4.0 && // Score baixo
+              sig.techniques?.includes('T1059.001') && // Apenas execução básica
+              sig.tactics?.length <= 1 // Só uma tática
+              // Removido o filtro de duplicados - mostrar todos
+            );
+
+            return (
+              <>
+                {/* Signatures importantes */}
+                {realSignatures.length > 0 && (
+                  <div className="mb-6">
+                    <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{color: 'var(--foreground)'}}>
+                      Security Indicators
+                    </h2>
+                    <div className="space-y-4">
+                      {realSignatures.map((signature, index) => (
+                        <AnalysisCard
+                          key={`real-${index}`}
+                          title={signature.name}
+                          description={signature.description || `Pattern detected: ${signature.pattern}`}
+                          severity={signature.severity}
+                          score={signature.score}
+                          pattern={signature.pattern}
+                          matched_text={signature.matched_text}
+                          matched_command={signature.matched_command}
+                          keywords={signature.pattern || signature.keyword}
+                          tactic={signature.tactics || signature.tactic}
+                          technique={signature.techniques || signature.technique}
+                          reference={signature.reference}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* PowerShell Cmdlets básicos - cards compactos */}
+                {basicCmdlets.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-base font-mono font-bold mb-3" style={{color: 'var(--muted-foreground)'}}>
+                      PowerShell Cmdlets Detected ({basicCmdlets.length})
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {basicCmdlets.map((cmdlet, index) => (
+                        <div 
+                          key={`cmdlet-${index}`}
+                          className="border rounded p-3 text-center"
+                          style={{backgroundColor: 'var(--muted)', borderColor: 'var(--border-color)'}}
+                        >
+                          <div className="font-mono text-sm font-bold mb-1" style={{color: 'var(--foreground)'}}>
+                            {cmdlet.name}
+                          </div>
+                          <div className="text-xs font-mono" style={{color: 'var(--muted-foreground)'}}>
+                            Score: {cmdlet.score} • Basic PowerShell
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
 

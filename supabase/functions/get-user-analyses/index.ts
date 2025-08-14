@@ -38,11 +38,12 @@ serve(async (req) => {
       )
     }
 
-    // Buscar análises do usuário
+    // Buscar análises do usuário - ordenadas por risk_score (maior primeiro) e depois por data
     const { data: analyses, error: analysesError } = await supabaseClient
       .from('powershell_analyses')
       .select('*')
       .eq('user_id', user.id)
+      .order('risk_score', { ascending: false })
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
