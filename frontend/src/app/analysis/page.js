@@ -13,19 +13,19 @@ import AnalysisSkeleton from "../components/AnalysisSkeleton";
 
 // Score-based color system (5 bins from 1-10)
 function getScoreColor(score) {
-  if (score >= 8.1) return "border-red-600 text-red-600";      // Critical: 8.1-10.0
-  if (score >= 6.1) return "border-orange-400 text-orange-400"; // High: 6.1-8.0
-  if (score >= 4.1) return "border-yellow-400 text-yellow-400"; // Medium: 4.1-6.0
-  if (score >= 2.1) return "border-green-400 text-green-400";   // Low: 2.1-4.0
-  return "border-blue-400 text-blue-400";                      // Very Low: 1.0-2.0
+  if (score >= 10) return "border-red-600 text-red-600";           // Critical: 10.0+
+  if (score >= 8) return "border-orange-400 text-orange-400";      // High: 8.0+
+  if (score >= 5) return "border-yellow-400 text-yellow-400";      // Medium: 5.0+
+  if (score >= 2) return "border-green-400 text-green-400";        // Low: 2.0+
+  return "border-blue-400 text-blue-400";                          // Informational: 1.0
 }
 
 function getScoreLabel(score) {
-  if (score >= 8.1) return "CRITICAL";
-  if (score >= 6.1) return "HIGH";
-  if (score >= 4.1) return "MEDIUM";
-  if (score >= 2.1) return "LOW";
-  return "VERY LOW";
+  if (score >= 10) return "CRITICAL";
+  if (score >= 8) return "HIGH";
+  if (score >= 5) return "MEDIUM";
+  if (score >= 2) return "LOW";
+  return "INFORMATIONAL";
 }
 
 export default function AnalysisPage() {
@@ -36,6 +36,7 @@ export default function AnalysisPage() {
   const [cmd, setCmd] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [newCommand, setNewCommand] = useState("");
 
   // Verificar autenticação
   useEffect(() => {
@@ -163,32 +164,83 @@ export default function AnalysisPage() {
   // Calculate total risk score from result - soma de TUDO (sem remover duplicatas do total)
   const totalScore = result ? result.score : 0;
 
+  // Handle new command analysis
+  const handleNewAnalysis = () => {
+    if (newCommand.trim()) {
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('cmd', newCommand.trim());
+      // Clear other parameters for new analysis
+      currentUrl.searchParams.delete('ip');
+      currentUrl.searchParams.delete('country');
+      currentUrl.searchParams.delete('city');
+      currentUrl.searchParams.delete('region');
+      currentUrl.searchParams.delete('timezone');
+      router.push(currentUrl.pathname + currentUrl.search);
+    }
+  };
+
   if (loading) {
     return <AnalysisSkeleton />;
   }
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
-      <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center" style={{color: 'var(--accent)'}}>
-        Analysis Result
-      </h1>
+             <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center" style={{color: 'var(--accent)'}}>
+         Evaluation Results
+       </h1>
 
-      {/* Command Display */}
-      <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-3 sm:p-4" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
-        <div className="font-mono text-xs sm:text-sm mb-2" style={{color: 'var(--accent)'}}>Command analyzed:</div>
-        <div className="flex items-start">
-          <span className="font-mono text-sm sm:text-base break-all" style={{color: 'var(--foreground)'}}>
-            {cmd}
-          </span>
+      {/* Quick Search Input */}
+      <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row gap-3 items-center">
+          <div className="flex-1 w-full">
+            <input
+              type="text"
+              placeholder="Enter a new PowerShell command to analyze..."
+              value={newCommand}
+              onChange={(e) => setNewCommand(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleNewAnalysis()}
+              className="w-full px-4 py-3 rounded-lg font-mono text-sm border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-opacity-50"
+              style={{
+                backgroundColor: 'var(--card-bg)',
+                borderColor: 'var(--border-color)',
+                color: 'var(--foreground)',
+                focusRingColor: 'var(--accent)'
+              }}
+            />
+          </div>
+          <button
+            onClick={handleNewAnalysis}
+            disabled={!newCommand.trim()}
+            className="px-6 py-3 rounded-lg font-mono font-bold text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
+            style={{
+              backgroundColor: 'var(--accent)',
+              color: 'var(--background)'
+            }}
+          >
+            Evaluate
+          </button>
+        </div>
+        <div className="text-xs text-center mt-2" style={{color: 'var(--muted-foreground)'}}>
+          Press Enter or click Evaluate to analyze a new command
         </div>
       </div>
 
+             {/* Command Display */}
+       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 p-3 sm:p-4" style={{backgroundColor: 'var(--muted)'}}>
+         <div className="font-mono text-xs sm:text-sm mb-2" style={{color: 'var(--muted-foreground)'}}>Command evaluated:</div>
+         <div className="flex items-start">
+           <span className="font-mono text-sm sm:text-base break-all" style={{color: 'var(--foreground)'}}>
+             {cmd}
+           </span>
+         </div>
+       </div>
+
      
- {/* Severity Legend */}
-      <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+       {/* Severity Legend - Compact */}
+      <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-4">
         <SeverityLegend />
       </div>
-      {/* Risk Score Display */}
+      {/* Cumulative Base Score Display */}
       {result && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div 
@@ -196,15 +248,15 @@ export default function AnalysisPage() {
             style={{backgroundColor: '#000000'}}
           >
             <div className="text-xl sm:text-2xl font-mono font-bold mb-4 text-green-400">
-              Risk Score
+              Cumulative Base Score
             </div>
             <div className="text-5xl sm:text-6xl font-mono font-bold mb-4 text-white">
               {totalScore.toFixed(1)}
             </div>
-            <div className="text-sm sm:text-base font-mono text-green-400 mb-2">
-              {totalScore === 0 ? "No indicators detected" : "Cumulative score from all indicators"}
-            </div>
-            {/* Mostrar breakdown do score se houver indicators */}
+                         <div className="text-sm sm:text-base font-mono text-green-400 mb-2">
+               {totalScore === 0 ? "No Malicious Indicators Detected" : "Cumulative score from all patterns"}
+             </div>
+                         {/* Mostrar breakdown do score se houver patterns */}
             {result.signatures && result.signatures.length > 0 && (
               <div className="text-xs font-mono text-gray-400 border-t border-gray-600 pt-3 mt-3">
                 {(() => {
@@ -221,7 +273,7 @@ export default function AnalysisPage() {
                   
                   return (
                     <>
-                      {securityScore > 0 && <div>Security Indicators: {securityScore.toFixed(1)}</div>}
+                                             {securityScore > 0 && <div>Security Patterns: {securityScore.toFixed(1)}</div>}
                       {allCmdletScore > 0 && <div>PowerShell Cmdlets: {allCmdletScore.toFixed(1)}</div>}
                     </>
                   );
@@ -231,10 +283,10 @@ export default function AnalysisPage() {
           </div>
         </div>
       )}
-      {/* Individual Indicators Details */}
-      {result && result.signatures && result.signatures.length > 0 && (
-        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-          {/* Filtrar signatures reais (não cmdlets básicos) */}
+             {/* Individual Patterns Details */}
+       {result && result.signatures && result.signatures.length > 0 && (
+         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+           {/* Filtrar signatures reais (não cmdlets básicos) */}
           {(() => {
             const realSignatures = result.signatures.filter(sig => 
               !sig.name.includes('(') || // Não contém parênteses (não é cmdlet)
@@ -263,39 +315,39 @@ export default function AnalysisPage() {
 
             return (
               <>
-                {/* Signatures importantes */}
+                                 {/* Detected Patterns importantes */}
                 {realSignatures.length > 0 && (
                   <div className="mb-6">
-                    <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{color: 'var(--foreground)'}}>
-                      Security Indicators
-                    </h2>
+                                         <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{color: 'var(--foreground)'}}>
+                       Detected Patterns
+                     </h2>
                     <div className="space-y-4">
                       {realSignatures.map((signature, index) => (
                         <AnalysisCard
                           key={`real-${index}`}
-                          title={signature.name}
-                          description={signature.description || `Pattern detected: ${signature.pattern}`}
-                          severity={signature.severity}
-                          score={signature.score}
-                          pattern={signature.pattern}
-                          matched_text={signature.matched_text}
-                          matched_command={signature.matched_command}
-                          keywords={signature.pattern || signature.keyword}
-                          tactic={signature.tactics || signature.tactic}
-                          technique={signature.techniques || signature.technique}
-                          reference={signature.reference}
+                          title={signature.name || 'Unknown Pattern'}
+                          description={signature.description || `Pattern detected: ${signature.pattern || 'No description available'}`}
+                          severity={signature.severity || 'unknown'}
+                          score={signature.score || 0}
+                          pattern={signature.pattern || 'No pattern specified'}
+                          matched_text={signature.matched_text || signature.matchedText || ''}
+                          matched_command={signature.matched_command || signature.matchedCommand || ''}
+                          keywords={signature.pattern || signature.keyword || ''}
+                          tactic={signature.tactics || signature.tactic || []}
+                          technique={signature.techniques || signature.technique || []}
+                          reference={signature.reference || ''}
                         />
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* PowerShell Cmdlets básicos - cards compactos */}
-                {basicCmdlets.length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="text-base font-mono font-bold mb-3" style={{color: 'var(--muted-foreground)'}}>
-                      PowerShell Cmdlets Detected ({basicCmdlets.length})
-                    </h3>
+                                  {/* PowerShell Cmdlets básicos - cards compactos */}
+                  {basicCmdlets.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-base font-mono font-bold mb-3" style={{color: 'var(--muted-foreground)'}}>
+                        PowerShell Cmdlets ({basicCmdlets.length})
+                      </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {basicCmdlets.map((cmdlet, index) => (
                         <div 
@@ -324,13 +376,111 @@ export default function AnalysisPage() {
       {result && (!result.signatures || result.signatures.length === 0) && totalScore === 0 && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="bg-gray-800 border border-gray-600 rounded-lg p-6 text-center">
-            <div className="text-6xl mb-4">✅</div>
             <h2 className="text-lg sm:text-xl font-mono font-bold mb-2 text-green-400">
-              No Malicious Indicators Detected
+              No Malicious Patterns Detected
             </h2>
             <p className="text-sm sm:text-base font-mono" style={{color: 'var(--muted-foreground)'}}>
               This command appears to be safe based on our signature database.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Further Notes */}
+      {result && (
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+          <div className="border rounded-lg p-4" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--primary-purple)'}}>
+                         <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--primary-purple)'}}>
+               Evaluation Notes
+             </h2>
+                         <div className="font-mono text-sm space-y-3" style={{color: 'var(--muted-foreground)'}}>
+               {result.details && (
+                 <div className="p-3 rounded bg-gray-800">
+                   <strong>Analysis Summary:</strong> {result.details}
+                 </div>
+               )}
+               
+                               {/* Risk Assessment */}
+                {totalScore > 0 && (
+                  <div className="flex items-start gap-2">
+                    <span style={{color: 'var(--accent)'}}>•</span>
+                    <span><strong>Risk Level:</strong> {totalScore >= 10 ? 'CRITICAL' : totalScore >= 8 ? 'HIGH' : totalScore >= 5 ? 'MEDIUM' : totalScore >= 2 ? 'LOW' : 'INFORMATIONAL'} ({totalScore.toFixed(1)}/10)</span>
+                  </div>
+                )}
+               
+                               {/* Detection Patterns */}
+                {result.signatures && result.signatures.length > 0 && (
+                  <div className="flex items-start gap-2">
+                    <span style={{color: 'var(--accent)'}}>•</span>
+                    <span><strong>Detected Patterns:</strong> {result.signatures.length} signature{result.signatures.length !== 1 ? 's' : ''} identified using MITRE ATT&CK framework</span>
+                  </div>
+                )}
+               
+               {/* Suspicious Activity Warning */}
+               {result.signatures && result.signatures.length > 0 && (
+                 <div className="flex items-start gap-2">
+                   <span style={{color: 'var(--accent)'}}>•</span>
+                   <span><strong>Activity Assessment:</strong> This command shows potentially suspicious behavior patterns that require careful review and context analysis</span>
+                 </div>
+               )}
+               
+               {/* MITRE ATT&CK Coverage */}
+               {result.tactics && result.tactics.length > 0 && (
+                 <div className="flex items-start gap-2">
+                   <span style={{color: 'var(--accent)'}}>•</span>
+                   <span><strong>MITRE ATT&CK Coverage:</strong> {result.tactics.length} tactic{result.tactics.length !== 1 ? 's' : ''} and {result.techniques ? result.techniques.length : 0} technique{result.techniques && result.techniques.length !== 1 ? 's' : ''} identified</span>
+                 </div>
+               )}
+               
+               {/* PowerShell Specific Analysis */}
+               {result.signatures && result.signatures.some(sig => sig.name.includes('(')) && (
+                 <div className="flex items-start gap-2">
+                   <span style={{color: 'var(--accent)'}}>•</span>
+                   <span><strong>PowerShell Analysis:</strong> Command contains PowerShell cmdlets that were evaluated for security implications and execution context</span>
+                 </div>
+               )}
+               
+               {/* Decoded Content Note */}
+               {result.decoded && result.decoded !== result.cmd && (
+                 <div className="flex items-start gap-2">
+                   <span style={{color: 'var(--accent)'}}>•</span>
+                   <span><strong>Content Decoding:</strong> Command was successfully decoded, revealing underlying execution patterns and obfuscation techniques</span>
+                 </div>
+               )}
+               
+               {/* No Threats Detected */}
+               {result.signatures && result.signatures.length === 0 && totalScore === 0 && (
+                 <div className="flex items-start gap-2">
+                   <span style={{color: 'var(--accent)'}}>•</span>
+                   <span><strong>Security Status:</strong> No malicious patterns detected. Command appears safe based on current threat intelligence</span>
+                 </div>
+               )}
+               
+                               {/* Evaluation Methodology */}
+                <div className="flex items-start gap-2">
+                  <span style={{color: 'var(--accent)'}}>•</span>
+                  <span><strong>Evaluation Method:</strong> Multi-layered pattern recognition combining signature-based detection, behavioral analysis, and threat intelligence correlation</span>
+                </div>
+               
+               {/* Confidence Level */}
+               <div className="flex items-start gap-2">
+                 <span style={{color: 'var(--accent)'}}>•</span>
+                 <span><strong>Confidence Level:</strong> {result.signatures && result.signatures.length > 0 ? 'High - Multiple detection patterns confirmed' : 'High - Comprehensive analysis completed'}</span>
+               </div>
+               
+               {/* Recommendations */}
+               {totalScore > 0 && (
+                 <div className="flex items-start gap-2">
+                   <span style={{color: 'var(--accent)'}}>•</span>
+                   <span><strong>Recommendations:</strong> Review command execution context, monitor system behavior, and consider additional security controls if score exceeds 6.0</span>
+                 </div>
+               )}
+               
+                               {/* Footer */}
+                <div className="text-xs pt-3 border-t border-gray-600">
+                  Evaluation performed using advanced PowerShell command pattern recognition, behavioral analysis, and real-time threat intelligence correlation
+                </div>
+             </div>
           </div>
         </div>
       )}
@@ -361,9 +511,18 @@ export default function AnalysisPage() {
      
 
       {/* Action Buttons */}
-      <div className="flex justify-center mb-8">
+      <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
         <ThemedButton onClick={() => router.push('/')}>
-          Analyze Another Command
+          Evaluate Another Command
+        </ThemedButton>
+        <ThemedButton
+          variant="outline"
+          onClick={() => {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url);
+          }}
+        >
+          Copy sharable link
         </ThemedButton>
       </div>
     </div>

@@ -24,7 +24,7 @@ export default function AnalysisChat() {
     try {
       setLoading(true);
       // Carregar apenas as últimas 5 análises
-      const data = await getUserAnalyses(5);
+      const data = await getUserAnalyses(5, 0);
       setAnalyses(data);
     } catch (err) {
       console.error('Error loading analyses:', err);
@@ -143,7 +143,7 @@ export default function AnalysisChat() {
                 }}
               >
                 <div className="flex items-start justify-between mb-2">
-                  <SeverityBadge severity={analysis.severity} size="sm" />
+                  <SeverityBadge score={(analysis.risk_score ?? analysis.analysis_result?.risk_score ?? 0)} size="sm" />
                   <span className="font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>
                     {formatDate(analysis.created_at)}
                   </span>
@@ -305,7 +305,7 @@ export default function AnalysisChat() {
                       }}
                     >
                       <div className="flex items-start justify-between mb-2">
-                        <SeverityBadge severity={analysis.severity} size="sm" />
+                        <SeverityBadge score={(analysis.risk_score ?? analysis.analysis_result?.risk_score ?? 0)} size="sm" />
                         <span className="font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>
                           {formatDate(analysis.created_at)}
                         </span>

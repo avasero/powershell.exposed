@@ -1,55 +1,82 @@
 "use client";
-import SeverityBadge from './SeverityBadge';
+import { useState } from 'react';
 
 const SCORE_RANGES = {
+  informational: {
+    label: "1.0",
+    description: "Informational: Extremely common, benign behavior",
+  },
   low: {
-    label: "1.0 - 2.0",
-    description: "Low Risk: Informational findings with minimal impact.",
+    label: "2.0 - 4.0", 
+    description: "Low: Notable activity",
   },
-  mild: {
-    label: "2.1 - 4.0", 
-    description: "Mild Risk: Minor security findings that should be monitored.",
+  medium: {
+    label: "5.0 - 7.0",
+    description: "Medium: Fairly suspicious activity",
   },
-  moderate: {
-    label: "4.1 - 6.0",
-    description: "Moderate Risk: Activities requiring attention and review.",
-  },
-  elevated: {
-    label: "6.1 - 8.0",
-    description: "Elevated Risk: High-risk activities requiring immediate attention.",
+  high: {
+    label: "8.0 - 9.0",
+    description: "High: Highly suspicious activity",
   },
   critical: {
-    label: "8.15 - 10.0",
-    description: "Critical Risk: Highly dangerous commands requiring immediate action!",
+    label: "10.0",
+    description: "Critical: Extremely suspicious activity",
   },
 };
 
 const SCORE_COLORS = {
-  low: "border-blue-400 text-blue-400",
-  mild: "border-green-400 text-green-400",
-  moderate: "border-yellow-400 text-yellow-400", 
-  elevated: "border-orange-400 text-orange-400",
+  informational: "border-blue-400 text-blue-400",
+  low: "border-green-400 text-green-400",
+  medium: "border-yellow-400 text-yellow-400", 
+  high: "border-orange-400 text-orange-400",
   critical: "border-red-600 text-red-600",
 };
 
 export default function SeverityLegend({ className = "" }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
   return (
-    <div className={`w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 ${className}`}>
-      <h2 className="text-base sm:text-lg font-mono font-bold mb-3 sm:mb-4 text-center" style={{color: 'var(--accent)'}}>
-        Score Ranges
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-        {Object.entries(SCORE_RANGES).map(([key, val]) => (
-          <div key={key} className={`border-l-4 pl-3 sm:pl-4 py-2 ${SCORE_COLORS[key]}`}>
-            <div className="font-mono font-bold text-sm sm:text-base mb-1 capitalize" style={{color: 'var(--foreground)'}}>
-              {val.label}
-            </div>
-            <div className="font-mono text-xs" style={{color: 'var(--foreground)', opacity: 0.8}}>
-              {val.description}
-            </div>
-          </div>
-        ))}
+    <div className={`relative ${className}`}>
+      {/* Tooltip Trigger */}
+      <div className="flex items-center justify-center gap-2">
+        <span className="text-sm font-mono" style={{color: 'var(--accent)'}}>
+          Risk Score
+        </span>
+        <button
+          className="w-5 h-5 rounded-full border border-current flex items-center justify-center text-xs font-bold hover:bg-current hover:text-black transition-colors"
+          style={{color: 'var(--accent)'}}
+          onMouseEnter={() => setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
+          title="Score ranges information"
+        >
+          i
+        </button>
       </div>
+
+      {/* Tooltip Content */}
+      {showTooltip && (
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 z-50 w-80 bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-4">
+          <div className="text-center mb-3">
+            <h3 className="text-sm font-mono font-bold" style={{color: 'var(--accent)'}}>
+              Score Ranges
+            </h3>
+          </div>
+          <div className="space-y-2">
+            {Object.entries(SCORE_RANGES).map(([key, val]) => (
+              <div key={key} className={`border-l-4 pl-3 py-2 ${SCORE_COLORS[key]}`}>
+                <div className="font-mono font-bold text-xs mb-1 capitalize" style={{color: 'var(--foreground)'}}>
+                  {val.label}
+                </div>
+                <div className="font-mono text-xs" style={{color: 'var(--foreground)', opacity: 0.8}}>
+                  {val.description}
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Tooltip Arrow */}
+          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-600"></div>
+        </div>
+      )}
     </div>
   );
 }

@@ -115,9 +115,9 @@ export default function DashboardPage() {
               <div className="text-2xl font-mono font-bold mb-1" style={{color: 'var(--accent)'}}>
                 {(stats.avg_risk_score || 0).toFixed(1)}
               </div>
-              <div className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-                Avg Risk Score
-              </div>
+                          <div className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+              Avg Base Score
+            </div>
             </div>
           </div>
         )}
@@ -145,9 +145,9 @@ export default function DashboardPage() {
                       <code>{analysis.command.length > 100 ? analysis.command.substring(0, 100) + '...' : analysis.command}</code>
                     </h3>
                     <div className="flex items-center gap-2 mb-2">
-                      <SeverityBadge severity={analysis.analysis_result?.severity || 'unknown'} />
+                      <SeverityBadge score={analysis.risk_score || 0} />
                       <span className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-                        Score: {analysis.risk_score || 0}/10
+                        Base Score: {analysis.risk_score || 0}/10
                       </span>
                     </div>
                     <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
@@ -310,7 +310,7 @@ export default function DashboardPage() {
                   {analysis.signatures_detected && analysis.signatures_detected.length > 0 && (
                     <div>
                       <h3 className="font-mono text-sm font-semibold mb-2" style={{color: 'var(--foreground)'}}>
-                        Assinaturas Detectadas:
+                        Detected Indicators:
                       </h3>
                       <div className="flex flex-wrap gap-2">
                         {analysis.signatures_detected.slice(0, 5).map((sig, index) => (

@@ -207,7 +207,7 @@ export default function SignaturesPage() {
                 {signature.name}
               </h3>
               <div className="flex flex-wrap gap-2">
-                <SeverityBadge severity={signature.severity} />
+                <SeverityBadge score={signature.score || 0} />
                 <span className={`px-2 py-1 rounded text-xs font-mono ${CATEGORY_COLORS[signature.category] || 'bg-gray-100 text-gray-800'}`}>
                   {signature.category}
                 </span>

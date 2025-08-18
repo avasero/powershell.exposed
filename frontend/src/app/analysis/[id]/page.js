@@ -301,7 +301,7 @@ export default function AnalysisDetailsPage() {
           </div>
         )}
 
-        {/* Risk Score Card */}
+        {/* Cumulative Base Score Card */}
         <div className="mb-6">
           <div 
             className={`p-6 rounded-lg border-2 ${scoreColor}`}
@@ -351,11 +351,11 @@ export default function AnalysisDetailsPage() {
           </div>
         )}
 
-        {/* Detected Signatures */}
+        {/* Detected Indicators */}
         {analysisResult.signatures_detected && analysisResult.signatures_detected.length > 0 && (
           <div className="mb-6">
             <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--foreground)'}}>
-              Detected Signatures
+              Detected Indicators
             </h2>
             <div className="space-y-3">
               {analysisResult.signatures_detected.map((signature, index) => (
@@ -368,7 +368,7 @@ export default function AnalysisDetailsPage() {
                     <h3 className="font-mono font-bold" style={{color: 'var(--foreground)'}}>
                       {signature.name}
                     </h3>
-                    <SeverityBadge severity={signature.severity} />
+                    <SeverityBadge score={signature.score || 0} />
                   </div>
                   <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
                     Pattern: <code>{signature.pattern}</code>
@@ -484,6 +484,58 @@ export default function AnalysisDetailsPage() {
             </div>
           </div>
         )}
+
+        {/* Further Notes */}
+        <div className="mb-6">
+          <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--foreground)'}}>
+          Analyses Notes
+          </h2>
+          <div 
+            className="p-4 rounded-lg border font-mono text-sm"
+            style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}
+          >
+            <div className="space-y-3">
+              {analysisResult.signatures_detected && analysisResult.signatures_detected.length > 0 && (
+                <div className="flex items-start gap-2">
+                  <span style={{color: 'var(--accent)'}}>•</span>
+                  <span>This command shows potentially suspicious activity. While not immediately dangerous, it should be reviewed in context.</span>
+                </div>
+              )}
+              
+              {analysisResult.signatures_detected && analysisResult.signatures_detected.length > 0 && (
+                <div className="flex items-start gap-2">
+                  <span style={{color: 'var(--accent)'}}>•</span>
+                  <span>Analysis completed with {analysisResult.signatures_detected.length} detection patterns using MITRE ATT&CK framework.</span>
+                </div>
+              )}
+              
+              {analysisResult.cmdlets_detected && analysisResult.cmdlets_detected.length > 0 && (
+                <div className="flex items-start gap-2">
+                  <span style={{color: 'var(--accent)'}}>•</span>
+                  <span>{analysisResult.cmdlets_detected.length} PowerShell cmdlets identified and analyzed for potential security implications.</span>
+                </div>
+              )}
+              
+              {analysisResult.risk_score > 0 && (
+                <div className="flex items-start gap-2">
+                  <span style={{color: 'var(--accent)'}}>•</span>
+                  <span>Cumulative base score calculated from all detected indicators and PowerShell cmdlets.</span>
+                </div>
+              )}
+              
+              {(!analysisResult.signatures_detected || analysisResult.signatures_detected.length === 0) && analysisResult.risk_score === 0 && (
+                <div className="flex items-start gap-2">
+                  <span style={{color: 'var(--accent)'}}>•</span>
+                  <span>No malicious patterns detected in this command. It appears to be safe based on our analysis.</span>
+                </div>
+              )}
+              
+              <div className="text-xs pt-3 border-t border-gray-600" style={{color: 'var(--muted-foreground)'}}>
+                Analysis performed using advanced PowerShell command pattern recognition and threat intelligence
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Actions */}
         <div className="flex gap-4 mt-8">

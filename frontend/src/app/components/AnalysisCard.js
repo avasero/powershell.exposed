@@ -70,7 +70,7 @@ export default function AnalysisCard({
             {title}
           </h4>
           <div className="flex items-center gap-3">
-            {severity && <SeverityBadge severity={severity} />}
+            {severity && <SeverityBadge score={score} />}
             {score && (
               <div className="text-sm font-mono font-bold px-2 py-1 rounded" 
                 style={{backgroundColor: 'var(--muted)', color: 'var(--accent)'}}>
