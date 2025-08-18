@@ -47,11 +47,48 @@ export default function AnalysisPage() {
   // Análise otimizada usando backend
   useEffect(() => {
     const command = params.get("cmd") || "";
+    const ipAddress = params.get("ip") || null;
+    const country = params.get("country") || null;
+    const city = params.get("city") || null;
+    const region = params.get("region") || null;
+    const timezone = params.get("timezone") || null;
+    
     setCmd(command);
     
+    console.log('🔍 Analysis Page Debug:');
+    console.log('- Command from URL:', command);
+    console.log('- IP Address from URL:', ipAddress);
+    console.log('- Country from URL:', country);
+    console.log('- City from URL:', city);
+    console.log('- Region from URL:', region);
+    console.log('- Timezone from URL:', timezone);
+    console.log('- Is Authenticated:', isAuthenticated());
+    
+    // Log detalhado dos parâmetros da URL
+    console.log('🔍 URL Parameters Debug:');
+    console.log('  - Raw URL:', window.location.href);
+    console.log('  - Search params:', window.location.search);
+    console.log('  - All params:', Object.fromEntries(new URLSearchParams(window.location.search)));
+    
     if (command.trim() && isAuthenticated()) {
-      performAnalysis(command);
+      // Criar objeto de localização
+      const ipLocation = {
+        country,
+        city,
+        region,
+        timezone
+      };
+      
+      console.log('🚀 Starting analysis with IP:', ipAddress, 'and location:', ipLocation);
+      console.log('📍 Location object being sent:');
+      console.log('  - Country:', ipLocation.country);
+      console.log('  - City:', ipLocation.city);
+      console.log('  - Region:', ipLocation.region);
+      console.log('  - Timezone:', ipLocation.timezone);
+      
+      performAnalysis(command, ipAddress, ipLocation);
     } else if (command.trim()) {
+      console.log('⚠️ Not authenticated, showing fallback');
       // Fallback para análise local simples se não autenticado
       setLoading(false);
       setResult({
@@ -65,10 +102,15 @@ export default function AnalysisPage() {
     }
   }, [params, isAuthenticated]);
 
-  const performAnalysis = async (command) => {
+  const performAnalysis = async (command, ipAddress, ipLocation) => {
     try {
       setLoading(true);
       setError("");
+      
+      console.log('🔄 Performing analysis:');
+      console.log('- Command:', command);
+      console.log('- IP Address:', ipAddress);
+      console.log('- IP Location:', ipLocation);
       
       // Garantir que o skeleton apareça por pelo menos 800ms para UX
       const minDelay = new Promise(resolve => setTimeout(resolve, 800));
@@ -78,7 +120,7 @@ export default function AnalysisPage() {
         setTimeout(() => reject(new Error('Analysis timeout - taking too long')), 15000)
       );
       
-      const analysisPromise = analyzeCommand(command);
+      const analysisPromise = analyzeCommand(command, ipAddress, ipLocation);
       
       // Executar análise e delay mínimo em paralelo
       const [response] = await Promise.all([

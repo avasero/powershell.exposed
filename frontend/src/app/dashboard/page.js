@@ -219,6 +219,94 @@ export default function DashboardPage() {
                     </div>
                   )}
                   
+                  {/* IP Address Information */}
+                  {analysis.ip_address && (
+                    <div className="mb-4">
+                      <h3 className="font-mono text-sm font-semibold mb-2" style={{color: 'var(--foreground)'}}>
+                        IP Address & Location:
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        <span 
+                          className="px-2 py-1 rounded text-xs font-mono bg-gray-900/30 text-gray-400 border border-gray-800"
+                          title={`Analysis performed from IP: ${analysis.ip_address}`}
+                        >
+                          🌐 {analysis.ip_address}
+                        </span>
+                        
+                        {/* Mostrar informações de localização se disponíveis */}
+                        {analysis.ip_country && (
+                          <span 
+                            className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800"
+                            title={`Country: ${analysis.ip_country}`}
+                          >
+                            🏳️ {analysis.ip_country}
+                          </span>
+                        )}
+                        
+                        {analysis.ip_city && (
+                          <span 
+                            className="px-2 py-1 rounded text-xs font-mono bg-green-900/30 text-green-400 border border-green-800"
+                            title={`City: ${analysis.ip_city}`}
+                          >
+                            🏙️ {analysis.ip_city}
+                          </span>
+                        )}
+                        
+                        {analysis.ip_region && (
+                          <span 
+                            className="px-2 py-1 rounded text-xs font-mono bg-purple-900/30 text-purple-400 border border-purple-800"
+                            title={`Region: ${analysis.ip_region}`}
+                          >
+                            🗺️ {analysis.ip_region}
+                          </span>
+                        )}
+                        
+                        {analysis.ip_timezone && (
+                          <span 
+                            className="px-2 py-1 rounded text-xs font-mono bg-orange-900/30 text-orange-400 border border-orange-800"
+                            title={`Timezone: ${analysis.ip_timezone}`}
+                          >
+                            🕐 {analysis.ip_timezone}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Search Type Information */}
+                  {analysis.search_type && (
+                    <div className="mb-4">
+                      <h3 className="font-mono text-sm font-semibold mb-2" style={{color: 'var(--foreground)'}}>
+                        Search Type:
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        <span 
+                          className="px-2 py-1 rounded text-xs font-mono bg-indigo-900/30 text-indigo-400 border border-indigo-800"
+                          title={`Search performed via: ${analysis.search_type}`}
+                        >
+                          🔍 {analysis.search_type}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* User Agent Information */}
+                  {analysis.user_agent && (
+                    <div className="mb-4">
+                      <h3 className="font-mono text-sm font-semibold mb-2" style={{color: 'var(--foreground)'}}>
+                        Browser Information:
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        <span 
+                          className="px-2 py-1 rounded text-xs font-mono bg-pink-900/30 text-pink-400 border border-pink-800"
+                          title={`Browser: ${analysis.user_agent}`}
+                        >
+                          🌐 {analysis.user_agent.length > 50 ? analysis.user_agent.substring(0, 50) + '...' : analysis.user_agent}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  
                   {analysis.signatures_detected && analysis.signatures_detected.length > 0 && (
                     <div>
                       <h3 className="font-mono text-sm font-semibold mb-2" style={{color: 'var(--foreground)'}}>

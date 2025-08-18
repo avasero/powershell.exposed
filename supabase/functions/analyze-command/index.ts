@@ -62,10 +62,53 @@ serve(async (req) => {
     }
 
     // Parse request
-    const { command } = await req.json()
+    const requestBody = await req.text()
+    console.log('=== REQUEST DEBUG ===')
+    console.log('Raw request body:', requestBody)
     
-    console.log('Received command for analysis:', command)
+    // Capturar User Agent do header
+    const userAgent = req.headers.get('User-Agent') || 'Unknown'
+    console.log('=== USER AGENT DEBUG ===')
+    console.log('User Agent from request:', userAgent)
+    console.log('=== END USER AGENT DEBUG ===')
     
+    let command, ip_address, country, city, region, timezone
+    try {
+      const parsedBody = JSON.parse(requestBody)
+      command = parsedBody.command
+      ip_address = parsedBody.ip_address
+      country = parsedBody.country
+      city = parsedBody.city
+      region = parsedBody.region
+      timezone = parsedBody.timezone
+      
+      console.log('=== PARSED DATA DEBUG ===')
+      console.log('Parsed command:', command)
+      console.log('Parsed ip_address:', ip_address)
+      console.log('Parsed country:', country)
+      console.log('Parsed city:', city)
+      console.log('Parsed region:', region)
+      console.log('Parsed timezone:', timezone)
+      console.log('=== END PARSED DATA DEBUG ===')
+      
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError)
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    console.log('=== FINAL PARSED VALUES ===')
+    console.log('Final command:', command)
+    console.log('Final ip_address:', ip_address)
+    console.log('Final country:', country)
+    console.log('Final city:', city)
+    console.log('Final region:', region)
+    console.log('Final timezone:', timezone)
+    console.log('Final user_agent:', userAgent)
+    console.log('=== END FINAL PARSED VALUES ===')
+
     if (!command || typeof command !== 'string') {
       console.error('Invalid command received:', command)
       return new Response(
@@ -95,8 +138,36 @@ serve(async (req) => {
       techniques: analysis.techniques,
       decoded_command: analysis.decoded_command,
       analysis_result: analysis, // Incluir toda a análise aqui como backup
-      cmdlets_detected: analysis.cmdlets_detected || [] // Tentar incluir na coluna dedicada
+      cmdlets_detected: analysis.cmdlets_detected || [], // Tentar incluir na coluna dedicada
+      ip_address: ip_address || null, // Adicionar IP address
+      ip_country: country || null, // Adicionar país
+      ip_city: city || null, // Adicionar cidade
+      ip_region: region || null, // Adicionar região
+      ip_timezone: timezone || null, // Adicionar timezone
+      search_type: 'WEB', // Adicionar tipo de busca (sempre WEB para análises via web)
+      user_agent: userAgent // Adicionar User Agent do navegador
     }
+
+    console.log('=== DATABASE INSERT DEBUG ===')
+    console.log('Analysis data to insert:', JSON.stringify(analysisData, null, 2))
+    console.log('IP address being saved:', analysisData.ip_address)
+    console.log('IP location being saved:', {
+      country: analysisData.ip_country,
+      city: analysisData.ip_city,
+      region: analysisData.ip_region,
+      timezone: analysisData.ip_timezone
+    })
+    
+    // Verificar se os valores não são null
+    console.log('=== NULL CHECK DEBUG ===')
+    console.log('ip_address is null?', analysisData.ip_address === null)
+    console.log('ip_country is null?', analysisData.ip_country === null)
+    console.log('ip_city is null?', analysisData.ip_city === null)
+    console.log('ip_region is null?', analysisData.ip_region === null)
+    console.log('ip_timezone is null?', analysisData.ip_timezone === null)
+    console.log('=== END NULL CHECK DEBUG ===')
+    
+    console.log('=== END DATABASE INSERT DEBUG ===')
 
     const { data: savedAnalysis, error: dbError } = await supabase
       .from('powershell_analyses')

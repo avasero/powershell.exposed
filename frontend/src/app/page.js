@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "./contexts/AuthContext";
+import { useIpAddress } from "../hooks/useIpAddress";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { ErrorMessage, InfoMessage } from "./components/Messages";
 import CommandInput from "./components/CommandInput";
@@ -12,10 +13,30 @@ import { analyzeCommand } from "../../lib/supabase";
 export default function Home() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
+  const { ipAddress, ipLocation, loading: ipLoading, error: ipError } = useIpAddress();
   const [error, setError] = useState("");
   const [command, setCommand] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Debug logs para IP e localização
+  useEffect(() => {
+    console.log('🔍 IP Address & Location Debug:');
+    console.log('- ipAddress:', ipAddress);
+    console.log('- ipLocation:', ipLocation);
+    console.log('- ipLoading:', ipLoading);
+    console.log('- ipError:', ipError);
+    
+    // Log detalhado da localização
+    if (ipLocation) {
+      console.log('📍 Location Details:');
+      console.log('  - Country:', ipLocation.country);
+      console.log('  - City:', ipLocation.city);
+      console.log('  - Region:', ipLocation.region);
+      console.log('  - Timezone:', ipLocation.timezone);
+      console.log('  - ISP:', ipLocation.isp);
+    }
+  }, [ipAddress, ipLocation, ipLoading, ipError]);
 
   // Verificar autenticação
   useEffect(() => {
@@ -57,7 +78,48 @@ export default function Home() {
     }
     
     setError(""); // Clear previous error
-    router.push(`/analysis?cmd=${encodeURIComponent(command.trim())}`);
+    
+    console.log('🚀 Starting analysis with:');
+    console.log('- Command:', command);
+    console.log('- IP Address:', ipAddress);
+    console.log('- IP Location:', ipLocation);
+    
+    // Log detalhado da localização antes de enviar
+    if (ipLocation) {
+      console.log('📍 Sending location data:');
+      console.log('  - Country:', ipLocation.country);
+      console.log('  - City:', ipLocation.city);
+      console.log('  - Region:', ipLocation.region);
+      console.log('  - Timezone:', ipLocation.timezone);
+    }
+    
+    // Incluir IP address e localização na URL para análise
+    const analysisUrl = `/analysis?cmd=${encodeURIComponent(command.trim())}`;
+    if (ipAddress) {
+      let finalUrl = `${analysisUrl}&ip=${encodeURIComponent(ipAddress)}`;
+      
+      // Adicionar informações de localização se disponíveis
+      if (ipLocation && ipLocation.country) {
+        finalUrl += `&country=${encodeURIComponent(ipLocation.country)}`;
+        if (ipLocation.city) finalUrl += `&city=${encodeURIComponent(ipLocation.city)}`;
+        if (ipLocation.region) finalUrl += `&region=${encodeURIComponent(ipLocation.region)}`;
+        if (ipLocation.timezone) finalUrl += `&timezone=${encodeURIComponent(ipLocation.timezone)}`;
+      }
+      
+      console.log('📍 Redirecting to:', finalUrl);
+      console.log('📍 URL parameters:');
+      console.log('  - cmd:', command.trim());
+      console.log('  - ip:', ipAddress);
+      console.log('  - country:', ipLocation?.country);
+      console.log('  - city:', ipLocation?.city);
+      console.log('  - region:', ipLocation?.region);
+      console.log('  - timezone:', ipLocation?.timezone);
+      
+      router.push(finalUrl);
+    } else {
+      console.log('⚠️ No IP address available, redirecting to:', analysisUrl);
+      router.push(analysisUrl);
+    }
   };
 
   // Validação em tempo real quando o usuário digita

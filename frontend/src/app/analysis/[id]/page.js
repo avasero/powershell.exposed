@@ -129,6 +129,178 @@ export default function AnalysisDetailsPage() {
           </div>
         </div>
 
+        {/* IP Address Display */}
+        {analysis.ip_address && (
+          <div className="mb-6">
+            <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--foreground)'}}>
+              IP Address & Location
+            </h2>
+            <div 
+              className="p-4 rounded-lg border font-mono text-sm"
+              style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}
+            >
+              <div className="space-y-3">
+                {/* IP Address */}
+                <div className="flex items-center gap-2">
+                  <span style={{color: 'var(--accent)'}}>🌐</span>
+                  <code style={{color: 'var(--foreground)'}}>{analysis.ip_address}</code>
+                </div>
+                
+                {/* Location Information */}
+                {(analysis.ip_country || analysis.ip_city || analysis.ip_region || analysis.ip_timezone) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3 border-t border-gray-600">
+                    {analysis.ip_country && (
+                      <div className="flex items-center gap-2">
+                        <span style={{color: 'var(--accent)'}}>🏳️</span>
+                        <span style={{color: 'var(--foreground)'}}>
+                          <strong>Country:</strong> {analysis.ip_country}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {analysis.ip_city && (
+                      <div className="flex items-center gap-2">
+                        <span style={{color: 'var(--accent)'}}>🏙️</span>
+                        <span style={{color: 'var(--foreground)'}}>
+                          <strong>City:</strong> {analysis.ip_city}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {analysis.ip_region && (
+                      <div className="flex items-center gap-2">
+                        <span style={{color: 'var(--accent)'}}>🗺️</span>
+                        <span style={{color: 'var(--foreground)'}}>
+                          <strong>Region:</strong> {analysis.ip_region}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {analysis.ip_timezone && (
+                      <div className="flex items-center gap-2">
+                        <span style={{color: 'var(--accent)'}}>🕐</span>
+                        <span style={{color: 'var(--foreground)'}}>
+                          <strong>Timezone:</strong> {analysis.ip_timezone}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                <p className="text-xs mt-3 pt-3 border-t border-gray-600" style={{color: 'var(--muted-foreground)'}}>
+                  Analysis performed from this IP address and location
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Search Type Display */}
+        {analysis.search_type && (
+          <div className="mb-6">
+            <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--foreground)'}}>
+              Search Information
+            </h2>
+            <div 
+              className="p-4 rounded-lg border font-mono text-sm"
+              style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}
+            >
+              <div className="flex items-center gap-2">
+                <span style={{color: 'var(--accent)'}}>🔍</span>
+                <span style={{color: 'var(--foreground)'}}>
+                  <strong>Search Type:</strong> {analysis.search_type}
+                </span>
+              </div>
+              <p className="text-xs mt-3 pt-3 border-t border-gray-600" style={{color: 'var(--muted-foreground)'}}>
+                Analysis performed via {analysis.search_type} interface
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* User Agent Display */}
+        {analysis.user_agent && (
+          <div className="mb-6">
+            <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--foreground)'}}>
+              Browser Information
+            </h2>
+            <div 
+              className="p-4 rounded-lg border font-mono text-sm"
+              style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}
+            >
+              <div className="space-y-3">
+                <div className="flex items-start gap-2">
+                  <span style={{color: 'var(--accent)'}}>🌐</span>
+                  <div>
+                    <span style={{color: 'var(--foreground)'}}>
+                      <strong>User Agent:</strong>
+                    </span>
+                    <div className="mt-2 p-3 rounded bg-gray-800 text-xs font-mono break-all" style={{color: 'var(--muted-foreground)'}}>
+                      {analysis.user_agent}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Parse User Agent para informações úteis */}
+                {(() => {
+                  const ua = analysis.user_agent;
+                  let browser = 'Unknown';
+                  let os = 'Unknown';
+                  let device = 'Unknown';
+                  
+                  // Detectar navegador
+                  if (ua.includes('Chrome')) browser = 'Chrome';
+                  else if (ua.includes('Firefox')) browser = 'Firefox';
+                  else if (ua.includes('Safari')) browser = 'Safari';
+                  else if (ua.includes('Edge')) browser = 'Edge';
+                  else if (ua.includes('Opera')) browser = 'Opera';
+                  
+                  // Detectar OS
+                  if (ua.includes('Windows')) os = 'Windows';
+                  else if (ua.includes('Mac')) os = 'macOS';
+                  else if (ua.includes('Linux')) os = 'Linux';
+                  else if (ua.includes('Android')) os = 'Android';
+                  else if (ua.includes('iOS')) os = 'iOS';
+                  
+                  // Detectar dispositivo
+                  if (ua.includes('Mobile')) device = 'Mobile';
+                  else if (ua.includes('Tablet')) device = 'Tablet';
+                  else device = 'Desktop';
+                  
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-gray-600">
+                      <div className="flex items-center gap-2">
+                        <span style={{color: 'var(--accent)'}}>🌍</span>
+                        <span style={{color: 'var(--foreground)'}}>
+                          <strong>Browser:</strong> {browser}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <span style={{color: 'var(--accent)'}}>💻</span>
+                        <span style={{color: 'var(--foreground)'}}>
+                          <strong>OS:</strong> {os}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <span style={{color: 'var(--accent)'}}>📱</span>
+                        <span style={{color: 'var(--foreground)'}}>
+                          <strong>Device:</strong> {device}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+                
+                <p className="text-xs mt-3 pt-3 border-t border-gray-600" style={{color: 'var(--muted-foreground)'}}>
+                  Analysis performed from this browser and device
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Risk Score Card */}
         <div className="mb-6">
           <div 

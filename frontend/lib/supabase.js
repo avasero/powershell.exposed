@@ -44,7 +44,7 @@ export function getCacheStats() {
 }
 
 // Função para analisar comando PowerShell
-export async function analyzeCommand(command) {
+export async function analyzeCommand(command, ipAddress = null, ipLocation = null) {
   // Limpar cache expirado
   cleanExpiredCache()
   
@@ -64,6 +64,26 @@ export async function analyzeCommand(command) {
   }
 
   console.log('Cache miss - fetching from backend for command:', command)
+  console.log('User IP address:', ipAddress)
+  console.log('User IP location:', ipLocation)
+  
+  // Log detalhado dos dados sendo enviados
+  const requestBody = { 
+    command,
+    ip_address: ipAddress,
+    country: ipLocation?.country || null,
+    city: ipLocation?.city || null,
+    region: ipLocation?.region || null,
+    timezone: ipLocation?.timezone || null
+  };
+  
+  console.log('📤 Request body being sent to backend:');
+  console.log(JSON.stringify(requestBody, null, 2));
+  console.log('📍 Location data breakdown:');
+  console.log('  - Country:', requestBody.country);
+  console.log('  - City:', requestBody.city);
+  console.log('  - Region:', requestBody.region);
+  console.log('  - Timezone:', requestBody.timezone);
 
   const response = await fetch(`${supabaseUrl}/functions/v1/analyze-command`, {
     method: 'POST',
@@ -71,7 +91,7 @@ export async function analyzeCommand(command) {
       'Authorization': `Bearer ${session.access_token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ command })
+    body: JSON.stringify(requestBody)
   })
 
   console.log('Response status:', response.status)
