@@ -109,106 +109,48 @@ export function useIpAddress() {
       try {
         console.log('🌍 Fetching IP location for:', ip);
         
-        // Serviços de localização geográfica
-        const locationServices = [
-          `https://ipapi.co/${ip}/json/`,
-          `https://ipinfo.io/${ip}/json`,
-          `https://api.ipgeolocation.io/ipgeo?apiKey=free&ip=${ip}`,
-          `https://freegeoip.app/json/${ip}`
-        ];
-
-        let location = null;
+        // Usar apenas o IPAPI - mais confiável e estável
+        const ipapiUrl = `https://ipapi.co/${ip}/json/`;
+        console.log(`🌍 Using IPAPI service: ${ipapiUrl}`);
         
-        for (const service of locationServices) {
-          try {
-            console.log(`🌍 Trying location service: ${service}`);
-            const response = await fetch(service, {
-              method: 'GET',
-              headers: {
-                'Accept': 'application/json',
-              },
-            });
-            
-            if (response.ok) {
-              const data = await response.json();
-              console.log(`✅ Location response from ${service}:`, data);
-              
-              // Extrair informações de localização baseado no serviço
-              if (service.includes('ipapi.co')) {
-                location = {
-                  country: data.country_name || data.country,
-                  city: data.city,
-                  region: data.region || data.region_name,
-                  timezone: data.timezone,
-                  isp: data.org || data.isp,
-                  latitude: data.latitude,
-                  longitude: data.longitude,
-                  postal: data.postal,
-                  asn: data.asn
-                };
-              } else if (service.includes('ipinfo.io')) {
-                location = {
-                  country: data.country,
-                  city: data.city,
-                  region: data.region,
-                  timezone: data.timezone,
-                  isp: data.org,
-                  latitude: data.loc?.split(',')[0],
-                  longitude: data.loc?.split(',')[1],
-                  postal: data.postal,
-                  asn: data.asn
-                };
-              } else if (service.includes('ipgeolocation.io')) {
-                location = {
-                  country: data.country_name,
-                  city: data.city,
-                  region: data.state_prov,
-                  timezone: data.time_zone?.name,
-                  isp: data.isp,
-                  latitude: data.latitude,
-                  longitude: data.longitude,
-                  postal: data.zipcode,
-                  asn: data.asn
-                };
-              } else if (service.includes('freegeoip.app')) {
-                location = {
-                  country: data.country_name,
-                  city: data.city,
-                  region: data.region_name,
-                  timezone: data.time_zone,
-                  isp: data.isp,
-                  latitude: data.latitude,
-                  longitude: data.longitude,
-                  postal: data.zip_code,
-                  asn: data.asn
-                };
-              }
-              
-              if (location && location.country) {
-                console.log(`🎯 Location captured from ${service}:`, location);
-                break;
-              } else {
-                console.warn(`⚠️ Location data incomplete from ${service}:`, location);
-              }
-            } else {
-              console.warn(`❌ Location service ${service} returned status: ${response.status}`);
-            }
-          } catch (err) {
-            console.warn(`⚠️ Failed to fetch location from ${service}:`, err);
-            continue;
+        const response = await fetch(ipapiUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`✅ IPAPI response:`, data);
+          
+          // Extrair informações de localização do IPAPI
+          const location = {
+            country: data.country_name || data.country,
+            city: data.city,
+            region: data.region || data.region_name,
+            timezone: data.timezone,
+            isp: data.org || data.isp,
+            latitude: data.latitude,
+            longitude: data.longitude,
+            postal: data.postal,
+            asn: data.asn
+          };
+          
+          if (location.country) {
+            console.log(`🎯 Location captured from IPAPI:`, location);
+            return location;
+          } else {
+            console.warn(`⚠️ Location data incomplete from IPAPI:`, location);
+            return null;
           }
-        }
-
-        if (location && location.country) {
-          console.log(`✅ Final location data:`, location);
-          return location;
         } else {
-          console.warn('⚠️ Could not fetch location data from any service');
+          console.warn(`❌ IPAPI returned status: ${response.status}`);
           return null;
         }
         
       } catch (err) {
-        console.error('❌ Error fetching IP location:', err);
+        console.error('❌ Error fetching IP location from IPAPI:', err);
         return null;
       }
     };
