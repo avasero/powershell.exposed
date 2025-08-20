@@ -1,6 +1,15 @@
 export async function POST(request) {
   try {
-    const { command } = await request.json();
+    const { 
+      command, 
+      user_id, 
+      ip_address, 
+      country, 
+      city, 
+      region, 
+      timezone, 
+      user_agent 
+    } = await request.json();
     
     if (!command) {
       return Response.json({ error: 'Command is required' }, { status: 400 });
@@ -12,7 +21,16 @@ export async function POST(request) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ command })
+      body: JSON.stringify({ 
+        command,
+        user_id,
+        ip_address,
+        country,
+        city,
+        region,
+        timezone,
+        user_agent
+      })
     });
     
     if (!response.ok) {
