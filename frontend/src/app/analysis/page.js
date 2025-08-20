@@ -37,12 +37,12 @@ export default function AnalysisPage() {
   const [error, setError] = useState("");
   const [newCommand, setNewCommand] = useState("");
 
-  // Verificar autenticação
-  useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push('/landing');
-    }
-  }, [isAuthenticated, router]);
+  // Remover verificação de autenticação - permitir análises anônimas
+  // useEffect(() => {
+  //   if (!isAuthenticated()) {
+  //     router.push('/landing');
+  //   }
+  // }, [isAuthenticated, router]);
 
   // Análise otimizada usando backend Python
   useEffect(() => {
@@ -70,7 +70,7 @@ export default function AnalysisPage() {
     console.log('  - Search params:', window.location.search);
     console.log('  - All params:', Object.fromEntries(new URLSearchParams(window.location.search)));
     
-    if (command.trim() && isAuthenticated()) {
+    if (command.trim()) {
       // Criar objeto de localização
       const ipLocation = {
         country,
@@ -87,9 +87,8 @@ export default function AnalysisPage() {
       console.log('  - Timezone:', ipLocation.timezone);
       
       performAnalysis(command, ipAddress, ipLocation);
-    } else if (command.trim()) {
-      console.log('⚠️ Not authenticated, showing fallback');
-      // Fallback para análise local simples se não autenticado
+    } else {
+      console.log('⚠️ No command provided');
       setLoading(false);
       setResult({
         score: 0,
@@ -97,10 +96,10 @@ export default function AnalysisPage() {
         signatures: [],
         decoded: null,
         indicators: [],
-        details: "Please login to get detailed analysis"
+        details: "No command to analyze"
       });
     }
-  }, [params, isAuthenticated]);
+  }, [params]);
 
   // Função de análise local como fallback
   const performLocalAnalysis = (command) => {
@@ -185,13 +184,20 @@ export default function AnalysisPage() {
         setTimeout(() => reject(new Error('Analysis timeout - taking too long')), 15000)
       );
       
-      // Chamar a API local do Next.js que faz proxy para a API Python
+      // Chamar a API Python via proxy local
       const analysisPromise = fetch('/api/analyze', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ command })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          command,
+          user_id: user?.id || '00000000-0000-0000-0000-000000000000',  // UUID padrão para análises anônimas
+          ip_address: ipAddress,
+          country: ipLocation?.country,
+          city: ipLocation?.city,
+          region: ipLocation?.region,
+          timezone: ipLocation?.timezone,
+          user_agent: navigator.userAgent
+        })
       }).then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

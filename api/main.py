@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import re
@@ -26,11 +26,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Middleware para pegar IP real do cliente
+@app.middleware("http")
+async def get_client_ip(request: Request, call_next):
+    # Pegar IP real do cliente
+    client_ip = request.client.host if request.client else None
+    
+    # Se estiver atrás de proxy, tentar pegar do header X-Forwarded-For
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        client_ip = forwarded_for.split(",")[0].strip()
+    
+    # Adicionar IP à request state
+    request.state.client_ip = client_ip
+    
+    response = await call_next(request)
+    return response
+
 # Configuração do Supabase
 def get_supabase_client() -> Client:
     """Cria e retorna cliente Supabase"""
     supabase_url = os.getenv("SUPABASE_URL")
-    supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")  # Voltar para SERVICE_ROLE_KEY
     
     if not supabase_url or not supabase_key:
         raise ValueError("SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY devem estar configurados")
@@ -127,14 +144,40 @@ async def clear_cache():
     })
 
 @app.post("/analyze-pcre2")
-async def analyze_command_pcre2(request: dict):
+async def analyze_command_pcre2(request: Request):
     """
     Analisa um comando PowerShell usando signatures do banco Supabase
+    E SALVA a análise na tabela powershell_analyses (substituindo a Edge Function)
     """
+    print("🚀 === FUNÇÃO ANALYZE-PCRE2 CHAMADA ===")
+    
     try:
-        command = request.get("command", "")
+        # Pegar IP real do cliente
+        client_ip = getattr(request.state, 'client_ip', None)
+        print(f"🚀 IP real do cliente: {client_ip}")
+        
+        # Pegar dados do body
+        body = await request.json()
+        print(f"🚀 Request body: {body}")
+        
+        command = body.get("command", "")
+        user_id = body.get("user_id")  # Pode ser null para análises anônimas
+        ip_address = body.get("ip_address") or client_ip  # Usar IP da requisição ou IP real do cliente
+        country = body.get("country")
+        city = body.get("city")
+        region = body.get("region")
+        timezone = body.get("timezone")
+        user_agent = body.get("user_agent") or request.headers.get("user-agent", "FastAPI-Client")
+        
+        print(f"🚀 Dados extraídos:")
+        print(f"   - Command: {command}")
+        print(f"   - User ID: {user_id}")
+        print(f"   - IP: {ip_address}")
+        print(f"   - Country: {country}")
+        print(f"   - User Agent: {user_agent}")
         
         if not command or not isinstance(command, str):
+            print("❌ Command inválido")
             return JSONResponse(
                 {"error": "Command is required and must be a string"},
                 status_code=400
@@ -214,6 +257,95 @@ async def analyze_command_pcre2(request: dict):
         
         # Ordenar signatures detectadas por score (maior primeiro)
         detected_signatures.sort(key=lambda x: x["score"], reverse=True)
+        
+        # Preparar dados para salvar no banco
+        analysis_data = {
+            "command": command,
+            "is_malicious": is_malicious,
+            "risk_score": round(total_score, 1),
+            "severity": severity,
+            "signatures_detected": detected_signatures,
+            "tactics": list(tactics),
+            "techniques": list(techniques),
+            "total_signatures_checked": len(signatures),
+            "detected_count": len(detected_signatures),
+            "ip_address": ip_address,
+            "ip_country": country,
+            "ip_city": city,
+            "ip_region": region,
+            "ip_timezone": timezone,
+            "search_type": "WEB",
+            "user_agent": user_agent,
+            "analysis_result": {
+                "command": command,
+                "is_malicious": is_malicious,
+                "risk_score": round(total_score, 1),
+                "severity": severity,
+                "signatures_detected": detected_signatures,
+                "tactics": list(tactics),
+                "techniques": list(techniques),
+                "total_signatures_checked": len(signatures),
+                "detected_count": len(detected_signatures)
+            }
+        }
+        
+        # SALVAR NO BANCO - FUNCIONALIDADE CRUCIAL DA EDGE FUNCTION
+        try:
+            print("🔍 Tentando conectar ao Supabase...")
+            supabase = get_supabase_client()
+            print("✅ Conectado ao Supabase com sucesso")
+            
+            # Preparar dados para INSERT na tabela powershell_analyses
+            insert_data = {
+                "command": command,
+                "is_malicious": is_malicious,
+                "risk_score": round(total_score, 1),
+                "severity": severity,
+                "signatures_detected": detected_signatures,
+                "tactics": list(tactics),
+                "techniques": list(techniques),
+                "analysis_result": analysis_data["analysis_result"],
+                "ip_address": ip_address,
+                "ip_country": country,
+                "ip_city": city,
+                "ip_region": region,
+                "ip_timezone": timezone,
+                "search_type": "WEB",
+                "user_agent": user_agent
+            }
+            
+            # Adicionar user_id se fornecido
+            if user_id:
+                insert_data["user_id"] = user_id
+                print(f"✅ Incluindo user_id: {user_id}")
+            else:
+                # Sempre incluir user_id padrão para análises anônimas
+                insert_data["user_id"] = "00000000-0000-0000-0000-000000000000"
+                print(f"⚠️ user_id não fornecido - usando padrão: {insert_data['user_id']}")
+            
+            print("🔍 Dados para inserção:")
+            print(f"   - Command: {insert_data['command']}")
+            print(f"   - Risk Score: {insert_data['risk_score']}")
+            print(f"   - Severity: {insert_data['severity']}")
+            print(f"   - Signatures: {len(insert_data['signatures_detected'])}")
+            print(f"   - IP: {insert_data['ip_address']}")
+            
+            # Inserir na tabela powershell_analyses
+            print("🔍 Executando INSERT no banco...")
+            response = supabase.table('powershell_analyses').insert(insert_data).execute()
+            
+            if response.data:
+                print(f"✅ Análise salva no banco com ID: {response.data[0].get('id')}")
+                print(f"✅ Response completa: {response.data}")
+            else:
+                print("⚠️ Análise não foi salva no banco")
+                print(f"⚠️ Response: {response}")
+                
+        except Exception as db_error:
+            print(f"❌ Erro ao salvar no banco: {db_error}")
+            print(f"❌ Tipo do erro: {type(db_error)}")
+            print(f"❌ Detalhes do erro: {str(db_error)}")
+            # Continuar mesmo se falhar ao salvar no banco
         
         return JSONResponse({
             "success": True,
