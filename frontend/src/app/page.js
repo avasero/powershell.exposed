@@ -139,6 +139,7 @@ export default function Home() {
       {/* Conteúdo principal */}
       <div className={`flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 ${isAuthenticated() ? 'md:ml-0' : ''}`}>
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center px-2" style={{color: 'var(--accent)'}}>
+          {/* Forçar novo deploy - removendo Edge Function references */}
           powershell.exposed teste
         </h1>
         
