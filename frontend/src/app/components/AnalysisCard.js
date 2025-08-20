@@ -58,6 +58,25 @@ export default function AnalysisCard({
     });
   };
 
+  // Função para destacar o padrão com o texto que fez match
+  const highlightPatternWithMatch = (pattern, matchedText) => {
+    if (!pattern || !matchedText) return pattern || '';
+
+    const regex = new RegExp(`(${matchedText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = pattern.split(regex);
+
+    return parts.map((part, index) => {
+      if (part.toLowerCase() === matchedText.toLowerCase()) {
+        return (
+          <span key={index} className="bg-yellow-400 text-black px-1 rounded font-bold">
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
+  };
+
   // Se tem detalhes de signature, mostrar layout detalhado
   if (title && (description || severity || score)) {
     return (
@@ -104,7 +123,7 @@ export default function AnalysisCard({
             ) : (
               <div className="text-sm font-mono p-2 rounded break-all" 
                 style={{backgroundColor: 'var(--muted)', color: 'var(--foreground)'}}>
-                {pattern || keywords}
+                {highlightPatternWithMatch(pattern, matched_text) || pattern || keywords}
               </div>
             )}
           </div>

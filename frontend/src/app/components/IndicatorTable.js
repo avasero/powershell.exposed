@@ -2,6 +2,25 @@
 import SeverityBadge from './SeverityBadge';
 
 export default function IndicatorTable({ signatures = [] }) {
+  // Função para destacar o padrão com o texto que fez match
+  const highlightPatternWithMatch = (pattern, matchedText) => {
+    if (!pattern || !matchedText) return pattern || '';
+
+    const regex = new RegExp(`(${matchedText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = pattern.split(regex);
+
+    return parts.map((part, index) => {
+      if (part.toLowerCase() === matchedText.toLowerCase()) {
+        return (
+          <span key={index} className="bg-yellow-400 text-black px-1 rounded font-bold">
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
+  };
+
   return (
     <div className="space-y-6">
       {signatures.length === 0 ? (
@@ -50,11 +69,11 @@ export default function IndicatorTable({ signatures = [] }) {
                 </div>
 
                 {/* Matched Pattern */}
-                {sig.keyword && (
+                {(sig.matched_text || sig.keyword) && (
                   <div>
                     <h5 className="font-mono text-sm font-bold mb-2" style={{color: 'var(--accent)'}}>Matched Pattern:</h5>
                     <code className="font-mono text-xs p-2 rounded block" style={{backgroundColor: 'rgba(156, 254, 65, 0.1)', color: 'var(--accent)'}}>
-                      {sig.keyword}
+                      {highlightPatternWithMatch(sig.pattern || sig.keyword, sig.matched_text)}
                     </code>
                   </div>
                 )}
