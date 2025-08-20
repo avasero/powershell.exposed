@@ -8,11 +8,10 @@ export async function preloadSignatures() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return null
 
-    // Fazer uma chamada pequena para "aquecer" a Edge Function
-    const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/analyze-command`, {
+    // Fazer uma chamada pequena para "aquecer" a API Python
+    const response = await fetch(`/api/analyze`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${session.access_token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ command: 'Get-Process' }) // Comando simples para pré-carregar

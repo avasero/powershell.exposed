@@ -85,10 +85,9 @@ export async function analyzeCommand(command, ipAddress = null, ipLocation = nul
   console.log('  - Region:', requestBody.region);
   console.log('  - Timezone:', requestBody.timezone);
 
-  const response = await fetch(`${supabaseUrl}/functions/v1/analyze-command`, {
+  const response = await fetch(`/api/analyze`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${session.access_token}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(requestBody)
