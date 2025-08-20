@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-import re
+import re  # Usar módulo re padrão que funciona no Vercel
 import os
 import json
 import time
@@ -169,6 +169,7 @@ async def analyze_command_pcre2(request: Request):
         region = body.get("region")
         timezone = body.get("timezone")
         user_agent = body.get("user_agent") or request.headers.get("user-agent", "FastAPI-Client")
+        search_type = body.get("search_type", "API")  # Padrão API se não especificado
         
         print(f"🚀 Dados extraídos:")
         print(f"   - Command: {command}")
@@ -239,7 +240,7 @@ async def analyze_command_pcre2(request: Request):
                     else:
                         print(f"   ❌ No match for pattern: '{pattern}'")
                         
-                except Exception as regex_error:
+                except re.error as regex_error:  # Usar re.error em vez de pcre2.error
                     print(f"   ❌ Erro no regex pattern '{pattern}': {regex_error}")
                     continue
         
@@ -276,7 +277,7 @@ async def analyze_command_pcre2(request: Request):
             "ip_city": city,
             "ip_region": region,
             "ip_timezone": timezone,
-            "search_type": "WEB",
+            "search_type": search_type,
             "user_agent": user_agent,
             "analysis_result": {
                 "command": command,
@@ -312,7 +313,7 @@ async def analyze_command_pcre2(request: Request):
                 "ip_city": city,
                 "ip_region": region,
                 "ip_timezone": timezone,
-                "search_type": "WEB",
+                "search_type": search_type,
                 "user_agent": user_agent
             }
             

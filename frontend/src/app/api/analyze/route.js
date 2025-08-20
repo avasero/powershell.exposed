@@ -29,7 +29,8 @@ export async function POST(request) {
         city,
         region,
         timezone,
-        user_agent
+        user_agent,
+        search_type: "WEB"  // Frontend sempre é WEB
       })
     });
     
