@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-import pcre2
+import re
 import os
 import json
 import time
@@ -148,7 +148,7 @@ async def analyze_command_pcre2(request: Request):
     """
     Analisa um comando PowerShell usando signatures do banco Supabase
     E SALVA a análise na tabela powershell_analyses (substituindo a Edge Function)
-    Utiliza PCRE2 para matching de regex com melhor performance
+    Utiliza módulo re padrão do Python para matching de regex
     """
     print("🚀 === FUNÇÃO ANALYZE-PCRE2 CHAMADA ===")
     
@@ -210,7 +210,8 @@ async def analyze_command_pcre2(request: Request):
                     print(f"   Command: '{command}'")
                     
                     # Usar regex com flags case-insensitive
-                    regex = pcre2.compile(pattern, pcre2.PCRE2_CASELESS)
+                    # Módulo re padrão funciona com strings
+                    regex = re.compile(pattern, re.IGNORECASE)
                     match = regex.search(command)
                     
                     if match:
@@ -238,7 +239,7 @@ async def analyze_command_pcre2(request: Request):
                     else:
                         print(f"   ❌ No match for pattern: '{pattern}'")
                         
-                except pcre2.error as regex_error:
+                except Exception as regex_error:
                     print(f"   ❌ Erro no regex pattern '{pattern}': {regex_error}")
                     continue
         
