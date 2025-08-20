@@ -120,28 +120,6 @@ export async function analyzeCommand(command, ipAddress = null, ipLocation = nul
   return result
 }
 
-// Função para buscar análises do usuário
-export async function getUserAnalyses(page = 1, limit = 10) {
-  const { data: { session } } = await supabase.auth.getSession()
-  
-  if (!session) {
-    throw new Error('User not authenticated')
-  }
-
-  const response = await fetch(`${supabaseUrl}/functions/v1/get-user-analyses?page=${page}&limit=${limit}`, {
-    headers: {
-      'Authorization': `Bearer ${session.access_token}`,
-    }
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch analyses')
-  }
-
-  return await response.json()
-}
-
 // Função para buscar uma análise específica
 export async function getAnalysisById(id) {
   const { data: { session } } = await supabase.auth.getSession()
