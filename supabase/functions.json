@@ -1,11 +1,6 @@
 {
   "functions": [
     {
-      "name": "analyze-command",
-      "source": "analyze-command/index.ts",
-      "verify_jwt": true
-    },
-    {
       "name": "get-user-analyses",
       "source": "get-user-analyses/index.ts", 
       "verify_jwt": true

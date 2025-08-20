@@ -23,8 +23,5 @@ enable_confirmations = false
 port = 54322
 major_version = 15
 
-[functions.analyze-command]
-verify_jwt = true
-
 [functions.get-user-analyses]
 verify_jwt = true
