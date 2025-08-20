@@ -175,6 +175,9 @@ export default function AnalysisPage() {
       console.log('- Command:', command);
       console.log('- IP Address:', ipAddress);
       console.log('- IP Location:', ipLocation);
+      console.log('- User object:', user);
+      console.log('- User ID:', user?.id);
+      console.log('- Is Authenticated:', isAuthenticated());
       
       // Garantir que o skeleton apareça por pelo menos 800ms para UX
       const minDelay = new Promise(resolve => setTimeout(resolve, 800));
@@ -190,7 +193,7 @@ export default function AnalysisPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           command,
-          user_id: user?.id || '00000000-0000-0000-0000-000000000000',  // UUID padrão para análises anônimas
+          user_id: user?.id || null,  // Enviar null se não logado, não UUID padrão
           ip_address: ipAddress,
           country: ipLocation?.country,
           city: ipLocation?.city,

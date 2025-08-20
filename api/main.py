@@ -317,6 +317,10 @@ async def analyze_command_pcre2(request: Request):
             }
             
             # Adicionar user_id se fornecido
+            print(f"🔍 DEBUG: user_id recebido: '{user_id}' (tipo: {type(user_id)})")
+            print(f"🔍 DEBUG: user_id é None? {user_id is None}")
+            print(f"🔍 DEBUG: user_id é string vazia? {user_id == ''}")
+            
             if user_id:
                 insert_data["user_id"] = user_id
                 print(f"✅ Incluindo user_id: {user_id}")
