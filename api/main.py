@@ -5,6 +5,7 @@ import re  # Usar módulo re padrão que funciona no Vercel
 import os
 import json
 import time
+import aiohttp  # Para requisições HTTP assíncronas
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
@@ -53,6 +54,34 @@ def get_supabase_client() -> Client:
         raise ValueError("SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY devem estar configurados")
     
     return create_client(supabase_url, supabase_key)
+
+async def get_ip_location(ip_address: str) -> dict:
+    """Captura geolocalização de um IP usando serviço externo"""
+    if not ip_address:
+        return {}
+    
+    try:
+        # Usar IPAPI.co (gratuito, sem rate limit)
+        url = f"https://ipapi.co/{ip_address}/json/"
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=10) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    
+                    return {
+                        "country": data.get("country_name"),
+                        "city": data.get("city"),
+                        "region": data.get("region"),
+                        "timezone": data.get("timezone")
+                    }
+                else:
+                    print(f"⚠️ Erro ao buscar localização do IP {ip_address}: {response.status}")
+                    return {}
+                    
+    except Exception as error:
+        print(f"❌ Erro ao capturar geolocalização do IP {ip_address}: {error}")
+        return {}
 
 # Cache simples para signatures (renovado a cada 10 minutos)
 signatures_cache = None
@@ -171,12 +200,29 @@ async def analyze_command_pcre2(request: Request):
         user_agent = body.get("user_agent") or request.headers.get("user-agent", "FastAPI-Client")
         search_type = body.get("search_type", "API")  # Padrão API se não especificado
         
+        # Se não temos geolocalização mas temos IP, tentar capturar automaticamente
+        if ip_address and not country and search_type == "API":
+            print(f"🌍 Capturando geolocalização automática para IP: {ip_address}")
+            location_data = await get_ip_location(ip_address)
+            if location_data:
+                country = location_data.get("country") or country
+                city = location_data.get("city") or city
+                region = location_data.get("region") or region
+                timezone = location_data.get("timezone") or timezone
+                print(f"✅ Geollocalização capturada: {country}, {city}, {region}, {timezone}")
+            else:
+                print(f"⚠️ Não foi possível capturar geolocalização para IP: {ip_address}")
+        
         print(f"🚀 Dados extraídos:")
         print(f"   - Command: {command}")
         print(f"   - User ID: {user_id}")
         print(f"   - IP: {ip_address}")
         print(f"   - Country: {country}")
+        print(f"   - City: {city}")
+        print(f"   - Region: {region}")
+        print(f"   - Timezone: {timezone}")
         print(f"   - User Agent: {user_agent}")
+        print(f"   - Search Type: {search_type}")
         
         if not command or not isinstance(command, str):
             print("❌ Command inválido")
