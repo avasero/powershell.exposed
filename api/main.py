@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import re
 import os
 import json
@@ -14,6 +15,15 @@ app = FastAPI(
     title="PowerShell.exposed API",
     description="API para análise de comandos PowerShell",
     version="1.0.0"
+)
+
+# Configuração de CORS para permitir requisições do frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Em produção, especificar domínios específicos
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Configuração do Supabase
@@ -103,6 +113,19 @@ async def health_check():
         "message": "Fast api working"
     })
 
+@app.post("/clear-cache")
+async def clear_cache():
+    """Limpa o cache de signatures e força reload do banco"""
+    global signatures_cache, cache_timestamp
+    
+    signatures_cache = None
+    cache_timestamp = 0
+    
+    return JSONResponse({
+        "success": True,
+        "message": "Cache cleared, next request will reload from database"
+    })
+
 @app.post("/analyze-pcre2")
 async def analyze_command_pcre2(request: dict):
     """
@@ -140,8 +163,7 @@ async def analyze_command_pcre2(request: dict):
                 try:
                     # Debug: mostrar pattern sendo testado
                     print(f"   Testing pattern: '{pattern}'")
-                    print(f"   Pattern type: {type(pattern)}")
-                    print(f"   Pattern length: {len(pattern)}")
+                    print(f"   Command: '{command}'")
                     
                     # Usar regex com flags case-insensitive
                     regex = re.compile(pattern, re.IGNORECASE)

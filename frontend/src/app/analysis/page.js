@@ -2,7 +2,6 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { analyzeCommand } from "../../../lib/supabase";
 import SeverityLegend from "../components/SeverityLegend";
 import AnalysisCard from "../components/AnalysisCard";
 import SeverityBadge from "../components/SeverityBadge";
@@ -45,7 +44,7 @@ export default function AnalysisPage() {
     }
   }, [isAuthenticated, router]);
 
-  // Análise otimizada usando backend
+  // Análise otimizada usando backend Python
   useEffect(() => {
     const command = params.get("cmd") || "";
     const ipAddress = params.get("ip") || null;
@@ -103,12 +102,77 @@ export default function AnalysisPage() {
     }
   }, [params, isAuthenticated]);
 
+  // Função de análise local como fallback
+  const performLocalAnalysis = (command) => {
+    console.log('🔄 Performing local analysis as fallback');
+    
+    // Análise básica local
+    const localResult = {
+      score: 0,
+      severity: "safe",
+      signatures: [],
+      decoded: null,
+      indicators: [],
+      details: "Local analysis - API not accessible",
+      tactics: [],
+      techniques: []
+    };
+    
+    // Detecções básicas locais
+    if (command.toLowerCase().includes('webclient') || command.toLowerCase().includes('webrequest')) {
+      localResult.signatures.push({
+        name: "Web Client Detection",
+        pattern: "webclient|webrequest",
+        matched_text: "Web client pattern detected",
+        severity: "high",
+        score: 7.5,
+        description: "Potential web client usage detected",
+        tactics: ["Command and Control"],
+        techniques: ["T1071.001"]
+      });
+      localResult.score += 7.5;
+      localResult.severity = "high";
+    }
+    
+    if (command.toLowerCase().includes('invoke-expression') || command.toLowerCase().includes('iex')) {
+      localResult.signatures.push({
+        name: "Dynamic Code Execution",
+        pattern: "invoke-expression|iex",
+        matched_text: "Dynamic execution pattern detected",
+        severity: "medium",
+        score: 5.0,
+        description: "Dynamic code execution detected",
+        tactics: ["Execution"],
+        techniques: ["T1059.001"]
+      });
+      localResult.score += 5.0;
+      localResult.severity = "medium";
+    }
+    
+    if (command.toLowerCase().includes('base64') && command.length > 100) {
+      localResult.signatures.push({
+        name: "Long Base64 String",
+        pattern: "base64.*long",
+        matched_text: "Long encoded string detected",
+        severity: "medium",
+        score: 6.0,
+        description: "Long base64 string detected",
+        tactics: ["Defense Evasion"],
+        techniques: ["T1027"]
+      });
+      localResult.score += 6.0;
+      localResult.severity = "medium";
+    }
+    
+    return localResult;
+  };
+
   const performAnalysis = async (command, ipAddress, ipLocation) => {
     try {
       setLoading(true);
       setError("");
       
-      console.log('🔄 Performing analysis:');
+      console.log('🔄 Performing analysis via Python API:');
       console.log('- Command:', command);
       console.log('- IP Address:', ipAddress);
       console.log('- IP Location:', ipLocation);
@@ -121,7 +185,23 @@ export default function AnalysisPage() {
         setTimeout(() => reject(new Error('Analysis timeout - taking too long')), 15000)
       );
       
-      const analysisPromise = analyzeCommand(command, ipAddress, ipLocation);
+      // Chamar a API local do Next.js que faz proxy para a API Python
+      const analysisPromise = fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ command })
+      }).then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      }).catch(error => {
+        console.error('API error:', error);
+        // Fallback: análise local básica
+        throw new Error('API não acessível. Use análise local temporariamente.');
+      });
       
       // Executar análise e delay mínimo em paralelo
       const [response] = await Promise.all([
@@ -130,7 +210,7 @@ export default function AnalysisPage() {
       ]);
       
       if (response.success) {
-        const analysisData = response.analysis.analysis_result;
+        const analysisData = response.analysis;
         
         // Converter para formato esperado pelo frontend
         setResult({
@@ -143,19 +223,40 @@ export default function AnalysisPage() {
           tactics: analysisData.tactics || [],
           techniques: analysisData.techniques || []
         });
+      } else {
+        throw new Error(response.error || 'Analysis failed');
       }
     } catch (err) {
       console.error('Analysis error:', err);
       setError(err.message);
-      // Fallback para análise básica
-      setResult({
-        score: 0,
-        severity: "unknown",
-        signatures: [],
-        decoded: null,
-        indicators: ["Error: " + err.message],
-        details: "Analysis failed, showing basic info"
-      });
+      
+      // Se a API falhou, usar análise local
+      if (err.message.includes('API não acessível')) {
+        console.log('🔄 Falling back to local analysis');
+        const localResult = performLocalAnalysis(command);
+        
+        setError(""); // Limpar erro se análise local funcionar
+        setResult({
+          score: localResult.score,
+          severity: localResult.severity,
+          signatures: localResult.signatures,
+          decoded: localResult.decoded,
+          indicators: localResult.indicators,
+          details: localResult.details,
+          tactics: localResult.tactics,
+          techniques: localResult.techniques
+        });
+      } else {
+        // Fallback para análise básica em caso de outros erros
+        setResult({
+          score: 0,
+          severity: "unknown",
+          signatures: [],
+          decoded: null,
+          indicators: ["Error: " + err.message],
+          details: "Analysis failed, showing basic info"
+        });
+      }
     } finally {
       setLoading(false);
     }

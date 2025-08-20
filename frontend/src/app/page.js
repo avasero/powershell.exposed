@@ -67,7 +67,7 @@ export default function Home() {
     return { isValid: true, error: null };
   };
 
-  // Command analysis - REVERTED to original behavior
+  // Command analysis - usando API Python
   const handleAnalyze = (e) => {
     e.preventDefault();
     
@@ -79,19 +79,10 @@ export default function Home() {
     
     setError(""); // Clear previous error
     
-    console.log('🚀 Starting analysis with:');
+    console.log('🚀 Starting analysis with Python API:');
     console.log('- Command:', command);
     console.log('- IP Address:', ipAddress);
     console.log('- IP Location:', ipLocation);
-    
-    // Log detalhado da localização antes de enviar
-    if (ipLocation) {
-      console.log('📍 Sending location data:');
-      console.log('  - Country:', ipLocation.country);
-      console.log('  - City:', ipLocation.city);
-      console.log('  - Region:', ipLocation.region);
-      console.log('  - Timezone:', ipLocation.timezone);
-    }
     
     // Incluir IP address e localização na URL para análise
     const analysisUrl = `/analysis?cmd=${encodeURIComponent(command.trim())}`;
@@ -107,14 +98,6 @@ export default function Home() {
       }
       
       console.log('📍 Redirecting to:', finalUrl);
-      console.log('📍 URL parameters:');
-      console.log('  - cmd:', command.trim());
-      console.log('  - ip:', ipAddress);
-      console.log('  - country:', ipLocation?.country);
-      console.log('  - city:', ipLocation?.city);
-      console.log('  - region:', ipLocation?.region);
-      console.log('  - timezone:', ipLocation?.timezone);
-      
       router.push(finalUrl);
     } else {
       console.log('⚠️ No IP address available, redirecting to:', analysisUrl);
