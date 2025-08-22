@@ -308,6 +308,9 @@ async def analyze_command_pcre2(request: Request):
                 
                 print(f"   📊 Score calculado: {signature['score']} × {matches_found} = {signature_total_score}")
                 
+                # Determinar qual pattern deu match (usar o primeiro pattern que encontrou matches)
+                matched_pattern = signature_matches[0]["pattern"] if signature_matches else "Unknown pattern"
+                
                 detected_signatures.append({
                     "name": signature["name"],
                     "description": signature["description"],
@@ -317,6 +320,7 @@ async def analyze_command_pcre2(request: Request):
                     "total_score": signature_total_score,
                     "max_match_allowed": signature["max_match"],
                     "matches_details": signature_matches,
+                    "pattern": matched_pattern,
                     "tactics": signature["tactics"],
                     "techniques": signature["techniques"],
                     "reference": signature.get("reference", [])
