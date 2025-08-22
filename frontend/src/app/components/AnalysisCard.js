@@ -158,23 +158,24 @@ export default function AnalysisCard({
           </div>
         )}
 
-        {(matched_text || matched_command || pattern || keywords) && (
+        {/* Matched Patterns - mostrar patterns dos matches individuais */}
+        {matchesInfo && matchesInfo.matchesDetails && matchesInfo.matchesDetails.length > 0 && (
           <div className="mb-4">
             <div className="text-sm font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
-              Matched Pattern:
+              Matched Patterns:
             </div>
-            {matched_text && matched_command ? (
-              <div className="text-sm font-mono p-2 rounded break-all" 
-                style={{backgroundColor: 'var(--muted)', color: 'var(--foreground)'}}>
-                {highlightMatch(matched_command, matched_text)}
-              </div>
-            ) : (
-              <div className="text-sm font-mono p-2 rounded break-all" 
-                style={{backgroundColor: 'var(--muted)', color: 'var(--foreground)'}}>
-                {/* Mostrar o padrão específico que deu match, não o regex inteiro */}
-                {matched_text || pattern || keywords}
-              </div>
-            )}
+            <div className="space-y-2">
+              {matchesInfo.matchesDetails.map((match, idx) => (
+                <div key={idx} className="text-sm font-mono p-2 rounded break-all" 
+                  style={{backgroundColor: 'var(--muted)', color: 'var(--foreground)'}}>
+                  <div className="text-xs text-gray-400 mb-1">Pattern {idx + 1}:</div>
+                  <div className="font-bold">{match.pattern || 'Unknown pattern'}</div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    Matched: <span className="text-yellow-400">"{match.matched_text}"</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
