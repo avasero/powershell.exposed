@@ -33,13 +33,28 @@ function parseYamlIndicator(yamlData: any): DatabaseIndicator | null {
     const name = yamlData.name || ''
     const description = yamlData.description || ''
     
-    // Processar regex/patterns
+    // Processar regex/patterns - CORRIGIDO para pegar apenas os padrões regex
     let patterns: string[] = []
     if (typeof yamlData.regex === 'string') {
       patterns = [yamlData.regex]
     } else if (Array.isArray(yamlData.regex)) {
-      patterns = yamlData.regex
+      // Filtrar apenas strings que parecem ser padrões regex (não URLs)
+      patterns = yamlData.regex.filter((pattern: string) => {
+        // URLs geralmente começam com http:// ou https://
+        const isUrl = pattern.startsWith('http://') || pattern.startsWith('https://')
+        // Padrões regex geralmente contêm caracteres especiais como ?, *, +, etc.
+        const hasRegexChars = /[?*+^$|()[\]{}]/.test(pattern)
+        return !isUrl && (hasRegexChars || pattern.length > 0)
+      })
     }
+    
+    // Se não encontrou padrões válidos, usar um padrão padrão
+    if (patterns.length === 0) {
+      console.log(`⚠️  Nenhum padrão regex válido encontrado para ${name}, usando padrão padrão`)
+      patterns = ['.*'] // Padrão que captura tudo
+    }
+    
+    console.log(`🔍 Padrões extraídos para ${name}:`, patterns)
     
     // Processar basescore
     let basescore = 5.0

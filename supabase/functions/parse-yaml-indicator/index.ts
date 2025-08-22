@@ -9,6 +9,7 @@ const corsHeaders = {
 function parseSimpleYaml(yamlContent: string): any {
   const result: any = {}
   const lines = yamlContent.split('\n')
+  let currentKey: string | null = null
   
   for (const line of lines) {
     const trimmedLine = line.trim()
@@ -18,28 +19,36 @@ function parseSimpleYaml(yamlContent: string): any {
     if (trimmedLine.match(/^[^:]+:\s*[^[\]]+$/)) {
       const [key, ...valueParts] = trimmedLine.split(':')
       const value = valueParts.join(':').trim().replace(/^["']|["']$/g, '')
-      result[key.trim()] = value
+      currentKey = key.trim()
+      result[currentKey] = value
     }
     // Parse de arrays simples: key: [item1, item2]
     else if (trimmedLine.match(/^[^:]+:\s*\[.*\]$/)) {
       const [key, valuePart] = trimmedLine.split(':', 2)
       const arrayContent = valuePart.trim().replace(/^\[|\]$/g, '')
-      result[key.trim()] = arrayContent.split(',').map(item => 
+      currentKey = key.trim()
+      result[currentKey] = arrayContent.split(',').map(item => 
         item.trim().replace(/^["']|["']$/g, '')
       ).filter(item => item !== '')
     }
-    // Parse de arrays multi-linha: começando com -
+    // Parse de arrays multi-linha: key: seguido de linhas com -
     else if (trimmedLine.startsWith('-')) {
-      // Para simplicidade, vamos assumir que este é um array e pegar o último campo
-      const value = trimmedLine.substring(1).trim().replace(/^["']|["']$/g, '')
-      if (value) {
-        const lastKey = Object.keys(result).pop()
-        if (lastKey && Array.isArray(result[lastKey])) {
-          result[lastKey].push(value)
-        } else if (lastKey) {
-          result[lastKey] = [result[lastKey], value].filter(Boolean)
+      if (currentKey) {
+        const value = trimmedLine.substring(1).trim().replace(/^["']|["']$/g, '')
+        if (value) {
+          // Inicializar como array se ainda não for
+          if (!Array.isArray(result[currentKey])) {
+            result[currentKey] = []
+          }
+          result[currentKey].push(value)
         }
       }
+    }
+    // Parse de campo sem valor (para arrays multi-linha): key:
+    else if (trimmedLine.match(/^[^:]+:\s*$/)) {
+      const key = trimmedLine.replace(':', '').trim()
+      currentKey = key
+      result[currentKey] = []
     }
   }
   
@@ -93,8 +102,23 @@ serve(async (req) => {
       if (typeof data.regex === 'string') {
         patterns = [data.regex]
       } else if (Array.isArray(data.regex)) {
-        patterns = data.regex
+        // Filtrar apenas strings que parecem ser padrões regex (não URLs)
+        patterns = data.regex.filter((pattern: string) => {
+          // URLs geralmente começam com http:// ou https://
+          const isUrl = pattern.startsWith('http://') || pattern.startsWith('https://')
+          // Padrões regex geralmente contêm caracteres especiais como ?, *, +, etc.
+          const hasRegexChars = /[?*+^$|()[\]{}]/.test(pattern)
+          return !isUrl && (hasRegexChars || pattern.length > 0)
+        })
       }
+      
+      // Se não encontrou padrões válidos, usar um padrão padrão
+      if (patterns.length === 0) {
+        console.log(`⚠️  Nenhum padrão regex válido encontrado para ${name}, usando padrão padrão`)
+        patterns = ['.*'] // Padrão que captura tudo
+      }
+      
+      console.log(`🔍 Padrões extraídos para ${name}:`, patterns)
       
       // Processar basescore
       let basescore = 5.0
