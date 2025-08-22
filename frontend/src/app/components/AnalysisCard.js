@@ -123,7 +123,8 @@ export default function AnalysisCard({
             ) : (
               <div className="text-sm font-mono p-2 rounded break-all" 
                 style={{backgroundColor: 'var(--muted)', color: 'var(--foreground)'}}>
-                {highlightPatternWithMatch(pattern, matched_text) || pattern || keywords}
+                {/* Mostrar o padrão específico que deu match, não o regex inteiro */}
+                {matched_text || pattern || keywords}
               </div>
             )}
           </div>

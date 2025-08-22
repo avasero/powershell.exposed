@@ -33,7 +33,7 @@ WHERE name = 'Invoke-Expression Cmdlet';
 -- 3. CORRIGIR: Long base64 string
 UPDATE public.powershell_signatures 
 SET 
-  patterns = '["(?i)[a-z0-9+/=]{100,}", "(?i)^(?!.*[-]e(nc*o*d*e*d*c*o*m*m*a*n*d*)*\\s).*"]'::jsonb,
+  patterns = '["(?i)[a-z0-9+/=]{100,}"]'::jsonb,
   tactics = '["Defense Evasion", "Execution"]'::jsonb,
   techniques = '["T1027.001", "T1059.001"]'::jsonb,
   reference = '["https://blogs.vmware.com/security/2023/03/how-to-detect-poshc2-powershell-implants.html", "https://gist.github.com/githubfoam/0f6691b47a71486b25502e4e456d735e"]'::jsonb,
