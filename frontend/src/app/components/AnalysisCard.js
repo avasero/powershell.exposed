@@ -14,6 +14,7 @@ export default function AnalysisCard({
   tactic,
   technique,
   reference,
+  matchesInfo,
   children, 
   variant = "default",
   className = "" 
@@ -106,6 +107,53 @@ export default function AnalysisCard({
             </div>
             <div className="text-sm font-mono" style={{color: 'var(--foreground)'}}>
               {description}
+            </div>
+          </div>
+        )}
+
+        {/* Matches Information */}
+        {matchesInfo && matchesInfo.matchesFound > 1 && (
+          <div className="mb-4">
+            <div className="text-sm font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
+              Matches Found:
+            </div>
+            <div className="text-sm font-mono p-3 rounded" style={{backgroundColor: 'var(--muted)', color: 'var(--foreground)'}}>
+              <div className="mb-2">
+                <span className="font-bold">Matches: </span>
+                <span className="text-green-400">{matchesInfo.matchesFound}</span>
+                <span className="text-gray-400"> / {matchesInfo.maxMatchAllowed}</span>
+              </div>
+              <div className="mb-2">
+                <span className="font-bold">Score Base: </span>
+                <span className="text-yellow-400">{matchesInfo.baseScore}</span>
+              </div>
+              <div className="mb-2">
+                <span className="font-bold">Score Total: </span>
+                <span className="text-red-400 font-bold">{matchesInfo.totalScore}</span>
+                <span className="text-gray-400"> ({matchesInfo.baseScore} × {matchesInfo.matchesFound})</span>
+              </div>
+              
+              {/* Detalhes dos matches individuais */}
+              {matchesInfo.matchesDetails && matchesInfo.matchesDetails.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-600">
+                  <div className="text-xs font-bold mb-2" style={{color: 'var(--accent)'}}>
+                    Match Details:
+                  </div>
+                  <div className="space-y-2">
+                    {matchesInfo.matchesDetails.map((match, idx) => (
+                      <div key={idx} className="text-xs p-2 rounded" style={{backgroundColor: 'var(--background)', border: '1px solid var(--border-color)'}}>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="font-bold">Match {match.match_number}:</span>
+                          <span className="text-green-400">Pos {match.position?.start}-{match.position?.end}</span>
+                        </div>
+                        <div className="font-mono break-all" style={{color: 'var(--foreground)'}}>
+                          <span className="text-yellow-400">"{match.matched_text}"</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

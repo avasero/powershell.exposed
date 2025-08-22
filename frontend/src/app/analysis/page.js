@@ -225,7 +225,7 @@ export default function AnalysisPage() {
         setResult({
           score: analysisData.risk_score,
           severity: analysisData.is_malicious ? "malicious" : "safe",
-          signatures: (analysisData.signatures_detected || []).sort((a, b) => (b.score || 0) - (a.score || 0)),
+          signatures: (analysisData.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
           decoded: analysisData.decoded_command,
           indicators: analysisData.analysis_details?.indicators || [],
           details: analysisData.analysis_details?.recommendations?.join(", ") || "",
@@ -378,8 +378,8 @@ export default function AnalysisPage() {
                     sig.name.includes('(') && sig.score < 4.0 && sig.techniques?.includes('T1059.001') && sig.tactics?.length <= 1
                   );
                   
-                  const securityScore = securitySigs.reduce((sum, sig) => sum + (sig.score || 0), 0);
-                  const allCmdletScore = allCmdlets.reduce((sum, sig) => sum + (sig.score || 0), 0);
+                  const securityScore = securitySigs.reduce((sum, sig) => sum + (sig.total_score || sig.score || 0), 0);
+                  const allCmdletScore = allCmdlets.reduce((sum, sig) => sum + (sig.total_score || sig.score || 0), 0);
                   
                   return (
                     <>
@@ -438,7 +438,7 @@ export default function AnalysisPage() {
                           title={signature.name || 'Unknown Pattern'}
                           description={signature.description || `Pattern detected: ${signature.pattern || 'No description available'}`}
                           severity={signature.severity || 'unknown'}
-                          score={signature.score || 0}
+                          score={signature.total_score || signature.score || 0}
                           pattern={signature.pattern || 'No pattern specified'}
                           matched_text={signature.matched_text || signature.matchedText || ''}
                           matched_command={signature.matched_command || signature.matchedCommand || ''}
@@ -446,6 +446,13 @@ export default function AnalysisPage() {
                           tactic={signature.tactics || signature.tactic || []}
                           technique={signature.techniques || signature.technique || []}
                           reference={signature.reference || ''}
+                          matchesInfo={{
+                            matchesFound: signature.matches_found || 1,
+                            baseScore: signature.base_score || signature.score || 0,
+                            totalScore: signature.total_score || signature.score || 0,
+                            maxMatchAllowed: signature.max_match_allowed || 1,
+                            matchesDetails: signature.matches_details || []
+                          }}
                         />
                       ))}
                     </div>
@@ -469,8 +476,14 @@ export default function AnalysisPage() {
                             {cmdlet.name}
                           </div>
                           <div className="text-xs font-mono" style={{color: 'var(--muted-foreground)'}}>
-                            Score: {cmdlet.score} • Basic PowerShell
+                            Score: {cmdlet.total_score || cmdlet.score} • Basic PowerShell
                           </div>
+                          {/* Mostrar informações de matches se houver múltiplos */}
+                          {cmdlet.matches_found > 1 && (
+                            <div className="text-xs font-mono mt-1" style={{color: 'var(--accent)'}}>
+                              {cmdlet.matches_found} matches • Base: {cmdlet.base_score || cmdlet.score}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

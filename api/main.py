@@ -106,7 +106,8 @@ async def load_signatures_from_db() -> list:
                     "techniques": sig.get("techniques", []) if isinstance(sig.get("techniques"), list) else [],
                     "score": float(sig.get("basescore", 0)),
                     "description": sig.get("description", "No description available"),
-                    "reference": sig.get("reference", []) if isinstance(sig.get("reference"), list) else []
+                    "reference": sig.get("reference", []) if isinstance(sig.get("reference"), list) else [],
+                    "max_match": int(sig.get("max_match", 1))  # Adicionando campo max_match
                 })
             
             signatures_cache = converted_signatures
@@ -117,6 +118,7 @@ async def load_signatures_from_db() -> list:
             for sig in converted_signatures:
                 print(f"Signature: {sig['name']}")
                 print(f"  Patterns: {sig['patterns']}")
+                print(f"  Max Match: {sig['max_match']}")
                 print()
             
             return converted_signatures
@@ -226,6 +228,10 @@ async def analyze_command_pcre2(request: Request):
         for signature in signatures:
             print(f"\n🔍 Analisando signature: {signature['name']}")
             print(f"   Patterns disponíveis: {signature['patterns']}")
+            print(f"   Max Match permitido: {signature['max_match']}")
+            
+            matches_found = 0
+            signature_matches = []
             
             for pattern in signature["patterns"]:
                 try:
@@ -233,34 +239,68 @@ async def analyze_command_pcre2(request: Request):
                     print(f"   Command: '{command}'")
                     
                     regex = re.compile(pattern, re.IGNORECASE)
-                    match = regex.search(command)
+                    all_matches = list(regex.finditer(command))
                     
-                    if match:
-                        print(f"   ✅ MATCH FOUND: '{pattern}' matched '{match.group(0)}' in command")
+                    if all_matches:
+                        print(f"   ✅ MATCHES ENCONTRADOS: {len(all_matches)} matches para pattern '{pattern}'")
                         
-                        detected_signatures.append({
-                            "name": signature["name"],
-                            "pattern": pattern,
-                            "matched_text": match.group(0),
-                            "severity": signature["severity"],
-                            "score": signature["score"],
-                            "description": signature["description"],
-                            "tactics": signature["tactics"],
-                            "techniques": signature["techniques"],
-                            "reference": signature.get("reference", [])
-                        })
+                        # Limitar matches conforme max_match
+                        max_allowed = min(len(all_matches), signature["max_match"])
+                        allowed_matches = all_matches[:max_allowed]
                         
-                        tactics.update(signature["tactics"])
-                        techniques.update(signature["techniques"])
-                        total_score += signature["score"]
+                        for i, match in enumerate(allowed_matches):
+                            matches_found += 1
+                            matched_text = match.group(0)
+                            match_start = match.start()
+                            match_end = match.end()
+                            
+                            print(f"      Match {i+1}: '{matched_text}' (posição {match_start}-{match_end})")
+                            
+                            signature_matches.append({
+                                "pattern": pattern,
+                                "matched_text": matched_text,
+                                "position": {
+                                    "start": match_start,
+                                    "end": match_end
+                                },
+                                "match_number": i + 1
+                            })
                         
-                        break
+                        if len(all_matches) > signature["max_match"]:
+                            print(f"      ⚠️ Limite de {signature['max_match']} matches atingido. {len(all_matches) - signature['max_match']} matches adicionais ignorados.")
+                        
+                        break  # Sair do loop de patterns após encontrar matches
                     else:
                         print(f"   ❌ No match for pattern: '{pattern}'")
                         
                 except re.error as regex_error:  
                     print(f"   ❌ Erro no regex pattern '{pattern}': {regex_error}")
                     continue
+            
+            # Se encontrou matches para esta signature
+            if matches_found > 0:
+                # Calcular score total para esta signature (score base × quantidade de matches)
+                signature_total_score = signature["score"] * matches_found
+                
+                print(f"   📊 Score calculado: {signature['score']} × {matches_found} = {signature_total_score}")
+                
+                detected_signatures.append({
+                    "name": signature["name"],
+                    "description": signature["description"],
+                    "severity": signature["severity"],
+                    "base_score": signature["score"],
+                    "matches_found": matches_found,
+                    "total_score": signature_total_score,
+                    "max_match_allowed": signature["max_match"],
+                    "matches_details": signature_matches,
+                    "tactics": signature["tactics"],
+                    "techniques": signature["techniques"],
+                    "reference": signature.get("reference", [])
+                })
+                
+                tactics.update(signature["tactics"])
+                techniques.update(signature["techniques"])
+                total_score += signature_total_score
         
         severity = "very_low"
         if total_score >= 8.1:
@@ -274,7 +314,7 @@ async def analyze_command_pcre2(request: Request):
         
         is_malicious = total_score >= 5.0
         
-        detected_signatures.sort(key=lambda x: x["score"], reverse=True)
+        detected_signatures.sort(key=lambda x: x["total_score"], reverse=True)
         
         # Prepare data to save in the database
         analysis_data = {
@@ -312,6 +352,7 @@ async def analyze_command_pcre2(request: Request):
             supabase = get_supabase_client()
             print("✅ Conectado ao Supabase com sucesso")
             
+            # Preparar dados para inserção no banco (mantendo compatibilidade)
             insert_data = {
                 "command": command,
                 "is_malicious": is_malicious,
