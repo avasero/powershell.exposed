@@ -230,52 +230,76 @@ async def analyze_command_pcre2(request: Request):
             print(f"   Patterns disponíveis: {signature['patterns']}")
             print(f"   Max Match permitido: {signature['max_match']}")
             
-            matches_found = 0
-            signature_matches = []
+            all_signature_matches = []
             
+            # Primeiro, coletar TODOS os matches de TODOS os patterns
             for pattern in signature["patterns"]:
                 try:
                     print(f"   Testing pattern: '{pattern}'")
                     print(f"   Command: '{command}'")
                     
                     regex = re.compile(pattern, re.IGNORECASE)
-                    all_matches = list(regex.finditer(command))
+                    pattern_matches = list(regex.finditer(command))
                     
-                    if all_matches:
-                        print(f"   ✅ MATCHES ENCONTRADOS: {len(all_matches)} matches para pattern '{pattern}'")
+                    if pattern_matches:
+                        print(f"   ✅ MATCHES ENCONTRADOS: {len(pattern_matches)} matches para pattern '{pattern}'")
                         
-                        # Limitar matches conforme max_match
-                        max_allowed = min(len(all_matches), signature["max_match"])
-                        allowed_matches = all_matches[:max_allowed]
-                        
-                        for i, match in enumerate(allowed_matches):
-                            matches_found += 1
+                        for match in pattern_matches:
                             matched_text = match.group(0)
                             match_start = match.start()
                             match_end = match.end()
                             
-                            print(f"      Match {i+1}: '{matched_text}' (posição {match_start}-{match_end})")
+                            print(f"      Pattern match: '{matched_text}' (posição {match_start}-{match_end})")
                             
-                            signature_matches.append({
+                            # Adicionar à lista geral de matches
+                            all_signature_matches.append({
                                 "pattern": pattern,
                                 "matched_text": matched_text,
                                 "position": {
                                     "start": match_start,
                                     "end": match_end
-                                },
-                                "match_number": i + 1
+                                }
                             })
-                        
-                        if len(all_matches) > signature["max_match"]:
-                            print(f"      ⚠️ Limite de {signature['max_match']} matches atingido. {len(all_matches) - signature['max_match']} matches adicionais ignorados.")
-                        
-                        break  # Sair do loop de patterns após encontrar matches
                     else:
                         print(f"   ❌ No match for pattern: '{pattern}'")
                         
                 except re.error as regex_error:  
                     print(f"   ❌ Erro no regex pattern '{pattern}': {regex_error}")
                     continue
+            
+            # Remover matches duplicados (mesma posição e texto)
+            unique_matches = []
+            seen_positions = set()
+            
+            for match_info in all_signature_matches:
+                position_key = (match_info["position"]["start"], match_info["position"]["end"], match_info["matched_text"])
+                if position_key not in seen_positions:
+                    seen_positions.add(position_key)
+                    unique_matches.append(match_info)
+            
+            print(f"   📊 Total matches coletados: {len(all_signature_matches)}")
+            print(f"   📊 Matches únicos: {len(unique_matches)}")
+            
+            # Aplicar limite max_match
+            matches_found = min(len(unique_matches), signature["max_match"])
+            final_matches = unique_matches[:matches_found]
+            
+            print(f"   📊 Matches finais após max_match ({signature['max_match']}): {matches_found}")
+            
+            # Preparar lista final de matches
+            signature_matches = []
+            for i, match_info in enumerate(final_matches):
+                print(f"      Final Match {i+1}: '{match_info['matched_text']}' (posição {match_info['position']['start']}-{match_info['position']['end']})")
+                
+                signature_matches.append({
+                    "pattern": match_info["pattern"],
+                    "matched_text": match_info["matched_text"],
+                    "position": match_info["position"],
+                    "match_number": i + 1
+                })
+            
+            if len(unique_matches) > signature["max_match"]:
+                print(f"      ⚠️ Limite de {signature['max_match']} matches atingido. {len(unique_matches) - signature['max_match']} matches únicos adicionais ignorados.")
             
             # Se encontrou matches para esta signature
             if matches_found > 0:

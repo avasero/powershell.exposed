@@ -112,7 +112,7 @@ export default function AnalysisCard({
         )}
 
         {/* Matches Information */}
-        {matchesInfo && matchesInfo.matchesFound > 1 && (
+        {matchesInfo && (
           <div className="mb-4">
             <div className="text-sm font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
               Matches Found:
@@ -120,17 +120,17 @@ export default function AnalysisCard({
             <div className="text-sm font-mono p-3 rounded" style={{backgroundColor: 'var(--muted)', color: 'var(--foreground)'}}>
               <div className="mb-2">
                 <span className="font-bold">Matches: </span>
-                <span className="text-green-400">{matchesInfo.matchesFound}</span>
-                <span className="text-gray-400"> / {matchesInfo.maxMatchAllowed}</span>
+                <span className="text-green-400">{matchesInfo.matchesFound || 'N/A'}</span>
+                <span className="text-gray-400"> / {matchesInfo.maxMatchAllowed || 'N/A'}</span>
               </div>
               <div className="mb-2">
                 <span className="font-bold">Score Base: </span>
-                <span className="text-yellow-400">{matchesInfo.baseScore}</span>
+                <span className="text-yellow-400">{matchesInfo.baseScore || 'N/A'}</span>
               </div>
               <div className="mb-2">
                 <span className="font-bold">Score Total: </span>
-                <span className="text-red-400 font-bold">{matchesInfo.totalScore}</span>
-                <span className="text-gray-400"> ({matchesInfo.baseScore} × {matchesInfo.matchesFound})</span>
+                <span className="text-red-400 font-bold">{matchesInfo.totalScore || 'N/A'}</span>
+                <span className="text-gray-400"> ({matchesInfo.baseScore || 'N/A'} × {matchesInfo.matchesFound || 'N/A'})</span>
               </div>
               
               {/* Detalhes dos matches individuais */}
@@ -143,11 +143,11 @@ export default function AnalysisCard({
                     {matchesInfo.matchesDetails.map((match, idx) => (
                       <div key={idx} className="text-xs p-2 rounded" style={{backgroundColor: 'var(--background)', border: '1px solid var(--border-color)'}}>
                         <div className="flex justify-between items-center mb-1">
-                          <span className="font-bold">Match {match.match_number}:</span>
-                          <span className="text-green-400">Pos {match.position?.start}-{match.position?.end}</span>
+                          <span className="font-bold">Match {match.match_number || idx + 1}:</span>
+                          <span className="text-green-400">Pos {match.position?.start || 'N/A'}-{match.position?.end || 'N/A'}</span>
                         </div>
                         <div className="font-mono break-all" style={{color: 'var(--foreground)'}}>
-                          <span className="text-yellow-400">&ldquo;{match.matched_text}&rdquo;</span>
+                          <span className="text-yellow-400">&ldquo;{match.matched_text || 'N/A'}&rdquo;</span>
                         </div>
                       </div>
                     ))}

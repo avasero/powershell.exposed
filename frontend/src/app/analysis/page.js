@@ -55,21 +55,6 @@ export default function AnalysisPage() {
     
     setCmd(command);
     
-    console.log('🔍 Analysis Page Debug:');
-    console.log('- Command from URL:', command);
-    console.log('- IP Address from URL:', ipAddress);
-    console.log('- Country from URL:', country);
-    console.log('- City from URL:', city);
-    console.log('- Region from URL:', region);
-    console.log('- Timezone from URL:', timezone);
-    console.log('- Is Authenticated:', isAuthenticated());
-    
-    // Log detalhado dos parâmetros da URL
-    console.log('🔍 URL Parameters Debug:');
-    console.log('  - Raw URL:', window.location.href);
-    console.log('  - Search params:', window.location.search);
-    console.log('  - All params:', Object.fromEntries(new URLSearchParams(window.location.search)));
-    
     if (command.trim()) {
       // Criar objeto de localização
       const ipLocation = {
@@ -79,16 +64,8 @@ export default function AnalysisPage() {
         timezone
       };
       
-      console.log('🚀 Starting analysis with IP:', ipAddress, 'and location:', ipLocation);
-      console.log('📍 Location object being sent:');
-      console.log('  - Country:', ipLocation.country);
-      console.log('  - City:', ipLocation.city);
-      console.log('  - Region:', ipLocation.region);
-      console.log('  - Timezone:', ipLocation.timezone);
-      
       performAnalysis(command, ipAddress, ipLocation);
     } else {
-      console.log('⚠️ No command provided');
       setLoading(false);
       setResult({
         score: 0,
@@ -103,7 +80,6 @@ export default function AnalysisPage() {
 
   // Função de análise local como fallback
   const performLocalAnalysis = (command) => {
-    console.log('🔄 Performing local analysis as fallback');
     
     // Análise básica local
     const localResult = {
@@ -171,14 +147,6 @@ export default function AnalysisPage() {
       setLoading(true);
       setError("");
       
-      console.log('🔄 Performing analysis via Python API:');
-      console.log('- Command:', command);
-      console.log('- IP Address:', ipAddress);
-      console.log('- IP Location:', ipLocation);
-      console.log('- User object:', user);
-      console.log('- User ID:', user?.id);
-      console.log('- Is Authenticated:', isAuthenticated());
-      
       // Garantir que o skeleton apareça por pelo menos 800ms para UX
       const minDelay = new Promise(resolve => setTimeout(resolve, 800));
       
@@ -221,7 +189,6 @@ export default function AnalysisPage() {
       if (response.success) {
         const analysisData = response.analysis;
         
-        // Converter para formato esperado pelo frontend
         setResult({
           score: analysisData.risk_score,
           severity: analysisData.is_malicious ? "malicious" : "safe",
@@ -273,7 +240,7 @@ export default function AnalysisPage() {
   
   // Calculate total risk score from result - soma de TUDO (sem remover duplicatas do total)
   const totalScore = result ? result.score : 0;
-
+  
   // Handle new command analysis
   const handleNewAnalysis = () => {
     if (newCommand.trim()) {
@@ -450,8 +417,8 @@ export default function AnalysisPage() {
                             matchesFound: signature.matches_found || 1,
                             baseScore: signature.base_score || signature.score || 0,
                             totalScore: signature.total_score || signature.score || 0,
-                            maxMatchAllowed: signature.max_match_allowed || 1,
-                            matchesDetails: signature.matches_details || []
+                            maxMatchAllowed: signature.max_match_allowed || signature.max_match || 1,
+                            matchesDetails: signature.matches_details || signature.matchesDetails || []
                           }}
                         />
                       ))}
