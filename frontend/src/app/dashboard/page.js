@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
-import { getUserAnalyses, getDashboardStats } from "../../../lib/supabase";
+import { getUserAnalyses, getDashboardStats } from "../../../utils/database";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SeverityBadge from "../components/SeverityBadge";
 import ThemedButton from "../components/ThemedButton";

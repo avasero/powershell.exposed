@@ -1,5 +1,5 @@
 "use client"
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
 
@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
   const pathname = usePathname();
 
   // Pages that don't need authentication
-  const publicRoutes = ['/login', '/register', '/signatures', '/landing'];
+  const publicRoutes = useMemo(() => ['/login', '/register', '/signatures', '/landing'], []);
 
   useEffect(() => {
     // Get initial session

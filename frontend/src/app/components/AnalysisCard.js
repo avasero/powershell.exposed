@@ -147,7 +147,7 @@ export default function AnalysisCard({
                           <span className="text-green-400">Pos {match.position?.start}-{match.position?.end}</span>
                         </div>
                         <div className="font-mono break-all" style={{color: 'var(--foreground)'}}>
-                          <span className="text-yellow-400">"{match.matched_text}"</span>
+                          <span className="text-yellow-400">&ldquo;{match.matched_text}&rdquo;</span>
                         </div>
                       </div>
                     ))}

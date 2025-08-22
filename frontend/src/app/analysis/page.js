@@ -99,7 +99,7 @@ export default function AnalysisPage() {
         details: "No command to analyze"
       });
     }
-  }, [params]);
+  }, [params, isAuthenticated]);
 
   // Função de análise local como fallback
   const performLocalAnalysis = (command) => {
