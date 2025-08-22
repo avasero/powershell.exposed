@@ -1,15 +1,14 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-import re  # Usar módulo re padrão que funciona no Vercel
+import re  
 import os
 import json
 import time
-import aiohttp  # Para requisições HTTP assíncronas
+import aiohttp 
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
-# Carregar variáveis de ambiente do arquivo .env.local
 load_dotenv('.env.local', override=True)
 
 app = FastAPI(
@@ -18,37 +17,30 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configuração de CORS para permitir requisições do frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Em produção, especificar domínios específicos
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Middleware para pegar IP real do cliente
 @app.middleware("http")
 async def get_client_ip(request: Request, call_next):
-    # Pegar IP real do cliente
     client_ip = request.client.host if request.client else None
     
-    # Se estiver atrás de proxy, tentar pegar do header X-Forwarded-For
     forwarded_for = request.headers.get("X-Forwarded-For")
     if forwarded_for:
         client_ip = forwarded_for.split(",")[0].strip()
     
-    # Adicionar IP à request state
     request.state.client_ip = client_ip
     
     response = await call_next(request)
     return response
 
-# Configuração do Supabase
 def get_supabase_client() -> Client:
-    """Cria e retorna cliente Supabase"""
     supabase_url = os.getenv("SUPABASE_URL")
-    supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")  # Voltar para SERVICE_ROLE_KEY
+    supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")  
     
     if not supabase_url or not supabase_key:
         raise ValueError("SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY devem estar configurados")
@@ -56,12 +48,10 @@ def get_supabase_client() -> Client:
     return create_client(supabase_url, supabase_key)
 
 async def get_ip_location(ip_address: str) -> dict:
-    """Captura geolocalização de um IP usando serviço externo"""
     if not ip_address:
         return {}
     
     try:
-        # Usar IPAPI.co (gratuito, sem rate limit)
         url = f"https://ipapi.co/{ip_address}/json/"
         
         async with aiohttp.ClientSession() as session:
@@ -83,17 +73,14 @@ async def get_ip_location(ip_address: str) -> dict:
         print(f"❌ Erro ao capturar geolocalização do IP {ip_address}: {error}")
         return {}
 
-# Cache simples para signatures (renovado a cada 10 minutos)
 signatures_cache = None
 cache_timestamp = 0
-CACHE_DURATION = 10 * 60 * 1000  # 10 minutos
+CACHE_DURATION = 10 * 60 * 1000  
 
 async def load_signatures_from_db() -> list:
-    """Carrega signatures do banco Supabase"""
     global signatures_cache, cache_timestamp
     
     try:
-        # Verificar cache primeiro
         now = int(time.time() * 1000)
         if signatures_cache and (now - cache_timestamp) < CACHE_DURATION:
             print("Using cached signatures")
@@ -102,7 +89,6 @@ async def load_signatures_from_db() -> list:
         print("Loading signatures from Supabase database...")
         supabase = get_supabase_client()
         
-        # Buscar signatures ativas ordenadas por score
         response = supabase.table('powershell_signatures') \
             .select('*') \
             .eq('is_active', True) \
@@ -110,7 +96,6 @@ async def load_signatures_from_db() -> list:
             .execute()
         
         if response.data:
-            # Converter formato do banco para formato esperado
             converted_signatures = []
             for sig in response.data:
                 converted_signatures.append({
@@ -124,13 +109,11 @@ async def load_signatures_from_db() -> list:
                     "reference": sig.get("reference", []) if isinstance(sig.get("reference"), list) else []
                 })
             
-            # Armazenar no cache
             signatures_cache = converted_signatures
             cache_timestamp = now
             
             print(f"Loaded and cached {len(converted_signatures)} signatures from database")
             
-            # Debug: mostrar patterns originais
             for sig in converted_signatures:
                 print(f"Signature: {sig['name']}")
                 print(f"  Patterns: {sig['patterns']}")
@@ -161,7 +144,6 @@ async def health_check():
 
 @app.post("/clear-cache")
 async def clear_cache():
-    """Limpa o cache de signatures e força reload do banco"""
     global signatures_cache, cache_timestamp
     
     signatures_cache = None
@@ -175,32 +157,29 @@ async def clear_cache():
 @app.post("/analyze-pcre2")
 async def analyze_command_pcre2(request: Request):
     """
-    Analisa um comando PowerShell usando signatures do banco Supabase
-    E SALVA a análise na tabela powershell_analyses (substituindo a Edge Function)
-    Utiliza módulo re padrão do Python para matching de regex
+    Analyzes a PowerShell command using signatures from the Supabase database
+    and saves the analysis in the powershell_analyses table (replacing the Edge Function)
+    Uses standard Python regex module for matching
     """
     print("🚀 === FUNÇÃO ANALYZE-PCRE2 CHAMADA ===")
     
     try:
-        # Pegar IP real do cliente
         client_ip = getattr(request.state, 'client_ip', None)
         print(f"🚀 IP real do cliente: {client_ip}")
         
-        # Pegar dados do body
         body = await request.json()
         print(f"🚀 Request body: {body}")
         
         command = body.get("command", "")
-        user_id = body.get("user_id")  # Pode ser null para análises anônimas
-        ip_address = body.get("ip_address") or client_ip  # Usar IP da requisição ou IP real do cliente
+        user_id = body.get("user_id")  
+        ip_address = body.get("ip_address") or client_ip  
         country = body.get("country")
         city = body.get("city")
         region = body.get("region")
         timezone = body.get("timezone")
         user_agent = body.get("user_agent") or request.headers.get("user-agent", "FastAPI-Client")
-        search_type = body.get("search_type", "API")  # Padrão API se não especificado
+        search_type = body.get("search_type", "API")  
         
-        # Se não temos geolocalização mas temos IP, tentar capturar automaticamente
         if ip_address and not country and search_type == "API":
             print(f"🌍 Capturando geolocalização automática para IP: {ip_address}")
             location_data = await get_ip_location(ip_address)
@@ -231,7 +210,6 @@ async def analyze_command_pcre2(request: Request):
                 status_code=400
             )
         
-        # Carregar signatures do banco
         signatures = await load_signatures_from_db()
         
         if not signatures:
@@ -240,7 +218,6 @@ async def analyze_command_pcre2(request: Request):
                 status_code=500
             )
         
-        # Análise usando as signatures do banco
         detected_signatures = []
         total_score = 0
         tactics = set()
@@ -252,12 +229,9 @@ async def analyze_command_pcre2(request: Request):
             
             for pattern in signature["patterns"]:
                 try:
-                    # Debug: mostrar pattern sendo testado
                     print(f"   Testing pattern: '{pattern}'")
                     print(f"   Command: '{command}'")
                     
-                    # Usar regex com flags case-insensitive
-                    # Módulo re padrão funciona com strings
                     regex = re.compile(pattern, re.IGNORECASE)
                     match = regex.search(command)
                     
@@ -276,21 +250,18 @@ async def analyze_command_pcre2(request: Request):
                             "reference": signature.get("reference", [])
                         })
                         
-                        # Adicionar táticas e técnicas
                         tactics.update(signature["tactics"])
                         techniques.update(signature["techniques"])
                         total_score += signature["score"]
                         
-                        # Uma detecção por assinatura para performance
                         break
                     else:
                         print(f"   ❌ No match for pattern: '{pattern}'")
                         
-                except re.error as regex_error:  # Usar re.error em vez de pcre2.error
+                except re.error as regex_error:  
                     print(f"   ❌ Erro no regex pattern '{pattern}': {regex_error}")
                     continue
         
-        # Determinar severidade baseada no score
         severity = "very_low"
         if total_score >= 8.1:
             severity = "critical"
@@ -301,13 +272,11 @@ async def analyze_command_pcre2(request: Request):
         elif total_score >= 2.1:
             severity = "low"
         
-        # Determinar se é malicioso
         is_malicious = total_score >= 5.0
         
-        # Ordenar signatures detectadas por score (maior primeiro)
         detected_signatures.sort(key=lambda x: x["score"], reverse=True)
         
-        # Preparar dados para salvar no banco
+        # Prepare data to save in the database
         analysis_data = {
             "command": command,
             "is_malicious": is_malicious,
@@ -338,13 +307,11 @@ async def analyze_command_pcre2(request: Request):
             }
         }
         
-        # SALVAR NO BANCO - FUNCIONALIDADE CRUCIAL DA EDGE FUNCTION
         try:
             print("🔍 Tentando conectar ao Supabase...")
             supabase = get_supabase_client()
             print("✅ Conectado ao Supabase com sucesso")
             
-            # Preparar dados para INSERT na tabela powershell_analyses
             insert_data = {
                 "command": command,
                 "is_malicious": is_malicious,
@@ -363,7 +330,6 @@ async def analyze_command_pcre2(request: Request):
                 "user_agent": user_agent
             }
             
-            # Adicionar user_id se fornecido
             print(f"🔍 DEBUG: user_id recebido: '{user_id}' (tipo: {type(user_id)})")
             print(f"🔍 DEBUG: user_id é None? {user_id is None}")
             print(f"🔍 DEBUG: user_id é string vazia? {user_id == ''}")
@@ -372,7 +338,6 @@ async def analyze_command_pcre2(request: Request):
                 insert_data["user_id"] = user_id
                 print(f"✅ Incluindo user_id: {user_id}")
             else:
-                # Sempre incluir user_id padrão para análises anônimas
                 insert_data["user_id"] = "00000000-0000-0000-0000-000000000000"
                 print(f"⚠️ user_id não fornecido - usando padrão: {insert_data['user_id']}")
             
@@ -383,7 +348,6 @@ async def analyze_command_pcre2(request: Request):
             print(f"   - Signatures: {len(insert_data['signatures_detected'])}")
             print(f"   - IP: {insert_data['ip_address']}")
             
-            # Inserir na tabela powershell_analyses
             print("🔍 Executando INSERT no banco...")
             response = supabase.table('powershell_analyses').insert(insert_data).execute()
             
@@ -398,7 +362,6 @@ async def analyze_command_pcre2(request: Request):
             print(f"❌ Erro ao salvar no banco: {db_error}")
             print(f"❌ Tipo do erro: {type(db_error)}")
             print(f"❌ Detalhes do erro: {str(db_error)}")
-            # Continuar mesmo se falhar ao salvar no banco
         
         return JSONResponse({
             "success": True,
