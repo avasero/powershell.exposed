@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
   const pathname = usePathname();
 
   // Pages that don't need authentication
-  const publicRoutes = ['/login', '/register', '/signatures', '/landing', '/analysis', '/'];
+  const publicRoutes = useMemo(() => ['/login', '/register', '/signatures', '/landing', '/analysis', '/'], []);
 
   useEffect(() => {
     console.log('🚀 AUTHCONTEXT: Inicializando sessão...');

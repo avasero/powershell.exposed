@@ -171,7 +171,7 @@ export default function AnalysisCard({
                   <div className="text-xs text-gray-400 mb-1">Pattern {idx + 1}:</div>
                   <div className="font-bold">{match.pattern || 'Unknown pattern'}</div>
                   <div className="text-xs text-gray-400 mt-1">
-                    Matched: <span className="text-yellow-400">"{match.matched_text}"</span>
+                    Matched: <span className="text-yellow-400">&ldquo;{match.matched_text}&rdquo;</span>
                   </div>
                 </div>
               ))}

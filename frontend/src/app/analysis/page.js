@@ -1,6 +1,6 @@
 "use client";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import SeverityLegend from "../components/SeverityLegend";
 import AnalysisCard from "../components/AnalysisCard";
@@ -43,40 +43,6 @@ export default function AnalysisPage() {
   //     router.push('/landing');
   //   }
   // }, [isAuthenticated, router]);
-
-  // Análise otimizada usando backend Python
-  useEffect(() => {
-    const command = params.get("cmd") || "";
-    const ipAddress = params.get("ip") || null;
-    const country = params.get("country") || null;
-    const city = params.get("city") || null;
-    const region = params.get("region") || null;
-    const timezone = params.get("timezone") || null;
-    
-    setCmd(command);
-    
-    if (command.trim()) {
-      // Criar objeto de localização
-      const ipLocation = {
-        country,
-        city,
-        region,
-        timezone
-      };
-      
-      performAnalysis(command, ipAddress, ipLocation);
-    } else {
-      setLoading(false);
-      setResult({
-        score: 0,
-        severity: "safe",
-        signatures: [],
-        decoded: null,
-        indicators: [],
-        details: "No command to analyze"
-      });
-    }
-  }, [params, isAuthenticated]);
 
   // Função de análise local como fallback
   const performLocalAnalysis = (command) => {
@@ -142,7 +108,7 @@ export default function AnalysisPage() {
     return localResult;
   };
 
-  const performAnalysis = async (command, ipAddress, ipLocation) => {
+  const performAnalysis = useCallback(async (command, ipAddress, ipLocation) => {
     try {
       setLoading(true);
       setError("");
@@ -236,7 +202,41 @@ export default function AnalysisPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  // Análise otimizada usando backend Python
+  useEffect(() => {
+    const command = params.get("cmd") || "";
+    const ipAddress = params.get("ip") || null;
+    const country = params.get("country") || null;
+    const city = params.get("city") || null;
+    const region = params.get("region") || null;
+    const timezone = params.get("timezone") || null;
+    
+    setCmd(command);
+    
+    if (command.trim()) {
+      // Criar objeto de localização
+      const ipLocation = {
+        country,
+        city,
+        region,
+        timezone
+      };
+      
+      performAnalysis(command, ipAddress, ipLocation);
+    } else {
+      setLoading(false);
+      setResult({
+        score: 0,
+        severity: "safe",
+        signatures: [],
+        decoded: null,
+        indicators: [],
+        details: "No command to analyze"
+      });
+    }
+  }, [params, isAuthenticated, performAnalysis]);
   
   // Calculate total risk score from result - soma de TUDO (sem remover duplicatas do total)
   const totalScore = result ? result.score : 0;

@@ -1,6 +1,6 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { getAnalysisById } from "../../../../lib/supabase";
 import LoadingSpinner from "../../components/LoadingSpinner";
@@ -33,18 +33,7 @@ export default function AnalysisDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push('/login');
-      return;
-    }
-
-    if (params.id) {
-      loadAnalysis();
-    }
-  }, [isAuthenticated, params.id, router]);
-
-  const loadAnalysis = async () => {
+  const loadAnalysis = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -57,7 +46,18 @@ export default function AnalysisDetailsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.id]);
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      router.push('/login');
+      return;
+    }
+
+    if (params.id) {
+      loadAnalysis();
+    }
+  }, [params.id, loadAnalysis, isAuthenticated]);
 
   if (loading) {
     return (
