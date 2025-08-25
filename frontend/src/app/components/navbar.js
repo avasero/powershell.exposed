@@ -64,6 +64,22 @@ export default function Navbar() {
           ) : (
             <>
               <Link 
+                href="/"
+                className="px-4 py-2 font-mono font-semibold rounded text-sm border transition-colors hover:opacity-80"
+                style={{
+                  backgroundColor: 'var(--accent)', 
+                  color: 'var(--background)'
+                }}
+                onClick={() => {
+                  console.log('🚀 NAVBAR: Botão "Try Analysis" clicado!');
+                  console.log('  - Usuário autenticado:', isAuthenticated());
+                  console.log('  - User object:', user);
+                  console.log('  - Redirecionando para: /');
+                }}
+              >
+                Try Analysis
+              </Link>
+              <Link 
                 href="/login"
                 className="px-4 py-2 font-mono font-semibold rounded text-sm border transition-colors hover:opacity-80"
                 style={{
@@ -103,6 +119,27 @@ export default function Navbar() {
               </svg>
             </button>
           )}
+          
+          {/* Botão Try Analysis para usuários não logados no mobile */}
+          {!isAuthenticated() && (
+            <Link 
+              href="/"
+              className="px-3 py-2 font-mono font-semibold rounded text-xs transition-colors hover:opacity-80"
+              style={{
+                backgroundColor: 'var(--accent)', 
+                color: 'var(--background)'
+              }}
+              onClick={() => {
+                console.log('🚀 NAVBAR MOBILE: Botão "Try" clicado!');
+                console.log('  - Usuário autenticado:', isAuthenticated());
+                console.log('  - User object:', user);
+                console.log('  - Redirecionando para: /');
+              }}
+            >
+              Try
+            </Link>
+          )}
+          
           <HamburgerButton />
         </div>
       </nav>

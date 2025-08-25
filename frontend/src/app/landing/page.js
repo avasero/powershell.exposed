@@ -5,7 +5,7 @@ import ThemedButton from "../components/ThemedButton";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function LandingPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [showRegisterPopup, setShowRegisterPopup] = useState(false);
 
   const handleRegisterClick = (e) => {
@@ -63,8 +63,25 @@ export default function LandingPage() {
           
           {!isAuthenticated() && (
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              {/* Botão principal: Try Analysis (para usuários não logados) */}
+              <Link href="/">
+                <ThemedButton 
+                  size="lg" 
+                  className="w-full sm:w-auto"
+                  onClick={() => {
+                    console.log('🚀 LANDING PAGE: Botão "Try Analysis Now" clicado!');
+                    console.log('  - Usuário autenticado:', isAuthenticated());
+                    console.log('  - User object:', user);
+                    console.log('  - Redirecionando para: /');
+                  }}
+                >
+                  Try Analysis Now
+                </ThemedButton>
+              </Link>
+              
               <ThemedButton 
                 onClick={handleRegisterClick}
+                variant="outline"
                 size="lg" 
                 className="w-full sm:w-auto"
               >

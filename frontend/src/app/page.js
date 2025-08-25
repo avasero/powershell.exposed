@@ -19,6 +19,12 @@ export default function Home() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  console.log('🏠 HOME PAGE: Componente renderizado');
+  console.log('  - Usuário autenticado:', isAuthenticated());
+  console.log('  - User object:', user);
+  console.log('  - Router pathname:', router.pathname);
+  console.log('  - Current URL:', typeof window !== 'undefined' ? window.location.href : 'N/A');
+
   // Debug logs para IP e localização
   useEffect(() => {
     console.log('🔍 IP Address & Location Debug:');
@@ -38,12 +44,20 @@ export default function Home() {
     }
   }, [ipAddress, ipLocation, ipLoading, ipError]);
 
-  // Verificar autenticação
+  // Verificar autenticação - REMOVIDO para permitir acesso de usuários não logados
+  // useEffect(() => {
+  //   if (!isAuthenticated()) {
+  //     router.push('/landing');
+  //   }
+  // }, [isAuthenticated, router]);
+
+  // Log de mudanças de autenticação
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push('/landing');
-    }
-  }, [isAuthenticated, router]);
+    console.log('🔐 HOME PAGE: Mudança de autenticação detectada');
+    console.log('  - isAuthenticated mudou para:', isAuthenticated());
+    console.log('  - User mudou para:', user);
+    console.log('  - Loading IP:', ipLoading);
+  }, [isAuthenticated, user, ipLoading]);
 
   // Função para validar se o input é um comando PowerShell válido
   const validatePowerShellCommand = (input) => {

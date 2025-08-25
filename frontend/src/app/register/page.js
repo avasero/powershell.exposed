@@ -56,6 +56,19 @@ export default function RegisterPage() {
                 </ThemedButton>
               </Link>
               
+              <Link href="/">
+                <ThemedButton 
+                  variant="outline" 
+                  className="w-full"
+                  style={{
+                    borderColor: 'var(--accent)',
+                    color: 'var(--accent)'
+                  }}
+                >
+                  Try Analysis Without Account
+                </ThemedButton>
+              </Link>
+              
               <Link href="/login">
                 <ThemedButton variant="outline" className="w-full">
                   Login Instead

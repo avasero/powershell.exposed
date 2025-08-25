@@ -20,17 +20,23 @@ export const AuthProvider = ({ children }) => {
   const pathname = usePathname();
 
   // Pages that don't need authentication
-  const publicRoutes = useMemo(() => ['/login', '/register', '/signatures', '/landing'], []);
+  const publicRoutes = ['/login', '/register', '/signatures', '/landing', '/analysis', '/'];
 
   useEffect(() => {
+    console.log('🚀 AUTHCONTEXT: Inicializando sessão...');
     // Get initial session
     const getInitialSession = async () => {
+      console.log('🔍 AUTHCONTEXT: Buscando sessão inicial...');
       const { data: { session }, error } = await supabase.auth.getSession();
       if (error) {
-        console.error('Error getting session:', error);
+        console.error('❌ AUTHCONTEXT: Erro ao buscar sessão:', error);
       } else if (session) {
+        console.log('✅ AUTHCONTEXT: Sessão encontrada:', session.user);
         setUser(session.user);
+      } else {
+        console.log('ℹ️ AUTHCONTEXT: Nenhuma sessão encontrada');
       }
+      console.log('🏁 AUTHCONTEXT: Finalizando carregamento inicial');
       setLoading(false);
     };
 
@@ -39,13 +45,18 @@ export const AuthProvider = ({ children }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session);
+        console.log('🔄 AUTHCONTEXT: Mudança de estado de autenticação:', event);
+        console.log('  - Evento:', event);
+        console.log('  - Session:', session);
         
         if (session) {
+          console.log('✅ AUTHCONTEXT: Usuário autenticado:', session.user);
           setUser(session.user);
         } else {
+          console.log('ℹ️ AUTHCONTEXT: Usuário deslogado');
           setUser(null);
         }
+        console.log('🏁 AUTHCONTEXT: Finalizando carregamento após mudança');
         setLoading(false);
       }
     );
@@ -55,14 +66,41 @@ export const AuthProvider = ({ children }) => {
 
   // Redirect logic
   useEffect(() => {
+    console.log('🔄 AUTHCONTEXT: useEffect executado');
+    console.log('  - loading:', loading);
+    console.log('  - pathname:', pathname);
+    console.log('  - user:', user);
+    
     if (!loading) {
       const isPublicRoute = publicRoutes.includes(pathname);
       const userIsAuthenticated = user !== null;
 
+      console.log('🔍 AUTHCONTEXT: Verificação de acesso');
+      console.log('  - pathname:', pathname);
+      console.log('  - pathname type:', typeof pathname);
+      console.log('  - pathname length:', pathname?.length);
+      console.log('  - publicRoutes:', publicRoutes);
+      console.log('  - isPublicRoute:', isPublicRoute);
+      console.log('  - userIsAuthenticated:', userIsAuthenticated);
+      console.log('  - user:', user);
+      console.log('  - publicRoutes.includes("/"):', publicRoutes.includes('/'));
+      console.log('  - publicRoutes.includes(pathname):', publicRoutes.includes(pathname));
+
       if (!userIsAuthenticated && !isPublicRoute) {
+        console.log('❌ AUTHCONTEXT: Redirecionando para /landing');
+        console.log('  - Motivo: rota não é pública e usuário não autenticado');
+        console.log('  - Rota atual:', pathname);
+        console.log('  - Rotas públicas:', publicRoutes);
         // User is not authenticated and trying to access protected route
         router.push('/landing');
+      } else {
+        console.log('✅ AUTHCONTEXT: Acesso permitido');
+        console.log('  - Motivo: rota pública OU usuário autenticado');
+        console.log('  - Rota pública:', isPublicRoute);
+        console.log('  - Usuário autenticado:', userIsAuthenticated);
       }
+    } else {
+      console.log('⏳ AUTHCONTEXT: Ainda carregando, aguardando...');
     }
   }, [user, loading, pathname, router, publicRoutes]);
 

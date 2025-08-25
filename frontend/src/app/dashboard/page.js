@@ -61,9 +61,31 @@ export default function DashboardPage() {
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
             Dashboard
           </h1>
-          <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+          <p className="font-mono text-sm mb-4" style={{color: 'var(--muted-foreground)'}}>
             Your saved PowerShell analyses
           </p>
+          
+          {/* Botão para nova análise */}
+          <div className="flex gap-4">
+            <ThemedButton 
+              onClick={() => router.push('/')}
+              className="px-6 py-2"
+            >
+              New Analysis
+            </ThemedButton>
+            
+            <ThemedButton 
+              variant="outline"
+              onClick={() => router.push('/')}
+              className="px-6 py-2"
+              style={{
+                borderColor: 'var(--accent)',
+                color: 'var(--accent)'
+              }}
+            >
+              Go to Home
+            </ThemedButton>
+          </div>
         </div>
 
         {error && <ErrorMessage message={error} />}

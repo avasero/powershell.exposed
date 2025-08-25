@@ -108,6 +108,27 @@ export default function LoginPage() {
                 Sign up
               </button>
             </p>
+            
+            {/* Separador visual */}
+            <div className="my-4 flex items-center">
+              <div className="flex-1 border-t" style={{borderColor: 'var(--border-color)'}}></div>
+              <span className="px-3 font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>or</span>
+              <div className="flex-1 border-t" style={{borderColor: 'var(--border-color)'}}></div>
+            </div>
+            
+            {/* Botão Try Analysis */}
+            <Link href="/">
+              <ThemedButton 
+                variant="outline" 
+                className="w-full"
+                style={{
+                  borderColor: 'var(--accent)',
+                  color: 'var(--accent)'
+                }}
+              >
+                Try Analysis Without Account
+              </ThemedButton>
+            </Link>
           </div>
         </div>
       </div>

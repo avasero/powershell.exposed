@@ -5,6 +5,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import SeverityBadge from "../components/SeverityBadge";
 import ThemedButton from "../components/ThemedButton";
 import AnalysisCard from "../components/AnalysisCard";
+import Link from "next/link";
 
 const SEVERITY_COLORS = {
   info: "border-green-400 text-green-400 bg-green-50 dark:bg-green-900/20",
@@ -236,10 +237,25 @@ export default function SignaturesPage() {
         ))}
       </div>
 
-      {/* Botão para voltar */}
-      <ThemedButton onClick={() => router.push("/")} className="mb-6">
-        Back to Analysis
-      </ThemedButton>
+      {/* Botões de navegação */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <ThemedButton onClick={() => router.push("/")} className="mb-6">
+          Back to Analysis
+        </ThemedButton>
+        
+        <Link href="/">
+          <ThemedButton 
+            variant="outline" 
+            className="mb-6"
+            style={{
+              borderColor: 'var(--accent)',
+              color: 'var(--accent)'
+            }}
+          >
+            Try Analysis Now
+          </ThemedButton>
+        </Link>
+      </div>
     </div>
   );
 }
