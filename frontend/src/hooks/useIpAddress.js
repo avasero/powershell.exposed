@@ -109,48 +109,81 @@ export function useIpAddress() {
       try {
         console.log('🌍 Fetching IP location for:', ip);
         
-        // Usar apenas o IPAPI - mais confiável e estável
-        const ipapiUrl = `https://ipapi.co/${ip}/json/`;
-        console.log(`🌍 Using IPAPI service: ${ipapiUrl}`);
-        
-        const response = await fetch(ipapiUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
+        // Tentar múltiplos serviços de IP como fallback
+        const services = [
+          {
+            name: 'IPAPI',
+            url: `https://ipapi.co/${ip}/json/`,
+            transform: (data) => ({
+              country: data.country_name || data.country,
+              city: data.city,
+              region: data.region || data.region_name,
+              timezone: data.timezone,
+              isp: data.org || data.isp,
+              latitude: data.latitude,
+              longitude: data.longitude,
+              postal: data.postal,
+              asn: data.asn
+            })
           },
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log(`✅ IPAPI response:`, data);
-          
-          // Extrair informações de localização do IPAPI
-          const location = {
-            country: data.country_name || data.country,
-            city: data.city,
-            region: data.region || data.region_name,
-            timezone: data.timezone,
-            isp: data.org || data.isp,
-            latitude: data.latitude,
-            longitude: data.longitude,
-            postal: data.postal,
-            asn: data.asn
-          };
-          
-          if (location.country) {
-            console.log(`🎯 Location captured from IPAPI:`, location);
-            return location;
-          } else {
-            console.warn(`⚠️ Location data incomplete from IPAPI:`, location);
-            return null;
+          {
+            name: 'IPInfo',
+            url: `https://ipinfo.io/${ip}/json`,
+            transform: (data) => ({
+              country: data.country,
+              city: data.city,
+              region: data.region,
+              timezone: data.timezone,
+              isp: data.org,
+              latitude: data.loc?.split(',')[0],
+              longitude: data.loc?.split(',')[1],
+              postal: data.postal,
+              asn: data.asn
+            })
           }
-        } else {
-          console.warn(`❌ IPAPI returned status: ${response.status}`);
-          return null;
+        ];
+
+        for (const service of services) {
+          try {
+            console.log(`🌍 Trying ${service.name} service: ${service.url}`);
+            
+            const response = await fetch(service.url, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+              },
+              // Adicionar timeout para evitar travamentos
+              signal: AbortSignal.timeout(5000)
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              console.log(`✅ ${service.name} response:`, data);
+              
+              const location = service.transform(data);
+              
+              if (location.country) {
+                console.log(`🎯 Location captured from ${service.name}:`, location);
+                return location;
+              } else {
+                console.warn(`⚠️ Location data incomplete from ${service.name}:`, location);
+                continue; // Tentar próximo serviço
+              }
+            } else {
+              console.warn(`❌ ${service.name} returned status: ${response.status}`);
+              continue; // Tentar próximo serviço
+            }
+          } catch (serviceErr) {
+            console.warn(`⚠️ ${service.name} failed:`, serviceErr.message);
+            continue; // Tentar próximo serviço
+          }
         }
         
+        console.warn('⚠️ All IP location services failed');
+        return null;
+        
       } catch (err) {
-        console.error('❌ Error fetching IP location from IPAPI:', err);
+        console.error('❌ Error in IP location fetch:', err);
         return null;
       }
     };

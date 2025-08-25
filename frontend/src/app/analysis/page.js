@@ -9,6 +9,7 @@ import IndicatorTable from "../components/IndicatorTable";
 import ThemedButton from "../components/ThemedButton";
 import LoadingSpinner from "../components/LoadingSpinner";
 import AnalysisSkeleton from "../components/AnalysisSkeleton";
+import { saveAnonymousAnalysis } from "../../utils/cookies";
 
 // Score-based color system (5 bins from 1-10)
 function getScoreColor(score) {
@@ -108,7 +109,8 @@ export default function AnalysisPage() {
     return localResult;
   };
 
-  const performAnalysis = useCallback(async (command, ipAddress, ipLocation) => {
+  const performAnalysis = async (command, ipAddress, ipLocation) => {
+    console.log('🚀 Iniciando análise para comando:', command);
     try {
       setLoading(true);
       setError("");
@@ -155,7 +157,7 @@ export default function AnalysisPage() {
       if (response.success) {
         const analysisData = response.analysis;
         
-        setResult({
+        const analysisResult = {
           score: analysisData.risk_score,
           severity: analysisData.is_malicious ? "malicious" : "safe",
           signatures: (analysisData.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
@@ -164,7 +166,25 @@ export default function AnalysisPage() {
           details: analysisData.analysis_details?.recommendations?.join(", ") || "",
           tactics: analysisData.tactics || [],
           techniques: analysisData.techniques || []
-        });
+        };
+        
+        setResult(analysisResult);
+        
+        // Salvar análise anônima em cookies se não estiver logado
+        if (!user?.id) {
+          try {
+            console.log('💾 Salvando análise anônima da API:', command);
+            saveAnonymousAnalysis({
+              command: command,
+              score: analysisData.risk_score,
+              severity: analysisData.is_malicious ? "malicious" : "safe",
+              signatures: analysisData.signatures_detected || [],
+              cmdlets_detected: analysisData.cmdlets_detected || []
+            });
+          } catch (error) {
+            console.error('Erro ao salvar análise anônima:', error);
+          }
+        }
       } else {
         throw new Error(response.error || 'Analysis failed');
       }
@@ -178,7 +198,7 @@ export default function AnalysisPage() {
         const localResult = performLocalAnalysis(command);
         
         setError(""); // Limpar erro se análise local funcionar
-        setResult({
+        const localAnalysisResult = {
           score: localResult.score,
           severity: localResult.severity,
           signatures: localResult.signatures,
@@ -187,7 +207,25 @@ export default function AnalysisPage() {
           details: localResult.details,
           tactics: localResult.tactics,
           techniques: localResult.techniques
-        });
+        };
+        
+        setResult(localAnalysisResult);
+        
+        // Salvar análise local anônima em cookies se não estiver logado
+        if (!user?.id) {
+          try {
+            console.log('💾 Salvando análise local anônima:', command);
+            saveAnonymousAnalysis({
+              command: command,
+              score: localResult.score,
+              severity: localResult.severity,
+              signatures: localResult.signatures,
+              cmdlets_detected: []
+            });
+          } catch (error) {
+            console.error('Erro ao salvar análise local anônima:', error);
+          }
+        }
       } else {
         // Fallback para análise básica em caso de outros erros
         setResult({
@@ -202,10 +240,11 @@ export default function AnalysisPage() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  };
 
   // Análise otimizada usando backend Python
   useEffect(() => {
+    console.log('🔄 useEffect executado - params:', params.toString());
     const command = params.get("cmd") || "";
     const ipAddress = params.get("ip") || null;
     const country = params.get("country") || null;
@@ -216,6 +255,7 @@ export default function AnalysisPage() {
     setCmd(command);
     
     if (command.trim()) {
+      console.log('📝 Comando encontrado, iniciando análise:', command);
       // Criar objeto de localização
       const ipLocation = {
         country,
@@ -226,6 +266,7 @@ export default function AnalysisPage() {
       
       performAnalysis(command, ipAddress, ipLocation);
     } else {
+      console.log('❌ Nenhum comando encontrado');
       setLoading(false);
       setResult({
         score: 0,
@@ -236,7 +277,7 @@ export default function AnalysisPage() {
         details: "No command to analyze"
       });
     }
-  }, [params, isAuthenticated, performAnalysis]);
+  }, [params]);
   
   // Calculate total risk score from result - soma de TUDO (sem remover duplicatas do total)
   const totalScore = result ? result.score : 0;
