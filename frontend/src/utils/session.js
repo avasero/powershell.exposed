@@ -27,17 +27,9 @@ export const getOrCreateSession = () => {
       }
     }
     
-    // Criar nova sessão
-    const newSessionId = `anon_session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const newSession = {
-      id: newSessionId,
-      created_at: Date.now()
-    };
-    
-    localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
-    console.log('🔑 Nova sessão criada:', newSessionId);
-    
-    return newSessionId;
+    // Não criar sessão aqui - deixar o backend criar e retornar
+    console.log('🔑 Nenhuma sessão encontrada, aguardando criação pelo backend');
+    return null;
   } catch (error) {
     console.error('❌ Erro ao gerenciar sessão:', error);
     return null;
@@ -103,6 +95,34 @@ export const renewSession = () => {
   } catch (error) {
     console.error('❌ Erro ao renovar sessão:', error);
     return null;
+  }
+};
+
+// Função para salvar sessão retornada pelo backend
+export const saveSessionFromBackend = (sessionId) => {
+  try {
+    if (typeof localStorage === 'undefined') {
+      console.log('🔑 saveSessionFromBackend: localStorage não disponível (SSR)');
+      return false;
+    }
+
+    if (!sessionId) {
+      console.warn('🔑 saveSessionFromBackend: sessionId não fornecido');
+      return false;
+    }
+
+    const session = {
+      id: sessionId,
+      created_at: Date.now()
+    };
+    
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    console.log('🔑 Sessão salva do backend:', sessionId);
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Erro ao salvar sessão do backend:', error);
+    return false;
   }
 };
 

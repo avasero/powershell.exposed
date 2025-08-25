@@ -10,7 +10,7 @@ import ThemedButton from "../components/ThemedButton";
 import LoadingSpinner from "../components/LoadingSpinner";
 import AnalysisSkeleton from "../components/AnalysisSkeleton";
 import { saveAnonymousAnalysis } from "../../utils/cookies";
-import { getOrCreateSession } from "../../utils/session";
+import { getOrCreateSession, saveSessionFromBackend } from "../../utils/session";
 
 // Score-based color system (5 bins from 1-10)
 function getScoreColor(score) {
@@ -165,6 +165,12 @@ export default function AnalysisPage() {
       if (response.success) {
         const analysisData = response.analysis;
         
+        // Salvar session_id retornado pelo backend
+        if (response.session_id && !user?.id) {
+          console.log('🔑 Salvando session_id do backend:', response.session_id);
+          saveSessionFromBackend(response.session_id);
+        }
+        
         const analysisResult = {
           score: analysisData.risk_score,
           severity: analysisData.is_malicious ? "malicious" : "safe",
@@ -200,41 +206,46 @@ export default function AnalysisPage() {
       console.error('Analysis error:', err);
       setError(err.message);
       
-      // Se a API falhou, usar análise local
-      if (err.message.includes('API não acessível')) {
-        console.log('🔄 Falling back to local analysis');
-        const localResult = performLocalAnalysis(command);
-        
-        setError(""); // Limpar erro se análise local funcionar
-        const localAnalysisResult = {
-          score: localResult.score,
-          severity: localResult.severity,
-          signatures: localResult.signatures,
-          decoded: localResult.decoded,
-          indicators: localResult.indicators,
-          details: localResult.details,
-          tactics: localResult.tactics,
-          techniques: localResult.techniques
-        };
-        
-        setResult(localAnalysisResult);
-        
-        // Salvar análise local anônima em cookies se não estiver logado
-        if (!user?.id) {
-          try {
-            console.log('💾 Salvando análise local anônima:', command);
-            saveAnonymousAnalysis({
-              command: command,
-              score: localResult.score,
-              severity: localResult.severity,
-              signatures: localResult.signatures,
-              cmdlets_detected: []
-            });
-          } catch (error) {
-            console.error('Erro ao salvar análise local anônima:', error);
+              // Se a API falhou, usar análise local
+        if (err.message.includes('API não acessível')) {
+          console.log('🔄 Falling back to local analysis');
+          const localResult = performLocalAnalysis(command);
+          
+          setError(""); // Limpar erro se análise local funcionar
+          const localAnalysisResult = {
+            score: localResult.score,
+            severity: localResult.severity,
+            signatures: localResult.signatures,
+            decoded: localResult.decoded,
+            indicators: localResult.indicators,
+            details: localResult.details,
+            tactics: localResult.tactics,
+            techniques: localResult.techniques
+          };
+          
+          setResult(localAnalysisResult);
+          
+          // Salvar análise local anônima em cookies se não estiver logado
+          if (!user?.id) {
+            try {
+              console.log('💾 Salvando análise local anônima:', command);
+              saveAnonymousAnalysis({
+                command: command,
+                score: localResult.score,
+                severity: localResult.severity,
+                signatures: localResult.signatures,
+                cmdlets_detected: []
+              });
+              
+              // Para análise local, criar uma sessão temporária
+              const tempSessionId = `local_session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+              console.log('🔑 Criando sessão temporária para análise local:', tempSessionId);
+              saveSessionFromBackend(tempSessionId);
+            } catch (error) {
+              console.error('Erro ao salvar análise local anônima:', error);
+            }
           }
-        }
-      } else {
+        } else {
         // Fallback para análise básica em caso de outros erros
         setResult({
           score: 0,

@@ -527,7 +527,8 @@ async def analyze_command_pcre2(request: Request):
                     "cached": signatures_cache is not None,
                     "cache_age_minutes": round((int(time.time() * 1000) - cache_timestamp) / 60000, 1) if cache_timestamp > 0 else 0
                 }
-            }
+            },
+            "session_id": session_id
         })
         
     except Exception as error:
