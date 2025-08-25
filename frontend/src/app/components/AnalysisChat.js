@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
 import { useAnalysisDrawer } from "../contexts/AnalysisDrawerContext";
 import { getUserAnalyses, deleteRecentAnalyses } from "../../../utils/database";
-import { getAnonymousAnalyses, clearAnonymousAnalyses, deleteAnonymousAnalysis } from "../../utils/cookies";
+import { getAnonymousAnalyses, clearAnonymousAnalyses, deleteAnonymousAnalysis, debugCookies } from "../../utils/cookies";
 import SeverityBadge from "./SeverityBadge";
 
 export default function AnalysisChat() {
@@ -17,14 +17,20 @@ export default function AnalysisChat() {
   const router = useRouter();
 
   useEffect(() => {
+    console.log('🔄 AnalysisChat useEffect executado');
+    console.log('🔄 isAuthenticated():', isAuthenticated());
+    console.log('🔄 user:', user);
+    
     if (isAuthenticated()) {
+      console.log('🔄 Usuário autenticado, carregando análises do banco');
       setIsAnonymous(false);
       loadRecentAnalyses();
     } else {
+      console.log('🔄 Usuário anônimo, carregando análises dos cookies');
       setIsAnonymous(true);
       loadAnonymousAnalyses();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
   const loadRecentAnalyses = async () => {
     try {
@@ -41,14 +47,22 @@ export default function AnalysisChat() {
 
   const loadAnonymousAnalyses = () => {
     try {
+      console.log('🔄 loadAnonymousAnalyses: iniciando carregamento');
       setLoading(true);
+      
       const data = getAnonymousAnalyses();
+      console.log('🔄 loadAnonymousAnalyses: dados obtidos:', data);
+      console.log('🔄 loadAnonymousAnalyses: número de análises:', data.length);
+      
       setAnalyses(data);
+      console.log('🔄 loadAnonymousAnalyses: análises definidas no estado');
     } catch (err) {
-      console.error('Error loading anonymous analyses:', err);
+      console.error('❌ Error loading anonymous analyses:', err);
+      console.error('❌ Stack trace:', err.stack);
       setAnalyses([]);
     } finally {
       setLoading(false);
+      console.log('🔄 loadAnonymousAnalyses: carregamento finalizado');
     }
   };
 
@@ -112,9 +126,18 @@ export default function AnalysisChat() {
                {isAnonymous ? 'Stored in cookies (30 days)' : 'Last 5 analyses'}
              </p>
              {isAnonymous && (
-               <p className="font-mono text-xs mt-1" style={{color: 'var(--accent)'}}>
-                 {analyses.length}/10 analyses
-               </p>
+               <div className="flex items-center gap-2">
+                 <p className="font-mono text-xs mt-1" style={{color: 'var(--accent)'}}>
+                   {analyses.length}/10 analyses
+                 </p>
+                 <button
+                   onClick={debugCookies}
+                   className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800 hover:bg-blue-900/50"
+                   title="Debug cookies"
+                 >
+                   🐛
+                 </button>
+               </div>
              )}
           </div>
           {analyses.length > 0 && (
