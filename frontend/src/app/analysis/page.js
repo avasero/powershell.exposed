@@ -1,6 +1,6 @@
 "use client";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import SeverityLegend from "../components/SeverityLegend";
 import AnalysisCard from "../components/AnalysisCard";
@@ -37,6 +37,7 @@ export default function AnalysisPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [newCommand, setNewCommand] = useState("");
+  const analysisExecutedRef = useRef(false);
 
   // Remover verificação de autenticação - permitir análises anônimas
   // useEffect(() => {
@@ -111,6 +112,8 @@ export default function AnalysisPage() {
 
   const performAnalysis = async (command, ipAddress, ipLocation) => {
     console.log('🚀 Iniciando análise para comando:', command);
+    console.log('🚀 Timestamp da análise:', Date.now());
+    console.log('🚀 Stack trace:', new Error().stack);
     try {
       setLoading(true);
       setError("");
@@ -245,6 +248,9 @@ export default function AnalysisPage() {
   // Análise otimizada usando backend Python
   useEffect(() => {
     console.log('🔄 useEffect executado - params:', params.toString());
+    console.log('🔄 useEffect executado - timestamp:', Date.now());
+    console.log('🔄 Análise já executada?', analysisExecutedRef.current);
+    
     const command = params.get("cmd") || "";
     const ipAddress = params.get("ip") || null;
     const country = params.get("country") || null;
@@ -254,8 +260,10 @@ export default function AnalysisPage() {
     
     setCmd(command);
     
-    if (command.trim()) {
+    if (command.trim() && !analysisExecutedRef.current) {
       console.log('📝 Comando encontrado, iniciando análise:', command);
+      analysisExecutedRef.current = true; // Marcar como executada
+      
       // Criar objeto de localização
       const ipLocation = {
         country,
@@ -265,6 +273,8 @@ export default function AnalysisPage() {
       };
       
       performAnalysis(command, ipAddress, ipLocation);
+    } else if (command.trim()) {
+      console.log('📝 Comando encontrado, mas análise já foi executada');
     } else {
       console.log('❌ Nenhum comando encontrado');
       setLoading(false);
@@ -277,7 +287,7 @@ export default function AnalysisPage() {
         details: "No command to analyze"
       });
     }
-  }, [params]);
+  }, []);
   
   // Calculate total risk score from result - soma de TUDO (sem remover duplicatas do total)
   const totalScore = result ? result.score : 0;
@@ -285,6 +295,9 @@ export default function AnalysisPage() {
   // Handle new command analysis
   const handleNewAnalysis = () => {
     if (newCommand.trim()) {
+      console.log('🔄 Nova análise solicitada, resetando flag de execução');
+      analysisExecutedRef.current = false; // Resetar flag para permitir nova análise
+      
       const currentUrl = new URL(window.location.href);
       currentUrl.searchParams.set('cmd', newCommand.trim());
       // Clear other parameters for new analysis

@@ -407,8 +407,8 @@ async def analyze_command_pcre2(request: Request):
                 insert_data["user_id"] = user_id
                 print(f"✅ Incluindo user_id: {user_id}")
             else:
-                insert_data["user_id"] = "00000000-0000-0000-0000-000000000000"
-                print(f"⚠️ user_id não fornecido - usando padrão: {insert_data['user_id']}")
+                # Não incluir user_id para análises anônimas - deixar como NULL no banco
+                print(f"⚠️ user_id não fornecido - análise anônima (user_id será NULL)")
             
             print("🔍 Dados para inserção:")
             print(f"   - Command: {insert_data['command']}")
