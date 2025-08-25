@@ -73,6 +73,59 @@ async def get_ip_location(ip_address: str) -> dict:
         print(f"❌ Erro ao capturar geolocalização do IP {ip_address}: {error}")
         return {}
 
+async def get_or_create_session(supabase: Client, user_id: str = None, ip_address: str = None, user_agent: str = None, country: str = None, city: str = None, region: str = None) -> str:
+    """
+    Cria ou obtém uma sessão existente baseada no IP e user agent
+    Retorna o ID da sessão
+    """
+    try:
+        if not ip_address:
+            print("⚠️ IP não fornecido, não é possível criar/obter sessão")
+            return None
+        
+        # Criar string de localização
+        location_parts = []
+        if country:
+            location_parts.append(country)
+        if region:
+            location_parts.append(region)
+        if city:
+            location_parts.append(city)
+        location = ", ".join(location_parts) if location_parts else None
+        
+        # Tentar encontrar sessão existente (últimas 24 horas)
+        from datetime import datetime, timedelta
+        yesterday = datetime.utcnow() - timedelta(hours=24)
+        
+        existing_session = supabase.table('sessions').select('id').eq('ip', ip_address).gte('created_at', yesterday.isoformat()).limit(1).execute()
+        
+        if existing_session.data:
+            session_id = existing_session.data[0]['id']
+            print(f"✅ Sessão existente encontrada: {session_id}")
+            return session_id
+        
+        # Criar nova sessão
+        session_data = {
+            "user_id": user_id,
+            "ip": ip_address,
+            "browser": user_agent,
+            "location": location
+        }
+        
+        new_session = supabase.table('sessions').insert(session_data).execute()
+        
+        if new_session.data:
+            session_id = new_session.data[0]['id']
+            print(f"✅ Nova sessão criada: {session_id}")
+            return session_id
+        else:
+            print("❌ Erro ao criar nova sessão")
+            return None
+            
+    except Exception as error:
+        print(f"❌ Erro ao gerenciar sessão: {error}")
+        return None
+
 signatures_cache = None
 cache_timestamp = 0
 CACHE_DURATION = 10 * 60 * 1000  
@@ -180,7 +233,8 @@ async def analyze_command_pcre2(request: Request):
         region = body.get("region")
         timezone = body.get("timezone")
         user_agent = body.get("user_agent") or request.headers.get("user-agent", "FastAPI-Client")
-        search_type = body.get("search_type", "API")  
+        search_type = body.get("search_type", "API")
+        session_id = body.get("session_id")  
         
         if ip_address and not country and search_type == "API":
             print(f"🌍 Capturando geolocalização automática para IP: {ip_address}")
@@ -204,6 +258,7 @@ async def analyze_command_pcre2(request: Request):
         print(f"   - Timezone: {timezone}")
         print(f"   - User Agent: {user_agent}")
         print(f"   - Search Type: {search_type}")
+        print(f"   - Session ID: {session_id}")
         
         if not command or not isinstance(command, str):
             print("❌ Command inválido")
@@ -380,6 +435,23 @@ async def analyze_command_pcre2(request: Request):
             supabase = get_supabase_client()
             print("✅ Conectado ao Supabase com sucesso")
             
+            # Gerenciar sessão se não foi fornecida
+            if not session_id:
+                print("🔍 Session ID não fornecido, criando/obtendo sessão...")
+                session_id = await get_or_create_session(
+                    supabase=supabase,
+                    user_id=user_id,
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    country=country,
+                    city=city,
+                    region=region
+                )
+                if session_id:
+                    print(f"✅ Sessão gerenciada: {session_id}")
+                else:
+                    print("⚠️ Não foi possível gerenciar sessão")
+            
             # Preparar dados para inserção no banco (mantendo compatibilidade)
             insert_data = {
                 "command": command,
@@ -409,6 +481,13 @@ async def analyze_command_pcre2(request: Request):
             else:
                 # Não incluir user_id para análises anônimas - deixar como NULL no banco
                 print(f"⚠️ user_id não fornecido - análise anônima (user_id será NULL)")
+            
+            # Incluir session_id se disponível
+            if session_id:
+                insert_data["session_id"] = session_id
+                print(f"✅ Incluindo session_id: {session_id}")
+            else:
+                print("⚠️ session_id não disponível")
             
             print("🔍 Dados para inserção:")
             print(f"   - Command: {insert_data['command']}")

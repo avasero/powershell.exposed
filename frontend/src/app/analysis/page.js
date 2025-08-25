@@ -10,6 +10,7 @@ import ThemedButton from "../components/ThemedButton";
 import LoadingSpinner from "../components/LoadingSpinner";
 import AnalysisSkeleton from "../components/AnalysisSkeleton";
 import { saveAnonymousAnalysis } from "../../utils/cookies";
+import { getOrCreateSession } from "../../utils/session";
 
 // Score-based color system (5 bins from 1-10)
 function getScoreColor(score) {
@@ -126,6 +127,9 @@ export default function AnalysisPage() {
         setTimeout(() => reject(new Error('Analysis timeout - taking too long')), 15000)
       );
       
+      // Obter ou criar sessão anônima
+      const sessionId = getOrCreateSession();
+      
       // Chamar a API Python via proxy local
       const analysisPromise = fetch('/api/analyze', {
         method: 'POST',
@@ -138,7 +142,8 @@ export default function AnalysisPage() {
           city: ipLocation?.city,
           region: ipLocation?.region,
           timezone: ipLocation?.timezone,
-          user_agent: navigator.userAgent
+          user_agent: navigator.userAgent,
+          session_id: sessionId
         })
       }).then(response => {
         if (!response.ok) {
