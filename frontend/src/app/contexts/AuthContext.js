@@ -20,29 +20,46 @@ const createUserSession = async (userId) => {
   try {
     console.log('🔄 Criando nova sessão para usuário:', userId);
     
+    // Limpar sessão anterior do storage primeiro
+    clearSessionFromStorage();
+    
+    // Obter informações do usuário para criar sessão
+    let ipAddress = null;
+    let userAgent = 'Unknown';
+    
+    try {
+      // Tentar obter IP do usuário
+      const ipResponse = await fetch('https://ipapi.co/json/');
+      if (ipResponse.ok) {
+        const ipData = await ipResponse.json();
+        ipAddress = ipData.ip;
+      }
+    } catch (e) {
+      console.log('Não foi possível obter IP para criar sessão');
+    }
+    
+    if (typeof navigator !== 'undefined') {
+      userAgent = navigator.userAgent;
+    }
+    
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    const response = await fetch(`${apiUrl}/analyze-pcre2`, {
+    const response = await fetch(`${apiUrl}/create-user-session`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        command: 'Get-Date', // Comando simples para criar sessão
         user_id: userId,
-        search_type: 'SESSION_CREATION'
+        ip_address: ipAddress,
+        user_agent: userAgent
       })
     });
 
     const data = await response.json();
     
     if (response.ok && data.session_id) {
-      console.log('✅ Nova sessão criada:', data.session_id);
+      console.log('✅ Nova sessão criada para usuário:', data.session_id);
       saveSessionFromBackend(data.session_id);
-      
-      // Limpar sessão anterior do storage
-      clearSessionFromStorage();
-      saveSessionFromBackend(data.session_id);
-      
       return data.session_id;
     } else {
       console.error('❌ Erro ao criar sessão:', data);

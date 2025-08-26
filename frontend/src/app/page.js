@@ -123,6 +123,7 @@ export default function Home() {
       // Preparar dados para a API
       const requestData = {
         command: command.trim(),
+        user_id: user?.id || null, // Incluir user_id se usuário estiver logado
         ip_address: ipAddress,
         country: ipLocation?.country,
         city: ipLocation?.city,
