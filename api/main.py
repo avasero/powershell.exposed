@@ -584,11 +584,15 @@ async def analyze_command_pcre2(request: Request):
             reset_rate_limit(client_ip)
             print(f"✅ Captcha resolvido! Rate limit resetado para IP: {client_ip}")
             print(f"🔄 Usuário pode continuar fazendo análises normalmente")
-        
-        # Adicionar a requisição atual ao contador
-        if client_ip:
+            
+            # Adicionar esta requisição como a primeira do novo ciclo (após reset)
             add_request_to_rate_limit(client_ip)
-            print(f"📊 Requisição adicionada. Novo count para IP {client_ip}")  
+            print(f"🔄 Nova requisição adicionada após reset. Count: 1")
+        else:
+            # Se não tem captcha válido, adicionar ao contador normalmente
+            if client_ip:
+                add_request_to_rate_limit(client_ip)
+                print(f"📊 Requisição adicionada. Count para IP {client_ip}")  
         
         if ip_address and not country and search_type == "API":
             print(f"🌍 Capturando geolocalização automática para IP: {ip_address}")

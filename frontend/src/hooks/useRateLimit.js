@@ -10,6 +10,18 @@ export function useRateLimit() {
   const { timeLeft, isActive, startTimer, stopTimer, formatTime } = useCountdownTimer();
 
   const handleRateLimitResponse = useCallback((response, data) => {
+    console.log('🔍 handleRateLimitResponse:', { status: response.status, success: data?.success, requires_captcha: data?.requires_captcha });
+    
+    // PRIMEIRO: Se a resposta foi bem-sucedida, limpar TUDO
+    if (response.ok && data?.success) {
+      console.log('✅ Análise bem-sucedida, limpando rate limit state');
+      setRateLimitInfo(null);
+      setShowCaptcha(false);
+      setCaptchaSolution(null);
+      stopTimer(); // Parar timer quando tudo está ok
+      return false; // Não bloquear, análise foi bem-sucedida
+    }
+    
     if (response.status === 429) {
       // Rate limit excedido
       const rateLimitData = data.rate_limit_info;
@@ -53,13 +65,6 @@ export function useRateLimit() {
       return false; // Não bloquear a requisição, apenas mostrar captcha
     }
 
-    // Limpar estado se tudo ok
-    if (response.ok) {
-      setRateLimitInfo(null);
-      setShowCaptcha(false);
-      setCaptchaSolution(null);
-      stopTimer(); // Parar timer quando tudo está ok
-    }
     return false;
   }, [startTimer, stopTimer]);
 
