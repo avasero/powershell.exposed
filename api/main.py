@@ -65,19 +65,19 @@ def check_rate_limit(ip_address: str) -> dict:
     reset_time = None
     seconds_until_reset = None
     
-    # Para limite básico (5) ou se passou de 10 (limite máximo)
-    limit_to_check = RATE_LIMIT_REQUESTS if request_count < CAPTCHA_REQUIRED_AFTER else 10
-    
-    if current_requests and request_count >= limit_to_check:
+    # Calcular reset apenas se atingiu o limite básico (5) sem captcha
+    if current_requests and request_count >= RATE_LIMIT_REQUESTS:
         oldest_request = min(current_requests)
         reset_time = oldest_request + RATE_LIMIT_WINDOW
         seconds_until_reset = max(0, int(reset_time - current_time))
+        print(f"🕐 Calculando timer: oldest_request={oldest_request}, current_time={current_time}")
+        print(f"🕐 Reset em: {seconds_until_reset} segundos")
     
     return {
         "within_limit": request_count < RATE_LIMIT_REQUESTS,
         "current_count": request_count,
-        "limit": RATE_LIMIT_REQUESTS,
-        "window_seconds": RATE_LIMIT_WINDOW,
+        "limit": RATE_LIMIT_REQUESTS,  # 5 análises
+        "window_seconds": RATE_LIMIT_WINDOW,  # 60 segundos
         "requires_captcha": request_count >= CAPTCHA_REQUIRED_AFTER - 1,  # Captcha a partir da 6ª (count >= 5)
         "reset_time": reset_time,
         "seconds_until_reset": seconds_until_reset
@@ -502,27 +502,19 @@ async def analyze_command_pcre2(request: Request):
             rate_limit_info = check_rate_limit(client_ip)
             print(f"🔒 Rate limit info: {rate_limit_info}")
             
-            # Se não tem captcha e passou do limite básico (5), bloquear
-            if not rate_limit_info["within_limit"] and not rate_limit_info["requires_captcha"]:
-                return JSONResponse(
-                    {
-                        "error": "Rate limit exceeded",
-                        "rate_limit_info": rate_limit_info,
-                        "message": f"You have exceeded the limit of {RATE_LIMIT_REQUESTS} requests per {RATE_LIMIT_WINDOW} seconds. Please wait before making more requests."
-                    },
-                    status_code=429
-                )
-            
-            # Se passou do limite estendido (10) mesmo com captcha, bloquear
-            if rate_limit_info["current_count"] >= 10:
-                return JSONResponse(
-                    {
-                        "error": "Rate limit exceeded",
-                        "rate_limit_info": rate_limit_info,
-                        "message": f"You have exceeded the maximum limit of 10 requests per {RATE_LIMIT_WINDOW} seconds. Please wait before making more requests."
-                    },
-                    status_code=429
-                )
+            # Se passou do limite básico (5), usuário pode OU esperar OU fazer captcha
+            if not rate_limit_info["within_limit"]:
+                # Se não tem captcha, oferecer as duas opções
+                if not (captcha_token and captcha_answer):
+                    return JSONResponse(
+                        {
+                            "error": "Rate limit exceeded - Choose option",
+                            "rate_limit_info": rate_limit_info,
+                            "requires_captcha": True,
+                            "message": f"You have made {rate_limit_info['current_count']} searches. You can either wait {rate_limit_info.get('seconds_until_reset', 0)} seconds OR solve the captcha to continue immediately."
+                        },
+                        status_code=400  # 400 para mostrar captcha, não 429
+                    )
         
         body = await request.json()
         print(f"🚀 Request body: {body}")
@@ -540,25 +532,17 @@ async def analyze_command_pcre2(request: Request):
         captcha_token = body.get("captcha_token")
         captcha_answer = body.get("captcha_answer")
         
-        # Verificar se captcha é necessário (a partir da 6ª pesquisa)
-        if client_ip and rate_limit_info["requires_captcha"]:
-            if not captcha_token or not captcha_answer:
-                return JSONResponse(
-                    {
-                        "error": "Captcha required",
-                        "rate_limit_info": rate_limit_info,
-                        "requires_captcha": True,
-                        "message": f"You have made {rate_limit_info['current_count']} searches. Starting from the 6th search, you need to solve the captcha to continue."
-                    },
-                    status_code=400
-                )
+        # Se usuário passou do limite (5), verificar se tem captcha válido
+        if client_ip and not rate_limit_info["within_limit"] and (captcha_token and captcha_answer):
+            print(f"🔒 Verificando captcha para contornar rate limit...")
             
-            # Verificar captcha
+            # Verificar se captcha é válido
             if captcha_token not in captcha_tokens:
                 return JSONResponse(
                     {
                         "error": "Invalid or expired captcha token",
-                        "requires_captcha": True
+                        "requires_captcha": True,
+                        "rate_limit_info": rate_limit_info
                     },
                     status_code=400
                 )
@@ -568,7 +552,8 @@ async def analyze_command_pcre2(request: Request):
                 return JSONResponse(
                     {
                         "error": "Captcha token does not belong to this IP",
-                        "requires_captcha": True
+                        "requires_captcha": True,
+                        "rate_limit_info": rate_limit_info
                     },
                     status_code=400
                 )
@@ -577,7 +562,8 @@ async def analyze_command_pcre2(request: Request):
                 return JSONResponse(
                     {
                         "error": "Captcha token expired",
-                        "requires_captcha": True
+                        "requires_captcha": True,
+                        "rate_limit_info": rate_limit_info
                     },
                     status_code=400
                 )
@@ -586,27 +572,22 @@ async def analyze_command_pcre2(request: Request):
                 return JSONResponse(
                     {
                         "error": "Incorrect captcha answer",
-                        "requires_captcha": True
+                        "requires_captcha": True,
+                        "rate_limit_info": rate_limit_info
                     },
                     status_code=400
                 )
             
-            # Marcar captcha como resolvido e resetar rate limit
+            # ✅ CAPTCHA VÁLIDO - RESETAR RATE LIMIT COMPLETAMENTE
             captcha_tokens[captcha_token]["solved"] = True
-            print(f"✅ Captcha resolvido com sucesso para IP: {client_ip}")
-            
-            # RESETAR o rate limit quando captcha é resolvido
-            if client_ip:
-                reset_rate_limit(client_ip)
-                print(f"🔄 Rate limit resetado após captcha resolvido para IP: {client_ip}")
+            reset_rate_limit(client_ip)
+            print(f"✅ Captcha resolvido! Rate limit resetado para IP: {client_ip}")
+            print(f"🔄 Usuário pode continuar fazendo análises normalmente")
         
-        # Adicionar requisição ao contador de rate limit (apenas se não houve captcha)
-        if client_ip and not (rate_limit_info["requires_captcha"] and captcha_token and captcha_answer):
+        # Adicionar a requisição atual ao contador
+        if client_ip:
             add_request_to_rate_limit(client_ip)
-        elif client_ip:
-            # Se houve captcha, adicionar apenas 1 requisição (a atual)
-            add_request_to_rate_limit(client_ip)
-            print(f"📊 Adicionada 1 nova requisição após reset do captcha para IP: {client_ip}")  
+            print(f"📊 Requisição adicionada. Novo count para IP {client_ip}")  
         
         if ip_address and not country and search_type == "API":
             print(f"🌍 Capturando geolocalização automática para IP: {ip_address}")

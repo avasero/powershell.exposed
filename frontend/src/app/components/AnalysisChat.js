@@ -149,9 +149,7 @@ export default function AnalysisChat() {
              </p>
              {isAnonymous && (
                <div className="flex items-center gap-2">
-                 <p className="font-mono text-xs mt-1" style={{color: 'var(--accent)'}}>
-                   {analyses.length}/10 analyses
-                 </p>
+                 
                  <button
                    onClick={debugCookies}
                    className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800 hover:bg-blue-900/50"
