@@ -32,16 +32,38 @@ export default function AnalysisChat() {
     }
   }, [isAuthenticated, user]);
 
+  // Recarregar análises quando usuário muda (login/logout)
+  useEffect(() => {
+    console.log('🔄 AnalysisChat: mudança de usuário detectada');
+    
+    if (isAuthenticated() && user) {
+      console.log('🔄 Usuário logado, recarregando análises do banco');
+      setIsAnonymous(false);
+      // Aguardar um pouco para dar tempo da migração acontecer
+      setTimeout(() => {
+        loadRecentAnalyses();
+      }, 1000);
+    }
+  }, [user?.id]); // Observar mudanças no ID do usuário
+
   const loadRecentAnalyses = async () => {
     try {
       setLoading(true);
+      console.log('🔄 loadRecentAnalyses: iniciando carregamento do banco');
+      
       // Carregar apenas as últimas 5 análises
       const data = await getUserAnalyses(5, 0);
-      setAnalyses(data);
+      console.log('🔄 loadRecentAnalyses: dados obtidos do banco:', data);
+      console.log('🔄 loadRecentAnalyses: número de análises:', data?.length || 0);
+      
+      setAnalyses(data || []);
+      console.log('🔄 loadRecentAnalyses: análises definidas no estado');
     } catch (err) {
-      console.error('Error loading analyses:', err);
+      console.error('❌ Error loading analyses from database:', err);
+      setAnalyses([]);
     } finally {
       setLoading(false);
+      console.log('🔄 loadRecentAnalyses: carregamento finalizado');
     }
   };
 

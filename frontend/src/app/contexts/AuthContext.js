@@ -2,6 +2,8 @@
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
+import { getAnonymousAnalyses, clearAnonymousAnalyses } from '../../utils/cookies';
+import { clearSessionFromStorage, saveSessionFromBackend } from '../../utils/session';
 
 const AuthContext = createContext();
 
@@ -11,6 +13,104 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+};
+
+// Função para criar nova sessão para usuário logado
+const createUserSession = async (userId) => {
+  try {
+    console.log('🔄 Criando nova sessão para usuário:', userId);
+    
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const response = await fetch(`${apiUrl}/analyze-pcre2`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        command: 'Get-Date', // Comando simples para criar sessão
+        user_id: userId,
+        search_type: 'SESSION_CREATION'
+      })
+    });
+
+    const data = await response.json();
+    
+    if (response.ok && data.session_id) {
+      console.log('✅ Nova sessão criada:', data.session_id);
+      saveSessionFromBackend(data.session_id);
+      
+      // Limpar sessão anterior do storage
+      clearSessionFromStorage();
+      saveSessionFromBackend(data.session_id);
+      
+      return data.session_id;
+    } else {
+      console.error('❌ Erro ao criar sessão:', data);
+    }
+  } catch (error) {
+    console.error('❌ Erro ao criar sessão para usuário:', error);
+  }
+};
+
+// Função para migrar análises anônimas para usuário logado
+const migrateAnonymousAnalyses = async (userId) => {
+  try {
+    console.log('🔄 Migrando análises anônimas para usuário:', userId);
+    
+    const anonymousAnalyses = getAnonymousAnalyses();
+    console.log('📊 Análises anônimas encontradas:', anonymousAnalyses.length);
+    
+    if (anonymousAnalyses.length === 0) {
+      console.log('ℹ️ Nenhuma análise anônima para migrar');
+      return;
+    }
+
+    // Migrar cada análise anônima
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    let migratedCount = 0;
+    
+    for (const analysis of anonymousAnalyses) {
+      try {
+        const response = await fetch(`${apiUrl}/analyze-pcre2`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            command: analysis.command,
+            user_id: userId,
+            search_type: 'MIGRATION',
+            // Preservar dados da análise original
+            ip_address: analysis.ip_address,
+            country: analysis.country,
+            city: analysis.city,
+            region: analysis.region,
+            timezone: analysis.timezone
+          })
+        });
+
+        if (response.ok) {
+          migratedCount++;
+          console.log(`✅ Análise migrada: ${analysis.command.substring(0, 50)}...`);
+        } else {
+          console.error(`❌ Erro ao migrar análise: ${analysis.command.substring(0, 50)}...`);
+        }
+      } catch (error) {
+        console.error(`❌ Erro ao migrar análise individual:`, error);
+      }
+    }
+    
+    console.log(`✅ Migração concluída: ${migratedCount}/${anonymousAnalyses.length} análises migradas`);
+    
+    // Limpar análises anônimas após migração bem-sucedida
+    if (migratedCount > 0) {
+      clearAnonymousAnalyses();
+      console.log('🧹 Análises anônimas limpas após migração');
+    }
+    
+  } catch (error) {
+    console.error('❌ Erro ao migrar análises anônimas:', error);
+  }
 };
 
 export const AuthProvider = ({ children }) => {
@@ -132,6 +232,18 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (error) throw error;
+      
+      // Quando usuário faz login, criar nova sessão e migrar análises anônimas
+      if (data.user) {
+        console.log('✅ Login bem-sucedido, criando nova sessão para usuário:', data.user.id);
+        
+        // Criar nova sessão para o usuário logado
+        await createUserSession(data.user.id);
+        
+        // Migrar análises anônimas se existirem
+        await migrateAnonymousAnalyses(data.user.id);
+      }
+      
       return { data, error: null };
     } catch (error) {
       return { data: null, error };

@@ -74,6 +74,9 @@ export const clearSession = () => {
   }
 };
 
+// Alias para clearSession (compatibilidade)
+export const clearSessionFromStorage = clearSession;
+
 // Função para renovar a sessão (estender duração)
 export const renewSession = () => {
   try {
