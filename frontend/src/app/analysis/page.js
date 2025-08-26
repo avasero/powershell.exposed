@@ -344,21 +344,22 @@ export default function AnalysisPage() {
   const totalScore = result ? result.score : 0;
   
   // Handle new command analysis
-  const handleNewAnalysis = () => {
+  const handleNewAnalysis = async () => {
     if (newCommand.trim()) {
-      console.log('🔄 Nova análise solicitada, resetando flag de execução');
+      console.log('🔄 Nova análise solicitada:', newCommand.trim());
       analysisExecutedRef.current = false; // Resetar flag para permitir nova análise
       resetRateLimit(); // Limpar estado do rate limit
       
-      const currentUrl = new URL(window.location.href);
-      currentUrl.searchParams.set('cmd', newCommand.trim());
-      // Clear other parameters for new analysis
-      currentUrl.searchParams.delete('ip');
-      currentUrl.searchParams.delete('country');
-      currentUrl.searchParams.delete('city');
-      currentUrl.searchParams.delete('region');
-      currentUrl.searchParams.delete('timezone');
-      router.push(currentUrl.pathname + currentUrl.search);
+      // Limpar estado atual
+      setResult(null);
+      setError("");
+      setCmd(newCommand.trim());
+      
+      // Executar nova análise diretamente
+      await performAnalysis(newCommand.trim(), null, {});
+      
+      // Limpar o campo de input
+      setNewCommand("");
     }
   };
 
@@ -381,7 +382,7 @@ export default function AnalysisPage() {
               placeholder="Enter a new PowerShell command to analyze..."
               value={newCommand}
               onChange={(e) => setNewCommand(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleNewAnalysis()}
+              onKeyPress={(e) => e.key === 'Enter' && !rateLimitInfo && handleNewAnalysis()}
               className="w-full px-4 py-3 rounded-lg font-mono text-sm border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-opacity-50"
               style={{
                 backgroundColor: 'var(--card-bg)',
@@ -393,7 +394,7 @@ export default function AnalysisPage() {
           </div>
           <button
             onClick={handleNewAnalysis}
-            disabled={!newCommand.trim()}
+            disabled={!newCommand.trim() || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
             className="px-6 py-3 rounded-lg font-mono font-bold text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
             style={{
               backgroundColor: 'var(--accent)',
@@ -407,6 +408,72 @@ export default function AnalysisPage() {
           Press Enter or click Evaluate to analyze a new command
         </div>
       </div>
+
+      {/* Rate Limit Info - Design Melhorado (igual à página principal) */}
+      {rateLimitInfo && (
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mt-4 mb-6 rounded-lg border-2" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
+          <div className="p-4">
+            {/* Header com informações do rate limit */}
+            <div className="text-center mb-4">
+              <div className="font-mono text-sm mb-2" style={{color: 'var(--muted-foreground)'}}>
+                <strong>Notice:</strong> You have made <span style={{color: 'var(--accent)'}}>{rateLimitInfo.current_count}</span> of <span style={{color: 'var(--accent)'}}>{rateLimitInfo.limit}</span> allowed searches in {rateLimitInfo.window_seconds} seconds.
+              </div>
+            </div>
+
+            {rateLimitInfo.current_count >= rateLimitInfo.limit && (
+              <div>
+                {/* Status de Rate Limit */}
+                <div className="text-center mb-6">
+                  <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border-2 border-red-500" style={{backgroundColor: 'var(--background)'}}>
+                    <span className="text-2xl">🚫</span>
+                    <span className="font-mono font-bold text-red-500">Rate limit reached</span>
+                  </div>
+                </div>
+                
+                {/* Timer Elegante */}
+                {isTimerActive && timeLeft > 0 && (
+                  <div className="text-center">
+                    <div className="inline-block p-6 rounded-xl border-2" style={{backgroundColor: 'var(--background)', borderColor: 'var(--accent)'}}>
+                      {/* Ícone do Timer */}
+                      <div className="text-4xl mb-3">⏰</div>
+                      
+                      {/* Título */}
+                      <div className="font-mono font-bold text-xl mb-3" style={{color: 'var(--accent)'}}>
+                        Wait for reset
+                      </div>
+                      
+                      {/* Contador Grande */}
+                      <div className="font-mono text-3xl font-bold mb-4 px-4 py-2 rounded-lg border" style={{
+                        color: 'var(--accent)', 
+                        backgroundColor: 'var(--card-bg)',
+                        borderColor: 'var(--border-color)'
+                      }}>
+                        {formatTime}
+                      </div>
+                      
+                      {/* Descrição */}
+                      <div className="font-mono text-sm max-w-xs mx-auto" style={{color: 'var(--muted-foreground)'}}>
+                        You can make new searches when the timer reaches zero
+                      </div>
+                      
+                      {/* Barra de progresso visual */}
+                      <div className="mt-4 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div 
+                          className="h-2 rounded-full transition-all duration-1000" 
+                          style={{
+                            backgroundColor: 'var(--accent)',
+                            width: `${Math.max(0, (timeLeft / 60) * 100)}%`
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
              {/* Command Display */}
        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 p-3 sm:p-4" style={{backgroundColor: 'var(--muted)'}}>

@@ -1,11 +1,19 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useCountdownTimer } from './useCountdownTimer';
 
 export function useRateLimit() {
   const [rateLimitInfo, setRateLimitInfo] = useState(null);
   const { timeLeft, isActive, startTimer, stopTimer, formatTime } = useCountdownTimer();
+
+  // Limpar rate limit info quando timer chega a zero
+  useEffect(() => {
+    if (!isActive && timeLeft === 0 && rateLimitInfo) {
+      console.log('⏰ Timer acabou, limpando rate limit info');
+      setRateLimitInfo(null);
+    }
+  }, [isActive, timeLeft, rateLimitInfo]);
 
   const handleRateLimitResponse = useCallback((response, data) => {
     console.log('🔍 handleRateLimitResponse:', { status: response.status, success: data?.success });
