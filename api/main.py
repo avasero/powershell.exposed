@@ -525,7 +525,7 @@ async def analyze_command_pcre2(request: Request):
                 if not (captcha_token and captcha_answer):
                     return JSONResponse(
                         {
-                            "error": "Rate limit exceeded - Choose option",
+                            "error": "Rate limit exceeded",
                             "rate_limit_info": rate_limit_info,
                             "requires_captcha": True,
                             "message": f"You have made {rate_limit_info['current_count']} searches. You can either wait {rate_limit_info.get('seconds_until_reset', 0)} seconds OR solve the captcha to continue immediately."

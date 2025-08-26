@@ -267,30 +267,62 @@ export default function Home() {
           
           <ErrorMessage message={error} />
           
-          {/* Rate Limit Info - APENAS TIMER */}
+          {/* Rate Limit Info - Design Melhorado */}
           {rateLimitInfo && (
-            <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-700 rounded-md">
-              <div className="text-sm text-yellow-800 dark:text-yellow-200">
-                <strong>Notice:</strong> You have made {rateLimitInfo.current_count} of {rateLimitInfo.limit} allowed searches in {rateLimitInfo.window_seconds} seconds.
+            <div className="mt-4 rounded-lg border-2" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
+              <div className="p-4">
+                {/* Header com informações do rate limit */}
+                <div className="text-center mb-4">
+                  <div className="font-mono text-sm mb-2" style={{color: 'var(--muted-foreground)'}}>
+                    <strong>Notice:</strong> You have made <span style={{color: 'var(--accent)'}}>{rateLimitInfo.current_count}</span> of <span style={{color: 'var(--accent)'}}>{rateLimitInfo.limit}</span> allowed searches in {rateLimitInfo.window_seconds} seconds.
+                  </div>
+                </div>
+
                 {rateLimitInfo.current_count >= rateLimitInfo.limit && (
-                  <div className="mt-3">
-                    <div className="font-medium text-center p-2 bg-orange-100 dark:bg-orange-900 rounded border">
-                      🚫 Rate limit reached
+                  <div>
+                    {/* Status de Rate Limit */}
+                    <div className="text-center mb-6">
+                      <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border-2 border-red-500" style={{backgroundColor: 'var(--background)'}}>
+                        <span className="text-2xl">🚫</span>
+                        <span className="font-mono font-bold text-red-500">Rate limit reached</span>
+                      </div>
                     </div>
                     
-                    {/* APENAS TIMER */}
+                    {/* Timer Elegante */}
                     {isTimerActive && timeLeft > 0 && (
-                      <div className="mt-3 p-4 bg-blue-50 dark:bg-blue-900 rounded border border-blue-200 dark:border-blue-700">
-                        <div className="text-center">
-                          <div className="text-2xl mb-2">⏰</div>
-                          <div className="font-bold text-blue-900 dark:text-blue-100 mb-2">
+                      <div className="text-center">
+                        <div className="inline-block p-6 rounded-xl border-2" style={{backgroundColor: 'var(--background)', borderColor: 'var(--accent)'}}>
+                          {/* Ícone do Timer */}
+                          <div className="text-4xl mb-3">⏰</div>
+                          
+                          {/* Título */}
+                          <div className="font-mono font-bold text-xl mb-3" style={{color: 'var(--accent)'}}>
                             Wait for reset
                           </div>
-                          <div className="font-mono text-lg font-bold text-blue-800 dark:text-blue-200">
+                          
+                          {/* Contador Grande */}
+                          <div className="font-mono text-3xl font-bold mb-4 px-4 py-2 rounded-lg border" style={{
+                            color: 'var(--accent)', 
+                            backgroundColor: 'var(--card-bg)',
+                            borderColor: 'var(--border-color)'
+                          }}>
                             {formatTime}
                           </div>
-                          <div className="text-sm text-blue-700 dark:text-blue-300 mt-2">
+                          
+                          {/* Descrição */}
+                          <div className="font-mono text-sm max-w-xs mx-auto" style={{color: 'var(--muted-foreground)'}}>
                             You can make new searches when the timer reaches zero
+                          </div>
+                          
+                          {/* Barra de progresso visual (opcional) */}
+                          <div className="mt-4 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div 
+                              className="h-2 rounded-full transition-all duration-1000" 
+                              style={{
+                                backgroundColor: 'var(--accent)',
+                                width: `${Math.max(0, (timeLeft / 60) * 100)}%`
+                              }}
+                            ></div>
                           </div>
                         </div>
                       </div>
