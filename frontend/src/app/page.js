@@ -23,7 +23,10 @@ export default function Home() {
     handleRateLimitResponse, 
     handleCaptchaSolved, 
     closeCaptcha,
-    reset: resetRateLimit 
+    reset: resetRateLimit,
+    timeLeft,
+    isTimerActive,
+    formatTime
   } = useRateLimit();
   const [error, setError] = useState("");
   const [command, setCommand] = useState("");
@@ -287,8 +290,23 @@ export default function Home() {
               <div className="text-sm text-yellow-800 dark:text-yellow-200">
                 <strong>Notice:</strong> You have made {rateLimitInfo.current_count} of {rateLimitInfo.limit} allowed searches in {rateLimitInfo.window_seconds} seconds.
                 {rateLimitInfo.current_count >= rateLimitInfo.limit && (
-                  <div className="mt-1 font-medium">
-                    Rate limit reached. Please wait before making more searches.
+                  <div className="mt-2 space-y-1">
+                    <div className="font-medium">
+                      Rate limit reached. Please wait before making more searches.
+                    </div>
+                    {isTimerActive && timeLeft > 0 && (
+                      <div className="flex items-center gap-2 mt-2 p-2 bg-yellow-100 dark:bg-yellow-800 rounded border">
+                        <span className="text-lg">⏰</span>
+                        <div>
+                          <div className="font-mono text-sm font-bold text-yellow-900 dark:text-yellow-100">
+                            Time until reset: {formatTime}
+                          </div>
+                          <div className="text-xs text-yellow-700 dark:text-yellow-300">
+                            You can make new searches after this timer reaches zero
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

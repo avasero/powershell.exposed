@@ -1,17 +1,27 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useCountdownTimer } from './useCountdownTimer';
 
 export function useRateLimit() {
   const [rateLimitInfo, setRateLimitInfo] = useState(null);
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [captchaSolution, setCaptchaSolution] = useState(null);
+  const { timeLeft, isActive, startTimer, stopTimer, formatTime } = useCountdownTimer();
 
   const handleRateLimitResponse = useCallback((response, data) => {
     if (response.status === 429) {
       // Rate limit excedido
-      setRateLimitInfo(data.rate_limit_info);
-      setShowCaptcha(data.rate_limit_info?.requires_captcha || false);
+      const rateLimitData = data.rate_limit_info;
+      setRateLimitInfo(rateLimitData);
+      setShowCaptcha(rateLimitData?.requires_captcha || false);
+      
+      // Iniciar timer se temos informação de quando resetar
+      if (rateLimitData?.seconds_until_reset) {
+        console.log(`🕐 Iniciando timer: ${rateLimitData.seconds_until_reset} segundos`);
+        startTimer(rateLimitData.seconds_until_reset);
+      }
+      
       return true;
     }
     
@@ -19,6 +29,13 @@ export function useRateLimit() {
       // Captcha necessário
       setShowCaptcha(true);
       setRateLimitInfo(data.rate_limit_info);
+      
+      // Iniciar timer se temos informação de quando resetar
+      if (data.rate_limit_info?.seconds_until_reset) {
+        console.log(`🕐 Iniciando timer para captcha: ${data.rate_limit_info.seconds_until_reset} segundos`);
+        startTimer(data.rate_limit_info.seconds_until_reset);
+      }
+      
       return true;
     }
 
@@ -26,6 +43,13 @@ export function useRateLimit() {
     if (data && data.rate_limit_info && data.rate_limit_info.requires_captcha) {
       setShowCaptcha(true);
       setRateLimitInfo(data.rate_limit_info);
+      
+      // Iniciar timer se temos informação de quando resetar
+      if (data.rate_limit_info.seconds_until_reset) {
+        console.log(`🕐 Iniciando timer para rate limit: ${data.rate_limit_info.seconds_until_reset} segundos`);
+        startTimer(data.rate_limit_info.seconds_until_reset);
+      }
+      
       return false; // Não bloquear a requisição, apenas mostrar captcha
     }
 
@@ -34,14 +58,27 @@ export function useRateLimit() {
       setRateLimitInfo(null);
       setShowCaptcha(false);
       setCaptchaSolution(null);
+      stopTimer(); // Parar timer quando tudo está ok
     }
     return false;
-  }, []);
+  }, [startTimer, stopTimer]);
 
   const handleCaptchaSolved = useCallback((solution) => {
     setCaptchaSolution(solution);
     setShowCaptcha(false);
-  }, []);
+    // Resetar COMPLETAMENTE o rate limit info quando captcha é resolvido
+    console.log('🔄 Captcha resolvido, resetando COMPLETAMENTE rate limit info no frontend');
+    setRateLimitInfo(null);
+    stopTimer(); // Parar timer quando captcha é resolvido
+    
+    // Garantir reset completo após um pequeno delay
+    setTimeout(() => {
+      console.log('🔄 Reset completo do rate limit após captcha');
+      setRateLimitInfo(null);
+      setCaptchaSolution(null);
+      setShowCaptcha(false);
+    }, 100);
+  }, [stopTimer]);
 
   const closeCaptcha = useCallback(() => {
     setShowCaptcha(false);
@@ -51,7 +88,8 @@ export function useRateLimit() {
     setRateLimitInfo(null);
     setShowCaptcha(false);
     setCaptchaSolution(null);
-  }, []);
+    stopTimer(); // Parar timer no reset
+  }, [stopTimer]);
 
   return {
     rateLimitInfo,
@@ -60,6 +98,10 @@ export function useRateLimit() {
     handleRateLimitResponse,
     handleCaptchaSolved,
     closeCaptcha,
-    reset
+    reset,
+    // Timer properties
+    timeLeft,
+    isTimerActive: isActive,
+    formatTime
   };
 }

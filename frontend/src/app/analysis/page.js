@@ -42,7 +42,10 @@ export default function AnalysisPage() {
     handleRateLimitResponse, 
     handleCaptchaSolved, 
     closeCaptcha,
-    reset: resetRateLimit 
+    reset: resetRateLimit,
+    timeLeft,
+    isTimerActive,
+    formatTime
   } = useRateLimit();
   const [result, setResult] = useState(null);
   const [cmd, setCmd] = useState("");

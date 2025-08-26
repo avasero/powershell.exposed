@@ -118,7 +118,7 @@ export default function InlineCaptcha({
           </span>
         </div>
       ) : captchaData ? (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-4">
           {/* Captcha Question */}
           <div className="flex items-center justify-center py-6 rounded-lg" style={{backgroundColor: 'var(--muted)'}}>
             <div className="text-center">
@@ -141,6 +141,12 @@ export default function InlineCaptcha({
                   setAnswer(e.target.value);
                   setError(''); // Clear error when user types
                 }}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSubmit(e);
+                  }
+                }}
                 placeholder="Your answer..."
                 className="w-full px-3 py-2 rounded border font-mono text-sm text-center"
                 style={{
@@ -157,7 +163,8 @@ export default function InlineCaptcha({
             
             {/* Verify Button */}
             <button
-              type="submit"
+              type="button"
+              onClick={handleSubmit}
               disabled={!answer.trim() || isVerifying}
               className="px-4 py-2 rounded font-mono text-sm font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
               style={{
@@ -198,7 +205,7 @@ export default function InlineCaptcha({
               {error}
             </div>
           )}
-        </form>
+        </div>
       ) : (
         <div className="text-center py-4">
           <button
