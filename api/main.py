@@ -30,7 +30,7 @@ captcha_tokens = {}  # token -> {ip, expires_at, solved}
 captcha_solutions = {}  # token -> solution
 
 def cleanup_expired_data():
-    """Remove dados expirados de rate limiting e captcha"""
+    """Remove expired rate limiting and captcha data"""
     current_time = time.time()
     
     # Limpar contadores de requisições expirados
@@ -49,7 +49,7 @@ def cleanup_expired_data():
             del captcha_solutions[token]
 
 def check_rate_limit(ip_address: str) -> dict:
-    """Verifica se o IP está dentro do limite de taxa"""
+    """Checks if the IP is within the rate limit"""
     current_time = time.time()
     
     # Limpar dados expirados
@@ -70,25 +70,28 @@ def check_rate_limit(ip_address: str) -> dict:
     }
 
 def add_request_to_rate_limit(ip_address: str):
-    """Adiciona uma nova requisição ao contador"""
+    """Adds a new request to the counter"""
     current_time = time.time()
     request_counts[ip_address].append(current_time)
 
 def generate_captcha() -> dict:
-    """Gera um novo desafio de captcha matemático simples"""
+    """Generates a new simple mathematical captcha challenge"""
     a = secrets.randbelow(10) + 1
     b = secrets.randbelow(10) + 1
     operation = secrets.choice(['+', '-', '*'])
     
     if operation == '+':
         solution = a + b
-        question = f"{a} + {b} = ?"
+        question = f"What is {a} + {b}?"
     elif operation == '-':
+        # Ensure positive result
+        if a < b:
+            a, b = b, a
         solution = a - b
-        question = f"{a} - {b} = ?"
+        question = f"What is {a} - {b}?"
     else:  # *
         solution = a * b
-        question = f"{a} × {b} = ?"
+        question = f"What is {a} × {b}?"
     
     token = secrets.token_urlsafe(16)
     
@@ -99,7 +102,7 @@ def generate_captcha() -> dict:
     }
 
 def verify_captcha(token: str, user_answer: str) -> bool:
-    """Verifica se a resposta do captcha está correta"""
+    """Verifies if the captcha answer is correct"""
     if token not in captcha_solutions:
         return False
     
@@ -304,13 +307,13 @@ async def clear_cache():
 
 @app.post("/generate-captcha")
 async def generate_captcha_endpoint(request: Request):
-    """Gera um novo desafio de captcha para o usuário"""
+    """Generates a new captcha challenge for the user"""
     try:
         client_ip = getattr(request.state, 'client_ip', None)
         
         if not client_ip:
             return JSONResponse(
-                {"error": "Não foi possível identificar o IP do cliente"},
+                {"error": "Unable to identify client IP"},
                 status_code=400
             )
         
@@ -334,9 +337,9 @@ async def generate_captcha_endpoint(request: Request):
         })
         
     except Exception as error:
-        print(f"Erro ao gerar captcha: {error}")
+        print(f"Error generating captcha: {error}")
         return JSONResponse(
-            {"error": f"Erro interno: {str(error)}"},
+            {"error": f"Internal error: {str(error)}"},
             status_code=500
         )
 
@@ -352,27 +355,27 @@ async def verify_captcha_endpoint(request: Request):
         
         if not token or not answer:
             return JSONResponse(
-                {"error": "Token e resposta são obrigatórios"},
+                {"error": "Token and answer are required"},
                 status_code=400
             )
         
         # Verificar se o token existe e pertence ao IP
         if token not in captcha_tokens:
             return JSONResponse(
-                {"error": "Token inválido ou expirado"},
+                {"error": "Invalid or expired token"},
                 status_code=400
             )
         
         token_data = captcha_tokens[token]
         if token_data["ip"] != client_ip:
             return JSONResponse(
-                {"error": "Token não pertence a este IP"},
+                {"error": "Token does not belong to this IP"},
                 status_code=400
             )
         
         if time.time() > token_data["expires_at"]:
             return JSONResponse(
-                {"error": "Token expirado"},
+                {"error": "Token expired"},
                 status_code=400
             )
         
@@ -383,18 +386,18 @@ async def verify_captcha_endpoint(request: Request):
             captcha_tokens[token]["solved"] = True
             return JSONResponse({
                 "success": True,
-                "message": "Captcha resolvido com sucesso"
+                "message": "Captcha solved successfully"
             })
         else:
             return JSONResponse(
-                {"error": "Resposta incorreta"},
+                {"error": "Incorrect answer"},
                 status_code=400
             )
             
     except Exception as error:
-        print(f"Erro ao verificar captcha: {error}")
+        print(f"Error verifying captcha: {error}")
         return JSONResponse(
-            {"error": f"Erro interno: {str(error)}"},
+            {"error": f"Internal error: {str(error)}"},
             status_code=500
         )
 
@@ -419,7 +422,7 @@ async def analyze_command_pcre2(request: Request):
             if not rate_limit_info["within_limit"]:
                 return JSONResponse(
                     {
-                        "error": "Rate limit excedido",
+                        "error": "Rate limit exceeded",
                         "rate_limit_info": rate_limit_info,
                         "message": f"You have exceeded the limit of {RATE_LIMIT_REQUESTS} requests per {RATE_LIMIT_WINDOW} seconds. Please wait before making more requests."
                     },
@@ -447,7 +450,7 @@ async def analyze_command_pcre2(request: Request):
             if not captcha_token or not captcha_answer:
                 return JSONResponse(
                     {
-                        "error": "Captcha obrigatório",
+                        "error": "Captcha required",
                         "rate_limit_info": rate_limit_info,
                         "requires_captcha": True,
                         "message": f"You have made {rate_limit_info['current_count']} searches. Starting from the 6th search, you need to solve the captcha to continue."
@@ -459,7 +462,7 @@ async def analyze_command_pcre2(request: Request):
             if captcha_token not in captcha_tokens:
                 return JSONResponse(
                     {
-                        "error": "Token de captcha inválido ou expirado",
+                        "error": "Invalid or expired captcha token",
                         "requires_captcha": True
                     },
                     status_code=400
@@ -469,7 +472,7 @@ async def analyze_command_pcre2(request: Request):
             if token_data["ip"] != client_ip:
                 return JSONResponse(
                     {
-                        "error": "Token de captcha não pertence a este IP",
+                        "error": "Captcha token does not belong to this IP",
                         "requires_captcha": True
                     },
                     status_code=400
@@ -478,7 +481,7 @@ async def analyze_command_pcre2(request: Request):
             if time.time() > token_data["expires_at"]:
                 return JSONResponse(
                     {
-                        "error": "Token de captcha expirado",
+                        "error": "Captcha token expired",
                         "requires_captcha": True
                     },
                     status_code=400
@@ -487,7 +490,7 @@ async def analyze_command_pcre2(request: Request):
             if not verify_captcha(captcha_token, captcha_answer):
                 return JSONResponse(
                     {
-                        "error": "Resposta do captcha incorreta",
+                        "error": "Incorrect captcha answer",
                         "requires_captcha": True
                     },
                     status_code=400
@@ -798,7 +801,7 @@ async def analyze_command_pcre2(request: Request):
     except Exception as error:
         print(f"Erro na análise: {error}")
         return JSONResponse(
-            {"error": f"Erro interno: {str(error)}"},
+            {"error": f"Internal error: {str(error)}"},
             status_code=500
         )
 
