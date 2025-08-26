@@ -10,7 +10,7 @@ import IndicatorTable from "../components/IndicatorTable";
 import ThemedButton from "../components/ThemedButton";
 import LoadingSpinner from "../components/LoadingSpinner";
 import AnalysisSkeleton from "../components/AnalysisSkeleton";
-import InlineCaptcha from "../components/InlineCaptcha";
+
   import { saveAnonymousAnalysis } from "../../utils/cookies";
 import { getOrCreateSession, saveSessionFromBackend } from "../../utils/session";
 
@@ -37,11 +37,7 @@ export default function AnalysisPage() {
   const { user, isAuthenticated } = useAuth();
   const { 
     rateLimitInfo, 
-    showCaptcha, 
-    captchaSolution, 
     handleRateLimitResponse, 
-    handleCaptchaSolved, 
-    closeCaptcha,
     reset: resetRateLimit,
     timeLeft,
     isTimerActive,
@@ -157,11 +153,7 @@ export default function AnalysisPage() {
         session_id: sessionId
       };
 
-      // Incluir captcha se disponível
-      if (captchaSolution) {
-        requestData.captcha_token = captchaSolution.token;
-        requestData.captcha_answer = captchaSolution.answer;
-      }
+
 
       // Chamar a API Python via proxy local
       const analysisPromise = fetch('/api/analyze', {
@@ -169,14 +161,13 @@ export default function AnalysisPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData)
       }).then(response => {
-        // Verificar se precisa de rate limiting ou captcha
+        // Verificar se precisa de rate limiting
         const needsHandling = handleRateLimitResponse(response, null);
         
-        if (needsHandling && response.status === 400) {
-          // Se precisa de captcha, retornar dados da resposta para processamento
+        if (needsHandling) {
           return response.json().then(data => {
             handleRateLimitResponse(response, data);
-            throw new Error('Captcha obrigatório');
+            throw new Error('Rate limit excedido');
           });
         }
         
@@ -185,8 +176,8 @@ export default function AnalysisPage() {
         }
         return response.json();
       }).catch(error => {
-        if (error.message === 'Captcha obrigatório') {
-          throw error; // Re-throw captcha error
+        if (error.message === 'Rate limit excedido') {
+          throw error; // Re-throw rate limit error
         }
         console.error('API error:', error);
         // Fallback: análise local básica
@@ -242,10 +233,10 @@ export default function AnalysisPage() {
     } catch (err) {
       console.error('Analysis error:', err);
       
-      // Se é erro de captcha obrigatório, não definir como erro - deixar o modal aparecer
-      if (err.message === 'Captcha obrigatório') {
+      // Se é erro de rate limit, não prosseguir
+      if (err.message === 'Rate limit excedido') {
         setLoading(false);
-        return; // Para por aqui e deixa o modal de captcha aparecer
+        return;
       }
       
       setError(err.message);
@@ -731,28 +722,7 @@ export default function AnalysisPage() {
         </ThemedButton>
       </div>
 
-      {/* Captcha Inline */}
-      {showCaptcha && (
-        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6">
-          <InlineCaptcha
-            onSolved={(solution) => {
-              handleCaptchaSolved(solution);
-              // Reexecutar análise com captcha resolvido
-              const command = params.get("cmd") || "";
-              const ipAddress = params.get("ip") || null;
-              const country = params.get("country") || null;
-              const city = params.get("city") || null;
-              const region = params.get("region") || null;
-              const timezone = params.get("timezone") || null;
-              
-              const ipLocation = { country, city, region, timezone };
-              performAnalysis(command, ipAddress, ipLocation);
-            }}
-            onError={(error) => setError(error)}
-            className="w-full"
-          />
-        </div>
-      )}
+
     </div>
   );
 }

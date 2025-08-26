@@ -9,7 +9,7 @@ import { ErrorMessage, InfoMessage } from "./components/Messages";
 import CommandInput from "./components/CommandInput";
 import ThemedButton from "./components/ThemedButton";
 import AnalysisChat from "./components/AnalysisChat";
-import InlineCaptcha from "./components/InlineCaptcha";
+
 import { analyzeCommand } from "../../lib/supabase";
 
 export default function Home() {
@@ -18,11 +18,7 @@ export default function Home() {
   const { ipAddress, ipLocation, loading: ipLoading, error: ipError } = useIpAddress();
   const { 
     rateLimitInfo, 
-    showCaptcha, 
-    captchaSolution, 
     handleRateLimitResponse, 
-    handleCaptchaSolved, 
-    closeCaptcha,
     reset: resetRateLimit,
     timeLeft,
     isTimerActive,
@@ -107,11 +103,7 @@ export default function Home() {
       return;
     }
     
-    // Se captcha é necessário mas não foi resolvido, não prosseguir
-    if (showCaptcha && !captchaSolution) {
-      setError("Please solve the captcha to continue.");
-      return;
-    }
+
     
     setError(""); // Clear previous error
     setLoading(true);
@@ -121,7 +113,7 @@ export default function Home() {
       console.log('- Command:', command);
       console.log('- IP Address:', ipAddress);
       console.log('- IP Location:', ipLocation);
-      console.log('- Captcha Solution:', captchaSolution);
+
       
       // Preparar dados para a API
       const requestData = {
@@ -135,11 +127,7 @@ export default function Home() {
         search_type: "WEB"
       };
 
-      // Incluir captcha se disponível
-      if (captchaSolution) {
-        requestData.captcha_token = captchaSolution.token;
-        requestData.captcha_answer = captchaSolution.answer;
-      }
+
 
       // Fazer requisição para a API
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -156,20 +144,15 @@ export default function Home() {
 
       const data = await response.json();
 
-      // Verificar se precisa de rate limiting ou captcha
+      // Verificar se precisa de rate limiting
       const needsHandling = handleRateLimitResponse(response, data);
       
       if (needsHandling) {
         setLoading(false);
-        return; // Para por aqui se precisa de captcha ou rate limit
+        return; // Para por aqui se precisa de rate limit
       }
 
-      // Se chegou aqui mas ainda precisa de captcha (primeira vez), mostrar captcha
-      if (!showCaptcha && data.rate_limit_info?.requires_captcha) {
-        handleRateLimitResponse(response, data);
-        setLoading(false);
-        return;
-      }
+
 
       // Se chegou aqui, a análise foi bem-sucedida
       if (response.ok && data.success) {
@@ -284,72 +267,41 @@ export default function Home() {
           
           <ErrorMessage message={error} />
           
-          {/* Rate Limit Info */}
+          {/* Rate Limit Info - APENAS TIMER */}
           {rateLimitInfo && (
             <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-700 rounded-md">
               <div className="text-sm text-yellow-800 dark:text-yellow-200">
                 <strong>Notice:</strong> You have made {rateLimitInfo.current_count} of {rateLimitInfo.limit} allowed searches in {rateLimitInfo.window_seconds} seconds.
                 {rateLimitInfo.current_count >= rateLimitInfo.limit && (
-                  <div className="mt-3 space-y-3">
+                  <div className="mt-3">
                     <div className="font-medium text-center p-2 bg-orange-100 dark:bg-orange-900 rounded border">
-                      🚫 Rate limit reached - Choose an option:
+                      🚫 Rate limit reached
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {/* Opção 1: Esperar */}
-                      {isTimerActive && timeLeft > 0 && (
-                        <div className="p-3 bg-blue-50 dark:bg-blue-900 rounded border border-blue-200 dark:border-blue-700">
-                          <div className="text-center">
-                            <div className="text-lg mb-2">⏰</div>
-                            <div className="font-bold text-blue-900 dark:text-blue-100">
-                              Option 1: Wait
-                            </div>
-                            <div className="font-mono text-sm font-bold text-blue-800 dark:text-blue-200">
-                              {formatTime}
-                            </div>
-                            <div className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                              Wait for automatic reset
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Opção 2: Captcha */}
-                      <div className="p-3 bg-green-50 dark:bg-green-900 rounded border border-green-200 dark:border-green-700">
+                    {/* APENAS TIMER */}
+                    {isTimerActive && timeLeft > 0 && (
+                      <div className="mt-3 p-4 bg-blue-50 dark:bg-blue-900 rounded border border-blue-200 dark:border-blue-700">
                         <div className="text-center">
-                          <div className="text-lg mb-2">🔓</div>
-                          <div className="font-bold text-green-900 dark:text-green-100">
-                            Option 2: Solve Captcha
+                          <div className="text-2xl mb-2">⏰</div>
+                          <div className="font-bold text-blue-900 dark:text-blue-100 mb-2">
+                            Wait for reset
                           </div>
-                          <div className="text-sm text-green-800 dark:text-green-200">
-                            Continue immediately
+                          <div className="font-mono text-lg font-bold text-blue-800 dark:text-blue-200">
+                            {formatTime}
                           </div>
-                          <div className="text-xs text-green-700 dark:text-green-300 mt-1">
-                            Solve the captcha below
+                          <div className="text-sm text-blue-700 dark:text-blue-300 mt-2">
+                            You can make new searches when the timer reaches zero
                           </div>
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="text-center text-xs text-yellow-700 dark:text-yellow-300 border-t pt-2">
-                      Choose either option to continue making searches
-                    </div>
+                    )}
                   </div>
                 )}
               </div>
             </div>
           )}
 
-          {/* Captcha Inline */}
-          {showCaptcha && (
-            <div className="mt-4">
-              <InlineCaptcha
-                onSolved={handleCaptchaSolved}
-                onError={(error) => setError(error)}
-                className="w-full"
-              />
-            </div>
-          )}
+
           
           <InfoMessage 
             message={!error && command.trim() === "" ? "Examples: Get-Process | Where-Object CPU -gt 100 | Select Name, CPU" : ""}
