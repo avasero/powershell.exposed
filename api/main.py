@@ -497,7 +497,24 @@ async def analyze_command_pcre2(request: Request):
         client_ip = getattr(request.state, 'client_ip', None)
         print(f"🚀 IP real do cliente: {client_ip}")
         
-        # Verificar rate limit primeiro
+        # Ler o body primeiro para ter acesso aos dados do captcha
+        body = await request.json()
+        print(f"🚀 Request body: {body}")
+        
+        command = body.get("command", "")
+        user_id = body.get("user_id")  
+        ip_address = body.get("ip_address") or client_ip  
+        country = body.get("country")
+        city = body.get("city")
+        region = body.get("region")
+        timezone = body.get("timezone")
+        user_agent = body.get("user_agent") or request.headers.get("user-agent", "FastAPI-Client")
+        search_type = body.get("search_type", "API")
+        session_id = body.get("session_id")
+        captcha_token = body.get("captcha_token")
+        captcha_answer = body.get("captcha_answer")
+        
+        # Verificar rate limit depois de ter os dados do captcha
         if client_ip:
             rate_limit_info = check_rate_limit(client_ip)
             print(f"🔒 Rate limit info: {rate_limit_info}")
@@ -515,22 +532,6 @@ async def analyze_command_pcre2(request: Request):
                         },
                         status_code=400  # 400 para mostrar captcha, não 429
                     )
-        
-        body = await request.json()
-        print(f"🚀 Request body: {body}")
-        
-        command = body.get("command", "")
-        user_id = body.get("user_id")  
-        ip_address = body.get("ip_address") or client_ip  
-        country = body.get("country")
-        city = body.get("city")
-        region = body.get("region")
-        timezone = body.get("timezone")
-        user_agent = body.get("user_agent") or request.headers.get("user-agent", "FastAPI-Client")
-        search_type = body.get("search_type", "API")
-        session_id = body.get("session_id")
-        captcha_token = body.get("captcha_token")
-        captcha_answer = body.get("captcha_answer")
         
         # Se usuário passou do limite (5), verificar se tem captcha válido
         if client_ip and not rate_limit_info["within_limit"] and (captcha_token and captcha_answer):
