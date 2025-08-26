@@ -20,9 +20,9 @@ app = FastAPI(
 )
 
 # Rate limiting e captcha
-RATE_LIMIT_REQUESTS = 5  # Máximo de requisições por janela de tempo
+RATE_LIMIT_REQUESTS = 10  # Máximo de requisições por janela de tempo (com captcha)
 RATE_LIMIT_WINDOW = 60   # Janela de tempo em segundos
-CAPTCHA_REQUIRED_AFTER = 6  # Captcha necessário após quantas requisições
+CAPTCHA_REQUIRED_AFTER = 6  # Captcha necessário a partir da 6ª requisição
 
 # Armazenamento em memória para rate limiting (em produção, use Redis)
 request_counts = defaultdict(list)
@@ -66,7 +66,7 @@ def check_rate_limit(ip_address: str) -> dict:
         "current_count": request_count,
         "limit": RATE_LIMIT_REQUESTS,
         "window_seconds": RATE_LIMIT_WINDOW,
-        "requires_captcha": request_count >= CAPTCHA_REQUIRED_AFTER - 1
+        "requires_captcha": request_count >= CAPTCHA_REQUIRED_AFTER - 1  # Captcha a partir da 6ª (count >= 5)
     }
 
 def add_request_to_rate_limit(ip_address: str):
@@ -421,7 +421,7 @@ async def analyze_command_pcre2(request: Request):
                     {
                         "error": "Rate limit excedido",
                         "rate_limit_info": rate_limit_info,
-                        "message": f"Você excedeu o limite de {RATE_LIMIT_REQUESTS} requisições por {RATE_LIMIT_WINDOW} segundos. Aguarde antes de fazer mais requisições."
+                        "message": f"You have exceeded the limit of {RATE_LIMIT_REQUESTS} requests per {RATE_LIMIT_WINDOW} seconds. Please wait before making more requests."
                     },
                     status_code=429
                 )
@@ -442,7 +442,7 @@ async def analyze_command_pcre2(request: Request):
         captcha_token = body.get("captcha_token")
         captcha_answer = body.get("captcha_answer")
         
-        # Verificar se captcha é necessário
+        # Verificar se captcha é necessário (a partir da 6ª pesquisa)
         if client_ip and rate_limit_info["requires_captcha"]:
             if not captcha_token or not captcha_answer:
                 return JSONResponse(
@@ -450,7 +450,7 @@ async def analyze_command_pcre2(request: Request):
                         "error": "Captcha obrigatório",
                         "rate_limit_info": rate_limit_info,
                         "requires_captcha": True,
-                        "message": "Você precisa resolver o captcha para continuar"
+                        "message": f"You have made {rate_limit_info['current_count']} searches. Starting from the 6th search, you need to solve the captcha to continue."
                     },
                     status_code=400
                 )

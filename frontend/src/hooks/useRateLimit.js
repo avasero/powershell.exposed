@@ -11,20 +11,30 @@ export function useRateLimit() {
     if (response.status === 429) {
       // Rate limit excedido
       setRateLimitInfo(data.rate_limit_info);
+      setShowCaptcha(data.rate_limit_info?.requires_captcha || false);
       return true;
     }
     
-    if (data.requires_captcha) {
+    if (data && data.requires_captcha) {
       // Captcha necessário
       setShowCaptcha(true);
       setRateLimitInfo(data.rate_limit_info);
       return true;
     }
 
+    // Verificar se precisa mostrar captcha baseado no rate limit info
+    if (data && data.rate_limit_info && data.rate_limit_info.requires_captcha) {
+      setShowCaptcha(true);
+      setRateLimitInfo(data.rate_limit_info);
+      return false; // Não bloquear a requisição, apenas mostrar captcha
+    }
+
     // Limpar estado se tudo ok
-    setRateLimitInfo(null);
-    setShowCaptcha(false);
-    setCaptchaSolution(null);
+    if (response.ok) {
+      setRateLimitInfo(null);
+      setShowCaptcha(false);
+      setCaptchaSolution(null);
+    }
     return false;
   }, []);
 

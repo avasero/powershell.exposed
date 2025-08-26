@@ -9,7 +9,7 @@ import { ErrorMessage, InfoMessage } from "./components/Messages";
 import CommandInput from "./components/CommandInput";
 import ThemedButton from "./components/ThemedButton";
 import AnalysisChat from "./components/AnalysisChat";
-import CaptchaModal from "./components/CaptchaModal";
+import InlineCaptcha from "./components/InlineCaptcha";
 import { analyzeCommand } from "../../lib/supabase";
 
 export default function Home() {
@@ -70,6 +70,8 @@ export default function Home() {
     console.log('  - Loading IP:', ipLoading);
   }, [isAuthenticated, user, ipLoading]);
 
+
+
   // Função para validar se o input é um comando PowerShell válido
   const validatePowerShellCommand = (input) => {
     if (!input || typeof input !== 'string') {
@@ -99,6 +101,12 @@ export default function Home() {
     const validation = validatePowerShellCommand(command);
     if (!validation.isValid) {
       setError(validation.error);
+      return;
+    }
+    
+    // Se captcha é necessário mas não foi resolvido, não prosseguir
+    if (showCaptcha && !captchaSolution) {
+      setError("Please solve the captcha to continue.");
       return;
     }
     
@@ -150,6 +158,13 @@ export default function Home() {
       if (needsHandling) {
         setLoading(false);
         return; // Para por aqui se precisa de captcha ou rate limit
+      }
+
+      // Se chegou aqui mas ainda precisa de captcha (primeira vez), mostrar captcha
+      if (!showCaptcha && data.rate_limit_info?.requires_captcha) {
+        handleRateLimitResponse(response, data);
+        setLoading(false);
+        return;
       }
 
       // Se chegou aqui, a análise foi bem-sucedida
@@ -269,13 +284,24 @@ export default function Home() {
           {rateLimitInfo && (
             <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-700 rounded-md">
               <div className="text-sm text-yellow-800 dark:text-yellow-200">
-                <strong>Aviso:</strong> Você fez {rateLimitInfo.current_count} de {rateLimitInfo.limit} pesquisas permitidas em {rateLimitInfo.window_seconds} segundos.
+                <strong>Notice:</strong> You have made {rateLimitInfo.current_count} of {rateLimitInfo.limit} allowed searches in {rateLimitInfo.window_seconds} seconds.
                 {rateLimitInfo.current_count >= rateLimitInfo.limit && (
                   <div className="mt-1 font-medium">
-                    Rate limit atingido. Aguarde antes de fazer mais pesquisas.
+                    Rate limit reached. Please wait before making more searches.
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Captcha Inline */}
+          {showCaptcha && (
+            <div className="mt-4">
+              <InlineCaptcha
+                onSolved={handleCaptchaSolved}
+                onError={(error) => setError(error)}
+                className="w-full"
+              />
             </div>
           )}
           
@@ -306,12 +332,7 @@ export default function Home() {
           )}
         </div>
         
-        {/* Captcha Modal */}
-        <CaptchaModal
-          isOpen={showCaptcha}
-          onClose={closeCaptcha}
-          onSolved={handleCaptchaSolved}
-        />
+
       </div>
     </div>
   );

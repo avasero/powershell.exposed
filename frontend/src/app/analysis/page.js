@@ -2,6 +2,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { useRateLimit } from "../../hooks/useRateLimit";
 import SeverityLegend from "../components/SeverityLegend";
 import AnalysisCard from "../components/AnalysisCard";
 import SeverityBadge from "../components/SeverityBadge";
@@ -9,7 +10,8 @@ import IndicatorTable from "../components/IndicatorTable";
 import ThemedButton from "../components/ThemedButton";
 import LoadingSpinner from "../components/LoadingSpinner";
 import AnalysisSkeleton from "../components/AnalysisSkeleton";
-import { saveAnonymousAnalysis } from "../../utils/cookies";
+import InlineCaptcha from "../components/InlineCaptcha";
+  import { saveAnonymousAnalysis } from "../../utils/cookies";
 import { getOrCreateSession, saveSessionFromBackend } from "../../utils/session";
 
 // Score-based color system (5 bins from 1-10)
@@ -33,6 +35,15 @@ export default function AnalysisPage() {
   const params = useSearchParams();
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
+  const { 
+    rateLimitInfo, 
+    showCaptcha, 
+    captchaSolution, 
+    handleRateLimitResponse, 
+    handleCaptchaSolved, 
+    closeCaptcha,
+    reset: resetRateLimit 
+  } = useRateLimit();
   const [result, setResult] = useState(null);
   const [cmd, setCmd] = useState("");
   const [loading, setLoading] = useState(true);
@@ -130,27 +141,50 @@ export default function AnalysisPage() {
       // Obter ou criar sessão anônima
       const sessionId = getOrCreateSession();
       
+      // Preparar dados para a API
+      const requestData = { 
+        command,
+        user_id: user?.id || null,  // Enviar null se não logado, não UUID padrão
+        ip_address: ipAddress,
+        country: ipLocation?.country,
+        city: ipLocation?.city,
+        region: ipLocation?.region,
+        timezone: ipLocation?.timezone,
+        user_agent: navigator.userAgent,
+        session_id: sessionId
+      };
+
+      // Incluir captcha se disponível
+      if (captchaSolution) {
+        requestData.captcha_token = captchaSolution.token;
+        requestData.captcha_answer = captchaSolution.answer;
+      }
+
       // Chamar a API Python via proxy local
       const analysisPromise = fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          command,
-          user_id: user?.id || null,  // Enviar null se não logado, não UUID padrão
-          ip_address: ipAddress,
-          country: ipLocation?.country,
-          city: ipLocation?.city,
-          region: ipLocation?.region,
-          timezone: ipLocation?.timezone,
-          user_agent: navigator.userAgent,
-          session_id: sessionId
-        })
+        body: JSON.stringify(requestData)
       }).then(response => {
+        // Verificar se precisa de rate limiting ou captcha
+        const needsHandling = handleRateLimitResponse(response, null);
+        
+        if (needsHandling && response.status === 400) {
+          // Se precisa de captcha, retornar dados da resposta para processamento
+          return response.json().then(data => {
+            handleRateLimitResponse(response, data);
+            throw new Error('Captcha obrigatório');
+          });
+        }
+        
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         return response.json();
       }).catch(error => {
+        if (error.message === 'Captcha obrigatório') {
+          throw error; // Re-throw captcha error
+        }
         console.error('API error:', error);
         // Fallback: análise local básica
         throw new Error('API não acessível. Use análise local temporariamente.');
@@ -204,6 +238,13 @@ export default function AnalysisPage() {
       }
     } catch (err) {
       console.error('Analysis error:', err);
+      
+      // Se é erro de captcha obrigatório, não definir como erro - deixar o modal aparecer
+      if (err.message === 'Captcha obrigatório') {
+        setLoading(false);
+        return; // Para por aqui e deixa o modal de captcha aparecer
+      }
+      
       setError(err.message);
       
               // Se a API falhou, usar análise local
@@ -313,6 +354,7 @@ export default function AnalysisPage() {
     if (newCommand.trim()) {
       console.log('🔄 Nova análise solicitada, resetando flag de execução');
       analysisExecutedRef.current = false; // Resetar flag para permitir nova análise
+      resetRateLimit(); // Limpar estado do rate limit
       
       const currentUrl = new URL(window.location.href);
       currentUrl.searchParams.set('cmd', newCommand.trim());
@@ -685,6 +727,29 @@ export default function AnalysisPage() {
           Copy sharable link
         </ThemedButton>
       </div>
+
+      {/* Captcha Inline */}
+      {showCaptcha && (
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6">
+          <InlineCaptcha
+            onSolved={(solution) => {
+              handleCaptchaSolved(solution);
+              // Reexecutar análise com captcha resolvido
+              const command = params.get("cmd") || "";
+              const ipAddress = params.get("ip") || null;
+              const country = params.get("country") || null;
+              const city = params.get("city") || null;
+              const region = params.get("region") || null;
+              const timezone = params.get("timezone") || null;
+              
+              const ipLocation = { country, city, region, timezone };
+              performAnalysis(command, ipAddress, ipLocation);
+            }}
+            onError={(error) => setError(error)}
+            className="w-full"
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -8,7 +8,10 @@ export async function POST(request) {
       city, 
       region, 
       timezone, 
-      user_agent 
+      user_agent,
+      captcha_token,
+      captcha_answer,
+      session_id
     } = await request.json();
     
     if (!command) {
@@ -16,29 +19,40 @@ export async function POST(request) {
     }
     
     // Fazer proxy para a API Python
+    const requestBody = { 
+      command,
+      user_id,
+      ip_address,
+      country,
+      city,
+      region,
+      timezone,
+      user_agent,
+      search_type: "WEB",  // Frontend sempre é WEB
+      session_id
+    };
+
+    // Incluir dados do captcha se fornecidos
+    if (captcha_token && captcha_answer) {
+      requestBody.captcha_token = captcha_token;
+      requestBody.captcha_answer = captcha_answer;
+    }
+
     const response = await fetch('https://powershell-fastapi.vercel.app/analyze-pcre2', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
-        command,
-        user_id,
-        ip_address,
-        country,
-        city,
-        region,
-        timezone,
-        user_agent,
-        search_type: "WEB"  // Frontend sempre é WEB
-      })
+      body: JSON.stringify(requestBody)
     });
     
+    const data = await response.json();
+    
+    // Retornar resposta com o status correto (incluindo rate limiting)
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      return Response.json(data, { status: response.status });
     }
     
-    const data = await response.json();
     return Response.json(data);
     
   } catch (error) {
