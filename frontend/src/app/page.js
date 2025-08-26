@@ -3,17 +3,28 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "./contexts/AuthContext";
 import { useIpAddress } from "../hooks/useIpAddress";
+import { useRateLimit } from "../hooks/useRateLimit";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { ErrorMessage, InfoMessage } from "./components/Messages";
 import CommandInput from "./components/CommandInput";
 import ThemedButton from "./components/ThemedButton";
 import AnalysisChat from "./components/AnalysisChat";
+import CaptchaModal from "./components/CaptchaModal";
 import { analyzeCommand } from "../../lib/supabase";
 
 export default function Home() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const { ipAddress, ipLocation, loading: ipLoading, error: ipError } = useIpAddress();
+  const { 
+    rateLimitInfo, 
+    showCaptcha, 
+    captchaSolution, 
+    handleRateLimitResponse, 
+    handleCaptchaSolved, 
+    closeCaptcha,
+    reset: resetRateLimit 
+  } = useRateLimit();
   const [error, setError] = useState("");
   const [command, setCommand] = useState("");
   const [result, setResult] = useState(null);
@@ -81,8 +92,8 @@ export default function Home() {
     return { isValid: true, error: null };
   };
 
-  // Command analysis - usando API Python
-  const handleAnalyze = (e) => {
+  // Command analysis - usando API Python com rate limiting
+  const handleAnalyze = async (e) => {
     e.preventDefault();
     
     const validation = validatePowerShellCommand(command);
@@ -92,30 +103,93 @@ export default function Home() {
     }
     
     setError(""); // Clear previous error
+    setLoading(true);
     
-    console.log('🚀 Starting analysis with Python API:');
-    console.log('- Command:', command);
-    console.log('- IP Address:', ipAddress);
-    console.log('- IP Location:', ipLocation);
-    
-    // Incluir IP address e localização na URL para análise
-    const analysisUrl = `/analysis?cmd=${encodeURIComponent(command.trim())}`;
-    if (ipAddress) {
-      let finalUrl = `${analysisUrl}&ip=${encodeURIComponent(ipAddress)}`;
+    try {
+      console.log('🚀 Starting analysis with Python API:');
+      console.log('- Command:', command);
+      console.log('- IP Address:', ipAddress);
+      console.log('- IP Location:', ipLocation);
+      console.log('- Captcha Solution:', captchaSolution);
       
-      // Adicionar informações de localização se disponíveis
-      if (ipLocation && ipLocation.country) {
-        finalUrl += `&country=${encodeURIComponent(ipLocation.country)}`;
-        if (ipLocation.city) finalUrl += `&city=${encodeURIComponent(ipLocation.city)}`;
-        if (ipLocation.region) finalUrl += `&region=${encodeURIComponent(ipLocation.region)}`;
-        if (ipLocation.timezone) finalUrl += `&timezone=${encodeURIComponent(ipLocation.timezone)}`;
+      // Preparar dados para a API
+      const requestData = {
+        command: command.trim(),
+        ip_address: ipAddress,
+        country: ipLocation?.country,
+        city: ipLocation?.city,
+        region: ipLocation?.region,
+        timezone: ipLocation?.timezone,
+        search_type: "WEB"
+      };
+
+      // Incluir captcha se disponível
+      if (captchaSolution) {
+        requestData.captcha_token = captchaSolution.token;
+        requestData.captcha_answer = captchaSolution.answer;
+      }
+
+      // Fazer requisição para a API
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      console.log('🌐 API URL:', apiUrl);
+      console.log('📤 Request data:', requestData);
+      
+      const response = await fetch(`${apiUrl}/analyze-pcre2`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+      });
+
+      const data = await response.json();
+
+      // Verificar se precisa de rate limiting ou captcha
+      const needsHandling = handleRateLimitResponse(response, data);
+      
+      if (needsHandling) {
+        setLoading(false);
+        return; // Para por aqui se precisa de captcha ou rate limit
+      }
+
+      // Se chegou aqui, a análise foi bem-sucedida
+      if (response.ok && data.success) {
+        // Redirecionar para página de análise com resultados
+        const analysisUrl = `/analysis?cmd=${encodeURIComponent(command.trim())}`;
+        let finalUrl = analysisUrl;
+        
+        if (ipAddress) {
+          finalUrl += `&ip=${encodeURIComponent(ipAddress)}`;
+          
+          // Adicionar informações de localização se disponíveis
+          if (ipLocation && ipLocation.country) {
+            finalUrl += `&country=${encodeURIComponent(ipLocation.country)}`;
+            if (ipLocation.city) finalUrl += `&city=${encodeURIComponent(ipLocation.city)}`;
+            if (ipLocation.region) finalUrl += `&region=${encodeURIComponent(ipLocation.region)}`;
+            if (ipLocation.timezone) finalUrl += `&timezone=${encodeURIComponent(ipLocation.timezone)}`;
+          }
+        }
+        
+        console.log('📍 Redirecting to:', finalUrl);
+        resetRateLimit(); // Limpar estado do rate limit
+        router.push(finalUrl);
+      } else {
+        setError(data.error || 'Erro na análise');
       }
       
-      console.log('📍 Redirecting to:', finalUrl);
-      router.push(finalUrl);
-    } else {
-      console.log('⚠️ No IP address available, redirecting to:', analysisUrl);
-      router.push(analysisUrl);
+    } catch (err) {
+      console.error('Erro na análise:', err);
+      
+      // Verificar se é erro de conexão
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        setError(`Erro de conexão: Não foi possível conectar com a API em ${apiUrl}. Verifique se o servidor backend está rodando.`);
+      } else if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
+        setError(`Servidor backend não está acessível. Verifique se está rodando em ${apiUrl}`);
+      } else {
+        setError(`Erro de conexão: ${err.message}`);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -174,15 +248,37 @@ export default function Home() {
             <div className="flex-shrink-0">
               <ThemedButton
                 type="submit"
-                disabled={error !== ""}
+                disabled={error !== "" || loading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
                 className="w-full md:w-auto px-6 py-3"
               >
-                Analyze
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Analyzing...
+                  </div>
+                ) : (
+                  'Analyze'
+                )}
               </ThemedButton>
             </div>
           </div>
           
           <ErrorMessage message={error} />
+          
+          {/* Rate Limit Info */}
+          {rateLimitInfo && (
+            <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-700 rounded-md">
+              <div className="text-sm text-yellow-800 dark:text-yellow-200">
+                <strong>Aviso:</strong> Você fez {rateLimitInfo.current_count} de {rateLimitInfo.limit} pesquisas permitidas em {rateLimitInfo.window_seconds} segundos.
+                {rateLimitInfo.current_count >= rateLimitInfo.limit && (
+                  <div className="mt-1 font-medium">
+                    Rate limit atingido. Aguarde antes de fazer mais pesquisas.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
           <InfoMessage 
             message={!error && command.trim() === "" ? "Examples: Get-Process | Where-Object CPU -gt 100 | Select Name, CPU" : ""}
           />
@@ -209,6 +305,13 @@ export default function Home() {
             </div>
           )}
         </div>
+        
+        {/* Captcha Modal */}
+        <CaptchaModal
+          isOpen={showCaptcha}
+          onClose={closeCaptcha}
+          onSolved={handleCaptchaSolved}
+        />
       </div>
     </div>
   );

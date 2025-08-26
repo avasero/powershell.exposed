@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import re  
@@ -8,6 +8,8 @@ import time
 import aiohttp 
 from supabase import create_client, Client
 from dotenv import load_dotenv
+from collections import defaultdict
+import secrets
 
 load_dotenv('.env.local', override=True)
 
@@ -16,6 +18,97 @@ app = FastAPI(
     description="API para análise de comandos PowerShell",
     version="1.0.0"
 )
+
+# Rate limiting e captcha
+RATE_LIMIT_REQUESTS = 5  # Máximo de requisições por janela de tempo
+RATE_LIMIT_WINDOW = 60   # Janela de tempo em segundos
+CAPTCHA_REQUIRED_AFTER = 6  # Captcha necessário após quantas requisições
+
+# Armazenamento em memória para rate limiting (em produção, use Redis)
+request_counts = defaultdict(list)
+captcha_tokens = {}  # token -> {ip, expires_at, solved}
+captcha_solutions = {}  # token -> solution
+
+def cleanup_expired_data():
+    """Remove dados expirados de rate limiting e captcha"""
+    current_time = time.time()
+    
+    # Limpar contadores de requisições expirados
+    for ip in list(request_counts.keys()):
+        request_counts[ip] = [req_time for req_time in request_counts[ip] 
+                             if current_time - req_time < RATE_LIMIT_WINDOW]
+        if not request_counts[ip]:
+            del request_counts[ip]
+    
+    # Limpar tokens de captcha expirados
+    expired_tokens = [token for token, data in captcha_tokens.items() 
+                     if current_time > data['expires_at']]
+    for token in expired_tokens:
+        del captcha_tokens[token]
+        if token in captcha_solutions:
+            del captcha_solutions[token]
+
+def check_rate_limit(ip_address: str) -> dict:
+    """Verifica se o IP está dentro do limite de taxa"""
+    current_time = time.time()
+    
+    # Limpar dados expirados
+    cleanup_expired_data()
+    
+    # Contar requisições atuais (sem adicionar nova ainda)
+    current_requests = [req_time for req_time in request_counts[ip_address] 
+                       if current_time - req_time < RATE_LIMIT_WINDOW]
+    
+    request_count = len(current_requests)
+    
+    return {
+        "within_limit": request_count < RATE_LIMIT_REQUESTS,
+        "current_count": request_count,
+        "limit": RATE_LIMIT_REQUESTS,
+        "window_seconds": RATE_LIMIT_WINDOW,
+        "requires_captcha": request_count >= CAPTCHA_REQUIRED_AFTER - 1
+    }
+
+def add_request_to_rate_limit(ip_address: str):
+    """Adiciona uma nova requisição ao contador"""
+    current_time = time.time()
+    request_counts[ip_address].append(current_time)
+
+def generate_captcha() -> dict:
+    """Gera um novo desafio de captcha matemático simples"""
+    a = secrets.randbelow(10) + 1
+    b = secrets.randbelow(10) + 1
+    operation = secrets.choice(['+', '-', '*'])
+    
+    if operation == '+':
+        solution = a + b
+        question = f"{a} + {b} = ?"
+    elif operation == '-':
+        solution = a - b
+        question = f"{a} - {b} = ?"
+    else:  # *
+        solution = a * b
+        question = f"{a} × {b} = ?"
+    
+    token = secrets.token_urlsafe(16)
+    
+    return {
+        "token": token,
+        "question": question,
+        "solution": solution
+    }
+
+def verify_captcha(token: str, user_answer: str) -> bool:
+    """Verifica se a resposta do captcha está correta"""
+    if token not in captcha_solutions:
+        return False
+    
+    try:
+        user_answer_int = int(user_answer.strip())
+        correct_answer = captcha_solutions[token]
+        return user_answer_int == correct_answer
+    except (ValueError, TypeError):
+        return False
 
 app.add_middleware(
     CORSMiddleware,
@@ -209,6 +302,102 @@ async def clear_cache():
         "message": "Cache cleared, next request will reload from database"
     })
 
+@app.post("/generate-captcha")
+async def generate_captcha_endpoint(request: Request):
+    """Gera um novo desafio de captcha para o usuário"""
+    try:
+        client_ip = getattr(request.state, 'client_ip', None)
+        
+        if not client_ip:
+            return JSONResponse(
+                {"error": "Não foi possível identificar o IP do cliente"},
+                status_code=400
+            )
+        
+        # Gerar captcha
+        captcha_data = generate_captcha()
+        
+        # Armazenar solução e token
+        captcha_solutions[captcha_data["token"]] = captcha_data["solution"]
+        captcha_tokens[captcha_data["token"]] = {
+            "ip": client_ip,
+            "expires_at": time.time() + 300,  # Expira em 5 minutos
+            "solved": False
+        }
+        
+        return JSONResponse({
+            "success": True,
+            "captcha": {
+                "token": captcha_data["token"],
+                "question": captcha_data["question"]
+            }
+        })
+        
+    except Exception as error:
+        print(f"Erro ao gerar captcha: {error}")
+        return JSONResponse(
+            {"error": f"Erro interno: {str(error)}"},
+            status_code=500
+        )
+
+@app.post("/verify-captcha")
+async def verify_captcha_endpoint(request: Request):
+    """Verifica a resposta do captcha"""
+    try:
+        client_ip = getattr(request.state, 'client_ip', None)
+        body = await request.json()
+        
+        token = body.get("token")
+        answer = body.get("answer")
+        
+        if not token or not answer:
+            return JSONResponse(
+                {"error": "Token e resposta são obrigatórios"},
+                status_code=400
+            )
+        
+        # Verificar se o token existe e pertence ao IP
+        if token not in captcha_tokens:
+            return JSONResponse(
+                {"error": "Token inválido ou expirado"},
+                status_code=400
+            )
+        
+        token_data = captcha_tokens[token]
+        if token_data["ip"] != client_ip:
+            return JSONResponse(
+                {"error": "Token não pertence a este IP"},
+                status_code=400
+            )
+        
+        if time.time() > token_data["expires_at"]:
+            return JSONResponse(
+                {"error": "Token expirado"},
+                status_code=400
+            )
+        
+        # Verificar resposta
+        is_correct = verify_captcha(token, answer)
+        
+        if is_correct:
+            captcha_tokens[token]["solved"] = True
+            return JSONResponse({
+                "success": True,
+                "message": "Captcha resolvido com sucesso"
+            })
+        else:
+            return JSONResponse(
+                {"error": "Resposta incorreta"},
+                status_code=400
+            )
+            
+    except Exception as error:
+        print(f"Erro ao verificar captcha: {error}")
+        return JSONResponse(
+            {"error": f"Erro interno: {str(error)}"},
+            status_code=500
+        )
+
 @app.post("/analyze-pcre2")
 async def analyze_command_pcre2(request: Request):
     """
@@ -222,6 +411,21 @@ async def analyze_command_pcre2(request: Request):
         client_ip = getattr(request.state, 'client_ip', None)
         print(f"🚀 IP real do cliente: {client_ip}")
         
+        # Verificar rate limit primeiro
+        if client_ip:
+            rate_limit_info = check_rate_limit(client_ip)
+            print(f"🔒 Rate limit info: {rate_limit_info}")
+            
+            if not rate_limit_info["within_limit"]:
+                return JSONResponse(
+                    {
+                        "error": "Rate limit excedido",
+                        "rate_limit_info": rate_limit_info,
+                        "message": f"Você excedeu o limite de {RATE_LIMIT_REQUESTS} requisições por {RATE_LIMIT_WINDOW} segundos. Aguarde antes de fazer mais requisições."
+                    },
+                    status_code=429
+                )
+        
         body = await request.json()
         print(f"🚀 Request body: {body}")
         
@@ -234,7 +438,67 @@ async def analyze_command_pcre2(request: Request):
         timezone = body.get("timezone")
         user_agent = body.get("user_agent") or request.headers.get("user-agent", "FastAPI-Client")
         search_type = body.get("search_type", "API")
-        session_id = body.get("session_id")  
+        session_id = body.get("session_id")
+        captcha_token = body.get("captcha_token")
+        captcha_answer = body.get("captcha_answer")
+        
+        # Verificar se captcha é necessário
+        if client_ip and rate_limit_info["requires_captcha"]:
+            if not captcha_token or not captcha_answer:
+                return JSONResponse(
+                    {
+                        "error": "Captcha obrigatório",
+                        "rate_limit_info": rate_limit_info,
+                        "requires_captcha": True,
+                        "message": "Você precisa resolver o captcha para continuar"
+                    },
+                    status_code=400
+                )
+            
+            # Verificar captcha
+            if captcha_token not in captcha_tokens:
+                return JSONResponse(
+                    {
+                        "error": "Token de captcha inválido ou expirado",
+                        "requires_captcha": True
+                    },
+                    status_code=400
+                )
+            
+            token_data = captcha_tokens[captcha_token]
+            if token_data["ip"] != client_ip:
+                return JSONResponse(
+                    {
+                        "error": "Token de captcha não pertence a este IP",
+                        "requires_captcha": True
+                    },
+                    status_code=400
+                )
+            
+            if time.time() > token_data["expires_at"]:
+                return JSONResponse(
+                    {
+                        "error": "Token de captcha expirado",
+                        "requires_captcha": True
+                    },
+                    status_code=400
+                )
+            
+            if not verify_captcha(captcha_token, captcha_answer):
+                return JSONResponse(
+                    {
+                        "error": "Resposta do captcha incorreta",
+                        "requires_captcha": True
+                    },
+                    status_code=400
+                )
+            
+            # Marcar captcha como resolvido
+            captcha_tokens[captcha_token]["solved"] = True
+        
+        # Adicionar requisição ao contador de rate limit
+        if client_ip:
+            add_request_to_rate_limit(client_ip)  
         
         if ip_address and not country and search_type == "API":
             print(f"🌍 Capturando geolocalização automática para IP: {ip_address}")
