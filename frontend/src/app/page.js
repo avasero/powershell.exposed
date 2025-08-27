@@ -29,6 +29,13 @@ export default function Home() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Debug: monitorar mudanças no rate limit
+  useEffect(() => {
+    console.log('🏠 HOME - Rate limit info mudou:', rateLimitInfo);
+    console.log('🏠 HOME - Timer ativo:', isTimerActive);
+    console.log('🏠 HOME - Tempo restante:', timeLeft);
+  }, [rateLimitInfo, isTimerActive, timeLeft]);
+
   console.log('🏠 HOME PAGE: Componente renderizado');
   console.log('  - Usuário autenticado:', isAuthenticated());
   console.log('  - User object:', user);

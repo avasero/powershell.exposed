@@ -50,6 +50,13 @@ export default function AnalysisPage() {
   const [newCommand, setNewCommand] = useState("");
   const analysisExecutedRef = useRef(false);
 
+  // Debug: monitorar mudanças no rate limit
+  useEffect(() => {
+    console.log('📊 Rate limit info mudou:', rateLimitInfo);
+    console.log('📊 Timer ativo:', isTimerActive);
+    console.log('📊 Tempo restante:', timeLeft);
+  }, [rateLimitInfo, isTimerActive, timeLeft]);
+
   // Remover verificação de autenticação - permitir análises anônimas
   // useEffect(() => {
   //   if (!isAuthenticated()) {
@@ -57,69 +64,7 @@ export default function AnalysisPage() {
   //   }
   // }, [isAuthenticated, router]);
 
-  // Função de análise local como fallback
-  const performLocalAnalysis = (command) => {
-    
-    // Análise básica local
-    const localResult = {
-      score: 0,
-      severity: "safe",
-      signatures: [],
-      decoded: null,
-      indicators: [],
-      details: "Local analysis - API not accessible",
-      tactics: [],
-      techniques: []
-    };
-    
-    // Detecções básicas locais
-    if (command.toLowerCase().includes('webclient') || command.toLowerCase().includes('webrequest')) {
-      localResult.signatures.push({
-        name: "Web Client Detection",
-        pattern: "webclient|webrequest",
-        matched_text: "Web client pattern detected",
-        severity: "high",
-        score: 7.5,
-        description: "Potential web client usage detected",
-        tactics: ["Command and Control"],
-        techniques: ["T1071.001"]
-      });
-      localResult.score += 7.5;
-      localResult.severity = "high";
-    }
-    
-    if (command.toLowerCase().includes('invoke-expression') || command.toLowerCase().includes('iex')) {
-      localResult.signatures.push({
-        name: "Dynamic Code Execution",
-        pattern: "invoke-expression|iex",
-        matched_text: "Dynamic execution pattern detected",
-        severity: "medium",
-        score: 5.0,
-        description: "Dynamic code execution detected",
-        tactics: ["Execution"],
-        techniques: ["T1059.001"]
-      });
-      localResult.score += 5.0;
-      localResult.severity = "medium";
-    }
-    
-    if (command.toLowerCase().includes('base64') && command.length > 100) {
-      localResult.signatures.push({
-        name: "Long Base64 String",
-        pattern: "base64.*long",
-        matched_text: "Long encoded string detected",
-        severity: "medium",
-        score: 6.0,
-        description: "Long base64 string detected",
-        tactics: ["Defense Evasion"],
-        techniques: ["T1027"]
-      });
-      localResult.score += 6.0;
-      localResult.severity = "medium";
-    }
-    
-    return localResult;
-  };
+  // Função de análise local removida - agora respeitamos sempre o rate limiting da API
 
   const performAnalysis = async (command, ipAddress, ipLocation) => {
     console.log('🚀 Iniciando análise para comando:', command);
@@ -153,35 +98,39 @@ export default function AnalysisPage() {
         session_id: sessionId
       };
 
+      console.log('📤 Enviando dados para API:', requestData);
 
-
-      // Chamar a API Python via proxy local
-      const analysisPromise = fetch('/api/analyze', {
+      // Chamar a API Python diretamente (não via proxy)
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const analysisPromise = fetch(`${apiUrl}/analyze-pcre2`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData)
-      }).then(response => {
+      }).then(async response => {
+        const data = await response.json();
+        console.log('📥 Resposta da API:', { status: response.status, data });
+        
         // Verificar se precisa de rate limiting
-        const needsHandling = handleRateLimitResponse(response, null);
+        const needsHandling = handleRateLimitResponse(response, data);
         
         if (needsHandling) {
-          return response.json().then(data => {
-            handleRateLimitResponse(response, data);
-            throw new Error('Rate limit excedido');
-          });
+          console.log('🚫 Rate limit detectado, parando análise');
+          throw new Error('Rate limit excedido');
         }
         
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          console.error('❌ Erro HTTP da API:', response.status, data);
+          throw new Error(data.error || `HTTP error! status: ${response.status}`);
         }
-        return response.json();
+        
+        return data;
       }).catch(error => {
+        console.error('❌ Erro na chamada da API:', error);
         if (error.message === 'Rate limit excedido') {
-          throw error; // Re-throw rate limit error
+          throw error; // Re-throw rate limit error - NÃO fazer fallback
         }
-        console.error('API error:', error);
-        // Fallback: análise local básica
-        throw new Error('API não acessível. Use análise local temporariamente.');
+        // Para outros erros, também não fazer fallback - mostrar erro real
+        throw new Error(`Erro da API: ${error.message}`);
       });
       
       // Executar análise e delay mínimo em paralelo
@@ -233,64 +182,18 @@ export default function AnalysisPage() {
     } catch (err) {
       console.error('Analysis error:', err);
       
-      // Se é erro de rate limit, não prosseguir
+      // Se é erro de rate limit, não prosseguir - apenas mostrar o erro
       if (err.message === 'Rate limit excedido') {
         setLoading(false);
-        return;
+        return; // O rate limiting já foi tratado pelo handleRateLimitResponse
       }
       
+      // Para outros erros da API, mostrar o erro sem fallback
       setError(err.message);
       
-              // Se a API falhou, usar análise local
-        if (err.message.includes('API não acessível')) {
-          console.log('🔄 Falling back to local analysis');
-          const localResult = performLocalAnalysis(command);
-          
-          setError(""); // Limpar erro se análise local funcionar
-          const localAnalysisResult = {
-            score: localResult.score,
-            severity: localResult.severity,
-            signatures: localResult.signatures,
-            decoded: localResult.decoded,
-            indicators: localResult.indicators,
-            details: localResult.details,
-            tactics: localResult.tactics,
-            techniques: localResult.techniques
-          };
-          
-          setResult(localAnalysisResult);
-          
-          // Salvar análise local anônima em cookies se não estiver logado
-          if (!user?.id) {
-            try {
-              console.log('💾 Salvando análise local anônima:', command);
-              saveAnonymousAnalysis({
-                command: command,
-                score: localResult.score,
-                severity: localResult.severity,
-                signatures: localResult.signatures,
-                cmdlets_detected: []
-              });
-              
-              // Para análise local, criar uma sessão temporária
-              const tempSessionId = `local_session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-              console.log('🔑 Criando sessão temporária para análise local:', tempSessionId);
-              saveSessionFromBackend(tempSessionId);
-            } catch (error) {
-              console.error('Erro ao salvar análise local anônima:', error);
-            }
-          }
-        } else {
-        // Fallback para análise básica em caso de outros erros
-        setResult({
-          score: 0,
-          severity: "unknown",
-          signatures: [],
-          decoded: null,
-          indicators: ["Error: " + err.message],
-          details: "Analysis failed, showing basic info"
-        });
-      }
+      // Não fazer fallback para análise local - mostrar apenas o erro
+      console.log('❌ Erro na análise, não fazendo fallback local');
+      setResult(null);
     } finally {
       setLoading(false);
     }
@@ -347,8 +250,15 @@ export default function AnalysisPage() {
   const handleNewAnalysis = async () => {
     if (newCommand.trim()) {
       console.log('🔄 Nova análise solicitada:', newCommand.trim());
+      
+      // Verificar se já atingiu rate limit antes de prosseguir
+      if (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit) {
+        console.log('🚫 Rate limit atingido, não permitindo nova análise');
+        setError("Rate limit atingido. Aguarde o timer ou resolva o captcha.");
+        return;
+      }
+      
       analysisExecutedRef.current = false; // Resetar flag para permitir nova análise
-      resetRateLimit(); // Limpar estado do rate limit
       
       // Limpar estado atual
       setResult(null);
@@ -358,7 +268,7 @@ export default function AnalysisPage() {
       // Executar nova análise diretamente
       await performAnalysis(newCommand.trim(), null, {});
       
-      // Limpar o campo de input
+      // Limpar o campo de input apenas se a análise foi bem-sucedida
       setNewCommand("");
     }
   };
@@ -382,7 +292,7 @@ export default function AnalysisPage() {
               placeholder="Enter a new PowerShell command to analyze..."
               value={newCommand}
               onChange={(e) => setNewCommand(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !rateLimitInfo && handleNewAnalysis()}
+              onKeyPress={(e) => e.key === 'Enter' && !loading && (!rateLimitInfo || rateLimitInfo.current_count < rateLimitInfo.limit) && handleNewAnalysis()}
               className="w-full px-4 py-3 rounded-lg font-mono text-sm border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-opacity-50"
               style={{
                 backgroundColor: 'var(--card-bg)',
@@ -394,14 +304,14 @@ export default function AnalysisPage() {
           </div>
           <button
             onClick={handleNewAnalysis}
-            disabled={!newCommand.trim() || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
+            disabled={!newCommand.trim() || loading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
             className="px-6 py-3 rounded-lg font-mono font-bold text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
             style={{
               backgroundColor: 'var(--accent)',
               color: 'var(--background)'
             }}
           >
-            Evaluate
+            {loading ? 'Analyzing...' : 'Evaluate'}
           </button>
         </div>
         <div className="text-xs text-center mt-2" style={{color: 'var(--muted-foreground)'}}>

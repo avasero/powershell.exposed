@@ -9,8 +9,11 @@ export function useRateLimit() {
 
   // Limpar rate limit info quando timer chega a zero
   useEffect(() => {
+    console.log('🔍 useEffect timer check:', { isActive, timeLeft, hasRateLimitInfo: !!rateLimitInfo });
+    
     if (!isActive && timeLeft === 0 && rateLimitInfo) {
       console.log('⏰ Timer acabou, limpando rate limit info');
+      console.log('🧹 Rate limit state limpo - análises disponíveis novamente');
       setRateLimitInfo(null);
     }
   }, [isActive, timeLeft, rateLimitInfo]);
@@ -26,8 +29,8 @@ export function useRateLimit() {
       return false; // Não bloquear, análise foi bem-sucedida
     }
     
-    // Rate limit excedido - mostrar apenas timer
-    if (response.status === 429 || (data && data.rate_limit_info)) {
+    // Rate limit excedido - detectar status 400 ou 429 com rate_limit_info
+    if ((response.status === 400 || response.status === 429) && data && data.rate_limit_info) {
       const rateLimitData = data.rate_limit_info;
       setRateLimitInfo(rateLimitData);
       
@@ -37,7 +40,7 @@ export function useRateLimit() {
         startTimer(rateLimitData.seconds_until_reset);
       }
       
-      return response.status === 429; // Bloquear apenas se for 429
+      return true; // Bloquear quando há rate limit info
     }
 
     return false;
