@@ -238,8 +238,7 @@ export default function Home() {
       {/* Conteúdo principal */}
       <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center px-2" style={{color: 'var(--accent)'}}>
-          {/* Forçar novo deploy - removendo Edge Function references */}
-          powershell.exposed teste
+          powershell.exposed
         </h1>
         
         <form onSubmit={handleAnalyze} className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">

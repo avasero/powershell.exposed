@@ -117,7 +117,7 @@ export default function AnalysisChat() {
       }
     } else {
       // Para usuários logados: apenas limpar o estado local (não deletar do banco)
-      if (!confirm('Are you sure you want to hide all analyses from this chat? The analyses will remain saved in your account and will reappear when you refresh the page.')) {
+      if (!confirm('Are you sure you want to clear all analyses from this chat view? All your analyses will remain safely saved in your account and will reappear when you refresh the page.')) {
         return;
       }
       
@@ -125,7 +125,7 @@ export default function AnalysisChat() {
         setDeleting(true);
         // Apenas limpar o estado local - não deletar do banco
         setAnalyses([]);
-        console.log('🧹 Chat limpo para usuário logado - análises mantidas no banco');
+        console.log('🧹 TODAS as análises limpas da vista do usuário logado - análises mantidas seguras no banco');
       } catch (err) {
         console.error('Error clearing chat:', err);
         alert('Error clearing chat. Please try again.');
@@ -189,9 +189,9 @@ export default function AnalysisChat() {
               }}
               onMouseEnter={(e) => !deleting && (e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.1)')}
               onMouseLeave={(e) => !deleting && (e.target.style.backgroundColor = 'transparent')}
-                             title={isAnonymous ? "Clear all anonymous analyses from cookies" : "Hide all analyses from chat (keeps saved in account)"}
+                             title={isAnonymous ? "Clear all anonymous analyses from cookies" : "Clear all analyses from chat view (keeps safely saved in account)"}
              >
-               {deleting ? (isAnonymous ? 'Clearing...' : 'Hiding...') : (isAnonymous ? 'Clear' : 'Hide')}
+               {deleting ? (isAnonymous ? 'Clearing...' : 'Clearing...') : (isAnonymous ? 'Clear' : 'Clear')}
             </button>
           )}
         </div>
@@ -353,7 +353,7 @@ export default function AnalysisChat() {
                      color: deleting ? 'var(--muted-foreground)' : '#EF4444'
                    }}
                  >
-                   {deleting ? (isAnonymous ? 'Clearing...' : 'Hiding...') : (isAnonymous ? 'Clear all' : 'Hide all')}
+                   {deleting ? (isAnonymous ? 'Clearing...' : 'Clearing...') : (isAnonymous ? 'Clear all' : 'Clear all')}
                  </button>
                )}
               </div>
