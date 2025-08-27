@@ -59,7 +59,30 @@ export const getUserAnalyses = async (limit = 20, offset = 0) => {
   }
 };
 
-// Função para deletar as últimas 5 análises do usuário
+// Função para buscar TODAS as análises do usuário (para o chat)
+export const getAllUserAnalyses = async () => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    const { data, error } = await supabase
+      .from('powershell_analyses')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Erro ao buscar todas as análises:', error);
+    throw error;
+  }
+};
+
+// Função para deletar as últimas 5 análises do usuário (mantida para compatibilidade, mas não será usada no chat)
 export const deleteRecentAnalyses = async () => {
   try {
     const { data: { user } } = await supabase.auth.getUser();

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
 import { useAnalysisDrawer } from "../contexts/AnalysisDrawerContext";
-import { getUserAnalyses, deleteRecentAnalyses } from "../../../utils/database";
+import { getUserAnalyses, deleteRecentAnalyses, getAllUserAnalyses } from "../../../utils/database";
 import { getAnonymousAnalyses, clearAnonymousAnalyses, deleteAnonymousAnalysis, debugCookies } from "../../utils/cookies";
 import SeverityBadge from "./SeverityBadge";
 
@@ -51,8 +51,8 @@ export default function AnalysisChat() {
       setLoading(true);
       console.log('🔄 loadRecentAnalyses: iniciando carregamento do banco');
       
-      // Carregar apenas as últimas 5 análises
-      const data = await getUserAnalyses(5, 0);
+      // Carregar TODAS as análises do usuário para o chat
+      const data = await getAllUserAnalyses();
       console.log('🔄 loadRecentAnalyses: dados obtidos do banco:', data);
       console.log('🔄 loadRecentAnalyses: número de análises:', data?.length || 0);
       
@@ -76,7 +76,11 @@ export default function AnalysisChat() {
       console.log('🔄 loadAnonymousAnalyses: dados obtidos:', data);
       console.log('🔄 loadAnonymousAnalyses: número de análises:', data.length);
       
-      setAnalyses(data);
+      // Limitar a apenas as últimas 5 análises para o chat
+      const limitedData = data.slice(0, 5);
+      console.log('🔄 loadAnonymousAnalyses: análises limitadas a 5:', limitedData.length);
+      
+      setAnalyses(limitedData);
       console.log('🔄 loadAnonymousAnalyses: análises definidas no estado');
     } catch (err) {
       console.error('❌ Error loading anonymous analyses:', err);
@@ -95,25 +99,39 @@ export default function AnalysisChat() {
   };
 
   const handleDeleteRecentAnalyses = async () => {
-    if (!confirm('Are you sure you want to delete the last 5 analyses? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      setDeleting(true);
-      if (isAnonymous) {
+    if (isAnonymous) {
+      // Para usuários anônimos: limpar cookies
+      if (!confirm('Are you sure you want to clear all anonymous analyses from cookies? This will remove all stored analyses (not just the 5 shown here) and cannot be undone.')) {
+        return;
+      }
+      
+      try {
+        setDeleting(true);
         clearAnonymousAnalyses();
         setAnalyses([]);
-      } else {
-        await deleteRecentAnalyses();
-        // Recarregar as análises após deletar
-        await loadRecentAnalyses();
+      } catch (err) {
+        console.error('Error clearing anonymous analyses:', err);
+        alert('Error clearing analyses. Please try again.');
+      } finally {
+        setDeleting(false);
       }
-    } catch (err) {
-      console.error('Error deleting analyses:', err);
-      alert('Error deleting analyses. Please try again.');
-    } finally {
-      setDeleting(false);
+    } else {
+      // Para usuários logados: apenas limpar o estado local (não deletar do banco)
+      if (!confirm('Are you sure you want to hide all analyses from this chat? The analyses will remain saved in your account and will reappear when you refresh the page.')) {
+        return;
+      }
+      
+      try {
+        setDeleting(true);
+        // Apenas limpar o estado local - não deletar do banco
+        setAnalyses([]);
+        console.log('🧹 Chat limpo para usuário logado - análises mantidas no banco');
+      } catch (err) {
+        console.error('Error clearing chat:', err);
+        alert('Error clearing chat. Please try again.');
+      } finally {
+        setDeleting(false);
+      }
     }
   };
 
@@ -141,12 +159,12 @@ export default function AnalysisChat() {
       <div className="p-4 border-b flex-shrink-0" style={{borderColor: 'var(--border-color)'}}>
         <div className="flex items-center justify-between">
           <div>
-                         <h2 className="font-mono font-semibold text-lg" style={{color: 'var(--accent)'}}>
-               {isAnonymous ? 'Anonymous Analyses' : 'Recent Analyses'}
-             </h2>
-             <p className="font-mono text-xs mt-1" style={{color: 'var(--muted-foreground)'}}>
-               {isAnonymous ? 'Stored in cookies (30 days)' : 'Last 5 analyses'}
-             </p>
+                                     <h2 className="font-mono font-semibold text-lg" style={{color: 'var(--accent)'}}>
+              {isAnonymous ? 'Recent Analyses' : 'All Your Analyses'}
+            </h2>
+            <p className="font-mono text-xs mt-1" style={{color: 'var(--muted-foreground)'}}>
+              {isAnonymous ? 'Last 5 analyses (stored in cookies)' : 'All saved analyses from your account'}
+            </p>
              {isAnonymous && (
                <div className="flex items-center gap-2">
                  
@@ -171,9 +189,9 @@ export default function AnalysisChat() {
               }}
               onMouseEnter={(e) => !deleting && (e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.1)')}
               onMouseLeave={(e) => !deleting && (e.target.style.backgroundColor = 'transparent')}
-                             title={isAnonymous ? "Clear all anonymous analyses" : "Delete last 5 analyses"}
+                             title={isAnonymous ? "Clear all anonymous analyses from cookies" : "Hide all analyses from chat (keeps saved in account)"}
              >
-               {deleting ? (isAnonymous ? 'Clearing...' : 'Deleting...') : (isAnonymous ? 'Clear' : 'Clear')}
+               {deleting ? (isAnonymous ? 'Clearing...' : 'Hiding...') : (isAnonymous ? 'Clear' : 'Hide')}
             </button>
           )}
         </div>
@@ -193,10 +211,10 @@ export default function AnalysisChat() {
             <div className="p-4 min-h-full flex flex-col justify-center">
               <div className="text-center">
                 <p className="font-mono text-sm mb-4" style={{color: 'var(--muted-foreground)'}}>
-                  {isAnonymous ? 'No anonymous analyses yet' : 'No analyses yet'}
+                  {isAnonymous ? 'No anonymous analyses yet' : 'No analyses to show'}
                 </p>
                 <p className="font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>
-                  {isAnonymous ? 'Run your first analysis to see it here' : 'Run your first analysis to see it here'}
+                  {isAnonymous ? 'Run your first analysis to see it here' : 'Run an analysis or refresh to reload from your account'}
                 </p>
                 {isAnonymous && (
                   <p className="font-mono text-xs mt-2" style={{color: 'var(--accent)'}}>
@@ -323,21 +341,21 @@ export default function AnalysisChat() {
             {/* Header com botão de fechar */}
             <div className="p-4 border-b flex items-center justify-between" style={{borderColor: 'var(--border-color)'}}>
               <div>
-                                 <h2 className="font-mono font-semibold text-lg" style={{color: 'var(--accent)'}}>
-                   {isAnonymous ? 'Anonymous Analyses' : 'Recent Analyses'}
-                 </h2>
-                {analyses.length > 0 && (
-                  <button
-                    onClick={handleDeleteRecentAnalyses}
-                    disabled={deleting}
-                    className="font-mono text-xs mt-1 transition-colors"
-                    style={{
-                      color: deleting ? 'var(--muted-foreground)' : '#EF4444'
-                    }}
-                  >
-                    {deleting ? (isAnonymous ? 'Clearing...' : 'Deleting...') : (isAnonymous ? 'Clear all' : 'Clear all')}
-                  </button>
-                )}
+                                                 <h2 className="font-mono font-semibold text-lg" style={{color: 'var(--accent)'}}>
+                  {isAnonymous ? 'Recent Analyses' : 'All Your Analyses'}
+                </h2>
+               {analyses.length > 0 && (
+                 <button
+                   onClick={handleDeleteRecentAnalyses}
+                   disabled={deleting}
+                   className="font-mono text-xs mt-1 transition-colors"
+                   style={{
+                     color: deleting ? 'var(--muted-foreground)' : '#EF4444'
+                   }}
+                 >
+                   {deleting ? (isAnonymous ? 'Clearing...' : 'Hiding...') : (isAnonymous ? 'Clear all' : 'Hide all')}
+                 </button>
+               )}
               </div>
               <button
                 onClick={closeAnalysisDrawer}
@@ -368,10 +386,10 @@ export default function AnalysisChat() {
                     <div className="p-4 min-h-full flex flex-col justify-center">
                       <div className="text-center">
                         <p className="font-mono text-sm mb-4" style={{color: 'var(--muted-foreground)'}}>
-                          {isAnonymous ? 'No anonymous analyses yet' : 'No analyses yet'}
+                          {isAnonymous ? 'No anonymous analyses yet' : 'No analyses to show'}
                         </p>
                         <p className="font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>
-                          {isAnonymous ? 'Run your first analysis to see it here' : 'Run your first analysis to see it here'}
+                          {isAnonymous ? 'Run your first analysis to see it here' : 'Run an analysis or refresh to reload from your account'}
                         </p>
                         {isAnonymous && (
                           <p className="font-mono text-xs mt-2" style={{color: 'var(--accent)'}}>
