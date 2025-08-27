@@ -37,28 +37,67 @@ function Read-YamlIndicators {
         try {
             $content = Get-Content $file.FullName -Raw -Encoding UTF8
             
-            # Parse manual simples do YAML (para evitar dependências externas)
+            # Parse manual aprimorado do YAML (suporta arrays multi-linha)
             $indicator = @{}
+            $lines = $content -split "`n"
+            $currentKey = $null
             
-            foreach ($line in ($content -split "`n")) {
-                $line = $line.Trim()
-                if ($line -match '^([^:]+):\s*(.+)$') {
+            for ($i = 0; $i -lt $lines.Length; $i++) {
+                $line = $lines[$i].Trim()
+                
+                # Pular linhas vazias e comentários
+                if ([string]::IsNullOrWhiteSpace($line) -or $line.StartsWith('#')) {
+                    continue
+                }
+                
+                # Campo simples: key: value (não começando com -)
+                if ($line -match '^([^:]+):\s*(.+)$' -and -not $line.StartsWith('-')) {
                     $key = $matches[1].Trim()
                     $value = $matches[2].Trim().Trim('"').Trim("'")
+                    $currentKey = $key
                     
-                    # Processar arrays simples
+                    # Processar arrays simples: key: [item1, item2]
                     if ($value -match '^\[(.*)\]$') {
                         $arrayContent = $matches[1]
-                        $indicator[$key] = ($arrayContent -split ',') | ForEach-Object { $_.Trim().Trim('"').Trim("'") }
+                        $indicator[$key] = ($arrayContent -split ',') | ForEach-Object { $_.Trim().Trim('"').Trim("'") } | Where-Object { $_ -ne '' }
                     } else {
                         $indicator[$key] = $value
+                    }
+                }
+                # Campo para array multi-linha: key:
+                elseif ($line -match '^([^:]+):\s*$') {
+                    $key = $matches[1].Trim()
+                    $currentKey = $key
+                    $indicator[$key] = @()
+                }
+                # Item de array multi-linha: - item
+                elseif ($line -match '^-\s*(.+)$' -and $currentKey) {
+                    $value = $matches[1].Trim().Trim('"').Trim("'")
+                    if ($value -ne '') {
+                        # Inicializar como array se ainda não for
+                        if (-not ($indicator[$currentKey] -is [Array])) {
+                            $indicator[$currentKey] = @()
+                        }
+                        $indicator[$currentKey] += $value
                     }
                 }
             }
             
             if ($indicator.name) {
+                # Debug: Mostrar campos processados
+                Write-Host "✅ Processado: $($indicator.name)" -ForegroundColor Green
+                Write-Host "   📝 Campos encontrados:" -ForegroundColor Cyan
+                foreach ($key in $indicator.Keys | Sort-Object) {
+                    $value = $indicator[$key]
+                    if ($value -is [Array]) {
+                        Write-Host "   - $key`: [$(($value -join ', '))]" -ForegroundColor Gray
+                    } else {
+                        Write-Host "   - $key`: $value" -ForegroundColor Gray
+                    }
+                }
+                Write-Host ""
+                
                 $indicators += $indicator
-                Write-Host "✅ Processado: $($indicator.name)"
             }
             
         } catch {
