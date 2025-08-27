@@ -63,6 +63,7 @@ interface YamlIndicator {
   tactic: string | string[]
   technique: string | string[]
   reference: string | string[]
+  max_match?: number | string
 }
 
 serve(async (req) => {
@@ -177,6 +178,27 @@ serve(async (req) => {
         reference = data.reference
       }
       
+      // Processar max_match
+      let maxMatch = 1 // Valor padrão
+      if (data.max_match !== undefined) {
+        if (typeof data.max_match === 'string') {
+          try {
+            maxMatch = parseInt(data.max_match, 10)
+            if (isNaN(maxMatch) || maxMatch < 1) {
+              console.log(`⚠️  Max_match inválido (${data.max_match}). Usando valor padrão: 1`)
+              maxMatch = 1
+            }
+          } catch {
+            console.log(`⚠️  Erro ao processar max_match (${data.max_match}). Usando valor padrão: 1`)
+            maxMatch = 1
+          }
+        } else if (typeof data.max_match === 'number') {
+          maxMatch = data.max_match < 1 ? 1 : Math.floor(data.max_match)
+        }
+      }
+      
+      console.log(`🎯 Max_match configurado para ${name}: ${maxMatch}`)
+      
       const processedIndicator = {
         name,
         description,
@@ -186,6 +208,7 @@ serve(async (req) => {
         tactics,
         techniques,
         reference,
+        max_match: maxMatch,
         is_active: true
       }
       
