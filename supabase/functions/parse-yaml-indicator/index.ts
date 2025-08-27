@@ -15,8 +15,8 @@ function parseSimpleYaml(yamlContent: string): any {
     const trimmedLine = line.trim()
     if (trimmedLine === '' || trimmedLine.startsWith('#')) continue
     
-    // Parse de campos simples: key: value
-    if (trimmedLine.match(/^[^:]+:\s*[^[\]]+$/)) {
+    // Parse de campos simples: key: value (mas não linhas que começam com -)
+    if (trimmedLine.match(/^[^:]+:\s*[^[\]]+$/) && !trimmedLine.startsWith('-')) {
       const [key, ...valueParts] = trimmedLine.split(':')
       const value = valueParts.join(':').trim().replace(/^["']|["']$/g, '')
       currentKey = key.trim()

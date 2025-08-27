@@ -14,6 +14,7 @@ interface YamlIndicator {
   tactic: string | string[]
   technique: string | string[]
   reference: string | string[]
+  max_match?: number | string
 }
 
 interface DatabaseIndicator {
@@ -25,6 +26,7 @@ interface DatabaseIndicator {
   tactics: string[]
   techniques: string[]
   reference: string[]
+  max_match: number
   is_active: boolean
 }
 
@@ -113,6 +115,27 @@ function parseYamlIndicator(yamlData: any): DatabaseIndicator | null {
       reference = yamlData.reference
     }
     
+    // Processar max_match
+    let maxMatch = 1 // Valor padrão
+    if (yamlData.max_match !== undefined) {
+      if (typeof yamlData.max_match === 'string') {
+        try {
+          maxMatch = parseInt(yamlData.max_match, 10)
+          if (isNaN(maxMatch) || maxMatch < 1) {
+            console.log(`⚠️  Max_match inválido (${yamlData.max_match}). Usando valor padrão: 1`)
+            maxMatch = 1
+          }
+        } catch {
+          console.log(`⚠️  Erro ao processar max_match (${yamlData.max_match}). Usando valor padrão: 1`)
+          maxMatch = 1
+        }
+      } else if (typeof yamlData.max_match === 'number') {
+        maxMatch = yamlData.max_match < 1 ? 1 : Math.floor(yamlData.max_match)
+      }
+    }
+    
+    console.log(`🎯 Max_match configurado para ${name}: ${maxMatch}`)
+    
     return {
       name,
       description,
@@ -122,6 +145,7 @@ function parseYamlIndicator(yamlData: any): DatabaseIndicator | null {
       tactics,
       techniques,
       reference,
+      max_match: maxMatch,
       is_active: true
     }
   } catch (e) {
@@ -159,6 +183,7 @@ async function updateSupabaseDatabase(supabase: any, indicators: DatabaseIndicat
             tactics: indicator.tactics,
             techniques: indicator.techniques,
             reference: indicator.reference,
+            max_match: indicator.max_match,
             updated_at: new Date().toISOString()
           })
           .eq('id', existing.id)
@@ -180,6 +205,7 @@ async function updateSupabaseDatabase(supabase: any, indicators: DatabaseIndicat
             tactics: indicator.tactics,
             techniques: indicator.techniques,
             reference: indicator.reference,
+            max_match: indicator.max_match,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             is_active: true
