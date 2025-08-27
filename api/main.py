@@ -25,8 +25,8 @@ RATE_LIMIT_WINDOW = 60    # Janela de tempo em segundos
 CAPTCHA_REQUIRED_AFTER = 6  # Captcha necessário a partir da 6ª requisição (permite mais com captcha)
 
 # Armazenamento em memória para rate limiting (em produção, use Redis)
-request_counts = defaultdict(list)
-captcha_tokens = {}  # token -> {ip, expires_at, solved}
+request_counts = defaultdict(list)  # session_id -> [timestamps]
+captcha_tokens = {}  # token -> {session_id, expires_at, solved}
 captcha_solutions = {}  # token -> solution
 
 def cleanup_expired_data():
@@ -34,11 +34,11 @@ def cleanup_expired_data():
     current_time = time.time()
     
     # Limpar contadores de requisições expirados
-    for ip in list(request_counts.keys()):
-        request_counts[ip] = [req_time for req_time in request_counts[ip] 
-                             if current_time - req_time < RATE_LIMIT_WINDOW]
-        if not request_counts[ip]:
-            del request_counts[ip]
+    for session_id in list(request_counts.keys()):
+        request_counts[session_id] = [req_time for req_time in request_counts[session_id] 
+                                     if current_time - req_time < RATE_LIMIT_WINDOW]
+        if not request_counts[session_id]:
+            del request_counts[session_id]
     
     # Limpar tokens de captcha expirados
     expired_tokens = [token for token, data in captcha_tokens.items() 
@@ -48,15 +48,28 @@ def cleanup_expired_data():
         if token in captcha_solutions:
             del captcha_solutions[token]
 
-def check_rate_limit(ip_address: str) -> dict:
-    """Checks if the IP is within the rate limit"""
+def check_rate_limit(session_id: str) -> dict:
+    """Checks if the session is within the rate limit"""
     current_time = time.time()
     
     # Limpar dados expirados
     cleanup_expired_data()
     
+    # Se não há session_id, não aplicar rate limiting
+    if not session_id:
+        print("⚠️ Session ID não fornecido - sem rate limiting")
+        return {
+            "within_limit": True,
+            "current_count": 0,
+            "limit": RATE_LIMIT_REQUESTS,
+            "window_seconds": RATE_LIMIT_WINDOW,
+            "requires_captcha": False,
+            "reset_time": None,
+            "seconds_until_reset": None
+        }
+    
     # Contar requisições atuais (sem adicionar nova ainda)
-    current_requests = [req_time for req_time in request_counts[ip_address] 
+    current_requests = [req_time for req_time in request_counts[session_id] 
                        if current_time - req_time < RATE_LIMIT_WINDOW]
     
     request_count = len(current_requests)
@@ -70,7 +83,7 @@ def check_rate_limit(ip_address: str) -> dict:
         oldest_request = min(current_requests)
         reset_time = oldest_request + RATE_LIMIT_WINDOW
         seconds_until_reset = max(0, int(reset_time - current_time))
-        print(f"🕐 Calculando timer: oldest_request={oldest_request}, current_time={current_time}")
+        print(f"🕐 Calculando timer para sessão {session_id}: oldest_request={oldest_request}, current_time={current_time}")
         print(f"🕐 Reset em: {seconds_until_reset} segundos")
     
     return {
@@ -83,16 +96,23 @@ def check_rate_limit(ip_address: str) -> dict:
         "seconds_until_reset": seconds_until_reset
     }
 
-def add_request_to_rate_limit(ip_address: str):
+def add_request_to_rate_limit(session_id: str):
     """Adds a new request to the counter"""
+    if not session_id:
+        print("⚠️ Session ID não fornecido - não adicionando ao rate limit")
+        return
+    
     current_time = time.time()
-    request_counts[ip_address].append(current_time)
+    request_counts[session_id].append(current_time)
+    print(f"📊 Requisição adicionada para sessão {session_id}. Total: {len(request_counts[session_id])}")
 
-def reset_rate_limit(ip_address: str):
-    """Resets the rate limit counter for an IP address"""
-    if ip_address in request_counts:
-        del request_counts[ip_address]
-        print(f"🔄 Rate limit resetado para IP: {ip_address}")
+def reset_rate_limit(session_id: str):
+    """Resets the rate limit counter for a session"""
+    if session_id and session_id in request_counts:
+        del request_counts[session_id]
+        print(f"🔄 Rate limit resetado para sessão: {session_id}")
+    elif not session_id:
+        print("⚠️ Session ID não fornecido para reset do rate limit")
 
 def generate_captcha() -> dict:
     """Generates a new simple mathematical captcha challenge"""
@@ -338,11 +358,12 @@ async def clear_cache():
 async def generate_captcha_endpoint(request: Request):
     """Generates a new captcha challenge for the user"""
     try:
-        client_ip = getattr(request.state, 'client_ip', None)
+        body = await request.json()
+        session_id = body.get("session_id")
         
-        if not client_ip:
+        if not session_id:
             return JSONResponse(
-                {"error": "Unable to identify client IP"},
+                {"error": "Session ID is required"},
                 status_code=400
             )
         
@@ -352,10 +373,12 @@ async def generate_captcha_endpoint(request: Request):
         # Armazenar solução e token
         captcha_solutions[captcha_data["token"]] = captcha_data["solution"]
         captcha_tokens[captcha_data["token"]] = {
-            "ip": client_ip,
+            "session_id": session_id,
             "expires_at": time.time() + 300,  # Expira em 5 minutos
             "solved": False
         }
+        
+        print(f"🔐 Captcha gerado para sessão {session_id}: {captcha_data['question']}")
         
         return JSONResponse({
             "success": True,
@@ -376,19 +399,19 @@ async def generate_captcha_endpoint(request: Request):
 async def verify_captcha_endpoint(request: Request):
     """Verifica a resposta do captcha"""
     try:
-        client_ip = getattr(request.state, 'client_ip', None)
         body = await request.json()
         
         token = body.get("token")
         answer = body.get("answer")
+        session_id = body.get("session_id")
         
-        if not token or not answer:
+        if not token or not answer or not session_id:
             return JSONResponse(
-                {"error": "Token and answer are required"},
+                {"error": "Token, answer and session_id are required"},
                 status_code=400
             )
         
-        # Verificar se o token existe e pertence ao IP
+        # Verificar se o token existe e pertence à sessão
         if token not in captcha_tokens:
             return JSONResponse(
                 {"error": "Invalid or expired token"},
@@ -396,9 +419,9 @@ async def verify_captcha_endpoint(request: Request):
             )
         
         token_data = captcha_tokens[token]
-        if token_data["ip"] != client_ip:
+        if token_data["session_id"] != session_id:
             return JSONResponse(
-                {"error": "Token does not belong to this IP"},
+                {"error": "Token does not belong to this session"},
                 status_code=400
             )
         
@@ -413,11 +436,13 @@ async def verify_captcha_endpoint(request: Request):
         
         if is_correct:
             captcha_tokens[token]["solved"] = True
+            print(f"✅ Captcha resolvido com sucesso para sessão {session_id}")
             return JSONResponse({
                 "success": True,
                 "message": "Captcha solved successfully"
             })
         else:
+            print(f"❌ Resposta incorreta do captcha para sessão {session_id}")
             return JSONResponse(
                 {"error": "Incorrect answer"},
                 status_code=400
@@ -514,10 +539,26 @@ async def analyze_command_pcre2(request: Request):
         captcha_token = body.get("captcha_token")
         captcha_answer = body.get("captcha_answer")
         
-        # Verificar rate limit depois de ter os dados do captcha
-        if client_ip:
-            rate_limit_info = check_rate_limit(client_ip)
-            print(f"🔒 Rate limit info: {rate_limit_info}")
+        # Garantir que temos um session_id para aplicar rate limiting
+        if not session_id:
+            print("🔍 Session ID não fornecido, criando/obtendo sessão primeiro...")
+            supabase = get_supabase_client()
+            session_id = await get_or_create_session(
+                supabase=supabase,
+                user_id=user_id,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                country=country,
+                city=city,
+                region=region
+            )
+            print(f"✅ Session ID obtido: {session_id}")
+        
+        # Verificar rate limit usando session_id
+        rate_limit_info = None
+        if session_id:
+            rate_limit_info = check_rate_limit(session_id)
+            print(f"🔒 Rate limit info para sessão {session_id}: {rate_limit_info}")
             
             # Se passou do limite básico (5), usuário pode OU esperar OU fazer captcha
             if not rate_limit_info["within_limit"]:
@@ -528,14 +569,15 @@ async def analyze_command_pcre2(request: Request):
                             "error": "Rate limit exceeded",
                             "rate_limit_info": rate_limit_info,
                             "requires_captcha": True,
-                            "message": f"You have made {rate_limit_info['current_count']} searches. You can either wait {rate_limit_info.get('seconds_until_reset', 0)} seconds OR solve the captcha to continue immediately."
+                            "session_id": session_id,
+                            "message": f"You have made {rate_limit_info['current_count']} searches in this session. You can either wait {rate_limit_info.get('seconds_until_reset', 0)} seconds OR solve the captcha to continue immediately."
                         },
                         status_code=400  # 400 para mostrar captcha, não 429
                     )
         
         # Se usuário passou do limite (5), verificar se tem captcha válido
-        if client_ip and not rate_limit_info["within_limit"] and (captcha_token and captcha_answer):
-            print(f"🔒 Verificando captcha para contornar rate limit...")
+        if session_id and rate_limit_info and not rate_limit_info["within_limit"] and (captcha_token and captcha_answer):
+            print(f"🔒 Verificando captcha para contornar rate limit da sessão {session_id}...")
             
             # Verificar se captcha é válido
             if captcha_token not in captcha_tokens:
@@ -543,18 +585,20 @@ async def analyze_command_pcre2(request: Request):
                     {
                         "error": "Invalid or expired captcha token",
                         "requires_captcha": True,
-                        "rate_limit_info": rate_limit_info
+                        "rate_limit_info": rate_limit_info,
+                        "session_id": session_id
                     },
                     status_code=400
                 )
             
             token_data = captcha_tokens[captcha_token]
-            if token_data["ip"] != client_ip:
+            if token_data["session_id"] != session_id:
                 return JSONResponse(
                     {
-                        "error": "Captcha token does not belong to this IP",
+                        "error": "Captcha token does not belong to this session",
                         "requires_captcha": True,
-                        "rate_limit_info": rate_limit_info
+                        "rate_limit_info": rate_limit_info,
+                        "session_id": session_id
                     },
                     status_code=400
                 )
@@ -564,7 +608,8 @@ async def analyze_command_pcre2(request: Request):
                     {
                         "error": "Captcha token expired",
                         "requires_captcha": True,
-                        "rate_limit_info": rate_limit_info
+                        "rate_limit_info": rate_limit_info,
+                        "session_id": session_id
                     },
                     status_code=400
                 )
@@ -574,25 +619,26 @@ async def analyze_command_pcre2(request: Request):
                     {
                         "error": "Incorrect captcha answer",
                         "requires_captcha": True,
-                        "rate_limit_info": rate_limit_info
+                        "rate_limit_info": rate_limit_info,
+                        "session_id": session_id
                     },
                     status_code=400
                 )
             
             # ✅ CAPTCHA VÁLIDO - RESETAR RATE LIMIT COMPLETAMENTE
             captcha_tokens[captcha_token]["solved"] = True
-            reset_rate_limit(client_ip)
-            print(f"✅ Captcha resolvido! Rate limit resetado para IP: {client_ip}")
-            print(f"🔄 Usuário pode continuar fazendo análises normalmente")
+            reset_rate_limit(session_id)
+            print(f"✅ Captcha resolvido! Rate limit resetado para sessão: {session_id}")
+            print(f"🔄 Sessão pode continuar fazendo análises normalmente")
             
             # Adicionar esta requisição como a primeira do novo ciclo (após reset)
-            add_request_to_rate_limit(client_ip)
+            add_request_to_rate_limit(session_id)
             print(f"🔄 Nova requisição adicionada após reset. Count: 1")
         else:
             # Se não tem captcha válido, adicionar ao contador normalmente
-            if client_ip:
-                add_request_to_rate_limit(client_ip)
-                print(f"📊 Requisição adicionada. Count para IP {client_ip}")  
+            if session_id:
+                add_request_to_rate_limit(session_id)
+                print(f"📊 Requisição adicionada para sessão {session_id}")  
         
         if ip_address and not country and search_type == "API":
             print(f"🌍 Capturando geolocalização automática para IP: {ip_address}")
