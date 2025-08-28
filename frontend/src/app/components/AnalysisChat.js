@@ -168,13 +168,7 @@ export default function AnalysisChat() {
              {isAnonymous && (
                <div className="flex items-center gap-2">
                  
-                 <button
-                   onClick={debugCookies}
-                   className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800 hover:bg-blue-900/50"
-                   title="Debug cookies"
-                 >
-                   🐛
-                 </button>
+                                
                </div>
              )}
           </div>
