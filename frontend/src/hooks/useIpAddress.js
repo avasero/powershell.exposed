@@ -1,16 +1,48 @@
 import { useState, useEffect } from 'react';
 
+// Cache global para evitar requisições desnecessárias
+let ipCache = {
+  ipAddress: null,
+  ipLocation: null,
+  timestamp: null,
+  error: null
+};
+
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutos
+
+// Função para limpar cache manualmente se necessário
+export function clearIpCache() {
+  ipCache = {
+    ipAddress: null,
+    ipLocation: null,
+    timestamp: null,
+    error: null
+  };
+  console.log('🧹 IP cache cleared');
+}
+
 export function useIpAddress() {
-  const [ipAddress, setIpAddress] = useState(null);
-  const [ipLocation, setIpLocation] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [ipAddress, setIpAddress] = useState(ipCache.ipAddress);
+  const [ipLocation, setIpLocation] = useState(ipCache.ipLocation);
+  const [loading, setLoading] = useState(!ipCache.ipAddress);
+  const [error, setError] = useState(ipCache.error);
 
   useEffect(() => {
     const fetchIpAddress = async () => {
+      // Verificar cache primeiro
+      const now = Date.now();
+      if (ipCache.timestamp && (now - ipCache.timestamp) < CACHE_DURATION && ipCache.ipAddress) {
+        console.log('✅ Using cached IP data:', { ip: ipCache.ipAddress, location: ipCache.ipLocation });
+        setIpAddress(ipCache.ipAddress);
+        setIpLocation(ipCache.ipLocation);
+        setError(ipCache.error);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        console.log('🔄 Starting IP address and location capture...');
+        console.log('🔄 Cache miss or expired - Starting IP address and location capture...');
         
         // Tentar múltiplos serviços para capturar o IP
         const ipServices = [
@@ -69,36 +101,61 @@ export function useIpAddress() {
           const locationResult = await fetchIpLocation(ip);
           console.log('🌍 Location fetch result:', locationResult);
           
+          let finalLocation;
           if (locationResult && locationResult.country) {
             console.log('✅ Location data captured successfully');
+            finalLocation = locationResult;
             setIpLocation(locationResult);
           } else {
             console.warn('⚠️ Location data incomplete, using fallback');
-            setIpLocation({
+            finalLocation = {
               country: 'Unknown',
               city: 'Unknown',
               region: 'Unknown',
               timezone: 'UTC',
               isp: 'Unknown'
-            });
+            };
+            setIpLocation(finalLocation);
           }
+
+          // Salvar no cache
+          ipCache = {
+            ipAddress: ip,
+            ipLocation: finalLocation,
+            timestamp: Date.now(),
+            error: null
+          };
+          console.log('💾 IP data cached successfully');
         } else {
           throw new Error('Failed to capture IP address from all services');
         }
         
       } catch (err) {
         console.error('❌ Error capturing IP address:', err);
-        setError(err.message);
+        const errorMessage = err.message;
+        setError(errorMessage);
+        
         // Fallback: usar IP localhost para desenvolvimento
         console.log('🔄 Using fallback IP: 127.0.0.1');
-        setIpAddress('127.0.0.1');
-        setIpLocation({
+        const fallbackIp = '127.0.0.1';
+        const fallbackLocation = {
           country: 'Local',
           city: 'Development',
           region: 'Localhost',
           timezone: 'UTC',
           isp: 'Local Development'
-        });
+        };
+        
+        setIpAddress(fallbackIp);
+        setIpLocation(fallbackLocation);
+
+        // Salvar fallback no cache também (mas com erro)
+        ipCache = {
+          ipAddress: fallbackIp,
+          ipLocation: fallbackLocation,
+          timestamp: Date.now(),
+          error: errorMessage
+        };
       } finally {
         setLoading(false);
         console.log('🏁 IP address and location capture completed');

@@ -50,11 +50,11 @@ export default function AnalysisPage() {
   const [newCommand, setNewCommand] = useState("");
   const analysisExecutedRef = useRef(false);
 
-  // Debug: monitorar mudanças no rate limit
+  // Debug: monitorar mudanças no rate limit (apenas em desenvolvimento)
   useEffect(() => {
-    console.log('📊 Rate limit info mudou:', rateLimitInfo);
-    console.log('📊 Timer ativo:', isTimerActive);
-    console.log('📊 Tempo restante:', timeLeft);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📊 Rate limit:', { active: isTimerActive, timeLeft, count: rateLimitInfo?.current_count });
+    }
   }, [rateLimitInfo, isTimerActive, timeLeft]);
 
   // Remover verificação de autenticação - permitir análises anônimas

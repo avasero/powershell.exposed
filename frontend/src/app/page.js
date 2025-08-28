@@ -34,28 +34,15 @@ export default function Home() {
     console.log('🏠 HOME - Tempo restante:', timeLeft);
   }, [rateLimitInfo, isTimerActive, timeLeft]);
 
-  console.log('🏠 HOME PAGE: Componente renderizado');
-  console.log('  - Usuário autenticado:', isAuthenticated());
-  console.log('  - User object:', user);
-  console.log('  - Router pathname:', router.pathname);
-  console.log('  - Current URL:', typeof window !== 'undefined' ? window.location.href : 'N/A');
+  // Debug logs reduzidos para melhor performance
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🏠 HOME PAGE: Componente renderizado');
+  }
 
-  // Debug logs para IP e localização
+  // Debug logs para IP e localização (apenas em desenvolvimento)
   useEffect(() => {
-    console.log('🔍 IP Address & Location Debug:');
-    console.log('- ipAddress:', ipAddress);
-    console.log('- ipLocation:', ipLocation);
-    console.log('- ipLoading:', ipLoading);
-    console.log('- ipError:', ipError);
-    
-    // Log detalhado da localização
-    if (ipLocation) {
-      console.log('📍 Location Details:');
-      console.log('  - Country:', ipLocation.country);
-      console.log('  - City:', ipLocation.city);
-      console.log('  - Region:', ipLocation.region);
-      console.log('  - Timezone:', ipLocation.timezone);
-      console.log('  - ISP:', ipLocation.isp);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 IP Address & Location:', { ipAddress, country: ipLocation?.country, loading: ipLoading });
     }
   }, [ipAddress, ipLocation, ipLoading, ipError]);
 
@@ -66,12 +53,11 @@ export default function Home() {
   //   }
   // }, [isAuthenticated, router]);
 
-  // Log de mudanças de autenticação
+  // Log de mudanças de autenticação (apenas em desenvolvimento)
   useEffect(() => {
-    console.log('🔐 HOME PAGE: Mudança de autenticação detectada');
-    console.log('  - isAuthenticated mudou para:', isAuthenticated());
-    console.log('  - User mudou para:', user);
-    console.log('  - Loading IP:', ipLoading);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔐 HOME PAGE: Auth change -', { authenticated: isAuthenticated(), userId: user?.id });
+    }
   }, [isAuthenticated, user, ipLoading]);
 
 
