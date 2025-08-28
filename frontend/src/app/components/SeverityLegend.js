@@ -58,21 +58,42 @@ export default function SeverityLegend({ className = "" }) {
         <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 z-50 w-80 bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-4">
           <div className="text-center mb-3">
             <h3 className="text-sm font-mono font-bold" style={{color: 'var(--accent)'}}>
-              Score Ranges
+              Score Information
             </h3>
           </div>
-          <div className="space-y-2">
-            {Object.entries(SCORE_RANGES).map(([key, val]) => (
-              <div key={key} className={`border-l-4 pl-3 py-2 ${SCORE_COLORS[key]}`}>
-                <div className="font-mono font-bold text-xs mb-1 capitalize" style={{color: 'var(--foreground)'}}>
-                  {val.label}
-                </div>
-                <div className="font-mono text-xs" style={{color: 'var(--foreground)', opacity: 0.8}}>
-                  {val.description}
-                </div>
-              </div>
-            ))}
+          
+          {/* Score Calculation Section */}
+          <div className="mb-4 p-3 rounded border border-gray-700" style={{backgroundColor: 'var(--card-bg)'}}>
+            <div className="text-xs font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
+              How Scores Are Calculated:
+            </div>
+            <div className="space-y-1 text-xs font-mono" style={{color: 'var(--foreground)', opacity: 0.9}}>
+              <div>• Each pattern has a base score</div>
+              <div>• Multiple matches multiply the score</div>
+              <div>• All pattern scores are summed</div>
+              <div>• Higher scores indicate more suspicious activity</div>
+            </div>
           </div>
+          
+          {/* Score Ranges Section */}
+          <div className="mb-2">
+            <div className="text-xs font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
+              Score Ranges:
+            </div>
+            <div className="space-y-2">
+              {Object.entries(SCORE_RANGES).map(([key, val]) => (
+                <div key={key} className={`border-l-4 pl-3 py-2 ${SCORE_COLORS[key]}`}>
+                  <div className="font-mono font-bold text-xs mb-1 capitalize" style={{color: 'var(--foreground)'}}>
+                    {val.label}
+                  </div>
+                  <div className="font-mono text-xs" style={{color: 'var(--foreground)', opacity: 0.8}}>
+                    {val.description}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
           {/* Tooltip Arrow */}
           <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-600"></div>
         </div>
