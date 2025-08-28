@@ -73,14 +73,20 @@ export default function Home() {
       return { isValid: false, error: "Command cannot be empty." };
     }
 
-    // Remove comentários do PowerShell
-    const cleanInput = trimmedInput.replace(/#.*$/gm, '').trim();
-    if (cleanInput.length === 0) {
+    // Don't remove content after # as it might be part of URLs or other valid content
+    // Only check if the input is entirely made of PowerShell comments (lines starting with #)
+    const lines = trimmedInput.split('\n');
+    const nonCommentLines = lines.filter(line => {
+      const cleanLine = line.trim();
+      return cleanLine.length > 0 && !cleanLine.startsWith('#');
+    });
+    
+    if (nonCommentLines.length === 0) {
       return { isValid: false, error: "Command cannot contain only comments." };
     }
 
-    // Simplified validation - allow any non-empty input for testing
-    // The backend will handle the actual analysis
+    // Preserve all characters including \r\n, \n, and special characters
+    // The backend will handle the actual analysis with proper multi-line support
     return { isValid: true, error: null };
   };
 
@@ -102,7 +108,8 @@ export default function Home() {
     console.log('- IP Location:', ipLocation);
     
     // Redirecionar para página de análise com parâmetros
-    const analysisUrl = `/analysis?cmd=${encodeURIComponent(command.trim())}`;
+    // Preserve the original command with all special characters including line breaks
+    const analysisUrl = `/analysis?cmd=${encodeURIComponent(command)}`;
     let finalUrl = analysisUrl;
     
     if (ipAddress) {

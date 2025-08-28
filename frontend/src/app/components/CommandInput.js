@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 
 export default function CommandInput({ 
   value, 
@@ -10,6 +10,13 @@ export default function CommandInput({
   disabled = false 
 }) {
   const textareaRef = useRef(null);
+  const [showCharacterWarning, setShowCharacterWarning] = useState(false);
+  
+  const CHARACTER_LIMIT = 5000;
+  const MAX_ROWS = 10;
+  const MIN_HEIGHT = 50;
+  const LINE_HEIGHT = 24; // Approximate line height in pixels
+  const MAX_HEIGHT = MIN_HEIGHT + (LINE_HEIGHT * (MAX_ROWS - 2)); // Account for padding
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -18,18 +25,25 @@ export default function CommandInput({
       
       // Calculate the new height based on content, with limits
       const scrollHeight = textareaRef.current.scrollHeight;
-      const maxHeight = 120; // Máximo 4-5 linhas
-      const minHeight = 50;  // Altura mínima
+      const newHeight = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, scrollHeight));
       
-      const newHeight = Math.max(minHeight, Math.min(maxHeight, scrollHeight));
       textareaRef.current.style.height = newHeight + 'px';
       
-      // Remove any scrollbars if content fits
-      if (scrollHeight <= maxHeight) {
-        textareaRef.current.style.overflowY = 'hidden';
-      } else {
+      // Enable scrolling if content exceeds max height
+      if (scrollHeight > MAX_HEIGHT) {
         textareaRef.current.style.overflowY = 'auto';
+      } else {
+        textareaRef.current.style.overflowY = 'hidden';
       }
+    }
+  }, [value]);
+
+  // Check character limit and show warning
+  useEffect(() => {
+    if (value.length >= CHARACTER_LIMIT - 100) { // Show warning 100 chars before limit
+      setShowCharacterWarning(true);
+    } else {
+      setShowCharacterWarning(false);
     }
   }, [value]);
 
@@ -43,26 +57,68 @@ export default function CommandInput({
     }
   };
 
+  const handleChange = (e) => {
+    const newValue = e.target.value;
+    
+    // Enforce character limit
+    if (newValue.length <= CHARACTER_LIMIT) {
+      onChange(e);
+    }
+    // If at limit, still call onChange but don't update value
+    // This allows parent components to handle the limit behavior
+  };
+
   return (
-    <div className={`flex flex-col sm:flex-row items-stretch sm:items-center rounded-lg overflow-hidden border-2 ${error ? 'border-red-500' : ''}`} style={{backgroundColor: 'var(--card-bg)', borderColor: error ? '#ef4444' : 'var(--border-color)'}}>
-      <span className="px-3 sm:px-4 py-3 font-mono text-sm sm:text-base border-b sm:border-b-0 sm:border-r border-opacity-30 flex-shrink-0" style={{color: 'var(--accent)', borderColor: 'var(--border-color)'}}>
-        PS &gt;
-      </span>
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={onChange}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        className="flex-1 font-mono px-3 sm:px-4 py-3 border-none outline-none resize-none min-h-[50px] sm:min-h-[60px] max-h-[100px] sm:max-h-[120px] no-scrollbar text-sm sm:text-base"
-        style={{
-          backgroundColor: 'var(--card-bg)', 
-          color: 'var(--foreground)',
-          overflowY: 'hidden'
-        }}
-        disabled={disabled}
-        rows={1}
-      />
+    <div className="w-full">
+      <div className={`flex flex-col sm:flex-row items-stretch sm:items-center rounded-lg overflow-hidden border-2 ${error ? 'border-red-500' : showCharacterWarning ? 'border-yellow-500' : ''}`} style={{backgroundColor: 'var(--card-bg)', borderColor: error ? '#ef4444' : showCharacterWarning ? '#eab308' : 'var(--border-color)'}}>
+        <span className="px-3 sm:px-4 py-3 font-mono text-sm sm:text-base border-b sm:border-b-0 sm:border-r border-opacity-30 flex-shrink-0" style={{color: 'var(--accent)', borderColor: 'var(--border-color)'}}>
+          PS &gt;
+        </span>
+        <div className="flex-1 relative">
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            className="w-full font-mono px-3 sm:px-4 py-3 border-none outline-none resize-none text-sm sm:text-base"
+            style={{
+              backgroundColor: 'var(--card-bg)', 
+              color: 'var(--foreground)',
+              minHeight: `${MIN_HEIGHT}px`,
+              maxHeight: `${MAX_HEIGHT}px`,
+              lineHeight: `${LINE_HEIGHT}px`
+            }}
+            disabled={disabled}
+            rows={1}
+          />
+          
+          {/* Character counter */}
+          <div className="absolute bottom-2 right-2 text-xs font-mono opacity-60" style={{color: value.length >= CHARACTER_LIMIT - 100 ? '#eab308' : 'var(--muted-foreground)'}}>
+            {value.length}/{CHARACTER_LIMIT}
+          </div>
+        </div>
+      </div>
+      
+      {/* Character limit warning */}
+      {showCharacterWarning && (
+        <div className="mt-2 text-sm font-mono text-yellow-500 flex items-center gap-2">
+          <span>⚠️</span>
+          <span>
+            {value.length >= CHARACTER_LIMIT 
+              ? "Your search is capped at 5000 characters" 
+              : `Approaching character limit (${CHARACTER_LIMIT - value.length} remaining)`
+            }
+          </span>
+        </div>
+      )}
+      
+      {/* Multi-line help text */}
+      {value.includes('\n') && (
+        <div className="mt-1 text-xs font-mono opacity-60" style={{color: 'var(--muted-foreground)'}}>
+          💡 Multi-line command detected. Press Shift+Enter for new lines, Enter to analyze.
+        </div>
+      )}
     </div>
   );
 }

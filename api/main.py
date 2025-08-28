@@ -697,7 +697,10 @@ async def analyze_command_pcre2(request: Request):
                     print(f"   Testing pattern: '{pattern}'")
                     print(f"   Command: '{command}'")
                     
-                    regex = re.compile(pattern, re.IGNORECASE)
+                    # Use MULTILINE and DOTALL flags to handle multi-line commands properly
+                    # MULTILINE: ^ and $ match start/end of each line, not just string
+                    # DOTALL: . matches newline characters
+                    regex = re.compile(pattern, re.IGNORECASE | re.MULTILINE | re.DOTALL)
                     pattern_matches = list(regex.finditer(command))
                     
                     if pattern_matches:

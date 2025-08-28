@@ -10,6 +10,7 @@ import IndicatorTable from "../components/IndicatorTable";
 import ThemedButton from "../components/ThemedButton";
 import LoadingSpinner from "../components/LoadingSpinner";
 import AnalysisSkeleton from "../components/AnalysisSkeleton";
+import CommandInput from "../components/CommandInput";
 
   import { saveAnonymousAnalysis } from "../../utils/cookies";
 import { getOrCreateSession, saveSessionFromBackend } from "../../utils/session";
@@ -286,27 +287,20 @@ export default function AnalysisPage() {
 
       {/* Quick Search Input */}
       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-        <div className="flex flex-col sm:flex-row gap-3 items-center">
+        <div className="flex flex-col sm:flex-row gap-3 items-start">
           <div className="flex-1 w-full">
-            <input
-              type="text"
-              placeholder="Enter a new PowerShell command to analyze..."
+            <CommandInput
               value={newCommand}
               onChange={(e) => setNewCommand(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !loading && (!rateLimitInfo || rateLimitInfo.current_count < rateLimitInfo.limit) && handleNewAnalysis()}
-              className="w-full px-4 py-3 rounded-lg font-mono text-sm border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-opacity-50"
-              style={{
-                backgroundColor: 'var(--card-bg)',
-                borderColor: 'var(--border-color)',
-                color: 'var(--foreground)',
-                focusRingColor: 'var(--accent)'
-              }}
+              onSubmit={handleNewAnalysis}
+              placeholder="Enter a new PowerShell command to analyze..."
+              disabled={loading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
             />
           </div>
           <button
             onClick={handleNewAnalysis}
             disabled={!newCommand.trim() || loading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
-            className="px-6 py-3 rounded-lg font-mono font-bold text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
+            className="px-6 py-3 rounded-lg font-mono font-bold text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 flex-shrink-0"
             style={{
               backgroundColor: 'var(--accent)',
               color: 'var(--background)'
@@ -316,7 +310,7 @@ export default function AnalysisPage() {
           </button>
         </div>
         <div className="text-xs text-center mt-2" style={{color: 'var(--muted-foreground)'}}>
-          Press Enter or click Evaluate to analyze a new command
+          Press Enter or click Evaluate to analyze a new command • Shift+Enter for new lines
         </div>
       </div>
 
