@@ -94,7 +94,7 @@ export default function CommandInput({
           />
           
           {/* Character counter */}
-          <div className="absolute bottom-2 right-2 text-xs font-mono opacity-60" style={{color: value.length >= CHARACTER_LIMIT - 100 ? '#eab308' : 'var(--muted-foreground)'}}>
+          <div className="absolute bottom-2 right-5 text-xs font-mono opacity-60" style={{color: value.length >= CHARACTER_LIMIT - 100 ? '#eab308' : 'var(--muted-foreground)'}}>
             {value.length}/{CHARACTER_LIMIT}
           </div>
         </div>
