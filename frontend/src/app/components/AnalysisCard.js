@@ -147,7 +147,7 @@ export default function AnalysisCard({
                           <span className="text-green-400">Pos {match.position?.start || 'N/A'}-{match.position?.end || 'N/A'}</span>
                         </div>
                         <div className="font-mono break-all" style={{color: 'var(--foreground)'}}>
-                          <span className="text-yellow-400">&ldquo;{match.matched_text || 'N/A'}&rdquo;</span>
+                          <span className="text-yellow-400 break-all">&ldquo;{match.matched_text || 'N/A'}&rdquo;</span>
                         </div>
                       </div>
                     ))}
@@ -169,9 +169,9 @@ export default function AnalysisCard({
                 <div key={idx} className="text-sm font-mono p-2 rounded break-all" 
                   style={{backgroundColor: 'var(--muted)', color: 'var(--foreground)'}}>
                   <div className="text-xs text-gray-400 mb-1">Pattern {idx + 1}:</div>
-                  <div className="font-bold">{match.pattern || 'Unknown pattern'}</div>
+                  <div className="font-bold break-all">{match.pattern || 'Unknown pattern'}</div>
                   <div className="text-xs text-gray-400 mt-1">
-                    Matched: <span className="text-yellow-400">&ldquo;{match.matched_text}&rdquo;</span>
+                    Matched: <span className="text-yellow-400 break-all">&ldquo;{match.matched_text}&rdquo;</span>
                   </div>
                 </div>
               ))}
@@ -234,14 +234,14 @@ export default function AnalysisCard({
               {Array.isArray(reference) ? reference.map((ref, i) => (
                 <div key={i} className="mb-1">
                   <a href={ref} target="_blank" rel="noopener noreferrer" 
-                    className="font-mono hover:underline" 
+                    className="font-mono hover:underline break-all" 
                     style={{color: 'var(--primary-blue)'}}>
                     {ref}
                   </a>
                 </div>
               )) : (
                 <a href={reference} target="_blank" rel="noopener noreferrer" 
-                  className="font-mono hover:underline" 
+                  className="font-mono hover:underline break-all" 
                   style={{color: 'var(--primary-blue)'}}>
                   {reference}
                 </a>
