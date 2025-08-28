@@ -25,7 +25,7 @@ RATE_LIMIT_WINDOW = 60    # Janela de tempo em segundos
 CAPTCHA_REQUIRED_AFTER = 6  # Captcha necessário a partir da 6ª requisição (permite mais com captcha)
 
 # Global rate limiting
-GLOBAL_RATE_LIMIT_REQUESTS = 10  # Máximo de requisições globais por minuto (DEBUG - mudar para 1000)
+GLOBAL_RATE_LIMIT_REQUESTS = 3  # Máximo de requisições globais por minuto (DEBUG - mudar para 1000)
 GLOBAL_RATE_LIMIT_WINDOW = 60    # Janela de tempo em segundos (1 minuto)
 
 # Armazenamento em memória para rate limiting (em produção, use Redis)
