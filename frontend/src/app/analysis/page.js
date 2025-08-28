@@ -95,6 +95,7 @@ export default function AnalysisPage() {
         region: ipLocation?.region,
         timezone: ipLocation?.timezone,
         user_agent: navigator.userAgent,
+        search_type: "WEB",  // Sempre WEB quando vindo do frontend
         session_id: sessionId
       };
 
