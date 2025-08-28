@@ -181,3 +181,61 @@ body {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
 }
+
+/* Global cursor styles for clickable elements */
+button,
+[role="button"],
+[type="button"],
+[type="submit"],
+[type="reset"],
+input[type="checkbox"],
+input[type="radio"],
+select,
+.clickable,
+a,
+[tabindex]:not([tabindex="-1"]) {
+  cursor: pointer;
+}
+
+/* Disabled elements should not have pointer cursor */
+button:disabled,
+[role="button"]:disabled,
+[type="button"]:disabled,
+[type="submit"]:disabled,
+[type="reset"]:disabled,
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled,
+select:disabled,
+.clickable:disabled,
+a:disabled,
+[disabled] {
+  cursor: not-allowed;
+}
+
+/* Hover effects for interactive elements */
+button:not(:disabled):hover,
+[role="button"]:not(:disabled):hover,
+[type="button"]:not(:disabled):hover,
+[type="submit"]:not(:disabled):hover,
+[type="reset"]:not(:disabled):hover,
+.clickable:not(:disabled):hover {
+  cursor: pointer;
+  transform: scale(1.02);
+}
+
+/* Links should always have pointer cursor */
+a {
+  cursor: pointer;
+}
+
+/* Text inputs and textareas should have text cursor */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="url"],
+input[type="tel"],
+input[type="number"],
+textarea {
+  cursor: text;
+}

@@ -9,7 +9,7 @@ export default function ThemedButton({
   className = "",
   ...props 
 }) {
-  const baseClasses = "font-mono font-semibold rounded transition-all duration-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed";
+  const baseClasses = "font-mono font-semibold rounded transition-all duration-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:scale-105 active:scale-95";
   
   const sizeClasses = {
     sm: "px-3 py-1 text-xs sm:text-sm",
