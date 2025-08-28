@@ -24,8 +24,13 @@ RATE_LIMIT_REQUESTS = 5   # Máximo de requisições por janela de tempo (SEM ca
 RATE_LIMIT_WINDOW = 60    # Janela de tempo em segundos
 CAPTCHA_REQUIRED_AFTER = 6  # Captcha necessário a partir da 6ª requisição (permite mais com captcha)
 
+# Global rate limiting
+GLOBAL_RATE_LIMIT_REQUESTS = 10  # Máximo de requisições globais por minuto (DEBUG - mudar para 1000)
+GLOBAL_RATE_LIMIT_WINDOW = 60    # Janela de tempo em segundos (1 minuto)
+
 # Armazenamento em memória para rate limiting (em produção, use Redis)
 request_counts = defaultdict(list)  # session_id -> [timestamps]
+global_request_timestamps = []  # Lista global de timestamps de todas as requisições
 captcha_tokens = {}  # token -> {session_id, expires_at, solved}
 captcha_solutions = {}  # token -> solution
 
@@ -40,6 +45,11 @@ def cleanup_expired_data():
         if not request_counts[session_id]:
             del request_counts[session_id]
     
+    # Limpar timestamps globais expirados
+    global global_request_timestamps
+    global_request_timestamps = [req_time for req_time in global_request_timestamps 
+                                if current_time - req_time < GLOBAL_RATE_LIMIT_WINDOW]
+    
     # Limpar tokens de captcha expirados
     expired_tokens = [token for token, data in captcha_tokens.items() 
                      if current_time > data['expires_at']]
@@ -47,6 +57,42 @@ def cleanup_expired_data():
         del captcha_tokens[token]
         if token in captcha_solutions:
             del captcha_solutions[token]
+
+def check_global_rate_limit() -> dict:
+    """Checks if the global rate limit has been exceeded"""
+    current_time = time.time()
+    
+    # Limpar dados expirados
+    cleanup_expired_data()
+    
+    # Contar requisições globais na janela atual
+    global_request_count = len(global_request_timestamps)
+    
+    # Calcular quando o rate limit global vai resetar
+    reset_time = None
+    seconds_until_reset = None
+    
+    if global_request_timestamps and global_request_count >= GLOBAL_RATE_LIMIT_REQUESTS:
+        oldest_request = min(global_request_timestamps)
+        reset_time = oldest_request + GLOBAL_RATE_LIMIT_WINDOW
+        seconds_until_reset = max(0, int(reset_time - current_time))
+        print(f"🌍 Rate limit global atingido: {global_request_count}/{GLOBAL_RATE_LIMIT_REQUESTS}")
+        print(f"🌍 Reset em: {seconds_until_reset} segundos")
+    
+    return {
+        "within_limit": global_request_count < GLOBAL_RATE_LIMIT_REQUESTS,
+        "current_count": global_request_count,
+        "limit": GLOBAL_RATE_LIMIT_REQUESTS,
+        "window_seconds": GLOBAL_RATE_LIMIT_WINDOW,
+        "reset_time": reset_time,
+        "seconds_until_reset": seconds_until_reset
+    }
+
+def add_global_request():
+    """Adds a new request to the global counter"""
+    current_time = time.time()
+    global_request_timestamps.append(current_time)
+    print(f"🌍 Requisição global adicionada. Total: {len(global_request_timestamps)}/{GLOBAL_RATE_LIMIT_REQUESTS}")
 
 def check_rate_limit(session_id: str) -> dict:
     """Checks if the session is within the rate limit"""
@@ -354,6 +400,21 @@ async def clear_cache():
         "message": "Cache cleared, next request will reload from database"
     })
 
+@app.get("/global-rate-limit-status")
+async def get_global_rate_limit_status():
+    """Returns the current global rate limit status"""
+    global_rate_limit_info = check_global_rate_limit()
+    
+    return JSONResponse({
+        "success": True,
+        "global_rate_limit": global_rate_limit_info,
+        "debug_info": {
+            "total_requests_tracked": len(global_request_timestamps),
+            "limit_per_minute": GLOBAL_RATE_LIMIT_REQUESTS,
+            "window_seconds": GLOBAL_RATE_LIMIT_WINDOW
+        }
+    })
+
 @app.post("/generate-captcha")
 async def generate_captcha_endpoint(request: Request):
     """Generates a new captcha challenge for the user"""
@@ -519,6 +580,21 @@ async def analyze_command_pcre2(request: Request):
     print("🚀 === FUNÇÃO ANALYZE-PCRE2 CHAMADA ===")
     
     try:
+        # VERIFICAR RATE LIMIT GLOBAL PRIMEIRO
+        global_rate_limit_info = check_global_rate_limit()
+        print(f"🌍 Rate limit global: {global_rate_limit_info}")
+        
+        if not global_rate_limit_info["within_limit"]:
+            print(f"🚫 Rate limit global excedido: {global_rate_limit_info['current_count']}/{global_rate_limit_info['limit']}")
+            return JSONResponse(
+                {
+                    "error": "Search limit reached. Please try again in a moment",
+                    "global_rate_limit_info": global_rate_limit_info,
+                    "message": f"Global rate limit exceeded. {global_rate_limit_info['current_count']} requests in the last {global_rate_limit_info['window_seconds']} seconds. Please wait {global_rate_limit_info.get('seconds_until_reset', 0)} seconds."
+                },
+                status_code=429
+            )
+        
         client_ip = getattr(request.state, 'client_ip', None)
         print(f"🚀 IP real do cliente: {client_ip}")
         
@@ -638,7 +714,10 @@ async def analyze_command_pcre2(request: Request):
             # Se não tem captcha válido, adicionar ao contador normalmente
             if session_id:
                 add_request_to_rate_limit(session_id)
-                print(f"📊 Requisição adicionada para sessão {session_id}")  
+                print(f"📊 Requisição adicionada para sessão {session_id}")
+        
+        # ADICIONAR REQUISIÇÃO AO CONTADOR GLOBAL
+        add_global_request()
         
         if ip_address and not country and search_type == "API":
             print(f"🌍 Capturando geolocalização automática para IP: {ip_address}")
