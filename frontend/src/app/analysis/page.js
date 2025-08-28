@@ -405,11 +405,25 @@ export default function AnalysisPage() {
       {result && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div 
-            className="p-6 sm:p-8 rounded-lg border-2 border-green-400 text-center"
+            className="p-6 sm:p-8 rounded-lg border-2 border-green-400 text-center relative"
             style={{backgroundColor: '#000000'}}
           >
-            <div className="text-xl sm:text-2xl font-mono font-bold mb-4 text-green-400">
+            <div className="text-xl sm:text-2xl font-mono font-bold mb-4 text-green-400 flex items-center justify-center gap-3">
               Cumulative Base Score
+              
+              {/* Tooltip icon */}
+              <div className="group relative">
+                <div className="w-6 h-6 rounded-full border-2 border-green-400 flex items-center justify-center cursor-help text-green-400 font-mono text-sm font-bold hover:bg-green-400 hover:text-black transition-colors">
+                  i
+                </div>
+                <div className="absolute right-0 top-8 w-64 p-3 bg-gray-900 border border-green-400 rounded-lg text-left text-xs font-mono text-green-400 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                  <div className="font-bold mb-2">Score Calculation:</div>
+                  <div>• Each pattern has a base score</div>
+                  <div>• Multiple matches multiply the score</div>
+                  <div>• All pattern scores are summed</div>
+                  <div>• Higher scores indicate more suspicious activity</div>
+                </div>
+              </div>
             </div>
             <div className="text-5xl sm:text-6xl font-mono font-bold mb-4 text-white">
               {totalScore.toFixed(1)}
