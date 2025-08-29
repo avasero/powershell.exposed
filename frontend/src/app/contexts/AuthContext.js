@@ -189,7 +189,9 @@ export const AuthProvider = ({ children }) => {
     console.log('  - user:', user);
     
     if (!loading) {
-      const isPublicRoute = publicRoutes.includes(pathname);
+      // Check for exact matches and dynamic routes
+      const isPublicRoute = publicRoutes.includes(pathname) || 
+                           pathname.startsWith('/analysis/'); // Allow all analysis routes including /analysis/[id]
       const userIsAuthenticated = user !== null;
 
       console.log('🔍 AUTHCONTEXT: Verificação de acesso');
@@ -202,6 +204,7 @@ export const AuthProvider = ({ children }) => {
       console.log('  - user:', user);
       console.log('  - publicRoutes.includes("/"):', publicRoutes.includes('/'));
       console.log('  - publicRoutes.includes(pathname):', publicRoutes.includes(pathname));
+      console.log('  - pathname.startsWith("/analysis/"):', pathname.startsWith('/analysis/'));
 
       if (!userIsAuthenticated && !isPublicRoute) {
         console.log('❌ AUTHCONTEXT: Redirecionando para /landing');
