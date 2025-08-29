@@ -67,62 +67,6 @@ export default function AnalysisPage() {
 
   // Função de análise local removida - agora respeitamos sempre o rate limiting da API
 
-  // Função para análise e redirecionamento (URLs antigas)
-  const performAnalysisAndRedirect = async (command, ipAddress, ipLocation) => {
-    console.log('🚀 Iniciando análise para redirecionamento:', command);
-    try {
-      setLoading(true);
-      setError("");
-      
-      // Obter ou criar sessão anônima
-      const sessionId = getOrCreateSession();
-      
-      // Preparar dados para a API
-      const requestData = { 
-        command,
-        user_id: user?.id || null,
-        ip_address: ipAddress,
-        country: ipLocation?.country,
-        city: ipLocation?.city,
-        region: ipLocation?.region,
-        timezone: ipLocation?.timezone,
-        user_agent: navigator.userAgent,
-        search_type: "WEB",
-        session_id: sessionId
-      };
-
-      console.log('📤 Enviando dados para API (redirecionamento):', requestData);
-
-      // Chamar a API Python diretamente
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/analyze-pcre2`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestData)
-      });
-      
-      const data = await response.json();
-      console.log('📥 Resposta da API (redirecionamento):', { status: response.status, data });
-      
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP error! status: ${response.status}`);
-      }
-      
-      if (data.success && data.analysis_id) {
-        console.log('✅ Análise concluída, redirecionando para nova URL:', data.analysis_id);
-        // Redirecionar para nova URL com ID
-        router.replace(`/analysis/${data.analysis_id}`);
-      } else {
-        throw new Error('Análise falhou ou ID não retornado');
-      }
-      
-    } catch (err) {
-      console.error('❌ Erro na análise (redirecionamento):', err);
-      setError(`Erro na análise: ${err.message}`);
-      setLoading(false);
-    }
-  };
-
   const performAnalysis = async (command, ipAddress, ipLocation) => {
     console.log('🚀 Iniciando análise para comando:', command);
     console.log('🚀 Timestamp da análise:', Date.now());
@@ -257,7 +201,7 @@ export default function AnalysisPage() {
     }
   };
 
-  // Análise otimizada usando backend Python - com fallback para URLs antigas
+  // Análise otimizada usando backend Python
   useEffect(() => {
     console.log('🔄 useEffect executado - params:', params.toString());
     console.log('🔄 useEffect executado - timestamp:', Date.now());
@@ -270,9 +214,10 @@ export default function AnalysisPage() {
     const region = params.get("region") || null;
     const timezone = params.get("timezone") || null;
     
-    // FALLBACK: Se há parâmetros na URL (URL antiga), fazer análise e redirecionar para nova URL
+    setCmd(command);
+    
     if (command.trim() && !analysisExecutedRef.current) {
-      console.log('📝 URL antiga detectada - fazendo análise e redirecionando:', command);
+      console.log('📝 Comando encontrado, iniciando análise:', command);
       analysisExecutedRef.current = true; // Marcar como executada
       
       // Criar objeto de localização
@@ -283,12 +228,11 @@ export default function AnalysisPage() {
         timezone
       };
       
-      // Fazer análise e redirecionar para URL com ID
-      performAnalysisAndRedirect(command, ipAddress, ipLocation);
+      performAnalysis(command, ipAddress, ipLocation);
     } else if (command.trim()) {
       console.log('📝 Comando encontrado, mas análise já foi executada');
     } else {
-      console.log('❌ Nenhum comando encontrado - exibindo página vazia');
+      console.log('❌ Nenhum comando encontrado');
       setLoading(false);
       setResult({
         score: 0,

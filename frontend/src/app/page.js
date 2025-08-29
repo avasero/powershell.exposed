@@ -90,7 +90,7 @@ export default function Home() {
     return { isValid: true, error: null };
   };
 
-  // Command analysis - fazer análise e redirecionar para URL com ID único
+  // Command analysis - apenas redirecionar para página de análise
   const handleAnalyze = async (e) => {
     e.preventDefault();
     
@@ -101,71 +101,32 @@ export default function Home() {
     }
     
     setError(""); // Clear previous error
-    setLoading(true); // Mostrar loading durante análise
     
-    try {
-      console.log('🚀 Iniciando análise do comando:', command);
+    console.log('🚀 Redirecting to analysis page:');
+    console.log('- Command:', command);
+    console.log('- IP Address:', ipAddress);
+    console.log('- IP Location:', ipLocation);
+    
+    // Redirecionar para página de análise com parâmetros
+    // Preserve the original command with all special characters including line breaks
+    const analysisUrl = `/analysis?cmd=${encodeURIComponent(command)}`;
+    let finalUrl = analysisUrl;
+    
+    if (ipAddress) {
+      finalUrl += `&ip=${encodeURIComponent(ipAddress)}`;
       
-      // Verificar rate limit antes de prosseguir
-      if (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit) {
-        setError("Rate limit atingido. Aguarde o timer.");
-        setLoading(false);
-        return;
+      // Adicionar informações de localização se disponíveis
+      if (ipLocation && ipLocation.country) {
+        finalUrl += `&country=${encodeURIComponent(ipLocation.country)}`;
+        if (ipLocation.city) finalUrl += `&city=${encodeURIComponent(ipLocation.city)}`;
+        if (ipLocation.region) finalUrl += `&region=${encodeURIComponent(ipLocation.region)}`;
+        if (ipLocation.timezone) finalUrl += `&timezone=${encodeURIComponent(ipLocation.timezone)}`;
       }
-      
-      // Preparar dados para análise
-      const requestData = { 
-        command,
-        user_id: user?.id || null,
-        ip_address: ipAddress,
-        country: ipLocation?.country,
-        city: ipLocation?.city,
-        region: ipLocation?.region,
-        timezone: ipLocation?.timezone,
-        user_agent: navigator.userAgent,
-        search_type: "WEB"
-      };
-
-      console.log('📤 Enviando dados para API:', requestData);
-
-      // Chamar a API Python para análise
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/analyze-pcre2`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestData)
-      });
-      
-      const data = await response.json();
-      console.log('📥 Resposta da API:', { status: response.status, data });
-      
-      // Verificar se precisa de rate limiting
-      const needsHandling = handleRateLimitResponse(response, data);
-      
-      if (needsHandling) {
-        console.log('🚫 Rate limit detectado');
-        setLoading(false);
-        return;
-      }
-      
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP error! status: ${response.status}`);
-      }
-      
-      if (data.success && data.analysis_id) {
-        console.log('✅ Análise concluída, redirecionando para ID:', data.analysis_id);
-        resetRateLimit(); // Limpar estado do rate limit
-        router.push(`/analysis/${data.analysis_id}`);
-      } else {
-        throw new Error('Análise falhou ou ID não retornado');
-      }
-      
-    } catch (err) {
-      console.error('❌ Erro na análise:', err);
-      setError(`Erro na análise: ${err.message}`);
-    } finally {
-      setLoading(false);
     }
+    
+    console.log('📍 Redirecting to:', finalUrl);
+    resetRateLimit(); // Limpar estado do rate limit
+    router.push(finalUrl);
   };
 
   // Validação em tempo real quando o usuário digita

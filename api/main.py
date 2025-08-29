@@ -516,60 +516,6 @@ async def verify_captcha_endpoint(request: Request):
             status_code=500
         )
 
-@app.get("/analysis/{analysis_id}")
-async def get_analysis_by_id(analysis_id: str):
-    """Busca uma análise específica pelo ID"""
-    try:
-        print(f"🔍 Buscando análise por ID: {analysis_id}")
-        
-        supabase = get_supabase_client()
-        
-        # Buscar análise no banco
-        response = supabase.table('powershell_analyses') \
-            .select('*') \
-            .eq('id', analysis_id) \
-            .limit(1) \
-            .execute()
-        
-        if not response.data:
-            print(f"❌ Análise não encontrada: {analysis_id}")
-            return JSONResponse(
-                {"error": "Analysis not found"},
-                status_code=404
-            )
-        
-        analysis_data = response.data[0]
-        print(f"✅ Análise encontrada: {analysis_data.get('command', '')[:50]}...")
-        
-        # Retornar dados da análise
-        return JSONResponse({
-            "success": True,
-            "analysis": {
-                "id": analysis_data.get('id'),
-                "command": analysis_data.get('command'),
-                "is_malicious": analysis_data.get('is_malicious', False),
-                "risk_score": analysis_data.get('risk_score', 0),
-                "severity": analysis_data.get('severity', 'safe'),
-                "signatures_detected": analysis_data.get('signatures_detected', []),
-                "tactics": analysis_data.get('tactics', []),
-                "techniques": analysis_data.get('techniques', []),
-                "total_signatures_checked": len(analysis_data.get('signatures_detected', [])),
-                "detected_count": len(analysis_data.get('signatures_detected', [])),
-                "created_at": analysis_data.get('created_at'),
-                "ip_address": analysis_data.get('ip_address'),
-                "ip_country": analysis_data.get('ip_country'),
-                "ip_city": analysis_data.get('ip_city'),
-                "search_type": analysis_data.get('search_type', 'WEB')
-            }
-        })
-        
-    except Exception as error:
-        print(f"❌ Erro ao buscar análise: {error}")
-        return JSONResponse(
-            {"error": f"Internal error: {str(error)}"},
-            status_code=500
-        )
-
 @app.post("/create-user-session")
 async def create_user_session_endpoint(request: Request):
     """Cria uma nova sessão para usuário logado"""
@@ -1051,11 +997,6 @@ async def analyze_command_pcre2(request: Request):
             print(f"❌ Tipo do erro: {type(db_error)}")
             print(f"❌ Detalhes do erro: {str(db_error)}")
         
-        # Obter ID da análise salva
-        analysis_id = None
-        if response.data:
-            analysis_id = response.data[0].get('id')
-        
         return JSONResponse({
             "success": True,
             "analysis": {
@@ -1073,8 +1014,7 @@ async def analyze_command_pcre2(request: Request):
                     "cache_age_minutes": round((int(time.time() * 1000) - cache_timestamp) / 60000, 1) if cache_timestamp > 0 else 0
                 }
             },
-            "session_id": session_id,
-            "analysis_id": analysis_id
+            "session_id": session_id
         })
         
     except Exception as error:
