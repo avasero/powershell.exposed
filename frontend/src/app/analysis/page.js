@@ -150,9 +150,11 @@ export default function AnalysisPage() {
           saveSessionFromBackend(response.session_id);
         }
         
-        // Capturar o analysis_id para links compartilháveis, mas não redirecionar automaticamente
+        // Se temos um analysis_id, redirecionar para a página específica da análise
         if (response.analysis_id) {
-          console.log('🔗 Analysis ID capturado para link compartilhável:', response.analysis_id);
+          console.log('🔗 Redirecionando para análise específica:', response.analysis_id);
+          router.push(`/analysis/${response.analysis_id}`);
+          return; // Não processar mais nada, pois vamos redirecionar
         }
         
         const analysisResult = {

@@ -90,7 +90,7 @@ export default function Home() {
     return { isValid: true, error: null };
   };
 
-  // Command analysis - apenas redirecionar para página de análise
+  // Command analysis - fazer análise diretamente e redirecionar para ID
   const handleAnalyze = async (e) => {
     e.preventDefault();
     
@@ -101,32 +101,98 @@ export default function Home() {
     }
     
     setError(""); // Clear previous error
+    setLoading(true); // Mostrar loading
     
-    console.log('🚀 Redirecting to analysis page:');
-    console.log('- Command:', command);
-    console.log('- IP Address:', ipAddress);
-    console.log('- IP Location:', ipLocation);
-    
-    // Redirecionar para página de análise com parâmetros
-    // Preserve the original command with all special characters including line breaks
-    const analysisUrl = `/analysis?cmd=${encodeURIComponent(command)}`;
-    let finalUrl = analysisUrl;
-    
-    if (ipAddress) {
-      finalUrl += `&ip=${encodeURIComponent(ipAddress)}`;
+    try {
+      console.log('🚀 Iniciando análise direta na página inicial:');
+      console.log('- Command:', command);
+      console.log('- IP Address:', ipAddress);
+      console.log('- IP Location:', ipLocation);
       
-      // Adicionar informações de localização se disponíveis
-      if (ipLocation && ipLocation.country) {
-        finalUrl += `&country=${encodeURIComponent(ipLocation.country)}`;
-        if (ipLocation.city) finalUrl += `&city=${encodeURIComponent(ipLocation.city)}`;
-        if (ipLocation.region) finalUrl += `&region=${encodeURIComponent(ipLocation.region)}`;
-        if (ipLocation.timezone) finalUrl += `&timezone=${encodeURIComponent(ipLocation.timezone)}`;
+      // Obter ou criar sessão anônima
+      const { getOrCreateSession, saveSessionFromBackend } = await import('../utils/session');
+      const sessionId = getOrCreateSession();
+      
+      // Preparar dados para a API
+      const requestData = { 
+        command,
+        user_id: user?.id || null,
+        ip_address: ipAddress,
+        country: ipLocation?.country,
+        city: ipLocation?.city,
+        region: ipLocation?.region,
+        timezone: ipLocation?.timezone,
+        user_agent: navigator.userAgent,
+        search_type: "WEB",
+        session_id: sessionId
+      };
+
+      console.log('📤 Enviando dados para API:', requestData);
+
+      // Chamar a API Python diretamente
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/analyze-pcre2`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData)
+      });
+
+      const data = await response.json();
+      console.log('📥 Resposta da API:', { status: response.status, data });
+      
+      // Verificar se precisa de rate limiting
+      const needsHandling = handleRateLimitResponse(response, data);
+      
+      if (needsHandling) {
+        console.log('🚫 Rate limit detectado');
+        setLoading(false);
+        return;
       }
+      
+      if (!response.ok) {
+        console.error('❌ Erro HTTP da API:', response.status, data);
+        setError(data.error || `HTTP error! status: ${response.status}`);
+        setLoading(false);
+        return;
+      }
+      
+      if (data.success && data.analysis_id) {
+        console.log('🔗 Redirecionando diretamente para análise:', data.analysis_id);
+        
+        // Salvar session_id se necessário
+        if (data.session_id && !user?.id) {
+          saveSessionFromBackend(data.session_id);
+        }
+        
+        // Salvar análise anônima em cookies se não estiver logado
+        if (!user?.id) {
+          try {
+            const { saveAnonymousAnalysis } = await import('../utils/cookies');
+            saveAnonymousAnalysis({
+              command: command,
+              score: data.analysis.risk_score,
+              severity: data.analysis.is_malicious ? "malicious" : "safe",
+              signatures: data.analysis.signatures_detected || [],
+              cmdlets_detected: data.analysis.cmdlets_detected || [],
+              analysis_id: data.analysis_id
+            });
+          } catch (error) {
+            console.error('Erro ao salvar análise anônima:', error);
+          }
+        }
+        
+        resetRateLimit(); // Limpar estado do rate limit
+        router.push(`/analysis/${data.analysis_id}`);
+      } else {
+        setError(data.error || 'Analysis failed');
+        setLoading(false);
+      }
+      
+    } catch (err) {
+      console.error('❌ Erro na análise:', err);
+      setError(err.message || 'Analysis failed');
+      setLoading(false);
     }
-    
-    console.log('📍 Redirecting to:', finalUrl);
-    resetRateLimit(); // Limpar estado do rate limit
-    router.push(finalUrl);
   };
 
   // Validação em tempo real quando o usuário digita
