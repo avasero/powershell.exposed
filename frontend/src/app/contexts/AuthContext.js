@@ -18,7 +18,7 @@ export const useAuth = () => {
 // Função para criar nova sessão para usuário logado
 const createUserSession = async (userId) => {
   try {
-    console.log('🔄 Criando nova sessão para usuário:', userId);
+  
     
     // Limpar sessão anterior do storage primeiro
     clearSessionFromStorage();
@@ -35,7 +35,7 @@ const createUserSession = async (userId) => {
         ipAddress = ipData.ip;
       }
     } catch (e) {
-      console.log('Não foi possível obter IP para criar sessão');
+   
     }
     
     if (typeof navigator !== 'undefined') {
@@ -58,7 +58,7 @@ const createUserSession = async (userId) => {
     const data = await response.json();
     
     if (response.ok && data.session_id) {
-      console.log('✅ Nova sessão criada para usuário:', data.session_id);
+      
       saveSessionFromBackend(data.session_id);
       return data.session_id;
     } else {
@@ -72,13 +72,13 @@ const createUserSession = async (userId) => {
 // Função para migrar análises anônimas para usuário logado
 const migrateAnonymousAnalyses = async (userId) => {
   try {
-    console.log('🔄 Migrando análises anônimas para usuário:', userId);
+ 
     
     const anonymousAnalyses = getAnonymousAnalyses();
-    console.log('📊 Análises anônimas encontradas:', anonymousAnalyses.length);
+   
     
     if (anonymousAnalyses.length === 0) {
-      console.log('ℹ️ Nenhuma análise anônima para migrar');
+     
       return;
     }
 
@@ -108,7 +108,7 @@ const migrateAnonymousAnalyses = async (userId) => {
 
         if (response.ok) {
           migratedCount++;
-          console.log(`✅ Análise migrada: ${analysis.command.substring(0, 50)}...`);
+         
         } else {
           console.error(`❌ Erro ao migrar análise: ${analysis.command.substring(0, 50)}...`);
         }
@@ -117,12 +117,12 @@ const migrateAnonymousAnalyses = async (userId) => {
       }
     }
     
-    console.log(`✅ Migração concluída: ${migratedCount}/${anonymousAnalyses.length} análises migradas`);
+   
     
     // Limpar análises anônimas após migração bem-sucedida
     if (migratedCount > 0) {
       clearAnonymousAnalyses();
-      console.log('🧹 Análises anônimas limpas após migração');
+     
     }
     
   } catch (error) {
@@ -140,20 +140,20 @@ export const AuthProvider = ({ children }) => {
   const publicRoutes = useMemo(() => ['/login', '/register', '/signatures', '/landing', '/analysis', '/'], []);
 
   useEffect(() => {
-    console.log('🚀 AUTHCONTEXT: Inicializando sessão...');
+   
     // Get initial session
     const getInitialSession = async () => {
-      console.log('🔍 AUTHCONTEXT: Buscando sessão inicial...');
+     
       const { data: { session }, error } = await supabase.auth.getSession();
       if (error) {
         console.error('❌ AUTHCONTEXT: Erro ao buscar sessão:', error);
       } else if (session) {
-        console.log('✅ AUTHCONTEXT: Sessão encontrada:', session.user);
+       
         setUser(session.user);
       } else {
-        console.log('ℹ️ AUTHCONTEXT: Nenhuma sessão encontrada');
+       
       }
-      console.log('🏁 AUTHCONTEXT: Finalizando carregamento inicial');
+     
       setLoading(false);
     };
 
@@ -162,18 +162,17 @@ export const AuthProvider = ({ children }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔄 AUTHCONTEXT: Mudança de estado de autenticação:', event);
-        console.log('  - Evento:', event);
-        console.log('  - Session:', session);
+       
+
         
         if (session) {
-          console.log('✅ AUTHCONTEXT: Usuário autenticado:', session.user);
+         
           setUser(session.user);
         } else {
-          console.log('ℹ️ AUTHCONTEXT: Usuário deslogado');
+         
           setUser(null);
         }
-        console.log('🏁 AUTHCONTEXT: Finalizando carregamento após mudança');
+       
         setLoading(false);
       }
     );
@@ -183,42 +182,25 @@ export const AuthProvider = ({ children }) => {
 
   // Redirect logic
   useEffect(() => {
-    console.log('🔄 AUTHCONTEXT: useEffect executado');
-    console.log('  - loading:', loading);
-    console.log('  - pathname:', pathname);
-    console.log('  - user:', user);
+    
+   
     
     if (!loading) {
       // Verificar rotas públicas incluindo rotas dinâmicas
       const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/analysis/');
       const userIsAuthenticated = user !== null;
 
-      console.log('🔍 AUTHCONTEXT: Verificação de acesso');
-      console.log('  - pathname:', pathname);
-      console.log('  - pathname type:', typeof pathname);
-      console.log('  - pathname length:', pathname?.length);
-      console.log('  - publicRoutes:', publicRoutes);
-      console.log('  - isPublicRoute:', isPublicRoute);
-      console.log('  - userIsAuthenticated:', userIsAuthenticated);
-      console.log('  - user:', user);
-      console.log('  - publicRoutes.includes("/"):', publicRoutes.includes('/'));
-      console.log('  - publicRoutes.includes(pathname):', publicRoutes.includes(pathname));
+      
 
       if (!userIsAuthenticated && !isPublicRoute) {
-        console.log('❌ AUTHCONTEXT: Redirecionando para /landing');
-        console.log('  - Motivo: rota não é pública e usuário não autenticado');
-        console.log('  - Rota atual:', pathname);
-        console.log('  - Rotas públicas:', publicRoutes);
+        
         // User is not authenticated and trying to access protected route
         router.push('/landing');
       } else {
-        console.log('✅ AUTHCONTEXT: Acesso permitido');
-        console.log('  - Motivo: rota pública OU usuário autenticado');
-        console.log('  - Rota pública:', isPublicRoute);
-        console.log('  - Usuário autenticado:', userIsAuthenticated);
+       
       }
     } else {
-      console.log('⏳ AUTHCONTEXT: Ainda carregando, aguardando...');
+     
     }
   }, [user, loading, pathname, router, publicRoutes]);
 
@@ -253,7 +235,7 @@ export const AuthProvider = ({ children }) => {
       
       // Quando usuário faz login, criar nova sessão e migrar análises anônimas
       if (data.user) {
-        console.log('✅ Login bem-sucedido, criando nova sessão para usuário:', data.user.id);
+       
         
         // Criar nova sessão para o usuário logado
         await createUserSession(data.user.id);
@@ -279,7 +261,7 @@ export const AuthProvider = ({ children }) => {
       // Then handle Supabase signout in background
       const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error('Supabase signout error:', error);
+        
         // Don't throw error here since user is already redirected
       }
       

@@ -7,7 +7,6 @@ const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 horas em millisegundos
 export const getOrCreateSession = () => {
   try {
     if (typeof localStorage === 'undefined') {
-      console.log('🔑 getOrCreateSession: localStorage não disponível (SSR)');
       return null;
     }
 
@@ -19,16 +18,16 @@ export const getOrCreateSession = () => {
       
       // Verificar se a sessão ainda é válida
       if (session.created_at && (now - session.created_at) < SESSION_DURATION) {
-        console.log('🔑 Sessão existente encontrada:', session.id);
+       
         return session.id;
       } else {
-        console.log('🔑 Sessão expirada, removendo...');
+       
         localStorage.removeItem(SESSION_KEY);
       }
     }
     
     // Não criar sessão aqui - deixar o backend criar e retornar
-    console.log('🔑 Nenhuma sessão encontrada, aguardando criação pelo backend');
+    
     return null;
   } catch (error) {
     console.error('❌ Erro ao gerenciar sessão:', error);
@@ -68,7 +67,7 @@ export const clearSession = () => {
     }
     
     localStorage.removeItem(SESSION_KEY);
-    console.log('🔑 Sessão limpa');
+    
   } catch (error) {
     console.error('❌ Erro ao limpar sessão:', error);
   }
@@ -90,7 +89,7 @@ export const renewSession = () => {
       session.created_at = Date.now();
       
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-      console.log('🔑 Sessão renovada:', session.id);
+      
       return session.id;
     }
     
@@ -105,12 +104,12 @@ export const renewSession = () => {
 export const saveSessionFromBackend = (sessionId) => {
   try {
     if (typeof localStorage === 'undefined') {
-      console.log('🔑 saveSessionFromBackend: localStorage não disponível (SSR)');
+      
       return false;
     }
 
     if (!sessionId) {
-      console.warn('🔑 saveSessionFromBackend: sessionId não fornecido');
+      
       return false;
     }
 
@@ -120,7 +119,7 @@ export const saveSessionFromBackend = (sessionId) => {
     };
     
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    console.log('🔑 Sessão salva do backend:', sessionId);
+      
     
     return true;
   } catch (error) {

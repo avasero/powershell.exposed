@@ -31,7 +31,7 @@ function getCacheKey(command) {
 // Função para limpar todo o cache manualmente
 export function clearAnalysisCache() {
   analysisCache.clear()
-  console.log('Analysis cache cleared')
+  
 }
 
 // Função para verificar tamanho do cache
@@ -53,7 +53,7 @@ export async function analyzeCommand(command, ipAddress = null, ipLocation = nul
   const cached = analysisCache.get(cacheKey)
   
   if (cached) {
-    console.log('Cache hit for command:', command)
+    
     return cached.result
   }
 
@@ -63,9 +63,6 @@ export async function analyzeCommand(command, ipAddress = null, ipLocation = nul
     throw new Error('User not authenticated')
   }
 
-  console.log('Cache miss - fetching from backend for command:', command)
-  console.log('User IP address:', ipAddress)
-  console.log('User IP location:', ipLocation)
   
   // Log detalhado dos dados sendo enviados
   const requestBody = { 
@@ -77,13 +74,7 @@ export async function analyzeCommand(command, ipAddress = null, ipLocation = nul
     timezone: ipLocation?.timezone || null
   };
   
-  console.log('📤 Request body being sent to backend:');
-  console.log(JSON.stringify(requestBody, null, 2));
-  console.log('📍 Location data breakdown:');
-  console.log('  - Country:', requestBody.country);
-  console.log('  - City:', requestBody.city);
-  console.log('  - Region:', requestBody.region);
-  console.log('  - Timezone:', requestBody.timezone);
+
 
   const response = await fetch(`/api/analyze`, {
     method: 'POST',
@@ -93,8 +84,6 @@ export async function analyzeCommand(command, ipAddress = null, ipLocation = nul
     body: JSON.stringify(requestBody)
   })
 
-  console.log('Response status:', response.status)
-  console.log('Response ok:', response.ok)
 
   if (!response.ok) {
     const errorText = await response.text()
@@ -109,7 +98,7 @@ export async function analyzeCommand(command, ipAddress = null, ipLocation = nul
   }
 
   const result = await response.json()
-  console.log('Analysis result:', result)
+
   
   // Armazenar no cache
   analysisCache.set(cacheKey, {

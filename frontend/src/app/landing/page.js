@@ -69,10 +69,7 @@ export default function LandingPage() {
                   size="lg" 
                   className="w-full sm:w-auto"
                   onClick={() => {
-                    console.log('🚀 LANDING PAGE: Botão "Try Analysis Now" clicado!');
-                    console.log('  - Usuário autenticado:', isAuthenticated());
-                    console.log('  - User object:', user);
-                    console.log('  - Redirecionando para: /');
+                  
                   }}
                 >
                   Try Analysis Now

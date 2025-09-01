@@ -53,12 +53,7 @@ export default function AnalysisDetailsPage() {
   const [newCommand, setNewCommand] = useState("");
   const analysisExecutedRef = useRef(false);
 
-  // Debug: monitorar mudanças no rate limit (apenas em desenvolvimento)
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('📊 Rate limit:', { active: isTimerActive, timeLeft, count: rateLimitInfo?.current_count });
-    }
-  }, [rateLimitInfo, isTimerActive, timeLeft]);
+
 
   // Função para carregar análise por ID
   const loadAnalysis = useCallback(async () => {
@@ -66,9 +61,7 @@ export default function AnalysisDetailsPage() {
       setLoading(true);
       setError("");
       
-      console.log('🔍 Carregando análise por ID:', params.id);
       const analysisData = await getAnalysisById(params.id);
-      console.log('📥 Dados da análise carregados:', analysisData);
       
       // Processar dados da análise
       const analysisResult = analysisData.analysis_result || analysisData;
@@ -90,7 +83,6 @@ export default function AnalysisDetailsPage() {
       setResult(processedResult);
       
     } catch (err) {
-      console.error('❌ Erro ao carregar análise:', err);
       setError(err.message || "Failed to load analysis");
     } finally {
       setLoading(false);
@@ -106,7 +98,6 @@ export default function AnalysisDetailsPage() {
 
   // Função para análise de novo comando (reutilizada da página original)
   const performAnalysis = async (command, ipAddress, ipLocation) => {
-    console.log('🚀 Iniciando análise para comando:', command);
     try {
       setLoading(true);
       setError("");
@@ -136,7 +127,7 @@ export default function AnalysisDetailsPage() {
         session_id: sessionId
       };
 
-      console.log('📤 Enviando dados para API:', requestData);
+      
 
       // Chamar a API Python diretamente
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -146,13 +137,13 @@ export default function AnalysisDetailsPage() {
         body: JSON.stringify(requestData)
       }).then(async response => {
         const data = await response.json();
-        console.log('📥 Resposta da API:', { status: response.status, data });
+        
         
         // Verificar se precisa de rate limiting
         const needsHandling = handleRateLimitResponse(response, data);
         
         if (needsHandling) {
-          console.log('🚫 Rate limit detectado, parando análise');
+        
           throw new Error('Rate limit excedido');
         }
         
@@ -181,13 +172,13 @@ export default function AnalysisDetailsPage() {
         
         // Salvar session_id retornado pelo backend
         if (response.session_id && !user?.id) {
-          console.log('🔑 Salvando session_id do backend:', response.session_id);
+         
           saveSessionFromBackend(response.session_id);
         }
         
         // Se temos um analysis_id, redirecionar para a página específica da análise
         if (response.analysis_id) {
-          console.log('🔗 Redirecionando para análise específica:', response.analysis_id);
+         
           router.push(`/analysis/${response.analysis_id}`);
       return;
     }
@@ -210,7 +201,7 @@ export default function AnalysisDetailsPage() {
         // Salvar análise anônima em cookies se não estiver logado
         if (!user?.id) {
           try {
-            console.log('💾 Salvando análise anônima da API:', command);
+           
             saveAnonymousAnalysis({
               command: command,
               score: analysisData.risk_score,
@@ -220,14 +211,14 @@ export default function AnalysisDetailsPage() {
               analysis_id: response.analysis_id
             });
           } catch (error) {
-            console.error('Erro ao salvar análise anônima:', error);
+          
           }
         }
       } else {
         throw new Error(response.error || 'Analysis failed');
       }
     } catch (err) {
-      console.error('Analysis error:', err);
+     
       
       if (err.message === 'Rate limit excedido') {
         setLoading(false);
@@ -247,11 +238,11 @@ export default function AnalysisDetailsPage() {
   // Handle new command analysis
   const handleNewAnalysis = async () => {
     if (newCommand.trim()) {
-      console.log('🔄 Nova análise solicitada:', newCommand.trim());
+     
       
       // Verificar se já atingiu rate limit antes de prosseguir
       if (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit) {
-        console.log('🚫 Rate limit atingido, não permitindo nova análise');
+      
         setError("Rate limit atingido. Aguarde o timer ou resolva o captcha.");
         return;
       }

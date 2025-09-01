@@ -27,24 +27,11 @@ export default function Home() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Debug: monitorar mudanças no rate limit
-  useEffect(() => {
-    console.log('🏠 HOME - Rate limit info mudou:', rateLimitInfo);
-    console.log('🏠 HOME - Timer ativo:', isTimerActive);
-    console.log('🏠 HOME - Tempo restante:', timeLeft);
-  }, [rateLimitInfo, isTimerActive, timeLeft]);
 
-  // Debug logs reduzidos para melhor performance
-  if (process.env.NODE_ENV === 'development') {
-    console.log('🏠 HOME PAGE: Componente renderizado');
-  }
 
-  // Debug logs para IP e localização (apenas em desenvolvimento)
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 IP Address & Location:', { ipAddress, country: ipLocation?.country, loading: ipLoading });
-    }
-  }, [ipAddress, ipLocation, ipLoading, ipError]);
+
+
+
 
   // Verificar autenticação - REMOVIDO para permitir acesso de usuários não logados
   // useEffect(() => {
@@ -53,12 +40,7 @@ export default function Home() {
   //   }
   // }, [isAuthenticated, router]);
 
-  // Log de mudanças de autenticação (apenas em desenvolvimento)
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔐 HOME PAGE: Auth change -', { authenticated: isAuthenticated(), userId: user?.id });
-    }
-  }, [isAuthenticated, user, ipLoading]);
+
 
 
 
@@ -104,10 +86,6 @@ export default function Home() {
     setLoading(true); // Mostrar loading
     
     try {
-      console.log('🚀 Iniciando análise direta na página inicial:');
-      console.log('- Command:', command);
-      console.log('- IP Address:', ipAddress);
-      console.log('- IP Location:', ipLocation);
       
       // Obter ou criar sessão anônima
       const { getOrCreateSession, saveSessionFromBackend } = await import('../utils/session');
@@ -127,7 +105,7 @@ export default function Home() {
         session_id: sessionId
       };
 
-      console.log('📤 Enviando dados para API:', requestData);
+
 
       // Chamar a API Python diretamente
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -138,26 +116,22 @@ export default function Home() {
       });
 
       const data = await response.json();
-      console.log('📥 Resposta da API:', { status: response.status, data });
       
       // Verificar se precisa de rate limiting
       const needsHandling = handleRateLimitResponse(response, data);
       
       if (needsHandling) {
-        console.log('🚫 Rate limit detectado');
         setLoading(false);
         return;
       }
       
       if (!response.ok) {
-        console.error('❌ Erro HTTP da API:', response.status, data);
         setError(data.error || `HTTP error! status: ${response.status}`);
         setLoading(false);
         return;
       }
       
       if (data.success && data.analysis_id) {
-        console.log('🔗 Redirecionando diretamente para análise:', data.analysis_id);
         
         // Salvar session_id se necessário
         if (data.session_id && !user?.id) {
@@ -177,7 +151,7 @@ export default function Home() {
               analysis_id: data.analysis_id
             });
           } catch (error) {
-            console.error('Erro ao salvar análise anônima:', error);
+            // Ignorar erro ao salvar análise anônima
           }
         }
         
@@ -189,7 +163,6 @@ export default function Home() {
       }
       
     } catch (err) {
-      console.error('❌ Erro na análise:', err);
       setError(err.message || 'Analysis failed');
       setLoading(false);
     }
@@ -241,7 +214,7 @@ export default function Home() {
                 value={command}
                 onChange={handleCommandChange}
                 onSubmit={() => handleAnalyze({ preventDefault: () => {} })}
-                placeholder="Type a PowerShell command (e.g., Get-Process, ls | sort, Start-Service -Name...) • Press Enter to analyze"
+                placeholder="Type a PowerShell command (e.g., Get-Process, ls | sort, Start-Service -Name...) • Press Enter to evaluate"
                 error={error}
               />
             </div>
@@ -258,7 +231,7 @@ export default function Home() {
                     Analyzing...
                   </div>
                 ) : (
-                  'Analyze'
+                  'Evaluate'
                 )}
               </ThemedButton>
             </div>
@@ -356,7 +329,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="font-mono text-sm sm:text-base" style={{color: 'var(--accent)'}}>
-              Type a command for analysis
+              Type a command for evaluation
             </div>
           )}
         </div>

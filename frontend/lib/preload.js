@@ -20,11 +20,11 @@ export async function preloadSignatures() {
     if (response.ok) {
       const result = await response.json()
       preloadedData = result
-      console.log('Indicators preloaded successfully')
+      
       return result
     }
   } catch (error) {
-    console.log('Preload failed, but that\'s ok:', error)
+    
   }
   return null
 }

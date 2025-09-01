@@ -44,7 +44,7 @@ const exampleIndicators = [
 ];
 
 async function setupDatabase() {
-  console.log('🚀 Configurando banco de dados...');
+ 
   
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/setup-database`, {
@@ -61,8 +61,7 @@ async function setupDatabase() {
     const result = await response.json();
     
     if (response.ok) {
-      console.log('✅', result.message);
-      console.log(`📊 Indicadores inseridos: ${result.indicators_inserted}`);
+     
     } else {
       console.error('❌ Erro:', result.error);
       if (result.errors) {
@@ -78,7 +77,7 @@ async function setupDatabase() {
 }
 
 async function updateDatabase(changedFiles = [], indicators = []) {
-  console.log('🔄 Atualizando banco de dados...');
+  
   
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/update-database`, {
@@ -96,11 +95,10 @@ async function updateDatabase(changedFiles = [], indicators = []) {
     const result = await response.json();
     
     if (response.ok) {
-      console.log('✅', result.message);
-      console.log(`📊 Indicadores processados: ${result.indicators_processed}/${result.total_indicators}`);
+      
       
       if (result.errors && result.errors.length > 0) {
-        console.log('⚠️ Erros encontrados:');
+       
         result.errors.forEach(error => console.error('  -', error));
       }
     } else {
@@ -115,7 +113,7 @@ async function updateDatabase(changedFiles = [], indicators = []) {
 }
 
 async function parseYamlIndicator(yamlContent, filePath = null) {
-  console.log('📋 Fazendo parse do indicador YAML...');
+ 
   
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/parse-yaml-indicator`, {
@@ -133,8 +131,7 @@ async function parseYamlIndicator(yamlContent, filePath = null) {
     const result = await response.json();
     
     if (response.ok) {
-      console.log('✅', result.message);
-      console.log('📄 Indicador processado:', result.indicator.name);
+     
     } else {
       console.error('❌ Erro:', result.error);
     }
@@ -148,8 +145,8 @@ async function parseYamlIndicator(yamlContent, filePath = null) {
 
 // Exemplo de uso
 async function main() {
-  console.log('🎯 Demo das Edge Functions - PSExposed');
-  console.log('=======================================\n');
+  
+ 
 
   // Verificar configuração
   if (SUPABASE_URL === 'https://your-project.supabase.co' || SUPABASE_ANON_KEY === 'your-anon-key') {
@@ -162,7 +159,7 @@ async function main() {
   try {
     // 1. Configurar banco de dados (equivalente ao setup_database.py)
     await setupDatabase();
-    console.log('');
+    
 
     // 2. Exemplo de atualização (equivalente ao update_database.py)
     const updatedIndicator = {
@@ -175,7 +172,7 @@ async function main() {
       ['ps_indicator_invoke_expression.yaml'], 
       [updatedIndicator]
     );
-    console.log('');
+   
 
     // 3. Exemplo de parse de YAML
     const yamlExample = `
@@ -195,11 +192,11 @@ reference:
 
     await parseYamlIndicator(yamlExample, 'test_indicator.yaml');
 
-    console.log('\n🎉 Demo concluída com sucesso!');
-    console.log('As Edge Functions estão funcionando corretamente.');
+    
+   
 
   } catch (error) {
-    console.error('\n💥 Demo falhou:', error.message);
+    console.error('❌ Demo falhou:', error.message);
     process.exit(1);
   }
 }

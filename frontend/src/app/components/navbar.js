@@ -71,13 +71,10 @@ export default function Navbar() {
                   color: 'var(--background)'
                 }}
                 onClick={() => {
-                  console.log('🚀 NAVBAR: Botão "Try Analysis" clicado!');
-                  console.log('  - Usuário autenticado:', isAuthenticated());
-                  console.log('  - User object:', user);
-                  console.log('  - Redirecionando para: /');
+                  
                 }}
               >
-                Try Analysis
+                Try Evaluation
               </Link>
               <Link 
                 href="/login"
@@ -130,10 +127,7 @@ export default function Navbar() {
                 color: 'var(--background)'
               }}
               onClick={() => {
-                console.log('🚀 NAVBAR MOBILE: Botão "Try" clicado!');
-                console.log('  - Usuário autenticado:', isAuthenticated());
-                console.log('  - User object:', user);
-                console.log('  - Redirecionando para: /');
+               
               }}
             >
               Try

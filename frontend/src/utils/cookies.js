@@ -7,33 +7,31 @@ const MAX_ANALYSES = 10; // Máximo de análises anônimas armazenadas
 export const getAnonymousAnalyses = () => {
   try {
     if (typeof document === 'undefined') {
-      console.log('🍪 getAnonymousAnalyses: document não disponível (SSR)');
+
       return [];
     }
     
-    console.log('🍪 getAnonymousAnalyses: buscando cookie:', COOKIE_NAME);
-    console.log('🍪 getAnonymousAnalyses: todos os cookies:', document.cookie);
+   
     
     const cookie = document.cookie
       .split('; ')
       .find(row => row.startsWith(COOKIE_NAME + '='));
     
     if (!cookie) {
-      console.log('🍪 getAnonymousAnalyses: cookie não encontrado');
+    
       return [];
     }
     
-    console.log('🍪 getAnonymousAnalyses: cookie encontrado:', cookie);
+   
     
     const value = cookie.split('=')[1];
-    console.log('🍪 getAnonymousAnalyses: valor do cookie (encoded):', value);
+   
     
     const decodedValue = decodeURIComponent(value);
-    console.log('🍪 getAnonymousAnalyses: valor do cookie (decoded):', decodedValue);
+    
     
     const parsedData = JSON.parse(decodedValue);
-    console.log('🍪 getAnonymousAnalyses: dados parseados:', parsedData);
-    console.log('🍪 getAnonymousAnalyses: número de análises:', parsedData.length);
+   
     
     return parsedData;
   } catch (error) {
@@ -46,13 +44,12 @@ export const getAnonymousAnalyses = () => {
 // Função para salvar uma nova análise anônima
 export const saveAnonymousAnalysis = (analysis) => {
   try {
-    console.log('🍪 Salvando análise anônima:', analysis.command);
-    console.log('🍪 Dados da análise:', analysis);
+   
     
     if (typeof document === 'undefined') return;
     
     const analyses = getAnonymousAnalyses();
-    console.log('🍪 Análises existentes:', analyses.length);
+   
     
     // Criar objeto de análise anônima (versão compacta para economizar espaço)
     const anonymousAnalysis = {
@@ -76,7 +73,7 @@ export const saveAnonymousAnalysis = (analysis) => {
       analysis_id: analysis.analysis_id // Armazenar o ID da análise para links compartilháveis
     };
     
-    console.log('🍪 Análise anônima criada:', anonymousAnalysis);
+   
     
     // Adicionar nova análise no início da lista
     analyses.unshift(anonymousAnalysis);
@@ -86,13 +83,12 @@ export const saveAnonymousAnalysis = (analysis) => {
       analyses.splice(MAX_ANALYSES);
     }
     
-    console.log('🍪 Total de análises após adição:', analyses.length);
     
     // Verificar se o cookie não ficará muito grande (limite de 4KB)
     const cookieData = JSON.stringify(analyses);
     const cookieSize = cookieData.length;
     
-    console.log('🍪 Tamanho do cookie:', cookieSize, 'bytes');
+   
     
     if (cookieSize > 4000) {
       console.warn('⚠️ Cookie muito grande, removendo análises mais antigas');
@@ -102,7 +98,7 @@ export const saveAnonymousAnalysis = (analysis) => {
         const newCookieData = JSON.stringify(analyses);
         cookieSize = newCookieData.length;
       }
-      console.log('🍪 Análises após redução:', analyses.length);
+     
     }
     
     // Salvar no cookie (expira em 30 dias)
@@ -112,16 +108,16 @@ export const saveAnonymousAnalysis = (analysis) => {
     const finalCookieData = JSON.stringify(analyses);
     document.cookie = `${COOKIE_NAME}=${encodeURIComponent(finalCookieData)}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
     
-    console.log('🍪 Cookie salvo com sucesso');
+   
     
     // Verificar se foi salvo corretamente
     const savedAnalyses = getAnonymousAnalyses();
-    console.log('🍪 Verificação: análises salvas:', savedAnalyses.length);
+   
     
     // Verificar se a análise foi realmente salva
     const savedAnalysis = savedAnalyses.find(a => a.id === anonymousAnalysis.id);
     if (savedAnalysis) {
-      console.log('✅ Análise salva com sucesso e verificada');
+
     } else {
       console.warn('⚠️ Análise não foi encontrada após salvamento');
     }
@@ -222,20 +218,18 @@ export const getAnonymousAnalysesStats = () => {
 export const debugCookies = () => {
   try {
     if (typeof document === 'undefined') {
-      console.log('🍪 debugCookies: document não disponível (SSR)');
+     
       return;
     }
     
-    console.log('🍪 === DEBUG COOKIES ===');
-    console.log('🍪 Nome do cookie:', COOKIE_NAME);
-    console.log('🍪 Todos os cookies:', document.cookie);
+    
     
     const cookie = document.cookie
       .split('; ')
       .find(row => row.startsWith(COOKIE_NAME + '='));
     
     if (!cookie) {
-      console.log('🍪 Cookie não encontrado');
+
       return;
     }
     
@@ -243,17 +237,14 @@ export const debugCookies = () => {
     const decodedValue = decodeURIComponent(value);
     const parsedData = JSON.parse(decodedValue);
     
-    console.log('🍪 Cookie encontrado:', cookie);
-    console.log('🍪 Valor decodificado:', decodedValue);
-    console.log('🍪 Dados parseados:', parsedData);
-    console.log('🍪 Número de análises:', parsedData.length);
+   
+    
     
     if (parsedData.length > 0) {
-      console.log('🍪 Primeira análise:', parsedData[0]);
-      console.log('🍪 Última análise:', parsedData[parsedData.length - 1]);
+     
     }
     
-    console.log('🍪 === FIM DEBUG COOKIES ===');
+    
   } catch (error) {
     console.error('❌ Erro no debug dos cookies:', error);
   }

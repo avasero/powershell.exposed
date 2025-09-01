@@ -17,27 +17,25 @@ export default function AnalysisChat() {
   const router = useRouter();
 
   useEffect(() => {
-    console.log('🔄 AnalysisChat useEffect executado');
-    console.log('🔄 isAuthenticated():', isAuthenticated());
-    console.log('🔄 user:', user);
+    
     
     if (isAuthenticated()) {
-      console.log('🔄 Usuário autenticado, carregando análises do banco');
+     
       setIsAnonymous(false);
       loadRecentAnalyses();
     } else {
-      console.log('🔄 Usuário anônimo, carregando análises dos cookies');
+      
       setIsAnonymous(true);
       loadAnonymousAnalyses();
     }
   }, [isAuthenticated, user]);
 
-  // Recarregar análises quando usuário muda (login/logout)
+ 
   useEffect(() => {
-    console.log('🔄 AnalysisChat: mudança de usuário detectada');
+    
     
     if (isAuthenticated() && user) {
-      console.log('🔄 Usuário logado, recarregando análises do banco');
+      
       setIsAnonymous(false);
       // Aguardar um pouco para dar tempo da migração acontecer
       setTimeout(() => {
@@ -49,46 +47,44 @@ export default function AnalysisChat() {
   const loadRecentAnalyses = async () => {
     try {
       setLoading(true);
-      console.log('🔄 loadRecentAnalyses: iniciando carregamento do banco');
+      
       
       // Carregar TODAS as análises do usuário para o chat
       const data = await getAllUserAnalyses();
-      console.log('🔄 loadRecentAnalyses: dados obtidos do banco:', data);
-      console.log('🔄 loadRecentAnalyses: número de análises:', data?.length || 0);
+     
       
       setAnalyses(data || []);
-      console.log('🔄 loadRecentAnalyses: análises definidas no estado');
+     
     } catch (err) {
-      console.error('❌ Error loading analyses from database:', err);
+      
       setAnalyses([]);
     } finally {
       setLoading(false);
-      console.log('🔄 loadRecentAnalyses: carregamento finalizado');
+     
     }
   };
 
   const loadAnonymousAnalyses = () => {
     try {
-      console.log('🔄 loadAnonymousAnalyses: iniciando carregamento');
+      
       setLoading(true);
       
       const data = getAnonymousAnalyses();
-      console.log('🔄 loadAnonymousAnalyses: dados obtidos:', data);
-      console.log('🔄 loadAnonymousAnalyses: número de análises:', data.length);
+      
       
       // Limitar a apenas as últimas 5 análises para o chat
       const limitedData = data.slice(0, 5);
-      console.log('🔄 loadAnonymousAnalyses: análises limitadas a 5:', limitedData.length);
+
       
       setAnalyses(limitedData);
-      console.log('🔄 loadAnonymousAnalyses: análises definidas no estado');
+      
     } catch (err) {
       console.error('❌ Error loading anonymous analyses:', err);
       console.error('❌ Stack trace:', err.stack);
       setAnalyses([]);
     } finally {
       setLoading(false);
-      console.log('🔄 loadAnonymousAnalyses: carregamento finalizado');
+      
     }
   };
 
@@ -132,7 +128,7 @@ export default function AnalysisChat() {
         setDeleting(true);
         // Apenas limpar o estado local - não deletar do banco
         setAnalyses([]);
-        console.log('🧹 TODAS as análises limpas da vista do usuário logado - análises mantidas seguras no banco');
+        
       } catch (err) {
         console.error('Error clearing chat:', err);
         alert('Error clearing chat. Please try again.');
@@ -167,10 +163,10 @@ export default function AnalysisChat() {
         <div className="flex items-center justify-between">
           <div>
                                      <h2 className="font-mono font-semibold text-lg" style={{color: 'var(--accent)'}}>
-              {isAnonymous ? 'Recent Analyses' : 'All Your Analyses'}
+              {isAnonymous ? 'Recent Evaluations' : 'All Your Evaluations'}
             </h2>
             <p className="font-mono text-xs mt-1" style={{color: 'var(--muted-foreground)'}}>
-              {isAnonymous ? 'Last 5 analyses (stored in cookies)' : 'All saved analyses from your account'}
+              {isAnonymous ? 'Last 5 evaluations (stored in cookies)' : 'All saved evaluations from your account'}
             </p>
              {isAnonymous && (
                <div className="flex items-center gap-2">

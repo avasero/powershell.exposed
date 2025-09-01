@@ -51,12 +51,7 @@ export default function AnalysisPage() {
   const [newCommand, setNewCommand] = useState("");
   const analysisExecutedRef = useRef(false);
 
-  // Debug: monitorar mudanças no rate limit (apenas em desenvolvimento)
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('📊 Rate limit:', { active: isTimerActive, timeLeft, count: rateLimitInfo?.current_count });
-    }
-  }, [rateLimitInfo, isTimerActive, timeLeft]);
+
 
   // Remover verificação de autenticação - permitir análises anônimas
   // useEffect(() => {
@@ -68,9 +63,6 @@ export default function AnalysisPage() {
   // Função de análise local removida - agora respeitamos sempre o rate limiting da API
 
   const performAnalysis = async (command, ipAddress, ipLocation) => {
-    console.log('🚀 Iniciando análise para comando:', command);
-    console.log('🚀 Timestamp da análise:', Date.now());
-    console.log('🚀 Stack trace:', new Error().stack);
     try {
       setLoading(true);
       setError("");
@@ -100,7 +92,7 @@ export default function AnalysisPage() {
         session_id: sessionId
       };
 
-      console.log('📤 Enviando dados para API:', requestData);
+
 
       // Chamar a API Python diretamente (não via proxy)
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -110,28 +102,23 @@ export default function AnalysisPage() {
         body: JSON.stringify(requestData)
       }).then(async response => {
         const data = await response.json();
-        console.log('📥 Resposta da API:', { status: response.status, data });
         
         // Verificar se precisa de rate limiting
         const needsHandling = handleRateLimitResponse(response, data);
         
         if (needsHandling) {
-          console.log('🚫 Rate limit detectado, parando análise');
           throw new Error('Rate limit excedido');
         }
         
         if (!response.ok) {
-          console.error('❌ Erro HTTP da API:', response.status, data);
           throw new Error(data.error || `HTTP error! status: ${response.status}`);
         }
         
         return data;
       }).catch(error => {
-        console.error('❌ Erro na chamada da API:', error);
         if (error.message === 'Rate limit excedido') {
-          throw error; // Re-throw rate limit error - NÃO fazer fallback
+          throw error;
         }
-        // Para outros erros, também não fazer fallback - mostrar erro real
         throw new Error(`Erro da API: ${error.message}`);
       });
       
@@ -146,13 +133,11 @@ export default function AnalysisPage() {
         
         // Salvar session_id retornado pelo backend
         if (response.session_id && !user?.id) {
-          console.log('🔑 Salvando session_id do backend:', response.session_id);
           saveSessionFromBackend(response.session_id);
         }
         
         // Se temos um analysis_id, redirecionar para a página específica da análise
         if (response.analysis_id) {
-          console.log('🔗 Redirecionando para análise específica:', response.analysis_id);
           router.push(`/analysis/${response.analysis_id}`);
           return; // Não processar mais nada, pois vamos redirecionar
         }
@@ -174,25 +159,22 @@ export default function AnalysisPage() {
         // Salvar análise anônima em cookies se não estiver logado
         if (!user?.id) {
           try {
-            console.log('💾 Salvando análise anônima da API:', command);
             saveAnonymousAnalysis({
               command: command,
               score: analysisData.risk_score,
               severity: analysisData.is_malicious ? "malicious" : "safe",
               signatures: analysisData.signatures_detected || [],
               cmdlets_detected: analysisData.cmdlets_detected || [],
-              analysis_id: response.analysis_id // Incluir o ID da análise
+              analysis_id: response.analysis_id
             });
           } catch (error) {
-            console.error('Erro ao salvar análise anônima:', error);
+            // Ignorar erro ao salvar análise anônima
           }
         }
       } else {
         throw new Error(response.error || 'Analysis failed');
       }
     } catch (err) {
-      console.error('Analysis error:', err);
-      
       // Se é erro de rate limit, não prosseguir - apenas mostrar o erro
       if (err.message === 'Rate limit excedido') {
         setLoading(false);
@@ -201,9 +183,6 @@ export default function AnalysisPage() {
       
       // Para outros erros da API, mostrar o erro sem fallback
       setError(err.message);
-      
-      // Não fazer fallback para análise local - mostrar apenas o erro
-      console.log('❌ Erro na análise, não fazendo fallback local');
       setResult(null);
     } finally {
       setLoading(false);
@@ -212,9 +191,6 @@ export default function AnalysisPage() {
 
   // Análise otimizada usando backend Python
   useEffect(() => {
-    console.log('🔄 useEffect executado - params:', params.toString());
-    console.log('🔄 useEffect executado - timestamp:', Date.now());
-    console.log('🔄 Análise já executada?', analysisExecutedRef.current);
     
     const command = params.get("cmd") || "";
     const ipAddress = params.get("ip") || null;
@@ -226,7 +202,6 @@ export default function AnalysisPage() {
     setCmd(command);
     
     if (command.trim() && !analysisExecutedRef.current) {
-      console.log('📝 Comando encontrado, iniciando análise:', command);
       analysisExecutedRef.current = true; // Marcar como executada
       
       // Criar objeto de localização
@@ -238,10 +213,7 @@ export default function AnalysisPage() {
       };
       
       performAnalysis(command, ipAddress, ipLocation);
-    } else if (command.trim()) {
-      console.log('📝 Comando encontrado, mas análise já foi executada');
-    } else {
-      console.log('❌ Nenhum comando encontrado');
+    } else if (!command.trim()) {
       setLoading(false);
       setResult({
         score: 0,
@@ -260,11 +232,8 @@ export default function AnalysisPage() {
   // Handle new command analysis
   const handleNewAnalysis = async () => {
     if (newCommand.trim()) {
-      console.log('🔄 Nova análise solicitada:', newCommand.trim());
-      
       // Verificar se já atingiu rate limit antes de prosseguir
       if (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit) {
-        console.log('🚫 Rate limit atingido, não permitindo nova análise');
         setError("Rate limit atingido. Aguarde o timer ou resolva o captcha.");
         return;
       }
