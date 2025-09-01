@@ -5,6 +5,7 @@ import re
 import os
 import json
 import time
+import uuid
 import aiohttp 
 from supabase import create_client, Client
 from dotenv import load_dotenv
@@ -319,7 +320,24 @@ async def get_or_create_session(supabase: Client, user_id: str = None, ip_addres
 
 signatures_cache = None
 cache_timestamp = 0
-CACHE_DURATION = 10 * 60 * 1000  
+CACHE_DURATION = 10 * 60 * 1000
+
+# Mapeamento UUID -> Database ID para análises
+# Em produção, isso deveria usar Redis ou similar para persistência
+analysis_uuid_mapping = {}  # {uuid: db_id}
+analysis_id_mapping = {}    # {db_id: uuid} para busca reversa
+
+def generate_analysis_uuid(db_id: int) -> str:
+    """Gera um UUID único para uma análise e cria o mapeamento"""
+    analysis_uuid = str(uuid.uuid4())
+    analysis_uuid_mapping[analysis_uuid] = db_id
+    analysis_id_mapping[db_id] = analysis_uuid
+    print(f"🔗 UUID gerado: {analysis_uuid} -> DB ID: {db_id}")
+    return analysis_uuid
+
+def get_db_id_from_uuid(analysis_uuid: str) -> int:
+    """Retorna o ID do banco a partir do UUID público"""
+    return analysis_uuid_mapping.get(analysis_uuid)  
 
 async def load_signatures_from_db() -> list:
     global signatures_cache, cache_timestamp
@@ -571,18 +589,47 @@ async def create_user_session_endpoint(request: Request):
         )
 
 @app.get("/analysis/{analysis_id}")
-async def get_analysis_by_id(analysis_id: int):
+async def get_analysis_by_id(analysis_id: str):
     """
-    Busca uma análise específica por ID
+    Busca uma análise específica por UUID público ou ID do banco (compatibilidade)
     Permite acesso público para análises compartilháveis
     """
     try:
         print(f"🔍 Buscando análise com ID: {analysis_id}")
         
+        # Verificar se é um UUID (formato: 8-4-4-4-12 caracteres)
+        import re
+        uuid_pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+        is_uuid = re.match(uuid_pattern, analysis_id, re.IGNORECASE)
+        
+        db_id = None
+        
+        if is_uuid:
+            # Tentar converter UUID para ID do banco
+            db_id = get_db_id_from_uuid(analysis_id)
+            if not db_id:
+                print(f"❌ UUID não encontrado no mapeamento: {analysis_id}")
+                return JSONResponse(
+                    {"error": "Analysis not found"},
+                    status_code=404
+                )
+            print(f"🔗 UUID {analysis_id} mapeado para DB ID: {db_id}")
+        else:
+            # Assumir que é um ID do banco (compatibilidade com análises antigas)
+            try:
+                db_id = int(analysis_id)
+                print(f"🔄 Usando ID do banco diretamente: {db_id} (compatibilidade)")
+            except ValueError:
+                print(f"❌ ID inválido: {analysis_id}")
+                return JSONResponse(
+                    {"error": "Invalid analysis ID"},
+                    status_code=400
+                )
+        
         supabase = get_supabase_client()
         
         # Buscar análise sem restrição de usuário para permitir compartilhamento
-        response = supabase.table('powershell_analyses').select('*').eq('id', analysis_id).single().execute()
+        response = supabase.table('powershell_analyses').select('*').eq('id', db_id).single().execute()
         
         if not response.data:
             return JSONResponse(
@@ -1047,10 +1094,12 @@ async def analyze_command_pcre2(request: Request):
             print(f"❌ Detalhes do erro: {str(db_error)}")
             db_response = None
         
-        # Capturar o ID da análise salva se disponível
-        analysis_id = None
+        # Capturar o ID da análise salva e gerar UUID público
+        analysis_uuid = None
         if db_response and db_response.data:
-            analysis_id = db_response.data[0].get('id')
+            db_id = db_response.data[0].get('id')
+            if db_id:
+                analysis_uuid = generate_analysis_uuid(db_id)
         
         return JSONResponse({
             "success": True,
@@ -1069,7 +1118,7 @@ async def analyze_command_pcre2(request: Request):
                     "cache_age_minutes": round((int(time.time() * 1000) - cache_timestamp) / 60000, 1) if cache_timestamp > 0 else 0
                 }
             },
-            "analysis_id": analysis_id,
+            "analysis_id": analysis_uuid,
             "session_id": session_id
         })
         

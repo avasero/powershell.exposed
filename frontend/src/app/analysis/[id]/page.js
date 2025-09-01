@@ -189,9 +189,9 @@ export default function AnalysisDetailsPage() {
         if (response.analysis_id) {
           console.log('🔗 Redirecionando para análise específica:', response.analysis_id);
           router.push(`/analysis/${response.analysis_id}`);
-          return;
-        }
-        
+      return;
+    }
+
         const analysisResult = {
           score: analysisData.risk_score,
           severity: analysisData.is_malicious ? "malicious" : "safe",
@@ -308,8 +308,8 @@ export default function AnalysisDetailsPage() {
         <div className="text-xs text-center mt-2" style={{color: 'var(--muted-foreground)'}}>
           Press Enter or click Evaluate to analyze a new command • Shift+Enter for new lines
         </div>
-      </div>
-
+          </div>
+          
       {/* Rate Limit Info - Design Melhorado (igual à página principal) */}
       {rateLimitInfo && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mt-4 mb-6 rounded-lg border-2" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
@@ -319,7 +319,7 @@ export default function AnalysisDetailsPage() {
               <div className="font-mono text-sm mb-2" style={{color: 'var(--muted-foreground)'}}>
                 <strong>Notice:</strong> You have made <span style={{color: 'var(--accent)'}}>{rateLimitInfo.current_count}</span> of <span style={{color: 'var(--accent)'}}>{rateLimitInfo.limit}</span> allowed searches in {rateLimitInfo.window_seconds} seconds.
               </div>
-            </div>
+        </div>
 
             {rateLimitInfo.current_count >= rateLimitInfo.limit && (
               <div>
@@ -328,9 +328,9 @@ export default function AnalysisDetailsPage() {
                   <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border-2 border-red-500" style={{backgroundColor: 'var(--background)'}}>
                     <span className="text-2xl">🚫</span>
                     <span className="font-mono font-bold text-red-500">Rate limit reached</span>
-                  </div>
-                </div>
-                
+          </div>
+        </div>
+
                 {/* Timer Elegante */}
                 {isTimerActive && timeLeft > 0 && (
                   <div className="text-center">
@@ -341,8 +341,8 @@ export default function AnalysisDetailsPage() {
                       {/* Título */}
                       <div className="font-mono font-bold text-xl mb-3" style={{color: 'var(--accent)'}}>
                         Wait for reset
-                      </div>
-                      
+                </div>
+                
                       {/* Contador Grande */}
                       <div className="font-mono text-3xl font-bold mb-4 px-4 py-2 rounded-lg border" style={{
                         color: 'var(--accent)', 
@@ -367,14 +367,14 @@ export default function AnalysisDetailsPage() {
                           }}
                         ></div>
                       </div>
-                    </div>
+                      </div>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
              {/* Command Display */}
        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 p-3 sm:p-4" style={{backgroundColor: 'var(--muted)'}}>
@@ -382,9 +382,9 @@ export default function AnalysisDetailsPage() {
          <div className="flex items-start">
            <span className="font-mono text-sm sm:text-base break-all" style={{color: 'var(--foreground)'}}>
              {cmd}
-           </span>
-         </div>
-       </div>
+                </span>
+              </div>
+            </div>
 
      
        {/* Cumulative Base Score Display */}
@@ -397,8 +397,8 @@ export default function AnalysisDetailsPage() {
             {/* Severity Legend no canto superior direito */}
             <div className="absolute top-4 right-4">
               <SeverityLegend />
-            </div>
-            
+                </div>
+                
             <div className="text-xl sm:text-2xl font-mono font-bold mb-4 text-green-400">
               Cumulative Base Score
             </div>
@@ -432,9 +432,9 @@ export default function AnalysisDetailsPage() {
                 })()}
               </div>
             )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
              {/* Individual Patterns Details */}
        {result && result.signatures && result.signatures.length > 0 && (
          <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
@@ -469,10 +469,10 @@ export default function AnalysisDetailsPage() {
               <>
                                  {/* Detected Patterns importantes */}
                 {realSignatures.length > 0 && (
-                  <div className="mb-6">
+          <div className="mb-6">
                                          <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{color: 'var(--foreground)'}}>
                        Detected Patterns
-                     </h2>
+            </h2>
                     <div className="space-y-4">
                       {realSignatures.map((signature, index) => (
                         <AnalysisCard
@@ -496,14 +496,14 @@ export default function AnalysisDetailsPage() {
                             matchesDetails: signature.matches_details || signature.matchesDetails || []
                           }}
                         />
-                      ))}
-                    </div>
-                  </div>
-                )}
+              ))}
+            </div>
+          </div>
+        )}
 
                                   {/* PowerShell Cmdlets básicos - cards compactos */}
                   {basicCmdlets.length > 0 && (
-                    <div className="mb-6">
+          <div className="mb-6">
                       <h3 className="text-base font-mono font-bold mb-3" style={{color: 'var(--muted-foreground)'}}>
                         PowerShell Cmdlets ({basicCmdlets.length})
                       </h3>
@@ -524,18 +524,18 @@ export default function AnalysisDetailsPage() {
                           {cmdlet.matches_found > 1 && (
                             <div className="text-xs font-mono mt-1" style={{color: 'var(--accent)'}}>
                               {cmdlet.matches_found} matches • Base: {cmdlet.base_score || cmdlet.score}
-                            </div>
+                  </div>
                           )}
-                        </div>
-                      ))}
-                    </div>
+                </div>
+              ))}
+            </div>
                   </div>
                 )}
               </>
             );
           })()}
-        </div>
-      )}
+          </div>
+        )}
 
       {/* No Indicators Message */}
       {result && (!result.signatures || result.signatures.length === 0) && totalScore === 0 && (
@@ -543,13 +543,13 @@ export default function AnalysisDetailsPage() {
           <div className="bg-gray-800 border border-gray-600 rounded-lg p-6 text-center">
             <h2 className="text-lg sm:text-xl font-mono font-bold mb-2 text-green-400">
               No Malicious Patterns Detected
-            </h2>
+              </h2>
             <p className="text-sm sm:text-base font-mono" style={{color: 'var(--muted-foreground)'}}>
               This command appears to be safe based on our signature database.
             </p>
-          </div>
-        </div>
-      )}
+              </div>
+            </div>
+          )}
 
       {/* Further Notes */}
       {result && (
@@ -557,70 +557,70 @@ export default function AnalysisDetailsPage() {
           <div className="border rounded-lg p-4" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--primary-purple)'}}>
                          <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--primary-purple)'}}>
                Evaluation Notes
-             </h2>
+              </h2>
                          <div className="font-mono text-sm space-y-3" style={{color: 'var(--muted-foreground)'}}>
                {result.details && (
                  <div className="p-3 rounded bg-gray-800">
                    <strong>Analysis Summary:</strong> {result.details}
-                 </div>
-               )}
+            </div>
+          )}
                
                                {/* Risk Assessment */}
                 {totalScore > 0 && (
                   <div className="flex items-start gap-2">
                     <span style={{color: 'var(--accent)'}}>•</span>
                     <span><strong>Risk Level:</strong> {totalScore >= 10 ? 'CRITICAL' : totalScore >= 8 ? 'HIGH' : totalScore >= 5 ? 'MEDIUM' : totalScore >= 2 ? 'LOW' : 'INFORMATIONAL'} ({totalScore.toFixed(1)}/10)</span>
-                  </div>
-                )}
-               
+          </div>
+        )}
+
                                {/* Detection Patterns */}
                 {result.signatures && result.signatures.length > 0 && (
                   <div className="flex items-start gap-2">
                     <span style={{color: 'var(--accent)'}}>•</span>
                     <span><strong>Detected Patterns:</strong> {result.signatures.length} signature{result.signatures.length !== 1 ? 's' : ''} identified using MITRE ATT&CK framework</span>
-                  </div>
-                )}
-               
+          </div>
+        )}
+
                {/* Suspicious Activity Warning */}
                {result.signatures && result.signatures.length > 0 && (
                  <div className="flex items-start gap-2">
                    <span style={{color: 'var(--accent)'}}>•</span>
                    <span><strong>Activity Assessment:</strong> This command shows potentially suspicious behavior patterns that require careful review and context analysis</span>
-                 </div>
-               )}
-               
+          </div>
+        )}
+
                {/* MITRE ATT&CK Coverage */}
                {result.tactics && result.tactics.length > 0 && (
-                 <div className="flex items-start gap-2">
-                   <span style={{color: 'var(--accent)'}}>•</span>
+                <div className="flex items-start gap-2">
+                  <span style={{color: 'var(--accent)'}}>•</span>
                    <span><strong>MITRE ATT&CK Coverage:</strong> {result.tactics.length} tactic{result.tactics.length !== 1 ? 's' : ''} and {result.techniques ? result.techniques.length : 0} technique{result.techniques && result.techniques.length !== 1 ? 's' : ''} identified</span>
-                 </div>
-               )}
-               
+                </div>
+              )}
+              
                {/* PowerShell Specific Analysis */}
                {result.signatures && result.signatures.some(sig => sig.name.includes('(')) && (
-                 <div className="flex items-start gap-2">
-                   <span style={{color: 'var(--accent)'}}>•</span>
+                <div className="flex items-start gap-2">
+                  <span style={{color: 'var(--accent)'}}>•</span>
                    <span><strong>PowerShell Analysis:</strong> Command contains PowerShell cmdlets that were evaluated for security implications and execution context</span>
-                 </div>
-               )}
-               
+                </div>
+              )}
+              
                {/* Decoded Content Note */}
                {result.decoded && result.decoded !== result.cmd && (
-                 <div className="flex items-start gap-2">
-                   <span style={{color: 'var(--accent)'}}>•</span>
+                <div className="flex items-start gap-2">
+                  <span style={{color: 'var(--accent)'}}>•</span>
                    <span><strong>Content Decoding:</strong> Command was successfully decoded, revealing underlying execution patterns and obfuscation techniques</span>
-                 </div>
-               )}
-               
+                </div>
+              )}
+              
                {/* No Threats Detected */}
                {result.signatures && result.signatures.length === 0 && totalScore === 0 && (
-                 <div className="flex items-start gap-2">
-                   <span style={{color: 'var(--accent)'}}>•</span>
+                <div className="flex items-start gap-2">
+                  <span style={{color: 'var(--accent)'}}>•</span>
                    <span><strong>Security Status:</strong> No malicious patterns detected. Command appears safe based on current threat intelligence</span>
-                 </div>
-               )}
-               
+                </div>
+              )}
+              
                                {/* Evaluation Methodology */}
                 <div className="flex items-start gap-2">
                   <span style={{color: 'var(--accent)'}}>•</span>
@@ -635,17 +635,17 @@ export default function AnalysisDetailsPage() {
                
                {/* Recommendations */}
                {totalScore > 0 && (
-                 <div className="flex items-start gap-2">
-                   <span style={{color: 'var(--accent)'}}>•</span>
+                <div className="flex items-start gap-2">
+                  <span style={{color: 'var(--accent)'}}>•</span>
                    <span><strong>Recommendations:</strong> Review command execution context, monitor system behavior, and consider additional security controls if score exceeds 6.0</span>
-                 </div>
-               )}
-               
+                </div>
+              )}
+              
                                {/* Footer */}
                 <div className="text-xs pt-3 border-t border-gray-600">
                   Evaluation performed using advanced PowerShell command pattern recognition, behavioral analysis, and real-time threat intelligence correlation
-                </div>
-             </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -678,8 +678,8 @@ export default function AnalysisDetailsPage() {
       <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
         <ThemedButton onClick={() => router.push('/')}>
           Evaluate Another Command
-        </ThemedButton>
-        <ThemedButton
+          </ThemedButton>
+          <ThemedButton 
           variant="outline"
           onClick={() => {
             // Se temos um resultado com ID, usar o link limpo
@@ -691,8 +691,8 @@ export default function AnalysisDetailsPage() {
           }}
         >
           Copy sharable link
-        </ThemedButton>
-      </div>
+          </ThemedButton>
+        </div>
 
     </div>
   );
