@@ -166,7 +166,7 @@ export default function InlineCaptcha({
               type="button"
               onClick={handleSubmit}
               disabled={!answer.trim() || isVerifying}
-              className="px-4 py-2 rounded font-mono text-sm font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
+              className="px-4 py-2 rounded font-mono text-sm font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 backgroundColor: 'var(--accent)',
                 color: 'var(--background)'
@@ -187,7 +187,7 @@ export default function InlineCaptcha({
               type="button"
               onClick={handleRefresh}
               disabled={isLoading || isVerifying}
-              className="px-3 py-2 rounded border font-mono text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
+              className="px-3 py-2 rounded border font-mono text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 borderColor: 'var(--border-color)',
                 backgroundColor: 'var(--background)',
@@ -210,7 +210,7 @@ export default function InlineCaptcha({
         <div className="text-center py-4">
           <button
             onClick={generateCaptcha}
-            className="px-4 py-2 rounded font-mono text-sm font-bold transition-all duration-200 hover:scale-105 active:scale-95"
+            className="px-4 py-2 rounded font-mono text-sm font-bold transition-all duration-200"
             style={{
               backgroundColor: 'var(--accent)',
               color: 'var(--background)'

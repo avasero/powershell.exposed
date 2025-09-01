@@ -296,7 +296,7 @@ export default function AnalysisDetailsPage() {
           <button
             onClick={handleNewAnalysis}
             disabled={!newCommand.trim() || loading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
-            className="px-6 py-3 rounded-lg font-mono font-bold text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 flex-shrink-0"
+            className="px-6 py-3 rounded-lg font-mono font-bold text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
             style={{
               backgroundColor: 'var(--accent)',
               color: 'var(--background)'

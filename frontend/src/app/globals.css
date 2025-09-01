@@ -220,7 +220,6 @@ button:not(:disabled):hover,
 [type="reset"]:not(:disabled):hover,
 .clickable:not(:disabled):hover {
   cursor: pointer;
-  transform: scale(1.02);
 }
 
 /* Links should always have pointer cursor */

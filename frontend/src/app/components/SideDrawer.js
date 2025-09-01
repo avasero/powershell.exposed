@@ -124,7 +124,7 @@ export default function SideDrawer() {
               
               <button
                 onClick={handleLogout}
-                className="w-full px-4 py-3 font-mono font-semibold rounded text-sm transition-all duration-200 hover:opacity-80 hover:scale-[0.98]"
+                className="w-full px-4 py-3 font-mono font-semibold rounded text-sm transition-all duration-200 hover:opacity-80"
                 style={{
                   backgroundColor: 'var(--accent)', 
                   color: 'var(--background)'
@@ -138,7 +138,7 @@ export default function SideDrawer() {
               <Link
                 href="/login"
                 onClick={handleLinkClick}
-                className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm border transition-all duration-200 hover:opacity-80 hover:scale-[0.98] text-center"
+                className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm border transition-all duration-200 hover:opacity-80 text-center"
                 style={{
                   backgroundColor: 'transparent', 
                   color: 'var(--accent)',
@@ -149,7 +149,7 @@ export default function SideDrawer() {
               </Link>
               <button
                 onClick={handleRegisterClick}
-                className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm transition-all duration-200 hover:opacity-80 hover:scale-[0.98] text-center"
+                className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm transition-all duration-200 hover:opacity-80 text-center"
                 style={{
                   backgroundColor: 'var(--accent)', 
                   color: 'var(--background)'
