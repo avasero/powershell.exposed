@@ -570,6 +570,55 @@ async def create_user_session_endpoint(request: Request):
             status_code=500
         )
 
+@app.get("/analysis/{analysis_id}")
+async def get_analysis_by_id(analysis_id: int):
+    """
+    Busca uma análise específica por ID
+    Permite acesso público para análises compartilháveis
+    """
+    try:
+        print(f"🔍 Buscando análise com ID: {analysis_id}")
+        
+        supabase = get_supabase_client()
+        
+        # Buscar análise sem restrição de usuário para permitir compartilhamento
+        response = supabase.table('powershell_analyses').select('*').eq('id', analysis_id).single().execute()
+        
+        if not response.data:
+            return JSONResponse(
+                {"error": "Analysis not found"},
+                status_code=404
+            )
+        
+        analysis_data = response.data
+        print(f"✅ Análise encontrada: {analysis_data.get('id')}")
+        
+        # Remover informações sensíveis para compartilhamento público
+        safe_analysis = {
+            "id": analysis_data.get("id"),
+            "command": analysis_data.get("command"),
+            "analysis_result": analysis_data.get("analysis_result"),
+            "risk_score": analysis_data.get("risk_score"),
+            "signatures_detected": analysis_data.get("signatures_detected"),
+            "tactics": analysis_data.get("tactics"),
+            "techniques": analysis_data.get("techniques"),
+            "decoded_command": analysis_data.get("decoded_command"),
+            "created_at": analysis_data.get("created_at"),
+            # Não incluir informações sensíveis como IP, user_id, etc.
+        }
+        
+        return JSONResponse({
+            "success": True,
+            "analysis": safe_analysis
+        })
+        
+    except Exception as error:
+        print(f"❌ Erro ao buscar análise: {error}")
+        return JSONResponse(
+            {"error": f"Failed to fetch analysis: {str(error)}"},
+            status_code=500
+        )
+
 @app.post("/analyze-pcre2")
 async def analyze_command_pcre2(request: Request):
     """
@@ -983,19 +1032,25 @@ async def analyze_command_pcre2(request: Request):
             print(f"   - IP: {insert_data['ip_address']}")
             
             print("🔍 Executando INSERT no banco...")
-            response = supabase.table('powershell_analyses').insert(insert_data).execute()
+            db_response = supabase.table('powershell_analyses').insert(insert_data).execute()
             
-            if response.data:
-                print(f"✅ Análise salva no banco com ID: {response.data[0].get('id')}")
-                print(f"✅ Response completa: {response.data}")
+            if db_response.data:
+                print(f"✅ Análise salva no banco com ID: {db_response.data[0].get('id')}")
+                print(f"✅ Response completa: {db_response.data}")
             else:
                 print("⚠️ Análise não foi salva no banco")
-                print(f"⚠️ Response: {response}")
+                print(f"⚠️ Response: {db_response}")
                 
         except Exception as db_error:
             print(f"❌ Erro ao salvar no banco: {db_error}")
             print(f"❌ Tipo do erro: {type(db_error)}")
             print(f"❌ Detalhes do erro: {str(db_error)}")
+            db_response = None
+        
+        # Capturar o ID da análise salva se disponível
+        analysis_id = None
+        if db_response and db_response.data:
+            analysis_id = db_response.data[0].get('id')
         
         return JSONResponse({
             "success": True,
@@ -1014,6 +1069,7 @@ async def analyze_command_pcre2(request: Request):
                     "cache_age_minutes": round((int(time.time() * 1000) - cache_timestamp) / 60000, 1) if cache_timestamp > 0 else 0
                 }
             },
+            "analysis_id": analysis_id,
             "session_id": session_id
         })
         

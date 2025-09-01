@@ -120,8 +120,34 @@ export async function analyzeCommand(command, ipAddress = null, ipLocation = nul
   return result
 }
 
-// Função para buscar uma análise específica
+// Função para buscar uma análise específica via API backend (permite acesso público)
 export async function getAnalysisById(id) {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const response = await fetch(`${apiUrl}/analysis/${id}`);
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Analysis not found');
+      }
+      throw new Error(`Failed to fetch analysis: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to fetch analysis');
+    }
+    
+    return data.analysis;
+  } catch (error) {
+    console.error('Error fetching analysis:', error);
+    throw error;
+  }
+}
+
+// Função para buscar uma análise específica (versão antiga para usuários logados)
+export async function getAnalysisByIdAuthenticated(id) {
   const { data: { session } } = await supabase.auth.getSession()
   
   if (!session) {

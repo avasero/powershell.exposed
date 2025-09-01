@@ -56,7 +56,7 @@ export const saveAnonymousAnalysis = (analysis) => {
     
     // Criar objeto de análise anônima (versão compacta para economizar espaço)
     const anonymousAnalysis = {
-      id: `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: analysis.analysis_id || `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Usar analysis_id se disponível
       command: analysis.command,
       score: analysis.score || 0,
       severity: analysis.severity || 'unknown',
@@ -72,7 +72,8 @@ export const saveAnonymousAnalysis = (analysis) => {
         cmdlet_name: cmdlet.cmdlet_name || 'Unknown'
       })),
       created_at: new Date().toISOString(),
-      is_anonymous: true
+      is_anonymous: true,
+      analysis_id: analysis.analysis_id // Armazenar o ID da análise para links compartilháveis
     };
     
     console.log('🍪 Análise anônima criada:', anonymousAnalysis);

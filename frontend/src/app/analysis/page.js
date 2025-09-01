@@ -150,6 +150,11 @@ export default function AnalysisPage() {
           saveSessionFromBackend(response.session_id);
         }
         
+        // Capturar o analysis_id para links compartilháveis, mas não redirecionar automaticamente
+        if (response.analysis_id) {
+          console.log('🔗 Analysis ID capturado para link compartilhável:', response.analysis_id);
+        }
+        
         const analysisResult = {
           score: analysisData.risk_score,
           severity: analysisData.is_malicious ? "malicious" : "safe",
@@ -158,7 +163,8 @@ export default function AnalysisPage() {
           indicators: analysisData.analysis_details?.indicators || [],
           details: analysisData.analysis_details?.recommendations?.join(", ") || "",
           tactics: analysisData.tactics || [],
-          techniques: analysisData.techniques || []
+          techniques: analysisData.techniques || [],
+          analysisId: response.analysis_id // Capturar o ID da análise
         };
         
         setResult(analysisResult);
@@ -172,7 +178,8 @@ export default function AnalysisPage() {
               score: analysisData.risk_score,
               severity: analysisData.is_malicious ? "malicious" : "safe",
               signatures: analysisData.signatures_detected || [],
-              cmdlets_detected: analysisData.cmdlets_detected || []
+              cmdlets_detected: analysisData.cmdlets_detected || [],
+              analysis_id: response.analysis_id // Incluir o ID da análise
             });
           } catch (error) {
             console.error('Erro ao salvar análise anônima:', error);
@@ -687,8 +694,12 @@ export default function AnalysisPage() {
         <ThemedButton
           variant="outline"
           onClick={() => {
-            const url = window.location.href;
-            navigator.clipboard.writeText(url);
+            // Se temos um resultado com ID, usar o link limpo
+            const baseUrl = window.location.origin;
+            const shareUrl = result?.analysisId 
+              ? `${baseUrl}/analysis/${result.analysisId}`
+              : window.location.href; // Fallback para URL atual se não tiver ID
+            navigator.clipboard.writeText(shareUrl);
           }}
         >
           Copy sharable link

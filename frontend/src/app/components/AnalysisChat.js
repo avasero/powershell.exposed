@@ -92,10 +92,17 @@ export default function AnalysisChat() {
     }
   };
 
-  const handleAnalysisClick = (command) => {
-    const encodedCommand = encodeURIComponent(command);
+  const handleAnalysisClick = (command, analysisId = null) => {
     closeAnalysisDrawer();
-    router.push(`/analysis?cmd=${encodedCommand}`);
+    
+    // Se temos um ID da análise, usar a página específica da análise
+    if (analysisId && analysisId !== 'anon_' && !analysisId.startsWith('anon_')) {
+      router.push(`/analysis/${analysisId}`);
+    } else {
+      // Fallback para o método antigo se não temos ID válido
+      const encodedCommand = encodeURIComponent(command);
+      router.push(`/analysis?cmd=${encodedCommand}`);
+    }
   };
 
   const handleDeleteRecentAnalyses = async () => {
@@ -222,7 +229,7 @@ export default function AnalysisChat() {
               {analyses.map((analysis) => (
               <div
                 key={analysis.id}
-                onClick={() => handleAnalysisClick(analysis.command)}
+                onClick={() => handleAnalysisClick(analysis.command, analysis.analysis_id || analysis.id)}
                 className="p-3 mb-2 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80"
                 style={{
                   backgroundColor: 'var(--card-bg)', 
@@ -396,7 +403,7 @@ export default function AnalysisChat() {
                     analyses.map((analysis) => (
                     <div
                       key={analysis.id}
-                      onClick={() => handleAnalysisClick(analysis.command)}
+                      onClick={() => handleAnalysisClick(analysis.command, analysis.analysis_id || analysis.id)}
                       className="p-3 mb-2 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80"
                       style={{
                         backgroundColor: 'var(--card-bg)', 

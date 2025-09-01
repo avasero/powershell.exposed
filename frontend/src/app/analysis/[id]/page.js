@@ -49,15 +49,11 @@ export default function AnalysisDetailsPage() {
   }, [params.id]);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push('/login');
-      return;
-    }
-
+    // Remover verificação de autenticação - permitir acesso público para análises compartilhadas
     if (params.id) {
       loadAnalysis();
     }
-  }, [params.id, loadAnalysis, isAuthenticated]);
+  }, [params.id, loadAnalysis]);
 
   if (loading) {
     return (
@@ -90,9 +86,10 @@ export default function AnalysisDetailsPage() {
     );
   }
 
-  const analysisResult = analysis.analysis_result;
-  const scoreColor = getScoreColor(analysisResult.risk_score);
-  const scoreLabel = getScoreLabel(analysisResult.risk_score);
+  // A nova API retorna a estrutura diretamente, não dentro de analysis_result
+  const analysisResult = analysis.analysis_result || analysis;
+  const scoreColor = getScoreColor(analysis.risk_score || analysisResult.risk_score);
+  const scoreLabel = getScoreLabel(analysis.risk_score || analysisResult.risk_score);
 
   return (
     <div className="flex-1 p-4 sm:p-6 md:p-8">
@@ -100,12 +97,21 @@ export default function AnalysisDetailsPage() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
-            <ThemedButton 
-              onClick={() => router.push('/dashboard')}
-              variant="secondary"
-            >
-              ← Back to Dashboard
-            </ThemedButton>
+            {isAuthenticated() ? (
+              <ThemedButton 
+                onClick={() => router.push('/dashboard')}
+                variant="secondary"
+              >
+                ← Back to Dashboard
+              </ThemedButton>
+            ) : (
+              <ThemedButton 
+                onClick={() => router.push('/')}
+                variant="secondary"
+              >
+                ← Back to Home
+              </ThemedButton>
+            )}
           </div>
           
           <h1 className="text-2xl sm:text-3xl font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
@@ -125,11 +131,11 @@ export default function AnalysisDetailsPage() {
             className="p-4 rounded-lg border font-mono text-sm overflow-x-auto"
             style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}
           >
-            <code style={{color: 'var(--foreground)'}}>{analysis.command}</code>
+            <code style={{color: 'var(--foreground)'}}>{analysis.command || analysisResult.command}</code>
           </div>
         </div>
 
-        {/* IP Address Display */}
+        {/* IP Address Display - Só mostrar se disponível (usuário logado) */}
         {analysis.ip_address && (
           <div className="mb-6">
             <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--foreground)'}}>
@@ -309,13 +315,13 @@ export default function AnalysisDetailsPage() {
           >
             <div className="text-center">
               <div className="text-3xl font-mono font-bold mb-2">
-                {analysisResult.risk_score.toFixed(1)}/10
+                {(analysis.risk_score || analysisResult.risk_score || 0).toFixed(1)}/10
               </div>
               <div className="text-lg font-mono font-bold mb-2">
                 {scoreLabel}
               </div>
               <div className="font-mono text-sm">
-                {analysisResult.is_malicious ? '⚠️ Potentially Malicious' : '✅ Appears Safe'}
+                {(analysisResult.is_malicious || (analysis.risk_score || analysisResult.risk_score || 0) > 5) ? '⚠️ Potentially Malicious' : '✅ Appears Safe'}
               </div>
             </div>
           </div>
@@ -352,13 +358,13 @@ export default function AnalysisDetailsPage() {
         )}
 
         {/* Detected Indicators */}
-        {analysisResult.signatures_detected && analysisResult.signatures_detected.length > 0 && (
+        {(analysisResult.signatures_detected || analysis.signatures_detected) && (analysisResult.signatures_detected || analysis.signatures_detected).length > 0 && (
           <div className="mb-6">
             <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--foreground)'}}>
               Detected Indicators
             </h2>
             <div className="space-y-3">
-              {analysisResult.signatures_detected.map((signature, index) => (
+              {(analysisResult.signatures_detected || analysis.signatures_detected).map((signature, index) => (
                 <div 
                   key={index}
                   className="p-4 rounded-lg border"
@@ -385,7 +391,7 @@ export default function AnalysisDetailsPage() {
         {/* MITRE ATT&CK Tactics & Techniques */}
         <div className="grid md:grid-cols-2 gap-6 mb-6">
           {/* Tactics */}
-          {analysisResult.tactics && analysisResult.tactics.length > 0 && (
+          {(analysisResult.tactics || analysis.tactics) && (analysisResult.tactics || analysis.tactics).length > 0 && (
             <div>
               <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--foreground)'}}>
                 MITRE ATT&CK Tactics
@@ -395,7 +401,7 @@ export default function AnalysisDetailsPage() {
                 style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}
               >
                 <div className="space-y-2">
-                  {analysisResult.tactics.map((tactic, index) => (
+                  {(analysisResult.tactics || analysis.tactics).map((tactic, index) => (
                     <div key={index} className="font-mono text-sm" style={{color: 'var(--foreground)'}}>
                       • {tactic}
                     </div>
@@ -406,7 +412,7 @@ export default function AnalysisDetailsPage() {
           )}
 
           {/* Techniques */}
-          {analysisResult.techniques && analysisResult.techniques.length > 0 && (
+          {(analysisResult.techniques || analysis.techniques) && (analysisResult.techniques || analysis.techniques).length > 0 && (
             <div>
               <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--foreground)'}}>
                 MITRE ATT&CK Techniques
@@ -416,7 +422,7 @@ export default function AnalysisDetailsPage() {
                 style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}
               >
                 <div className="space-y-2">
-                  {analysisResult.techniques.map((technique, index) => (
+                  {(analysisResult.techniques || analysis.techniques).map((technique, index) => (
                     <div key={index} className="font-mono text-sm" style={{color: 'var(--foreground)'}}>
                       • {technique}
                     </div>
@@ -428,7 +434,7 @@ export default function AnalysisDetailsPage() {
         </div>
 
         {/* Decoded Command */}
-        {analysisResult.decoded_command && (
+        {(analysisResult.decoded_command || analysis.decoded_command) && (
           <div className="mb-6">
             <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--foreground)'}}>
               Decoded Command
@@ -437,7 +443,7 @@ export default function AnalysisDetailsPage() {
               className="p-4 rounded-lg border font-mono text-sm overflow-x-auto"
               style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}
             >
-              <code style={{color: 'var(--foreground)'}}>{analysisResult.decoded_command}</code>
+              <code style={{color: 'var(--foreground)'}}>{analysisResult.decoded_command || analysis.decoded_command}</code>
             </div>
           </div>
         )}
@@ -539,9 +545,15 @@ export default function AnalysisDetailsPage() {
 
         {/* Actions */}
         <div className="flex gap-4 mt-8">
-          <ThemedButton onClick={() => router.push('/dashboard')}>
-            Back to Dashboard
-          </ThemedButton>
+          {isAuthenticated() ? (
+            <ThemedButton onClick={() => router.push('/dashboard')}>
+              Back to Dashboard
+            </ThemedButton>
+          ) : (
+            <ThemedButton onClick={() => router.push('/')}>
+              Back to Home
+            </ThemedButton>
+          )}
           <ThemedButton 
             onClick={() => router.push('/')}
             variant="secondary"
