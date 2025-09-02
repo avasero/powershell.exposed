@@ -14,6 +14,7 @@ export default function AnalysisChat() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const router = useRouter();
 
   useEffect(() => {
@@ -43,6 +44,15 @@ export default function AnalysisChat() {
       }, 1000);
     }
   }, [user?.id, isAuthenticated, user]); // Observar mudanças no ID do usuário
+
+  // Atualizar timestamps a cada minuto
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Atualizar a cada 60 segundos
+
+    return () => clearInterval(interval);
+  }, []);
 
   const loadRecentAnalyses = async () => {
     try {
@@ -144,14 +154,63 @@ export default function AnalysisChat() {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
+    if (!dateString) return 'Unknown';
     
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    if (diffInHours < 48) return 'Yesterday';
-    return date.toLocaleDateString();
+    try {
+      // Tentar diferentes formatos de data
+      let date;
+      
+      // Se já é um objeto Date
+      if (dateString instanceof Date) {
+        date = dateString;
+      }
+      // Se é string ISO ou timestamp
+      else if (typeof dateString === 'string' || typeof dateString === 'number') {
+        date = new Date(dateString);
+      }
+      else {
+        return 'Invalid date';
+      }
+      
+      // Verificar se a data é válida
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date string:', dateString);
+        return 'Invalid date';
+      }
+      
+      const now = currentTime;
+      const diffInMs = now - date;
+      
+      // Se a diferença for negativa (data no futuro), pode ser problema de timezone
+      if (diffInMs < 0) {
+        // Se for diferença pequena (menos de 5 minutos), considerar como "Just now"
+        if (Math.abs(diffInMs) < 5 * 60 * 1000) {
+          return 'Just now';
+        }
+        console.warn('Date in future detected:', dateString, 'diff:', diffInMs);
+        return 'Just now';
+      }
+      
+      const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+      const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+      const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+      
+      if (diffInMinutes < 1) return 'Just now';
+      if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+      if (diffInHours < 24) return `${diffInHours}h ago`;
+      if (diffInDays === 1) return 'Yesterday';
+      if (diffInDays < 7) return `${diffInDays} days ago`;
+      
+      // Para datas mais antigas, mostrar formato completo
+      return date.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error, dateString);
+      return 'Error';
+    }
   };
 
   // Sempre mostrar o chat, mesmo para usuários anônimos
