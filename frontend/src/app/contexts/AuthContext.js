@@ -43,7 +43,13 @@ const createUserSession = async (userId) => {
     }
     
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    const response = await fetch(`${apiUrl}/create-user-session`, {
+    
+    // Timeout de 5 segundos para não travar o loading
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 5000)
+    );
+    
+    const fetchPromise = fetch(`${apiUrl}/create-user-session`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -54,6 +60,8 @@ const createUserSession = async (userId) => {
         user_agent: userAgent
       })
     });
+    
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
 
     const data = await response.json();
     
@@ -74,12 +82,22 @@ const ensureUserProfile = async (user) => {
   try {
     console.log('🔍 Verificando se perfil existe para:', user.email);
     
+    // Timeout de 10 segundos para operações do Supabase
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Profile check timeout')), 10000)
+    );
+    
     // Verificar se perfil já existe
-    const { data: existingProfile, error: fetchError } = await supabase
+    const fetchProfilePromise = supabase
       .from('profiles')
       .select('id')
       .eq('id', user.id)
       .single();
+    
+    const { data: existingProfile, error: fetchError } = await Promise.race([
+      fetchProfilePromise,
+      timeoutPromise
+    ]);
     
     if (existingProfile) {
       console.log('✅ Perfil já existe');
@@ -101,9 +119,14 @@ const ensureUserProfile = async (user) => {
       avatar_url: user.user_metadata?.avatar_url || null,
     };
     
-    const { error: insertError } = await supabase
+    const insertProfilePromise = supabase
       .from('profiles')
       .insert(profileData);
+    
+    const { error: insertError } = await Promise.race([
+      insertProfilePromise,
+      timeoutPromise
+    ]);
     
     if (insertError) {
       console.error('❌ Erro ao criar perfil:', insertError);
@@ -188,23 +211,44 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
    
-    // Get initial session
+    // Get initial session with timeout
     const getInitialSession = async () => {
      
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('❌ AUTHCONTEXT: Erro ao buscar sessão:', error);
-      } else if (session) {
-       
-        setUser(session.user);
-      } else {
-       
+      try {
+        // Timeout de 10 segundos para sessão inicial
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session timeout')), 10000)
+        );
+        
+        const sessionPromise = supabase.auth.getSession();
+        
+        const { data: { session }, error } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ]);
+        
+        if (error) {
+          console.error('❌ AUTHCONTEXT: Erro ao buscar sessão:', error);
+        } else if (session) {
+         
+          setUser(session.user);
+        } else {
+         
+        }
+      } catch (error) {
+        console.error('❌ AUTHCONTEXT: Timeout ou erro na sessão inicial:', error);
       }
      
       setLoading(false);
     };
 
     getInitialSession();
+    
+    // Forçar loading a parar após 15 segundos como fallback absoluto
+    const forceStopLoading = setTimeout(() => {
+      console.warn('⚠️ Forçando parada do loading após timeout');
+      setLoading(false);
+    }, 15000);
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -215,14 +259,21 @@ export const AuthProvider = ({ children }) => {
           console.log('✅ Usuário logado via magic link');
           setUser(session.user);
           
-          // Garantir que o perfil existe (fallback caso o trigger não funcione)
-          await ensureUserProfile(session.user);
-          
-          // Criar nova sessão para o usuário logado
-          await createUserSession(session.user.id);
-          
-          // Migrar análises anônimas se existirem
-          await migrateAnonymousAnalyses(session.user.id);
+          // Executar operações em background sem bloquear o loading
+          (async () => {
+            try {
+              // Garantir que o perfil existe (fallback caso o trigger não funcione)
+              await ensureUserProfile(session.user);
+              
+              // Criar nova sessão para o usuário logado
+              await createUserSession(session.user.id);
+              
+              // Migrar análises anônimas se existirem
+              await migrateAnonymousAnalyses(session.user.id);
+            } catch (error) {
+              console.error('❌ Erro em operações pós-login:', error);
+            }
+          })();
         } else if (event === 'SIGNED_OUT') {
           console.log('👋 Usuário deslogado');
           setUser(null);
@@ -238,7 +289,10 @@ export const AuthProvider = ({ children }) => {
       }
     );
 
-    return () => subscription?.unsubscribe();
+    return () => {
+      subscription?.unsubscribe();
+      clearTimeout(forceStopLoading);
+    };
   }, []);
 
   // Redirect logic
