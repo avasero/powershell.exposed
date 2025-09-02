@@ -48,7 +48,7 @@ export default function ConfirmPage() {
           console.log('✅ Usuário autenticado com sucesso:', data.user.email);
           setSuccess(true);
           
-          // Aguardar um pouco para mostrar a mensagem de sucesso
+          // Redirecionar mais rapidamente para melhor UX
           setTimeout(() => {
             // Redirecionar para a página especificada ou dashboard
             if (next === '/' || next === '/landing') {
@@ -56,7 +56,7 @@ export default function ConfirmPage() {
             } else {
               router.push(next);
             }
-          }, 2000);
+          }, 1500); // Reduzido de 2000ms para 1500ms
         } else {
           throw new Error('Authentication failed - no user returned');
         }
@@ -115,9 +115,9 @@ export default function ConfirmPage() {
                 Welcome to PowerShell.exposed!
               </h1>
               <p className="font-mono text-sm mb-6" style={{color: 'var(--muted-foreground)'}}>
-                You have been successfully authenticated and are now logged in.
+                Authentication successful! You are now logged in and can access all features.
               </p>
-              <InfoMessage message="Redirecting you to the dashboard..." />
+              <InfoMessage message="Login successful! Redirecting you automatically..." />
             </>
           ) : (
             <>
