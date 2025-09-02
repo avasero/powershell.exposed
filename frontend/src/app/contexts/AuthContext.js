@@ -69,6 +69,53 @@ const createUserSession = async (userId) => {
   }
 };
 
+// Função para garantir que o perfil do usuário existe
+const ensureUserProfile = async (user) => {
+  try {
+    console.log('🔍 Verificando se perfil existe para:', user.email);
+    
+    // Verificar se perfil já existe
+    const { data: existingProfile, error: fetchError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+    
+    if (existingProfile) {
+      console.log('✅ Perfil já existe');
+      return;
+    }
+    
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      console.error('❌ Erro ao verificar perfil:', fetchError);
+      return;
+    }
+    
+    // Criar perfil se não existe
+    console.log('🔄 Criando perfil para usuário:', user.email);
+    
+    const profileData = {
+      id: user.id,
+      username: user.user_metadata?.username || user.email,
+      full_name: user.user_metadata?.full_name || user.user_metadata?.username || user.email,
+      avatar_url: user.user_metadata?.avatar_url || null,
+    };
+    
+    const { error: insertError } = await supabase
+      .from('profiles')
+      .insert(profileData);
+    
+    if (insertError) {
+      console.error('❌ Erro ao criar perfil:', insertError);
+    } else {
+      console.log('✅ Perfil criado com sucesso');
+    }
+    
+  } catch (error) {
+    console.error('❌ Erro ao garantir perfil:', error);
+  }
+};
+
 // Função para migrar análises anônimas para usuário logado
 const migrateAnonymousAnalyses = async (userId) => {
   try {
@@ -167,6 +214,9 @@ export const AuthProvider = ({ children }) => {
         if (event === 'SIGNED_IN' && session) {
           console.log('✅ Usuário logado via magic link');
           setUser(session.user);
+          
+          // Garantir que o perfil existe (fallback caso o trigger não funcione)
+          await ensureUserProfile(session.user);
           
           // Criar nova sessão para o usuário logado
           await createUserSession(session.user.id);
