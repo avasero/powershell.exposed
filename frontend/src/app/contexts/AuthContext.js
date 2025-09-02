@@ -137,7 +137,7 @@ export const AuthProvider = ({ children }) => {
   const pathname = usePathname();
 
   // Pages that don't need authentication
-  const publicRoutes = useMemo(() => ['/login', '/register', '/signatures', '/landing', '/analysis', '/'], []);
+  const publicRoutes = useMemo(() => ['/login', '/register', '/signatures', '/landing', '/analysis', '/auth/confirm', '/'], []);
 
   useEffect(() => {
    
@@ -162,14 +162,25 @@ export const AuthProvider = ({ children }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-       
+        console.log('🔐 Auth state change:', event, session?.user?.email);
 
-        
-        if (session) {
-         
+        if (event === 'SIGNED_IN' && session) {
+          console.log('✅ Usuário logado via magic link');
+          setUser(session.user);
+          
+          // Criar nova sessão para o usuário logado
+          await createUserSession(session.user.id);
+          
+          // Migrar análises anônimas se existirem
+          await migrateAnonymousAnalyses(session.user.id);
+        } else if (event === 'SIGNED_OUT') {
+          console.log('👋 Usuário deslogado');
+          setUser(null);
+        } else if (session) {
+          console.log('🔄 Sessão existente encontrada');
           setUser(session.user);
         } else {
-         
+          console.log('❌ Nenhuma sessão encontrada');
           setUser(null);
         }
        
@@ -187,7 +198,7 @@ export const AuthProvider = ({ children }) => {
     
     if (!loading) {
       // Verificar rotas públicas incluindo rotas dinâmicas
-      const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/analysis/');
+      const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/analysis/') || pathname.startsWith('/auth/');
       const userIsAuthenticated = user !== null;
 
       
@@ -204,16 +215,16 @@ export const AuthProvider = ({ children }) => {
     }
   }, [user, loading, pathname, router, publicRoutes]);
 
-  const signUp = async (email, password, username) => {
+  const signUpWithMagicLink = async (email, username) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signInWithOtp({
         email,
-        password,
         options: {
           data: {
             username: username,
             full_name: username
-          }
+          },
+          shouldCreateUser: true
         }
       });
 
@@ -224,30 +235,31 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signIn = async (email, password) => {
+  const signInWithMagicLink = async (email) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithOtp({
         email,
-        password
+        options: {
+          shouldCreateUser: true  // ← SEMPRE permitir criar usuário se não existir
+        }
       });
 
       if (error) throw error;
-      
-      // Quando usuário faz login, criar nova sessão e migrar análises anônimas
-      if (data.user) {
-       
-        
-        // Criar nova sessão para o usuário logado
-        await createUserSession(data.user.id);
-        
-        // Migrar análises anônimas se existirem
-        await migrateAnonymousAnalyses(data.user.id);
-      }
-      
       return { data, error: null };
     } catch (error) {
       return { data: null, error };
     }
+  };
+
+  // Manter signUp e signIn para compatibilidade, mas deprecados
+  const signUp = async (email, password, username) => {
+    // Redirecionar para magic link
+    return await signUpWithMagicLink(email, username);
+  };
+
+  const signIn = async (email, password) => {
+    // Redirecionar para magic link
+    return await signInWithMagicLink(email);
   };
 
   const signOut = async () => {
@@ -286,15 +298,17 @@ export const AuthProvider = ({ children }) => {
   }
 
   // If not authenticated and not on a public route, don't render anything (already redirected)
-  const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/analysis/');
+  const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/analysis/') || pathname.startsWith('/auth/');
   if (!isAuthenticated() && !isPublicRoute) {
     return null;
   }
 
   const value = {
     user,
-    signUp,
-    signIn,
+    signUp, // Compatibilidade - redireciona para magic link
+    signIn, // Compatibilidade - redireciona para magic link
+    signUpWithMagicLink,
+    signInWithMagicLink,
     signOut,
     isAuthenticated,
     loading

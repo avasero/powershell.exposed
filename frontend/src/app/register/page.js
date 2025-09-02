@@ -1,80 +1,156 @@
 "use client";
-import { useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '../contexts/AuthContext';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { ErrorMessage, InfoMessage } from '../components/Messages';
+import FormInput from '../components/FormInput';
 import ThemedButton from '../components/ThemedButton';
 
 export default function RegisterPage() {
+  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  
+  const { signUpWithMagicLink } = useAuth();
   const router = useRouter();
 
-  // Automatically redirect to landing page after a short delay
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      router.push('/landing');
-    }, 5000); // Redirect after 5 seconds
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setMessage('');
 
-    return () => clearTimeout(timer);
-  }, [router]);
+    try {
+      const { data, error } = await signUpWithMagicLink(email, username);
+      
+      if (error) {
+        if (error.message.includes('User already registered')) {
+          setError('An account with this email already exists. Please try logging in instead.');
+        } else if (error.message.includes('Invalid email')) {
+          setError('Please enter a valid email address.');
+        } else {
+          setError(error.message);
+        }
+      } else {
+        setMagicLinkSent(true);
+        setMessage('Magic link sent! Check your email to complete the registration.');
+      }
+    } catch (err) {
+      setError('Unexpected error during registration');
+      console.error('Registration error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <div className="mb-6">
-            <svg 
-              className="w-16 h-16 mx-auto text-yellow-500" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" 
-              />
-            </svg>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
-            Registration Not Available
+          <h1 className="text-2xl sm:text-3xl font-mono font-bold" style={{color: 'var(--accent)'}}>
+            Sign Up
           </h1>
-          <p className="mt-2 font-mono text-sm mb-6" style={{color: 'var(--muted-foreground)'}}>
-            Registration is temporarily disabled. This feature will be available soon.
+          <p className="mt-2 font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+            {magicLinkSent ? 'Check your email for the magic link' : 'Create your account with magic link'}
           </p>
         </div>
 
         <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
-          <div className="text-center space-y-4">
-            <p className="font-mono text-sm" style={{color: 'var(--foreground)'}}>
-              You will be redirected to the landing page in a few seconds, or you can go there manually.
+          {!magicLinkSent ? (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <FormInput
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                required
+              />
+
+              <FormInput
+                label="Username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Your username"
+                required
+              />
+
+              {error && <ErrorMessage message={error} />}
+              {message && <InfoMessage message={message} />}
+
+              <ThemedButton
+                type="submit"
+                disabled={loading}
+                className="w-full"
+              >
+                {loading ? <LoadingSpinner size="sm" /> : 'Create Account'}
+              </ThemedButton>
+            </form>
+          ) : (
+            <div className="space-y-4 text-center">
+              <div className="text-6xl mb-4">📧</div>
+              <h2 className="text-xl font-mono font-bold" style={{color: 'var(--accent)'}}>
+                Magic Link Sent!
+              </h2>
+              <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
+                We've sent a secure registration link to <strong>{email}</strong>
+              </p>
+              <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
+                Click the link in your email to complete your account creation.
+              </p>
+              
+              {message && <InfoMessage message={message} />}
+              
+              <div className="pt-4">
+                <ThemedButton
+                  onClick={() => {
+                    setMagicLinkSent(false);
+                    setMessage('');
+                    setError('');
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Send Another Link
+                </ThemedButton>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-6 text-center">
+            <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+              Already have an account?{' '}
+              <Link href="/login" className="font-semibold hover:underline" style={{color: 'var(--accent)'}}>
+                Sign in
+              </Link>
             </p>
             
-            <div className="space-y-3">
-              <Link href="/landing">
-                <ThemedButton className="w-full">
-                  Go to Landing Page
-                </ThemedButton>
-              </Link>
-              
-              <Link href="/">
-                <ThemedButton 
-                  variant="outline" 
-                  className="w-full"
-                  style={{
-                    borderColor: 'var(--accent)',
-                    color: 'var(--accent)'
-                  }}
-                >
-                  Try Analysis Without Account
-                </ThemedButton>
-              </Link>
-              
-              <Link href="/login">
-                <ThemedButton variant="outline" className="w-full">
-                  Login Instead
-                </ThemedButton>
-              </Link>
+            {/* Separador visual */}
+            <div className="my-4 flex items-center">
+              <div className="flex-1 border-t" style={{borderColor: 'var(--border-color)'}}></div>
+              <span className="px-3 font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>or</span>
+              <div className="flex-1 border-t" style={{borderColor: 'var(--border-color)'}}></div>
             </div>
+            
+            {/* Botão Try Analysis */}
+            <Link href="/">
+              <ThemedButton 
+                variant="outline" 
+                className="w-full"
+                style={{
+                  borderColor: 'var(--accent)',
+                  color: 'var(--accent)'
+                }}
+              >
+                Try Analysis Without Account
+              </ThemedButton>
+            </Link>
           </div>
         </div>
       </div>
