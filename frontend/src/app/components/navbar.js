@@ -73,12 +73,22 @@ export default function Navbar() {
                 href="/login"
                 className="px-4 py-2 font-mono font-semibold rounded text-sm border transition-colors hover:opacity-80"
                 style={{
-                  backgroundColor: 'var(--accent)', 
-                  color: 'var(--background)',
+                  backgroundColor: 'transparent', 
+                  color: 'var(--accent)',
                   borderColor: 'var(--accent)'
                 }}
               >
                 Login
+              </Link>
+              <Link 
+                href="/register"
+                className="px-4 py-2 font-mono font-semibold rounded text-sm transition-colors hover:opacity-80"
+                style={{
+                  backgroundColor: 'var(--accent)', 
+                  color: 'var(--background)'
+                }}
+              >
+                Sign Up
               </Link>
             </>
           )}

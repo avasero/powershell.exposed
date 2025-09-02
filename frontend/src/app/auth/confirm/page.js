@@ -152,7 +152,7 @@ export default function ConfirmPage() {
                     color: 'var(--accent)'
                   }}
                 >
-                  Create New Account
+                  Sign Up Instead
                 </ThemedButton>
               </Link>
               

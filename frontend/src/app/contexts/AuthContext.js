@@ -240,7 +240,7 @@ export const AuthProvider = ({ children }) => {
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          shouldCreateUser: true  // ← SEMPRE permitir criar usuário se não existir
+          shouldCreateUser: false  // ← Login apenas para usuários existentes
         }
       });
 

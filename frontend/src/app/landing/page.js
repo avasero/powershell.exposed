@@ -5,12 +5,6 @@ import { useAuth } from "../contexts/AuthContext";
 
 export default function LandingPage() {
   const { isAuthenticated, user } = useAuth();
-
-  const handleRegisterClick = (e) => {
-    e.preventDefault();
-    // Redirecionar diretamente para a página de registro
-    window.location.href = '/register';
-  };
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
       <div className="max-w-4xl mx-auto text-center space-y-8">
@@ -75,14 +69,15 @@ export default function LandingPage() {
                 </ThemedButton>
               </Link>
               
-              <ThemedButton 
-                onClick={handleRegisterClick}
-                variant="outline"
-                size="lg" 
-                className="w-full sm:w-auto"
-              >
-                Create Free Account
-              </ThemedButton>
+              <Link href="/register">
+                <ThemedButton 
+                  variant="outline"
+                  size="lg" 
+                  className="w-full sm:w-auto"
+                >
+                  Create Free Account
+                </ThemedButton>
+              </Link>
               
               <Link href="/login">
                 <ThemedButton variant="outline" size="lg" className="w-full sm:w-auto">

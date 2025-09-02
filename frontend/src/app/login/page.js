@@ -33,12 +33,14 @@ export default function LoginPage() {
           setError('Please enter a valid email address.');
         } else if (error.message.includes('rate limit')) {
           setError('Too many requests. Please wait a moment before trying again.');
+        } else if (error.message.includes('User not found') || error.message.includes('Signup')) {
+          setError('No account found with this email. Please sign up first or check your email.');
         } else {
           setError(error.message);
         }
       } else {
         setMagicLinkSent(true);
-        setMessage('Magic link sent! Check your email to login or create your account.');
+        setMessage('Magic link sent! Check your email to complete the login.');
       }
     } catch (err) {
       setError('Unexpected error during login');
@@ -53,10 +55,10 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <h1 className="text-2xl sm:text-3xl font-mono font-bold" style={{color: 'var(--accent)'}}>
-            Login / Sign Up
+            Login
           </h1>
           <p className="mt-2 font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-            {magicLinkSent ? 'Check your email for the magic link' : 'Enter your email to login or create account'}
+            {magicLinkSent ? 'Check your email for the magic link' : 'Enter your email to receive a login link'}
           </p>
         </div>
 
@@ -90,10 +92,10 @@ export default function LoginPage() {
                 Magic Link Sent!
               </h2>
               <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
-                We&apos;ve sent a secure magic link to <strong>{email}</strong>
+                We&apos;ve sent a secure login link to <strong>{email}</strong>
               </p>
               <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
-                Click the link to login or create your account automatically.
+                Click the link in your email to complete the login process.
               </p>
               
               {message && <InfoMessage message={message} />}
@@ -116,7 +118,10 @@ export default function LoginPage() {
 
           <div className="mt-6 text-center">
             <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-              One email for everything - login or create account automatically!
+              Don&apos;t have an account?{' '}
+              <Link href="/register" className="font-semibold hover:underline" style={{color: 'var(--accent)'}}>
+                Sign up
+              </Link>
             </p>
             
             {/* Separador visual */}
