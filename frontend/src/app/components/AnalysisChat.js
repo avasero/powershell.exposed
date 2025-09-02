@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
 import { useAnalysisDrawer } from "../contexts/AnalysisDrawerContext";
-import { getUserAnalyses, deleteRecentAnalyses, getAllUserAnalyses } from "../../../utils/database";
+import { getUserAnalyses, deleteRecentAnalyses, getAllUserAnalyses, getRecentUserAnalysesForChat } from "../../../utils/database";
 import { getAnonymousAnalyses, clearAnonymousAnalyses, deleteAnonymousAnalysis, debugCookies } from "../../utils/cookies";
 import SeverityBadge from "./SeverityBadge";
 
@@ -49,8 +49,8 @@ export default function AnalysisChat() {
       setLoading(true);
       
       
-      // Carregar TODAS as análises do usuário para o chat
-      const data = await getAllUserAnalyses();
+      // Carregar apenas as últimas 5 análises do usuário para o chat
+      const data = await getRecentUserAnalysesForChat(5);
      
       
       setAnalyses(data || []);
@@ -163,10 +163,10 @@ export default function AnalysisChat() {
         <div className="flex items-center justify-between">
           <div>
                                      <h2 className="font-mono font-semibold text-lg" style={{color: 'var(--accent)'}}>
-              {isAnonymous ? 'Recent Evaluations' : 'All Your Evaluations'}
+              {isAnonymous ? 'Recent Evaluations' : 'Recent Evaluations'}
             </h2>
             <p className="font-mono text-xs mt-1" style={{color: 'var(--muted-foreground)'}}>
-              {isAnonymous ? 'Last 5 evaluations (stored in cookies)' : 'All saved evaluations from your account'}
+              {isAnonymous ? 'Last 5 evaluations (stored in cookies)' : 'Last 5 evaluations from your account'}
             </p>
              {isAnonymous && (
                <div className="flex items-center gap-2">
@@ -186,7 +186,7 @@ export default function AnalysisChat() {
               }}
               onMouseEnter={(e) => !deleting && (e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.1)')}
               onMouseLeave={(e) => !deleting && (e.target.style.backgroundColor = 'transparent')}
-                             title={isAnonymous ? "Clear all anonymous analyses from cookies" : "Clear all analyses from chat view (keeps safely saved in account)"}
+                             title={isAnonymous ? "Clear all anonymous analyses from cookies" : "Clear recent analyses from chat view (keeps safely saved in account)"}
              >
                {deleting ? (isAnonymous ? 'Clearing...' : 'Clearing...') : (isAnonymous ? 'Clear' : 'Clear')}
             </button>

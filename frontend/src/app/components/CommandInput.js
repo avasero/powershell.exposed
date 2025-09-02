@@ -94,7 +94,7 @@ export default function CommandInput({
           />
           
           {/* Character counter */}
-          <div className="absolute bottom-2 right-7 text-xs font-mono opacity-60" style={{color: value.length >= CHARACTER_LIMIT - 100 ? '#eab308' : 'var(--muted-foreground)'}}>
+          <div className="absolute bottom-2 right-7 text-xs font-mono opacity-60" style={{color: value.length >= CHARACTER_LIMIT - 100 ? 'var(--warning)' : 'var(--muted-foreground)'}}>
             {value.length}/{CHARACTER_LIMIT}
           </div>
         </div>
@@ -102,7 +102,7 @@ export default function CommandInput({
       
       {/* Character limit warning */}
       {showCharacterWarning && (
-        <div className="mt-2 text-sm font-mono text-yellow-500 flex items-center gap-2">
+        <div className="mt-2 text-sm font-mono flex items-center gap-2" style={{color: 'var(--warning)'}}>
           <span>⚠️</span>
           <span>
             {value.length >= CHARACTER_LIMIT 

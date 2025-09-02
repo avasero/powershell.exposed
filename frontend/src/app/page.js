@@ -24,7 +24,6 @@ export default function Home() {
   } = useRateLimit();
   const [error, setError] = useState("");
   const [command, setCommand] = useState("");
-  const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
 
@@ -312,27 +311,7 @@ export default function Home() {
           />
         </form>
 
-        {/* Result area - REVERTED to original */}
-        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl min-h-[80px] sm:min-h-[100px] flex items-center justify-center border rounded-lg p-4 sm:p-6" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
-          {result ? (
-            <div className="text-center">
-              <div className="mb-2">
-                <span className="font-mono text-base sm:text-lg" style={{color: result.type === "safe" ? 'var(--accent)' : 'var(--secondary)'}}>
-                  {result.type === "safe" ? "✓ Safe command" : "✗ Malicious command"}
-                </span>
-              </div>
-              <div>
-                <span className="font-mono text-xs sm:text-sm" style={{color: 'var(--foreground)'}}>
-                  Severity: {result.severity === "leve" ? "Low" : result.severity === "médio" ? "Medium" : "Critical"}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="font-mono text-sm sm:text-base" style={{color: 'var(--accent)'}}>
-              Type a command for evaluation
-            </div>
-          )}
-        </div>
+
         
 
       </div>

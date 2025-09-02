@@ -59,7 +59,7 @@ export const getUserAnalyses = async (limit = 20, offset = 0) => {
   }
 };
 
-// Função para buscar TODAS as análises do usuário (para o chat)
+// Função para buscar TODAS as análises do usuário (para o dashboard)
 export const getAllUserAnalyses = async () => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -78,6 +78,30 @@ export const getAllUserAnalyses = async () => {
     return data || [];
   } catch (error) {
     console.error('Erro ao buscar todas as análises:', error);
+    throw error;
+  }
+};
+
+// Função para buscar as últimas 5 análises do usuário (para o chat lateral)
+export const getRecentUserAnalysesForChat = async (limit = 5) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    const { data, error } = await supabase
+      .from('powershell_analyses')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Erro ao buscar análises recentes para chat:', error);
     throw error;
   }
 };
