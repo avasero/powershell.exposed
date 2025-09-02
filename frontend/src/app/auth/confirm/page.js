@@ -169,7 +169,7 @@ export default function ConfirmPage() {
           <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
             <div className="text-center space-y-3">
               <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-                If you're not redirected automatically, click below:
+                If you&apos;re not redirected automatically, click below:
               </p>
               
               <Link href="/">

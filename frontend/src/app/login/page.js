@@ -90,7 +90,7 @@ export default function LoginPage() {
                 Magic Link Sent!
               </h2>
               <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
-                We've sent a secure magic link to <strong>{email}</strong>
+                We&apos;ve sent a secure magic link to <strong>{email}</strong>
               </p>
               <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
                 Click the link to login or create your account automatically.

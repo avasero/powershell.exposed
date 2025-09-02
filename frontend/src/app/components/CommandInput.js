@@ -36,7 +36,7 @@ export default function CommandInput({
         textareaRef.current.style.overflowY = 'hidden';
       }
     }
-  }, [value]);
+  }, [value, MAX_HEIGHT]);
 
   // Check character limit and show warning
   useEffect(() => {

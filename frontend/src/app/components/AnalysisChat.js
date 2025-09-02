@@ -42,7 +42,7 @@ export default function AnalysisChat() {
         loadRecentAnalyses();
       }, 1000);
     }
-  }, [user?.id]); // Observar mudanças no ID do usuário
+  }, [user?.id, isAuthenticated, user]); // Observar mudanças no ID do usuário
 
   const loadRecentAnalyses = async () => {
     try {

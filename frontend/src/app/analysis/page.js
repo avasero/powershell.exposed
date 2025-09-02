@@ -224,7 +224,7 @@ export default function AnalysisPage() {
         details: "No command to analyze"
       });
     }
-  }, []);
+  }, [params, performAnalysis]);
   
   // Calculate total risk score from result - soma de TUDO (sem remover duplicatas do total)
   const totalScore = result ? result.score : 0;

@@ -99,7 +99,7 @@ export default function RegisterPage() {
                 Magic Link Sent!
               </h2>
               <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
-                We've sent a secure registration link to <strong>{email}</strong>
+                We&apos;ve sent a secure registration link to <strong>{email}</strong>
               </p>
               <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
                 Click the link in your email to complete your account creation.

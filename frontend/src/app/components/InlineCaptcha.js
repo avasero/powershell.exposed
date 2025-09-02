@@ -17,7 +17,7 @@ export default function InlineCaptcha({
   // Generate captcha when component mounts
   useEffect(() => {
     generateCaptcha();
-  }, []);
+  }, [generateCaptcha]);
 
   const generateCaptcha = async () => {
     setIsLoading(true);

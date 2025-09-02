@@ -18,7 +18,7 @@ export default function CaptchaModal({
     if (isOpen && !captchaData) {
       generateCaptcha();
     }
-  }, [isOpen]);
+  }, [isOpen, captchaData, generateCaptcha]);
 
   const generateCaptcha = async () => {
     setIsLoading(true);
