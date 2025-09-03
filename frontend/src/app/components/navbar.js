@@ -38,20 +38,6 @@ export default function Navbar() {
         <div className="hidden md:flex items-center space-x-4">
           <ThemeToggle />
           
-          {/* Link para Histórico */}
-          <Link 
-            href="/history"
-            className={`px-3 py-2 font-mono text-sm rounded transition-colors hover:opacity-80 ${
-              pathname === '/history' ? 'font-bold' : ''
-            }`}
-            style={{
-              color: pathname === '/history' ? 'var(--accent)' : 'var(--muted-foreground)',
-              backgroundColor: pathname === '/history' ? 'var(--muted)' : 'transparent'
-            }}
-          >
-            History
-          </Link>
-          
           {isAuthenticated() ? (
             <>
               <span className="font-mono text-sm" style={{color: 'var(--foreground)'}}>

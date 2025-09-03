@@ -107,18 +107,7 @@ export default function SideDrawer() {
 
           {/* Navigation Links */}
           <div className="space-y-2">
-            <Link
-              href="/history"
-              onClick={handleLinkClick}
-              className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm transition-all duration-200 hover:opacity-80 text-center"
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.02)', 
-                color: 'var(--foreground)',
-                border: '1px solid var(--border-color)'
-              }}
-            >
-              📊 Analysis History
-            </Link>
+            {/* Removido o link do History - agora está no AnalysisChat */}
           </div>
 
           {/* Authentication Section */}
