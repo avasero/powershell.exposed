@@ -107,7 +107,18 @@ export default function SideDrawer() {
 
           {/* Navigation Links */}
           <div className="space-y-2">
-            {/* Removido o link do Dashboard */}
+            <Link
+              href="/history"
+              onClick={handleLinkClick}
+              className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm transition-all duration-200 hover:opacity-80 text-center"
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.02)', 
+                color: 'var(--foreground)',
+                border: '1px solid var(--border-color)'
+              }}
+            >
+              📊 Histórico de Análises
+            </Link>
           </div>
 
           {/* Authentication Section */}

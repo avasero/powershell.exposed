@@ -284,7 +284,7 @@ export default function AnalysisChat() {
               {analyses.map((analysis) => (
               <div
                 key={analysis.id}
-                onClick={() => handleAnalysisClick(analysis.command, analysis.analysis_id || analysis.id)}
+                onClick={() => handleAnalysisClick(analysis.command, analysis.id)}
                 className="p-3 mb-2 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80"
                 style={{
                   backgroundColor: 'var(--card-bg)', 
@@ -458,7 +458,7 @@ export default function AnalysisChat() {
                     analyses.map((analysis) => (
                     <div
                       key={analysis.id}
-                      onClick={() => handleAnalysisClick(analysis.command, analysis.analysis_id || analysis.id)}
+                      onClick={() => handleAnalysisClick(analysis.command, analysis.id)}
                       className="p-3 mb-2 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80"
                       style={{
                         backgroundColor: 'var(--card-bg)', 
