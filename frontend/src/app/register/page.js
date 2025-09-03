@@ -87,29 +87,7 @@ export default function RegisterPage() {
     }
   };
 
-  const handleCreateNewAccount = async () => {
-    setLoading(true);
-    setError('');
-    setMessage('');
-    setShowEmailExistsPrompt(false);
 
-    try {
-      // Forçar criação de conta mesmo com email existente
-      const { data, error } = await signUpWithMagicLink(email, username);
-      
-      if (error) {
-        setError(error.message);
-      } else {
-        setMagicLinkSent(true);
-        setMessage('Magic link sent! Check your email to complete the registration.');
-      }
-    } catch (err) {
-      setError('Unexpected error during registration');
-      console.error('Registration error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
@@ -134,7 +112,7 @@ export default function RegisterPage() {
                 An account with <strong>{email}</strong> already exists.
               </p>
               <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
-                Would you like to log in instead or create a new account?
+                Would you like to log in instead?
               </p>
               
               {error && <ErrorMessage message={error} />}
@@ -146,19 +124,6 @@ export default function RegisterPage() {
                   className="w-full"
                 >
                   {loading ? <LoadingSpinner size="sm" /> : 'Send Login Link'}
-                </ThemedButton>
-                
-                <ThemedButton
-                  onClick={handleCreateNewAccount}
-                  disabled={loading}
-                  variant="outline"
-                  className="w-full"
-                  style={{
-                    borderColor: 'var(--accent)',
-                    color: 'var(--accent)'
-                  }}
-                >
-                  {loading ? <LoadingSpinner size="sm" /> : 'Create New Account Anyway'}
                 </ThemedButton>
                 
                 <ThemedButton
