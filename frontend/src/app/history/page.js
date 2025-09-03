@@ -44,7 +44,7 @@ export default function HistoryPage() {
       const data = await getAllUserAnalyses();
       setAnalyses(data || []);
     } catch (err) {
-      setError("Erro ao carregar histórico de análises: " + err.message);
+      setError("Error loading analysis history: " + err.message);
       setAnalyses([]);
     } finally {
       setLoading(false);
@@ -58,7 +58,7 @@ export default function HistoryPage() {
       const data = getAnonymousAnalyses();
       setAnalyses(data || []);
     } catch (err) {
-      setError("Erro ao carregar análises anônimas: " + err.message);
+      setError("Error loading anonymous analyses: " + err.message);
       setAnalyses([]);
     } finally {
       setLoading(false);
@@ -165,7 +165,7 @@ export default function HistoryPage() {
       <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
         <LoadingSpinner />
         <p className="font-mono text-sm mt-4" style={{color: 'var(--muted-foreground)'}}>
-          Carregando histórico de análises...
+          Loading analysis history...
         </p>
       </div>
     );
@@ -176,12 +176,12 @@ export default function HistoryPage() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
-          Histórico de Análises
+          Analysis History
         </h1>
         <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
           {isAuthenticated() 
-            ? `Visualize todas as suas análises salvas (${analyses.length} total)`
-            : `Análises anônimas armazenadas localmente (${analyses.length} de 10)`}
+            ? `View all your saved analyses (${analyses.length} total)`
+            : `Anonymous analyses stored locally (${analyses.length} of 10)`}
         </p>
       </div>
 
@@ -191,7 +191,7 @@ export default function HistoryPage() {
         <div className="flex-1 max-w-md">
           <input
             type="text"
-            placeholder="Filtrar por comando..."
+            placeholder="Filter by command..."
             value={filterTerm}
             onChange={(e) => setFilterTerm(e.target.value)}
             className="w-full px-3 py-2 rounded-lg border font-mono text-sm"
@@ -215,9 +215,9 @@ export default function HistoryPage() {
               color: 'var(--foreground)'
             }}
           >
-            <option value="date">Data</option>
-            <option value="score">Score de Risco</option>
-            <option value="command">Comando</option>
+            <option value="date">Date</option>
+            <option value="score">Risk Score</option>
+            <option value="command">Command</option>
           </select>
           
           <button
@@ -247,17 +247,17 @@ export default function HistoryPage() {
           <div className="text-center max-w-md">
             <div className="text-6xl mb-4">📊</div>
             <h2 className="font-mono text-xl font-bold mb-2" style={{color: 'var(--foreground)'}}>
-              {filterTerm ? 'Nenhum resultado encontrado' : 'Nenhuma análise encontrada'}
+              {filterTerm ? 'No results found' : 'No analyses found'}
             </h2>
             <p className="font-mono text-sm mb-6" style={{color: 'var(--muted-foreground)'}}>
               {filterTerm 
-                ? `Nenhuma análise corresponde ao filtro "${filterTerm}"`
+                ? `No analyses match the filter "${filterTerm}"`
                 : isAuthenticated() 
-                  ? 'Comece analisando um comando PowerShell'
-                  : 'Suas análises anônimas aparecerão aqui'}
+                  ? 'Start by analyzing a PowerShell command'
+                  : 'Your anonymous analyses will appear here'}
             </p>
             <ThemedButton onClick={() => router.push('/')}>
-              Analisar Primeiro Comando
+              Analyze First Command
             </ThemedButton>
           </div>
         </div>
@@ -352,7 +352,7 @@ export default function HistoryPage() {
               {!isAuthenticated() && analysis.is_anonymous && (
                 <div className="mt-2 pt-2 border-t" style={{borderColor: 'var(--border-color)'}}>
                   <span className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800">
-                    Análise Anônima
+                    Anonymous Analysis
                   </span>
                 </div>
               )}
@@ -365,11 +365,11 @@ export default function HistoryPage() {
       {filteredAndSortedAnalyses.length > 0 && (
         <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
           <ThemedButton onClick={() => router.push('/')}>
-            Nova Análise
+            New Analysis
           </ThemedButton>
           {!isAuthenticated() && (
             <ThemedButton variant="outline" onClick={() => router.push('/register')}>
-              Criar Conta para Salvar Histórico
+              Create Account to Save History
             </ThemedButton>
           )}
         </div>

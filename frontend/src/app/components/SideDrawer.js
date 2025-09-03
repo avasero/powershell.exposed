@@ -117,7 +117,7 @@ export default function SideDrawer() {
                 border: '1px solid var(--border-color)'
               }}
             >
-              📊 Histórico de Análises
+              📊 Analysis History
             </Link>
           </div>
 

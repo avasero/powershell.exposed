@@ -207,7 +207,7 @@ export const AuthProvider = ({ children }) => {
   const pathname = usePathname();
 
   // Pages that don't need authentication
-  const publicRoutes = useMemo(() => ['/login', '/register', '/signatures', '/landing', '/analysis', '/auth/confirm', '/'], []);
+  const publicRoutes = useMemo(() => ['/login', '/register', '/signatures', '/landing', '/analysis', '/auth/confirm', '/history', '/'], []);
 
   useEffect(() => {
    
