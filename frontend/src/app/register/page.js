@@ -15,8 +15,9 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [showEmailExistsPrompt, setShowEmailExistsPrompt] = useState(false);
   
-  const { signUpWithMagicLink } = useAuth();
+  const { signUpWithMagicLink, signInWithMagicLink, checkEmailExists } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e) => {
@@ -24,18 +25,80 @@ export default function RegisterPage() {
     setLoading(true);
     setError('');
     setMessage('');
+    setShowEmailExistsPrompt(false);
 
     try {
+      // Primeiro, verificar se o email já existe
+      const { exists, error: checkError } = await checkEmailExists(email);
+      
+      if (checkError) {
+        // Se houve erro na verificação (rate limit, etc.), prosseguir com registro normal
+        console.warn('Could not check email existence:', checkError.message);
+        // Continuar com o fluxo normal de registro
+      } else if (exists === true) {
+        // Email já existe, mostrar prompt para login
+        setShowEmailExistsPrompt(true);
+        setLoading(false);
+        return;
+      }
+      // Se exists === false ou null, prosseguir com registro
+
+      // Email não existe, prosseguir com registro
       const { data, error } = await signUpWithMagicLink(email, username);
       
       if (error) {
-        if (error.message.includes('User already registered')) {
-          setError('An account with this email already exists. Please try logging in instead.');
-        } else if (error.message.includes('Invalid email')) {
+        if (error.message.includes('Invalid email')) {
           setError('Please enter a valid email address.');
         } else {
           setError(error.message);
         }
+      } else {
+        setMagicLinkSent(true);
+        setMessage('Magic link sent! Check your email to complete the registration.');
+      }
+    } catch (err) {
+      setError('Unexpected error during registration');
+      console.error('Registration error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoginInstead = async () => {
+    setLoading(true);
+    setError('');
+    setMessage('');
+    setShowEmailExistsPrompt(false);
+
+    try {
+      const { data, error } = await signInWithMagicLink(email);
+      
+      if (error) {
+        setError(error.message);
+      } else {
+        setMagicLinkSent(true);
+        setMessage('Login link sent! Check your email to sign in.');
+      }
+    } catch (err) {
+      setError('Unexpected error during login');
+      console.error('Login error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateNewAccount = async () => {
+    setLoading(true);
+    setError('');
+    setMessage('');
+    setShowEmailExistsPrompt(false);
+
+    try {
+      // Forçar criação de conta mesmo com email existente
+      const { data, error } = await signUpWithMagicLink(email, username);
+      
+      if (error) {
+        setError(error.message);
       } else {
         setMagicLinkSent(true);
         setMessage('Magic link sent! Check your email to complete the registration.');
@@ -61,7 +124,56 @@ export default function RegisterPage() {
         </div>
 
         <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
-          {!magicLinkSent ? (
+          {showEmailExistsPrompt ? (
+            <div className="space-y-4 text-center">
+              <div className="text-4xl mb-4">🤔</div>
+              <h2 className="text-xl font-mono font-bold" style={{color: 'var(--accent)'}}>
+                Email Already Exists
+              </h2>
+              <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
+                An account with <strong>{email}</strong> already exists.
+              </p>
+              <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
+                Would you like to log in instead or create a new account?
+              </p>
+              
+              {error && <ErrorMessage message={error} />}
+              
+              <div className="space-y-3">
+                <ThemedButton
+                  onClick={handleLoginInstead}
+                  disabled={loading}
+                  className="w-full"
+                >
+                  {loading ? <LoadingSpinner size="sm" /> : 'Send Login Link'}
+                </ThemedButton>
+                
+                <ThemedButton
+                  onClick={handleCreateNewAccount}
+                  disabled={loading}
+                  variant="outline"
+                  className="w-full"
+                  style={{
+                    borderColor: 'var(--accent)',
+                    color: 'var(--accent)'
+                  }}
+                >
+                  {loading ? <LoadingSpinner size="sm" /> : 'Create New Account Anyway'}
+                </ThemedButton>
+                
+                <ThemedButton
+                  onClick={() => {
+                    setShowEmailExistsPrompt(false);
+                    setError('');
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Back to Form
+                </ThemedButton>
+              </div>
+            </div>
+          ) : !magicLinkSent ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <FormInput
                 label="Email"
