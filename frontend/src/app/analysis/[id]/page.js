@@ -3,7 +3,6 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useRateLimit } from "../../../hooks/useRateLimit";
-import { getAnalysisById } from "../../../../utils/database";
 import SeverityLegend from "../../components/SeverityLegend";
 import AnalysisCard from "../../components/AnalysisCard";
 import SeverityBadge from "../../components/SeverityBadge";
@@ -60,9 +59,12 @@ export default function AnalysisDetailsPage() {
     try {
       setLoading(true);
       setError("");
-      
       console.log('🔍 Loading analysis by ID:', params.id);
-      const analysisData = await getAnalysisById(params.id);
+
+      const res = await fetch(`/api/analysis/${params.id}`);
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const analysisData = await res.json();
+
       console.log('📊 Analysis data loaded:', analysisData);
       
       // Processar dados da análise

@@ -180,7 +180,7 @@ export const getAnalysisById = async (analysisId) => {
     const { data, error } = await supabase
       .from('powershell_analyses')
       .select('*')
-      .eq('id', analysisId)
+      .eq('uuid', analysisId)
       .eq('user_id', user.id)
       .single();
 
@@ -193,7 +193,7 @@ export const getAnalysisById = async (analysisId) => {
       const { data: publicData, error: publicError } = await supabase
         .from('powershell_analyses')
         .select('*')
-        .eq('id', analysisId)
+        .eq('uuid', analysisId)
         .single();
       
       if (publicError) {
