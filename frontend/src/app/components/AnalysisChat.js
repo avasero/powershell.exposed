@@ -234,22 +234,46 @@ export default function AnalysisChat() {
                </div>
              )}
           </div>
-          {analyses.length > 0 && (
+          <div className="flex items-center gap-2">
+            {/* Botão History */}
             <button
-              onClick={handleDeleteRecentAnalyses}
-              disabled={deleting}
+              onClick={() => router.push('/history')}
               className="p-2 rounded-md transition-colors font-mono text-xs"
               style={{
-                color: deleting ? 'var(--muted-foreground)' : '#EF4444',
-                backgroundColor: deleting ? 'var(--muted)' : 'transparent'
+                color: 'var(--accent)',
+                backgroundColor: 'transparent',
+                border: '1px solid var(--accent)'
               }}
-              onMouseEnter={(e) => !deleting && (e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.1)')}
-              onMouseLeave={(e) => !deleting && (e.target.style.backgroundColor = 'transparent')}
-                             title={isAnonymous ? "Clear all anonymous analyses from cookies" : "Clear recent analyses from chat view (keeps safely saved in account)"}
-             >
-               {deleting ? (isAnonymous ? 'Clearing...' : 'Clearing...') : (isAnonymous ? 'Clear' : 'Clear')}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = 'var(--accent)';
+                e.target.style.color = 'var(--background)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'transparent';
+                e.target.style.color = 'var(--accent)';
+              }}
+              title="View full analysis history"
+            >
+              📊 History
             </button>
-          )}
+            
+            {analyses.length > 0 && (
+              <button
+                onClick={handleDeleteRecentAnalyses}
+                disabled={deleting}
+                className="p-2 rounded-md transition-colors font-mono text-xs"
+                style={{
+                  color: deleting ? 'var(--muted-foreground)' : '#EF4444',
+                  backgroundColor: deleting ? 'var(--muted)' : 'transparent'
+                }}
+                onMouseEnter={(e) => !deleting && (e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.1)')}
+                onMouseLeave={(e) => !deleting && (e.target.style.backgroundColor = 'transparent')}
+                               title={isAnonymous ? "Clear all anonymous analyses from cookies" : "Clear recent analyses from chat view (keeps safely saved in account)"}
+               >
+                 {deleting ? (isAnonymous ? 'Clearing...' : 'Clearing...') : (isAnonymous ? 'Clear' : 'Clear')}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -400,18 +424,45 @@ export default function AnalysisChat() {
                                                  <h2 className="font-mono font-semibold text-lg" style={{color: 'var(--accent)'}}>
                   {isAnonymous ? 'Recent Analyses' : 'All Your Analyses'}
                 </h2>
-               {analyses.length > 0 && (
-                 <button
-                   onClick={handleDeleteRecentAnalyses}
-                   disabled={deleting}
-                   className="font-mono text-xs mt-1 transition-colors"
-                   style={{
-                     color: deleting ? 'var(--muted-foreground)' : '#EF4444'
-                   }}
-                 >
-                   {deleting ? (isAnonymous ? 'Clearing...' : 'Clearing...') : (isAnonymous ? 'Clear all' : 'Clear all')}
-                 </button>
-               )}
+                <div className="flex items-center gap-2 mt-1">
+                  {/* Botão History */}
+                  <button
+                    onClick={() => {
+                      closeAnalysisDrawer();
+                      router.push('/history');
+                    }}
+                    className="px-2 py-1 rounded-md transition-colors font-mono text-xs"
+                    style={{
+                      color: 'var(--accent)',
+                      backgroundColor: 'transparent',
+                      border: '1px solid var(--accent)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = 'var(--accent)';
+                      e.target.style.color = 'var(--background)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = 'transparent';
+                      e.target.style.color = 'var(--accent)';
+                    }}
+                    title="View full analysis history"
+                  >
+                    📊 Full History
+                  </button>
+                  
+                  {analyses.length > 0 && (
+                    <button
+                      onClick={handleDeleteRecentAnalyses}
+                      disabled={deleting}
+                      className="font-mono text-xs transition-colors"
+                      style={{
+                        color: deleting ? 'var(--muted-foreground)' : '#EF4444'
+                      }}
+                    >
+                      {deleting ? (isAnonymous ? 'Clearing...' : 'Clearing...') : (isAnonymous ? 'Clear all' : 'Clear all')}
+                    </button>
+                  )}
+                </div>
               </div>
               <button
                 onClick={closeAnalysisDrawer}
