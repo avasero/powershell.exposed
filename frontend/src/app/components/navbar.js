@@ -49,7 +49,7 @@ export default function Navbar() {
               backgroundColor: pathname === '/history' ? 'var(--muted)' : 'transparent'
             }}
           >
-            Histórico
+            History
           </Link>
           
           {isAuthenticated() ? (
