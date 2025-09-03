@@ -159,19 +159,24 @@ export const deleteRecentAnalyses = async () => {
 // Função para buscar análise por ID
 export const getAnalysisById = async (analysisId) => {
   try {
+    console.log('🔍 getAnalysisById called with ID:', analysisId);
     const { data: { user } } = await supabase.auth.getUser();
+    console.log('👤 User authenticated:', !!user, user?.id);
     
     if (!user) {
       // Se não logado, tentar usar a API backend para análises públicas
       try {
         const { getAnalysisById: getPublicAnalysis } = await import('../lib/supabase');
+        console.log('🌐 Trying backend API for public analysis...');
         return await getPublicAnalysis(analysisId);
       } catch (backendError) {
+        console.error('❌ Backend API failed:', backendError);
         throw new Error('Usuário não autenticado e não foi possível acessar análise pública');
       }
     }
 
     // Se logado, buscar no banco com filtro de usuário
+    console.log('🔍 Searching for analysis with user filter...');
     const { data, error } = await supabase
       .from('powershell_analyses')
       .select('*')
@@ -180,8 +185,11 @@ export const getAnalysisById = async (analysisId) => {
       .single();
 
     if (error) {
+      console.log('❌ Error with user filter:', error);
+      console.log('🔍 Trying without user filter (public analysis)...');
+      
       // Se não encontrou com filtro de usuário, pode ser que a análise seja pública
-      // Tentar buscar sem filtro de usuário
+      // Tentar buscar sem filtro de usuário (pode dar erro de RLS, mas vale tentar)
       const { data: publicData, error: publicError } = await supabase
         .from('powershell_analyses')
         .select('*')
@@ -189,15 +197,18 @@ export const getAnalysisById = async (analysisId) => {
         .single();
       
       if (publicError) {
+        console.log('❌ Public search also failed:', publicError);
         throw error; // Usar o erro original
       }
       
+      console.log('✅ Found public analysis:', publicData);
       return publicData;
     }
     
+    console.log('✅ Found user analysis:', data);
     return data;
   } catch (error) {
-    console.error('Erro ao buscar análise:', error);
+    console.error('❌ Erro ao buscar análise:', error);
     throw error;
   }
 };
