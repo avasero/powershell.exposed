@@ -153,9 +153,16 @@ export const getAnalysisById = async (analysisId) => {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
-      throw new Error('Usuário não autenticado');
+      // Se não logado, tentar usar a API backend para análises públicas
+      try {
+        const { getAnalysisById: getPublicAnalysis } = await import('../lib/supabase');
+        return await getPublicAnalysis(analysisId);
+      } catch (backendError) {
+        throw new Error('Usuário não autenticado e não foi possível acessar análise pública');
+      }
     }
 
+    // Se logado, buscar no banco com filtro de usuário
     const { data, error } = await supabase
       .from('powershell_analyses')
       .select('*')
@@ -163,7 +170,22 @@ export const getAnalysisById = async (analysisId) => {
       .eq('user_id', user.id)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      // Se não encontrou com filtro de usuário, pode ser que a análise seja pública
+      // Tentar buscar sem filtro de usuário
+      const { data: publicData, error: publicError } = await supabase
+        .from('powershell_analyses')
+        .select('*')
+        .eq('id', analysisId)
+        .single();
+      
+      if (publicError) {
+        throw error; // Usar o erro original
+      }
+      
+      return publicData;
+    }
+    
     return data;
   } catch (error) {
     console.error('Erro ao buscar análise:', error);

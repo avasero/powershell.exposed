@@ -3,7 +3,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useRateLimit } from "../../../hooks/useRateLimit";
-import { getAnalysisById } from "../../../../lib/supabase";
+import { getAnalysisById } from "../../../../utils/database";
 import SeverityLegend from "../../components/SeverityLegend";
 import AnalysisCard from "../../components/AnalysisCard";
 import SeverityBadge from "../../components/SeverityBadge";
