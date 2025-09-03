@@ -91,6 +91,8 @@ export const getRecentUserAnalysesForChat = async (limit = 5) => {
       throw new Error('Usuário não autenticado');
     }
 
+    console.log('🔍 Fetching recent analyses for user:', user.id);
+
     const { data, error } = await supabase
       .from('powershell_analyses')
       .select('*')
@@ -98,7 +100,14 @@ export const getRecentUserAnalysesForChat = async (limit = 5) => {
       .order('created_at', { ascending: false })
       .limit(limit);
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Supabase error:', error);
+      throw error;
+    }
+    
+    console.log('📊 Raw data from Supabase:', data);
+    console.log('📊 Sample record structure:', data?.[0]);
+    
     return data || [];
   } catch (error) {
     console.error('Erro ao buscar análises recentes para chat:', error);

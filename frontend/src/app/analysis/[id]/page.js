@@ -61,7 +61,9 @@ export default function AnalysisDetailsPage() {
       setLoading(true);
       setError("");
       
+      console.log('🔍 Loading analysis by ID:', params.id);
       const analysisData = await getAnalysisById(params.id);
+      console.log('📊 Analysis data loaded:', analysisData);
       
       // Processar dados da análise
       const analysisResult = analysisData.analysis_result || analysisData;

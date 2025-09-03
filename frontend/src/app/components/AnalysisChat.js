@@ -62,6 +62,8 @@ export default function AnalysisChat() {
       // Carregar apenas as últimas 5 análises do usuário para o chat
       const data = await getRecentUserAnalysesForChat(5);
       console.log('📊 Loaded user analyses:', data);
+      console.log('📊 Sample analysis data:', data?.[0]);
+      console.log('📊 IDs found:', data?.map(a => ({ id: a.id, command: a.command?.substring(0, 30) })));
       
       setAnalyses(data || []);
      
@@ -99,7 +101,13 @@ export default function AnalysisChat() {
   };
 
   const handleAnalysisClick = (command, analysisId = null) => {
-    console.log('🔍 handleAnalysisClick called:', { command, analysisId, isAnonymous });
+    console.log('🔍 handleAnalysisClick called:', { 
+      command, 
+      analysisId, 
+      isAnonymous,
+      typeOfId: typeof analysisId,
+      idValid: analysisId && analysisId !== 'anon_' && !analysisId.startsWith('anon_')
+    });
     closeAnalysisDrawer();
     
     // Se temos um ID da análise, usar a página específica da análise
@@ -109,6 +117,7 @@ export default function AnalysisChat() {
     } else {
       // Fallback para o método antigo se não temos ID válido
       console.log('⚠️ Using fallback navigation with command:', command);
+      console.log('⚠️ Reason: Invalid analysisId:', { analysisId, isAnon: analysisId === 'anon_', startsWithAnon: analysisId?.startsWith?.('anon_') });
       const encodedCommand = encodeURIComponent(command);
       router.push(`/analysis?cmd=${encodedCommand}`);
     }
