@@ -106,7 +106,7 @@ export default function AnalysisChat() {
       analysisId, 
       isAnonymous,
       typeOfId: typeof analysisId,
-      idValid: analysisId && analysisId !== 'anon_' && !analysisId.startsWith('anon_')
+      idValid: analysisId && analysisId !== 'anon_' && !String(analysisId).startsWith('anon_')
     });
     closeAnalysisDrawer();
     
