@@ -288,7 +288,7 @@ export default function AnalysisPage() {
           </button>
         </div>
         <div className="text-xs text-center mt-2" style={{color: 'var(--muted-foreground)'}}>
-          Press Enter or click Evaluate to analyze a new command • Shift+Enter for new lines
+          Enter a new PowerShell command..
         </div>
       </div>
 
@@ -373,7 +373,7 @@ export default function AnalysisPage() {
       {result && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div 
-            className="p-6 sm:p-8 rounded-lg border-2 border-green-400 text-center relative"
+            className="p-4 sm:p-6 rounded-lg border-2 border-green-400 text-center relative"
             style={{backgroundColor: '#000000'}}
           >
             {/* Severity Legend no canto superior direito */}
@@ -381,15 +381,15 @@ export default function AnalysisPage() {
               <SeverityLegend />
             </div>
             
-            <div className="text-xl sm:text-2xl font-mono font-bold mb-4 text-green-400">
+            <div className="text-lg sm:text-xl font-mono font-bold mb-3 text-green-400">
               Cumulative Base Score
             </div>
-            <div className="text-5xl sm:text-6xl font-mono font-bold mb-4 text-white">
+            <div className="text-4xl sm:text-5xl font-mono font-bold mb-3 text-white">
               {totalScore.toFixed(1)}
             </div>
-                         <div className="text-sm sm:text-base font-mono text-green-400 mb-2">
-               {totalScore === 0 ? "No Malicious Indicators Detected" : "Cumulative score from all patterns"}
-             </div>
+            <div className="text-xs sm:text-sm font-mono text-green-400 mb-2">
+              {totalScore === 0 ? "No Malicious Indicators Detected" : "Cumulative score from all patterns"}
+            </div>
                          {/* Mostrar breakdown do score se houver patterns */}
             {result.signatures && result.signatures.length > 0 && (
               <div className="text-xs font-mono text-gray-400 border-t border-gray-600 pt-3 mt-3">

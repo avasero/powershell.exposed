@@ -39,9 +39,6 @@ export default function SeverityLegend({ className = "" }) {
     <div className={`relative ${className}`}>
       {/* Tooltip Trigger */}
       <div className="flex items-center justify-center gap-2">
-        <span className="text-sm font-mono" style={{color: 'var(--accent)'}}>
-          Risk Score
-        </span>
         <button
           className="w-5 h-5 rounded-full border border-current flex items-center justify-center text-xs font-bold hover:bg-current hover:text-black transition-colors"
           style={{color: 'var(--accent)'}}
