@@ -42,16 +42,16 @@ export const ThemeProvider = ({ children }) => {
       root.style.setProperty('--muted-foreground', '#6C757D');
       root.style.setProperty('--warning', '#D97706');
     } else {
-      root.style.setProperty('--primary-green', '#9CFE41');
+      root.style.setProperty('--primary-green', '#20e073');
       root.style.setProperty('--primary-purple', '#703FEC');
       root.style.setProperty('--primary-black', '#000000');
       root.style.setProperty('--primary-white', '#FFFFFF');
       root.style.setProperty('--primary-blue', '#007BFF');
       root.style.setProperty('--background', '#000000');
       root.style.setProperty('--foreground', '#FFFFFF');
-      root.style.setProperty('--accent', '#9CFE41');
+      root.style.setProperty('--accent', '#20e073');
       root.style.setProperty('--secondary', '#703FEC');
-      root.style.setProperty('--border-color', '#9CFE41');
+      root.style.setProperty('--border-color', '#20e073');
       root.style.setProperty('--card-bg', '#000000');
       root.style.setProperty('--muted', '#1A1A1A');
       root.style.setProperty('--muted-foreground', '#9CA3AF');
