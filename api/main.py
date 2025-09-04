@@ -324,20 +324,7 @@ CACHE_DURATION = 10 * 60 * 1000
 
 # Mapeamento UUID -> Database ID para análises
 # Em produção, isso deveria usar Redis ou similar para persistência
-analysis_uuid_mapping = {}  # {uuid: db_id}
-analysis_id_mapping = {}    # {db_id: uuid} para busca reversa
-
-def generate_analysis_uuid(db_id: int) -> str:
-    """Gera um UUID único para uma análise e cria o mapeamento"""
-    analysis_uuid = str(uuid.uuid4())
-    analysis_uuid_mapping[analysis_uuid] = db_id
-    analysis_id_mapping[db_id] = analysis_uuid
-    print(f"🔗 UUID gerado: {analysis_uuid} -> DB ID: {db_id}")
-    return analysis_uuid
-
-def get_db_id_from_uuid(analysis_uuid: str) -> int:
-    """Retorna o ID do banco a partir do UUID público"""
-    return analysis_uuid_mapping.get(analysis_uuid)  
+# Removido: não é mais necessário já que usamos o UUID do banco diretamente  
 
 async def load_signatures_from_db() -> list:
     global signatures_cache, cache_timestamp
@@ -602,43 +589,45 @@ async def get_analysis_by_id(analysis_id: str):
         uuid_pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
         is_uuid = re.match(uuid_pattern, analysis_id, re.IGNORECASE)
         
-        db_id = None
+        supabase = get_supabase_client()
         
         if is_uuid:
-            # Tentar converter UUID para ID do banco
-            db_id = get_db_id_from_uuid(analysis_id)
-            if not db_id:
-                print(f"❌ UUID não encontrado no mapeamento: {analysis_id}")
+            # Buscar análise diretamente pelo UUID no banco
+            print(f"🔍 Buscando análise por UUID no banco: {analysis_id}")
+            response = supabase.table('powershell_analyses').select('*').eq('uuid', analysis_id).single().execute()
+            
+            if not response.data:
+                print(f"❌ UUID não encontrado no banco: {analysis_id}")
                 return JSONResponse(
                     {"error": "Analysis not found"},
                     status_code=404
                 )
-            print(f"🔗 UUID {analysis_id} mapeado para DB ID: {db_id}")
+            
+            analysis_data = response.data
+            print(f"✅ Análise encontrada por UUID: {analysis_data.get('id')}")
         else:
             # Assumir que é um ID do banco (compatibilidade com análises antigas)
             try:
                 db_id = int(analysis_id)
                 print(f"🔄 Usando ID do banco diretamente: {db_id} (compatibilidade)")
+                
+                # Buscar análise por ID do banco
+                response = supabase.table('powershell_analyses').select('*').eq('id', db_id).single().execute()
+                
+                if not response.data:
+                    return JSONResponse(
+                        {"error": "Analysis not found"},
+                        status_code=404
+                    )
+                
+                analysis_data = response.data
+                print(f"✅ Análise encontrada por ID: {analysis_data.get('id')}")
             except ValueError:
                 print(f"❌ ID inválido: {analysis_id}")
                 return JSONResponse(
                     {"error": "Invalid analysis ID"},
                     status_code=400
                 )
-        
-        supabase = get_supabase_client()
-        
-        # Buscar análise sem restrição de usuário para permitir compartilhamento
-        response = supabase.table('powershell_analyses').select('*').eq('id', db_id).single().execute()
-        
-        if not response.data:
-            return JSONResponse(
-                {"error": "Analysis not found"},
-                status_code=404
-            )
-        
-        analysis_data = response.data
-        print(f"✅ Análise encontrada: {analysis_data.get('id')}")
         
         # Remover informações sensíveis para compartilhamento público
         safe_analysis = {
@@ -1051,6 +1040,7 @@ async def analyze_command_pcre2(request: Request):
                 "ip_timezone": timezone,
                 "search_type": search_type,
                 "user_agent": user_agent
+                # Remover uuid do insert_data para deixar o banco auto-gerar
             }
             
             print(f"🔍 DEBUG: user_id recebido: '{user_id}' (tipo: {type(user_id)})")
@@ -1094,12 +1084,14 @@ async def analyze_command_pcre2(request: Request):
             print(f"❌ Detalhes do erro: {str(db_error)}")
             db_response = None
         
-        # Capturar o ID da análise salva e gerar UUID público
-        analysis_uuid = None
+        # Capturar o ID da análise salva e usar o UUID do banco
         if db_response and db_response.data:
             db_id = db_response.data[0].get('id')
-            if db_id:
-                analysis_uuid = generate_analysis_uuid(db_id)
+            # Pegar o UUID real que foi salvo no banco
+            actual_uuid = db_response.data[0].get('uuid')
+            print(f"✅ Análise salva com ID: {db_id} e UUID real do banco: {actual_uuid}")
+        else:
+            actual_uuid = None
         
         return JSONResponse({
             "success": True,
@@ -1118,7 +1110,7 @@ async def analyze_command_pcre2(request: Request):
                     "cache_age_minutes": round((int(time.time() * 1000) - cache_timestamp) / 60000, 1) if cache_timestamp > 0 else 0
                 }
             },
-            "analysis_id": analysis_uuid,
+            "analysis_id": actual_uuid,
             "session_id": session_id
         })
         

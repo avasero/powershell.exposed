@@ -266,7 +266,7 @@ export default function HistoryPage() {
           {filteredAndSortedAnalyses.map((analysis) => (
             <div
               key={analysis.id}
-              onClick={() => handleAnalysisClick(analysis.command, analysis.id)}
+              onClick={() => handleAnalysisClick(analysis.command, analysis.uuid || analysis.id)}
               className="p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80 hover:scale-[1.02]"
               style={{
                 backgroundColor: 'var(--card-bg)', 

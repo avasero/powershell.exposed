@@ -61,26 +61,29 @@ export default function AnalysisDetailsPage() {
       setError("");
       console.log('🔍 Loading analysis by ID:', params.id);
 
-      const res = await fetch(`/api/analysis/${params.id}`);
+      // Usar a API do backend em vez da API do frontend
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${apiUrl}/analysis/${params.id}`);
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const analysisData = await res.json();
 
       console.log('📊 Analysis data loaded:', analysisData);
       
-      // Processar dados da análise
-      const analysisResult = analysisData.analysis_result || analysisData;
+      // Processar dados da análise (API do backend retorna {success: true, analysis: {...}})
+      const analysis = analysisData.analysis || analysisData;
+      const analysisResult = analysis.analysis_result || analysis;
       
-      setCmd(analysisData.command || analysisResult.command);
+      setCmd(analysis.command || analysisResult.command);
       
       const processedResult = {
-        score: analysisData.risk_score || analysisResult.risk_score || 0,
-        severity: (analysisData.risk_score || analysisResult.risk_score || 0) > 5 ? "malicious" : "safe",
-        signatures: (analysisData.signatures_detected || analysisResult.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
-        decoded: analysisData.decoded_command || analysisResult.decoded_command,
+        score: analysis.risk_score || analysisResult.risk_score || 0,
+        severity: (analysis.risk_score || analysisResult.risk_score || 0) > 5 ? "malicious" : "safe",
+        signatures: (analysis.signatures_detected || analysisResult.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
+        decoded: analysis.decoded_command || analysisResult.decoded_command,
         indicators: analysisResult.analysis_details?.indicators || [],
         details: analysisResult.analysis_details?.recommendations?.join(", ") || "",
-        tactics: analysisData.tactics || analysisResult.tactics || [],
-        techniques: analysisData.techniques || analysisResult.techniques || [],
+        tactics: analysis.tactics || analysisResult.tactics || [],
+        techniques: analysis.techniques || analysisResult.techniques || [],
         analysisId: params.id // ID da análise para links compartilháveis
       };
       
