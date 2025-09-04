@@ -52,7 +52,7 @@ export default function SeverityLegend({ className = "" }) {
 
       {/* Tooltip Content */}
       {showTooltip && (
-        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 z-50 w-80 bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-4">
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 z-50 w-80 rounded-lg shadow-xl p-4" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', border: '1px solid var(--border-color)'}}>
           <div className="text-center mb-3">
             <h3 className="text-sm font-mono font-bold" style={{color: 'var(--accent)'}}>
               Score Information
@@ -60,7 +60,7 @@ export default function SeverityLegend({ className = "" }) {
           </div>
           
           {/* Score Calculation Section */}
-          <div className="mb-4 p-3 rounded border border-gray-700" style={{backgroundColor: 'var(--card-bg)'}}>
+          <div className="mb-4 p-3 rounded" style={{backgroundColor: 'var(--muted)', borderColor: 'var(--border-color)', border: '1px solid var(--border-color)'}}>
             <div className="text-xs font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
               How Scores Are Calculated:
             </div>
@@ -92,7 +92,7 @@ export default function SeverityLegend({ className = "" }) {
           </div>
           
           {/* Tooltip Arrow */}
-          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-600"></div>
+          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent" style={{borderBottomColor: 'var(--border-color)'}}></div>
         </div>
       )}
     </div>

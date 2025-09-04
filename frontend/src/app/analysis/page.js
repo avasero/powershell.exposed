@@ -374,7 +374,7 @@ export default function AnalysisPage() {
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div 
             className="p-4 sm:p-6 rounded-lg border-2 border-green-400 text-center relative"
-            style={{backgroundColor: '#000000'}}
+            style={{backgroundColor: 'var(--muted)'}}
           >
             {/* Severity Legend no canto superior direito */}
             <div className="absolute top-4 right-4">
@@ -521,16 +521,16 @@ export default function AnalysisPage() {
 
       {/* No Indicators Message */}
       {result && (!result.signatures || result.signatures.length === 0) && totalScore === 0 && (
-        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-          <div className="bg-gray-800 border border-gray-600 rounded-lg p-6 text-center">
-            <h2 className="text-lg sm:text-xl font-mono font-bold mb-2 text-green-400">
-              No Malicious Patterns Detected
-            </h2>
-            <p className="text-sm sm:text-base font-mono" style={{color: 'var(--muted-foreground)'}}>
-              This command appears to be safe based on our signature database.
-            </p>
-          </div>
-        </div>
+               <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+         <div className="border rounded-lg p-6 text-center" style={{backgroundColor: 'var(--muted)', borderColor: 'var(--border-color)'}}>
+           <h2 className="text-lg sm:text-xl font-mono font-bold mb-2" style={{color: 'var(--foreground)'}}>
+             No Malicious Patterns Detected
+           </h2>
+           <p className="text-sm sm:text-base font-mono" style={{color: 'var(--muted-foreground)'}}>
+             This command appears to be safe based on our signature database.
+           </p>
+         </div>
+       </div>
       )}
 
       {/* Further Notes */}
