@@ -107,6 +107,8 @@ export default function AnalysisDetailsPage() {
 
   // Função para análise de novo comando (reutilizada da página original)
   const performAnalysis = async (command, ipAddress, ipLocation) => {
+    console.log('🔍 [ANALYSIS PAGE] performAnalysis iniciado com comando:', command);
+    
     try {
       setLoading(true);
       setError("");
@@ -121,6 +123,7 @@ export default function AnalysisDetailsPage() {
       
       // Obter ou criar sessão anônima
       const sessionId = getOrCreateSession();
+      console.log('🔑 [ANALYSIS PAGE] Session ID obtido:', sessionId);
       
       // Preparar dados para a API
       const requestData = { 
@@ -135,35 +138,39 @@ export default function AnalysisDetailsPage() {
         search_type: "WEB",
         session_id: sessionId
       };
+      
+      console.log('📤 [ANALYSIS PAGE] Dados da requisição:', requestData);
 
       
 
       // Chamar a API Python diretamente
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      console.log('🌐 [ANALYSIS PAGE] Chamando API:', `${apiUrl}/analyze-pcre2`);
+      
       const analysisPromise = fetch(`${apiUrl}/analyze-pcre2`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData)
       }).then(async response => {
         const data = await response.json();
-        
+        console.log('📥 [ANALYSIS PAGE] Resposta da API:', data);
         
         // Verificar se precisa de rate limiting
         const needsHandling = handleRateLimitResponse(response, data);
         
         if (needsHandling) {
-        
+          console.log('⚠️ [ANALYSIS PAGE] Rate limit necessário');
           throw new Error('Rate limit excedido');
         }
         
         if (!response.ok) {
-          console.error('❌ Erro HTTP da API:', response.status, data);
+          console.log('❌ [ANALYSIS PAGE] Erro HTTP:', response.status, data);
           throw new Error(data.error || `HTTP error! status: ${response.status}`);
         }
         
         return data;
       }).catch(error => {
-        console.error('❌ Erro na chamada da API:', error);
+        console.log('❌ [ANALYSIS PAGE] Erro na chamada da API:', error);
         if (error.message === 'Rate limit excedido') {
           throw error;
         }
@@ -176,23 +183,52 @@ export default function AnalysisDetailsPage() {
         minDelay
       ]);
       
+      console.log('✅ [ANALYSIS PAGE] Análise concluída com sucesso:', response);
+      
       if (response.success) {
         const analysisData = response.analysis;
+        console.log('📊 [ANALYSIS PAGE] Dados da análise:', analysisData);
         
         // Salvar session_id retornado pelo backend
         if (response.session_id && !user?.id) {
-         
+          console.log('💾 [ANALYSIS PAGE] Salvando session_id do backend:', response.session_id);
           saveSessionFromBackend(response.session_id);
+        }
+        
+        // Salvar análise anônima em cookies se não estiver logado (ANTES do redirecionamento)
+        if (!user?.id) {
+          try {
+            console.log('🍪 [ANALYSIS PAGE] Salvando análise anônima em cookies...');
+            saveAnonymousAnalysis({
+              command: command,
+              score: analysisData.risk_score,
+              severity: analysisData.is_malicious ? "malicious" : "safe",
+              signatures: analysisData.signatures_detected || [],
+              cmdlets_detected: analysisData.cmdlets_detected || [],
+              analysis_id: response.analysis_id
+            });
+            console.log('✅ [ANALYSIS PAGE] Análise anônima salva em cookies');
+          } catch (error) {
+            console.log('❌ [ANALYSIS PAGE] Erro ao salvar análise anônima:', error);
+          }
         }
         
         // Se temos um analysis_id, redirecionar para a página específica da análise
         if (response.analysis_id) {
-          // Notificar que uma nova análise foi feita
+          console.log('🔄 [ANALYSIS PAGE] Redirecionando para análise:', response.analysis_id);
+          console.log('🔔 [ANALYSIS PAGE] Chamando notifyNewAnalysis...');
+          
+          // Notificar que uma nova análise foi feita ANTES do redirecionamento
           notifyNewAnalysis();
           
-          router.push(`/analysis/${response.analysis_id}`);
-      return;
-    }
+          console.log('⏳ [ANALYSIS PAGE] Aguardando 100ms antes do redirecionamento...');
+          // Pequeno delay para garantir que o evento seja processado
+          setTimeout(() => {
+            console.log('🚀 [ANALYSIS PAGE] Executando redirecionamento...');
+            router.push(`/analysis/${response.analysis_id}`);
+          }, 100);
+          return;
+        }
 
         const analysisResult = {
           score: analysisData.risk_score,
@@ -208,28 +244,11 @@ export default function AnalysisDetailsPage() {
         
         setResult(analysisResult);
         setCmd(command);
-        
-        // Salvar análise anônima em cookies se não estiver logado
-        if (!user?.id) {
-          try {
-           
-            saveAnonymousAnalysis({
-              command: command,
-              score: analysisData.risk_score,
-              severity: analysisData.is_malicious ? "malicious" : "safe",
-              signatures: analysisData.signatures_detected || [],
-              cmdlets_detected: analysisData.cmdlets_detected || [],
-              analysis_id: response.analysis_id
-            });
-          } catch (error) {
-          
-          }
-        }
       } else {
         throw new Error(response.error || 'Analysis failed');
       }
     } catch (err) {
-     
+      console.log('❌ [ANALYSIS PAGE] Erro geral:', err);
       
       if (err.message === 'Rate limit excedido') {
         setLoading(false);
@@ -240,6 +259,7 @@ export default function AnalysisDetailsPage() {
       setResult(null);
     } finally {
       setLoading(false);
+      console.log('🏁 [ANALYSIS PAGE] performAnalysis finalizado');
     }
   };
   
@@ -248,28 +268,29 @@ export default function AnalysisDetailsPage() {
   
   // Handle new command analysis
   const handleNewAnalysis = async () => {
+    console.log('🚀 [ANALYSIS PAGE] handleNewAnalysis chamado com comando:', newCommand.trim());
+    
     if (newCommand.trim()) {
-     
-      
       // Verificar se já atingiu rate limit antes de prosseguir
       if (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit) {
-      
+        console.log('⚠️ [ANALYSIS PAGE] Rate limit atingido');
         setError("Rate limit atingido. Aguarde o timer ou resolva o captcha.");
         return;
       }
       
+      console.log('✅ [ANALYSIS PAGE] Rate limit OK, prosseguindo com análise');
       analysisExecutedRef.current = false;
       
-      // Limpar estado atual
-      setResult(null);
+      // Limpar apenas o erro, mas manter o resultado atual para evitar flick
       setError("");
-      setCmd(newCommand.trim());
       
+      console.log('🔄 [ANALYSIS PAGE] Chamando performAnalysis...');
       // Executar nova análise diretamente
       await performAnalysis(newCommand.trim(), null, {});
       
       // Limpar o campo de input apenas se a análise foi bem-sucedida
       setNewCommand("");
+      console.log('✅ [ANALYSIS PAGE] handleNewAnalysis finalizado');
     }
   };
 

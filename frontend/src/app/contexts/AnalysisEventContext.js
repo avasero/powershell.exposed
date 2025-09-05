@@ -8,9 +8,14 @@ export const AnalysisEventProvider = ({ children }) => {
 
   // Função para notificar que uma nova análise foi feita
   const notifyNewAnalysis = useCallback(() => {
-    console.log('🔄 Nova análise detectada, incrementando contador...');
-    setAnalysisCount(prev => prev + 1);
-  }, []);
+    console.log('🔔 [EVENT CONTEXT] Nova análise detectada, incrementando contador...');
+    console.log('🔔 [EVENT CONTEXT] Contador atual:', analysisCount);
+    setAnalysisCount(prev => {
+      const newCount = prev + 1;
+      console.log('🔔 [EVENT CONTEXT] Novo contador:', newCount);
+      return newCount;
+    });
+  }, [analysisCount]);
 
   // Função para resetar o contador (útil para testes)
   const resetAnalysisCount = useCallback(() => {

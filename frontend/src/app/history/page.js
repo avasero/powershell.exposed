@@ -42,12 +42,25 @@ export default function HistoryPage() {
       setLoading(true);
       setError("");
       
+      // Obter session_id do localStorage
+      const { getCurrentSessionId } = await import('../../utils/session');
+      const sessionId = getCurrentSessionId();
+      
+      if (!sessionId) {
+        console.log('⚠️ Nenhum session_id encontrado, não é possível carregar análises');
+        setAnalyses([]);
+        return;
+      }
+      
+      console.log('🔍 Carregando análises com session_id:', sessionId);
+      
       // Carregar análises diretamente do backend Python
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       const response = await fetch(`${apiUrl}/user-analyses`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'X-Session-ID': sessionId, // Enviar session_id no header
         },
         credentials: 'include', // Incluir cookies para autenticação
       });

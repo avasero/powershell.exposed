@@ -138,12 +138,33 @@ export default function AnalysisPage() {
           saveSessionFromBackend(response.session_id);
         }
         
+        // Salvar análise anônima em cookies se não estiver logado (ANTES do redirecionamento)
+        if (!user?.id) {
+          try {
+            console.log('🍪 [ANALYSIS PAGE] Salvando análise anônima em cookies...');
+            saveAnonymousAnalysis({
+              command: command,
+              score: analysisData.risk_score,
+              severity: analysisData.is_malicious ? "malicious" : "safe",
+              signatures: analysisData.signatures_detected || [],
+              cmdlets_detected: analysisData.cmdlets_detected || [],
+              analysis_id: response.analysis_id
+            });
+            console.log('✅ [ANALYSIS PAGE] Análise anônima salva em cookies');
+          } catch (error) {
+            console.log('❌ [ANALYSIS PAGE] Erro ao salvar análise anônima:', error);
+          }
+        }
+        
         // Se temos um analysis_id, redirecionar para a página específica da análise
         if (response.analysis_id) {
-          // Notificar que uma nova análise foi feita
+          // Notificar que uma nova análise foi feita ANTES do redirecionamento
           notifyNewAnalysis();
           
-          router.push(`/analysis/${response.analysis_id}`);
+          // Pequeno delay para garantir que o evento seja processado
+          setTimeout(() => {
+            router.push(`/analysis/${response.analysis_id}`);
+          }, 100);
           return; // Não processar mais nada, pois vamos redirecionar
         }
         
@@ -160,22 +181,6 @@ export default function AnalysisPage() {
         };
         
         setResult(analysisResult);
-        
-        // Salvar análise anônima em cookies se não estiver logado
-        if (!user?.id) {
-          try {
-            saveAnonymousAnalysis({
-              command: command,
-              score: analysisData.risk_score,
-              severity: analysisData.is_malicious ? "malicious" : "safe",
-              signatures: analysisData.signatures_detected || [],
-              cmdlets_detected: analysisData.cmdlets_detected || [],
-              analysis_id: response.analysis_id
-            });
-          } catch (error) {
-            // Ignorar erro ao salvar análise anônima
-          }
-        }
       } else {
         throw new Error(response.error || 'Analysis failed');
       }
@@ -245,10 +250,8 @@ export default function AnalysisPage() {
       
       analysisExecutedRef.current = false; // Resetar flag para permitir nova análise
       
-      // Limpar estado atual
-      setResult(null);
+      // Limpar apenas o erro, mas manter o resultado atual para evitar flick
       setError("");
-      setCmd(newCommand.trim());
       
       // Executar nova análise diretamente
       await performAnalysis(newCommand.trim(), null, {});
