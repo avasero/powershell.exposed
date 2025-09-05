@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
 import { useAnalysisDrawer } from "../contexts/AnalysisDrawerContext";
+import { useAnalysisEvent } from "../contexts/AnalysisEventContext";
 import { getUserAnalyses, deleteRecentAnalyses, getAllUserAnalyses, getRecentUserAnalysesForChat } from "../../../utils/database";
 import { getAnonymousAnalyses, clearAnonymousAnalyses, deleteAnonymousAnalysis, debugCookies } from "../../utils/cookies";
 import SeverityBadge from "./SeverityBadge";
@@ -10,6 +11,7 @@ import SeverityBadge from "./SeverityBadge";
 export default function AnalysisChat() {
   const { isAuthenticated, user } = useAuth();
   const { isAnalysisDrawerOpen, closeAnalysisDrawer } = useAnalysisDrawer();
+  const { analysisCount } = useAnalysisEvent();
   const [analyses, setAnalyses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
@@ -45,6 +47,27 @@ export default function AnalysisChat() {
     }
   }, [user?.id, isAuthenticated, user]); // Observar mudanças no ID do usuário
 
+  // Recarregar análises quando uma nova análise é feita (via evento global)
+  useEffect(() => {
+    if (analysisCount > 0 && isAuthenticated() && !isAnonymous) {
+      console.log('🔄 Nova análise detectada via evento, recarregando chat...');
+      loadRecentAnalyses();
+    }
+  }, [analysisCount, isAuthenticated, isAnonymous]);
+
+  // Recarregar análises quando a página ganha foco (usuário volta de uma análise)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (isAuthenticated() && !isAnonymous) {
+        console.log('🔄 Page focused, reloading analyses...');
+        loadRecentAnalyses();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [isAuthenticated, isAnonymous]);
+
   // Atualizar timestamps a cada minuto
   useEffect(() => {
     const interval = setInterval(() => {
@@ -58,17 +81,33 @@ export default function AnalysisChat() {
     try {
       setLoading(true);
       
+      // Carregar análises diretamente do backend Python
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/user-analyses?limit=5`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Incluir cookies para autenticação
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('📊 Loaded user analyses from backend:', result);
       
-      // Carregar apenas as últimas 5 análises do usuário para o chat
-      const data = await getRecentUserAnalysesForChat(5);
-      console.log('📊 Loaded user analyses:', data);
-      console.log('📊 Sample analysis data:', data?.[0]);
-      console.log('📊 IDs found:', data?.map(a => ({ id: a.id, command: a.command?.substring(0, 30) })));
+      // Processar dados do backend
+      const analyses = result.analyses || result || [];
+      console.log('📊 Processed analyses:', analyses);
+      console.log('📊 Sample analysis data:', analyses?.[0]);
+      console.log('📊 IDs found:', analyses?.map(a => ({ id: a.id, command: a.command?.substring(0, 30) })));
       
-      setAnalyses(data || []);
+      setAnalyses(analyses);
      
     } catch (err) {
-      
+      console.error('❌ Error loading recent analyses:', err);
       setAnalyses([]);
     } finally {
       setLoading(false);
@@ -233,180 +272,163 @@ export default function AnalysisChat() {
       <div className="p-4 border-b flex-shrink-0" style={{borderColor: 'var(--border-color)'}}>
         <div className="flex items-center justify-between">
           <div>
-                                     <h2 className="font-mono font-semibold text-lg" style={{color: 'var(--accent)'}}>
+            <h2 className="font-mono font-semibold text-lg" style={{color: 'var(--accent)'}}>
               {isAnonymous ? 'Recent Evaluations' : 'Recent Evaluations'}
             </h2>
             <p className="font-mono text-xs mt-1" style={{color: 'var(--muted-foreground)'}}>
-              {isAnonymous ? 'Last 5 evaluations (stored in cookies)' : 'Last 5 evaluations from your account'}
+              {isAnonymous ? 'Last 5 evaluations' : 'Last 5 evaluations from your account'}
             </p>
-             {isAnonymous && (
-               <div className="flex items-center gap-2">
-                 
-                                
-               </div>
-             )}
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Botão History */}
-            <button
-              onClick={() => router.push('/history')}
-              className="p-2 rounded-md transition-colors font-mono text-xs"
-              style={{
-                color: 'var(--accent)',
-                backgroundColor: 'transparent',
-                border: '1px solid var(--accent)'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = 'var(--accent)';
-                e.target.style.color = 'var(--background)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = 'transparent';
-                e.target.style.color = 'var(--accent)';
-              }}
-              title="View full analysis history"
-            >
-              📊 History
-            </button>
-            
-            {analyses.length > 0 && (
-              <button
-                onClick={handleDeleteRecentAnalyses}
-                disabled={deleting}
-                className="p-2 rounded-md transition-colors font-mono text-xs"
-                style={{
-                  color: deleting ? 'var(--muted-foreground)' : '#EF4444',
-                  backgroundColor: deleting ? 'var(--muted)' : 'transparent'
-                }}
-                onMouseEnter={(e) => !deleting && (e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.1)')}
-                onMouseLeave={(e) => !deleting && (e.target.style.backgroundColor = 'transparent')}
-                               title={isAnonymous ? "Clear all anonymous analyses from cookies" : "Clear recent analyses from chat view (keeps safely saved in account)"}
-               >
-                 {deleting ? (isAnonymous ? 'Clearing...' : 'Clearing...') : (isAnonymous ? 'Clear' : 'Clear')}
-              </button>
-            )}
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden analysis-chat-scroll">
-        <div className="min-h-[740px]">
-          {loading ? (
-            <div className="p-4 min-h-full">
-              <div className="animate-pulse space-y-3 min-h-full flex flex-col">
-                {[...Array(8)].map((_, i) => (
-                  <div key={i} className="h-16 rounded flex-shrink-0" style={{backgroundColor: 'var(--muted)'}}></div>
-                ))}
-              </div>
-            </div>
-          ) : analyses.length === 0 ? (
-            <div className="p-4 min-h-full flex flex-col justify-center">
-              <div className="text-center">
-                <p className="font-mono text-sm mb-4" style={{color: 'var(--muted-foreground)'}}>
-                  {isAnonymous ? 'No anonymous analyses yet' : 'No analyses to show'}
-                </p>
-                <p className="font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>
-                  {isAnonymous ? 'Run your first analysis to see it here' : 'Run an analysis or refresh to reload from your account'}
-                </p>
-                {isAnonymous && (
-                  <p className="font-mono text-xs mt-2" style={{color: 'var(--accent)'}}>
-                    Analyses are stored locally in cookies
-                  </p>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="p-2">
-              {analyses.map((analysis) => (
-              <div
-                key={analysis.id}
-                onClick={() => handleAnalysisClick(analysis.command, analysis.uuid || analysis.id)}
-                className="p-3 mb-2 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80"
-                style={{
-                  backgroundColor: 'var(--card-bg)', 
-                  borderColor: 'var(--border-color)'
-                }}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <SeverityBadge score={(analysis.risk_score ?? analysis.score ?? analysis.analysis_result?.risk_score ?? 0)} size="sm" />
-                    {isAnonymous && analysis.is_anonymous && (
-                      <span className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800">
-                        Anonymous
-                      </span>
-                    )}
-                  </div>
-                  <span className="font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>
-                    {formatDate(analysis.created_at)}
-                  </span>
+      <div className="flex-1 flex flex-col">
+        {/* Área de scroll das análises */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden analysis-chat-scroll">
+          <div className="min-h-full">
+            {loading ? (
+              <div className="p-4">
+                <div className="animate-pulse space-y-3">
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className="h-16 rounded flex-shrink-0" style={{backgroundColor: 'var(--muted)'}}></div>
+                  ))}
                 </div>
-                
-                <div className="mb-2">
-                  <p className="font-mono text-sm font-medium leading-tight" style={{color: 'var(--foreground)'}}>
-                    {truncateCommand(analysis.command)}
-                  </p>
-                </div>
-
-                {/* Cmdlets detected */}
-                {analysis.cmdlets_detected && Array.isArray(analysis.cmdlets_detected) && analysis.cmdlets_detected.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {analysis.cmdlets_detected.slice(0, 2).map((cmdlet, index) => {
-                      const displayName = cmdlet.alias || 'Unknown';
-                      const shortName = displayName.length > 12 ? displayName.substring(0, 12) + '...' : displayName;
-                      
-                      return (
-                        <span
-                          key={index}
-                          className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800"
-                          title={`${cmdlet.alias} → ${cmdlet.cmdlet_name}`}
-                        >
-                          {shortName}
-                        </span>
-                      );
-                    })}
-                    {analysis.cmdlets_detected.length > 2 && (
-                      <span className="px-2 py-1 rounded text-xs font-mono" style={{backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)'}}>
-                        +{analysis.cmdlets_detected.length - 2} cmdlets
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {(analysis.signatures_detected || analysis.signatures) && Array.isArray(analysis.signatures_detected || analysis.signatures) && (analysis.signatures_detected || analysis.signatures).length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {(analysis.signatures_detected || analysis.signatures).slice(0, 2).map((sig, index) => {
-                      // Verificar se sig é um objeto ou string e extrair o nome
-                      let sigName = '';
-                      if (typeof sig === 'object' && sig !== null) {
-                        sigName = sig.name || sig.keyword || 'Unknown';
-                      } else if (typeof sig === 'string') {
-                        sigName = sig;
-                      } else {
-                        sigName = 'Unknown';
-                      }
-                      
-                      const displayName = sigName.length > 15 ? sigName.substring(0, 15) + '...' : sigName;
-                      
-                      return (
-                        <span
-                          key={index}
-                          className="px-2 py-1 rounded text-xs font-mono bg-red-900/30 text-red-400 border border-red-800"
-                        >
-                          {displayName}
-                        </span>
-                      );
-                    })}
-                    {(analysis.signatures_detected || analysis.signatures).length > 2 && (
-                      <span className="px-2 py-1 rounded text-xs font-mono" style={{backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)'}}>
-                        +{(analysis.signatures_detected || analysis.signatures).length - 2} more
-                      </span>
-                    )}
-                  </div>
-                )}
               </div>
-            ))}
+            ) : analyses.length === 0 ? (
+              <div className="p-4 flex flex-col justify-center h-full">
+                <div className="text-center">
+                  <p className="font-mono text-sm mb-4" style={{color: 'var(--muted-foreground)'}}>
+                    {isAnonymous ? 'No anonymous analyses yet' : 'No analyses to show'}
+                  </p>
+                  <p className="font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>
+                    {isAnonymous ? 'Run your first analysis to see it here' : 'Run an analysis or refresh to reload from your account'}
+                  </p>
+                  {isAnonymous && (
+                    <p className="font-mono text-xs mt-2" style={{color: 'var(--accent)'}}>
+                      Analyses are stored locally in cookies
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="p-2">
+                {analyses.map((analysis) => (
+                <div
+                  key={analysis.id}
+                  onClick={() => handleAnalysisClick(analysis.command, analysis.uuid || analysis.id)}
+                  className="p-3 mb-2 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80"
+                  style={{
+                    backgroundColor: 'var(--card-bg)', 
+                    borderColor: 'var(--border-color)'
+                  }}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <SeverityBadge score={(analysis.risk_score ?? analysis.score ?? analysis.analysis_result?.risk_score ?? 0)} size="sm" />
+                      {isAnonymous && analysis.is_anonymous && (
+                        <span className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800">
+                          Anonymous
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>
+                      {formatDate(analysis.created_at)}
+                    </span>
+                  </div>
+                  
+                  <div className="mb-2">
+                    <p className="font-mono text-sm font-medium leading-tight" style={{color: 'var(--foreground)'}}>
+                      {truncateCommand(analysis.command)}
+                    </p>
+                  </div>
+
+                  {/* Cmdlets detected */}
+                  {analysis.cmdlets_detected && Array.isArray(analysis.cmdlets_detected) && analysis.cmdlets_detected.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {analysis.cmdlets_detected.slice(0, 2).map((cmdlet, index) => {
+                        const displayName = cmdlet.alias || 'Unknown';
+                        const shortName = displayName.length > 12 ? displayName.substring(0, 12) + '...' : displayName;
+                        
+                        return (
+                          <span
+                            key={index}
+                            className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800"
+                            title={`${cmdlet.alias} → ${cmdlet.cmdlet_name}`}
+                          >
+                            {shortName}
+                          </span>
+                        );
+                      })}
+                      {analysis.cmdlets_detected.length > 2 && (
+                        <span className="px-2 py-1 rounded text-xs font-mono" style={{backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)'}}>
+                          +{analysis.cmdlets_detected.length - 2} cmdlets
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {(analysis.signatures_detected || analysis.signatures) && Array.isArray(analysis.signatures_detected || analysis.signatures) && (analysis.signatures_detected || analysis.signatures).length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {(analysis.signatures_detected || analysis.signatures).slice(0, 2).map((sig, index) => {
+                        // Verificar se sig é um objeto ou string e extrair o nome
+                        let sigName = '';
+                        if (typeof sig === 'object' && sig !== null) {
+                          sigName = sig.name || sig.keyword || 'Unknown';
+                        } else if (typeof sig === 'string') {
+                          sigName = sig;
+                        } else {
+                          sigName = 'Unknown';
+                        }
+                        
+                        const displayName = sigName.length > 15 ? sigName.substring(0, 15) + '...' : sigName;
+                        
+                        return (
+                          <span
+                            key={index}
+                            className="px-2 py-1 rounded text-xs font-mono bg-red-900/30 text-red-400 border border-red-800"
+                          >
+                            {displayName}
+                          </span>
+                        );
+                      })}
+                      {(analysis.signatures_detected || analysis.signatures).length > 2 && (
+                        <span className="px-2 py-1 rounded text-xs font-mono" style={{backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)'}}>
+                          +{(analysis.signatures_detected || analysis.signatures).length - 2} more
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
           </div>
-        )}
+        </div>
+        
+        {/* Botões fixos no canto inferior direito - fora da área de scroll */}
+        <div className="p-2 flex justify-end gap-3 " style={{borderColor: 'var(--border-color)'}}>
+          <button
+            onClick={() => router.push('/history')}
+            className="font-mono text-md transition-colors hover:opacity-70"
+            style={{color: 'var(--accent)'}}
+            title="View full analysis history"
+          >
+            View all
+          </button>
+          
+          {analyses.length > 0 && (
+            <button
+              onClick={handleDeleteRecentAnalyses}
+              disabled={deleting}
+              className="font-mono text-md transition-colors hover:opacity-70"
+              style={{
+                color: deleting ? 'var(--muted-foreground)' : '#EF4444'
+              }}
+              title={isAnonymous ? "Clear all anonymous analyses from cookies" : "Clear recent analyses from chat view (keeps safely saved in account)"}
+            >
+              {deleting ? (isAnonymous ? 'Clearing...' : 'Clearing...') : (isAnonymous ? 'Clear' : 'Clear')}
+            </button>
+          )}
         </div>
       </div>
     </>
@@ -415,7 +437,7 @@ export default function AnalysisChat() {
   return (
     <>
       {/* Desktop - Chat lateral fixo */}
-      <div className="hidden md:flex md:w-80 h-full border-r flex-col flex-shrink-0" style={{borderColor: 'var(--border-color)', backgroundColor: 'var(--background)'}}>
+      <div className="hidden md:flex md:w-80 h-screen border-r flex-col flex-shrink-0" style={{borderColor: 'var(--border-color)', backgroundColor: 'var(--background)'}}>
         <AnalysisChatContent />
       </div>
 
@@ -433,48 +455,12 @@ export default function AnalysisChat() {
             {/* Header com botão de fechar */}
             <div className="p-4 border-b flex items-center justify-between" style={{borderColor: 'var(--border-color)'}}>
               <div>
-                                                 <h2 className="font-mono font-semibold text-lg" style={{color: 'var(--accent)'}}>
+                <h2 className="font-mono font-semibold text-lg" style={{color: 'var(--accent)'}}>
                   {isAnonymous ? 'Recent Analyses' : 'All Your Analyses'}
                 </h2>
-                <div className="flex items-center gap-2 mt-1">
-                  {/* Botão History */}
-                  <button
-                    onClick={() => {
-                      closeAnalysisDrawer();
-                      router.push('/history');
-                    }}
-                    className="px-2 py-1 rounded-md transition-colors font-mono text-xs"
-                    style={{
-                      color: 'var(--accent)',
-                      backgroundColor: 'transparent',
-                      border: '1px solid var(--accent)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.backgroundColor = 'var(--accent)';
-                      e.target.style.color = 'var(--background)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.backgroundColor = 'transparent';
-                      e.target.style.color = 'var(--accent)';
-                    }}
-                    title="View full analysis history"
-                  >
-                    📊 Full History
-                  </button>
-                  
-                  {analyses.length > 0 && (
-                    <button
-                      onClick={handleDeleteRecentAnalyses}
-                      disabled={deleting}
-                      className="font-mono text-xs transition-colors"
-                      style={{
-                        color: deleting ? 'var(--muted-foreground)' : '#EF4444'
-                      }}
-                    >
-                      {deleting ? (isAnonymous ? 'Clearing...' : 'Clearing...') : (isAnonymous ? 'Clear all' : 'Clear all')}
-                    </button>
-                  )}
-                </div>
+                <p className="font-mono text-xs mt-1" style={{color: 'var(--muted-foreground)'}}>
+                  {isAnonymous ? 'Last 5 evaluations' : 'Last 5 evaluations from your account'}
+                </p>
               </div>
               <button
                 onClick={closeAnalysisDrawer}
@@ -490,123 +476,155 @@ export default function AnalysisChat() {
             </div>
             
             {/* Conteúdo */}
-            <div className="flex-1 overflow-y-auto analysis-chat-scroll">
-              <div className="p-2 min-h-full">
-                <div className="min-h-full">
-                  {loading ? (
-                    <div className="p-4 min-h-full">
-                      <div className="animate-pulse space-y-3 min-h-full flex flex-col">
-                        {[...Array(8)].map((_, i) => (
-                          <div key={i} className="h-16 rounded flex-shrink-0" style={{backgroundColor: 'var(--muted)'}}></div>
-                        ))}
+            <div className="flex-1 flex flex-col">
+              {/* Área de scroll das análises */}
+              <div className="flex-1 overflow-y-auto analysis-chat-scroll">
+                <div className="p-2">
+                  <div>
+                    {loading ? (
+                      <div className="p-4">
+                        <div className="animate-pulse space-y-3">
+                          {[...Array(8)].map((_, i) => (
+                            <div key={i} className="h-16 rounded flex-shrink-0" style={{backgroundColor: 'var(--muted)'}}></div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ) : analyses.length === 0 ? (
-                    <div className="p-4 min-h-full flex flex-col justify-center">
-                      <div className="text-center">
-                        <p className="font-mono text-sm mb-4" style={{color: 'var(--muted-foreground)'}}>
-                          {isAnonymous ? 'No anonymous analyses yet' : 'No analyses to show'}
-                        </p>
-                        <p className="font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>
-                          {isAnonymous ? 'Run your first analysis to see it here' : 'Run an analysis or refresh to reload from your account'}
-                        </p>
-                        {isAnonymous && (
-                          <p className="font-mono text-xs mt-2" style={{color: 'var(--accent)'}}>
-                            Analyses are stored locally in cookies
+                    ) : analyses.length === 0 ? (
+                      <div className="p-4 flex flex-col justify-center h-full">
+                        <div className="text-center">
+                          <p className="font-mono text-sm mb-4" style={{color: 'var(--muted-foreground)'}}>
+                            {isAnonymous ? 'No anonymous analyses yet' : 'No analyses to show'}
                           </p>
+                          <p className="font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>
+                            {isAnonymous ? 'Run your first analysis to see it here' : 'Run an analysis or refresh to reload from your account'}
+                          </p>
+                          {isAnonymous && (
+                            <p className="font-mono text-xs mt-2" style={{color: 'var(--accent)'}}>
+                              Analyses are stored locally in cookies
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      analyses.map((analysis) => (
+                      <div
+                        key={analysis.id}
+                        onClick={() => handleAnalysisClick(analysis.command, analysis.uuid || analysis.id)}
+                        className="p-3 mb-2 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80"
+                        style={{
+                          backgroundColor: 'var(--card-bg)', 
+                          borderColor: 'var(--border-color)'
+                        }}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <SeverityBadge score={(analysis.risk_score ?? analysis.score ?? analysis.analysis_result?.risk_score ?? 0)} size="sm" />
+                            {isAnonymous && analysis.is_anonymous && (
+                              <span className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800">
+                                Anonymous
+                              </span>
+                            )}
+                          </div>
+                          <span className="font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>
+                            {formatDate(analysis.created_at)}
+                          </span>
+                        </div>
+                        
+                        <div className="mb-2">
+                          <p className="font-mono text-sm font-medium leading-tight" style={{color: 'var(--foreground)'}}>
+                            {truncateCommand(analysis.command)}
+                          </p>
+                        </div>
+
+                        {/* Cmdlets detected */}
+                        {analysis.cmdlets_detected && Array.isArray(analysis.cmdlets_detected) && analysis.cmdlets_detected.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {analysis.cmdlets_detected.slice(0, 2).map((cmdlet, index) => {
+                              const displayName = cmdlet.alias || 'Unknown';
+                              const shortName = displayName.length > 12 ? displayName.substring(0, 12) + '...' : displayName;
+                              
+                              return (
+                                <span
+                                  key={index}
+                                  className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800"
+                                  title={`${cmdlet.alias} → ${cmdlet.cmdlet_name}`}
+                                >
+                                  {shortName}
+                                </span>
+                              );
+                            })}
+                            {analysis.cmdlets_detected.length > 2 && (
+                              <span className="px-2 py-1 rounded text-xs font-mono" style={{backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)'}}>
+                                +{analysis.cmdlets_detected.length - 2} cmdlets
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {(analysis.signatures_detected || analysis.signatures) && Array.isArray(analysis.signatures_detected || analysis.signatures) && (analysis.signatures_detected || analysis.signatures).length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {(analysis.signatures_detected || analysis.signatures).slice(0, 2).map((sig, index) => {
+                              let sigName = '';
+                              if (typeof sig === 'object' && sig !== null) {
+                                sigName = sig.name || sig.keyword || 'Unknown';
+                              } else if (typeof sig === 'string') {
+                                sigName = sig;
+                              } else {
+                                sigName = 'Unknown';
+                              }
+                              
+                              const displayName = sigName.length > 15 ? sigName.substring(0, 15) + '...' : sigName;
+                              
+                              return (
+                                <span
+                                  key={index}
+                                  className="px-2 py-1 rounded text-xs font-mono bg-red-900/30 text-red-400 border border-red-800"
+                                >
+                                  {displayName}
+                                </span>
+                              );
+                            })}
+                            {(analysis.signatures_detected || analysis.signatures).length > 2 && (
+                              <span className="px-2 py-1 rounded text-xs font-mono" style={{backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)'}}>
+                                +{(analysis.signatures_detected || analysis.signatures).length - 2} more
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
-                    </div>
-                  ) : (
-                    analyses.map((analysis) => (
-                    <div
-                      key={analysis.id}
-                      onClick={() => handleAnalysisClick(analysis.command, analysis.uuid || analysis.id)}
-                      className="p-3 mb-2 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80"
-                      style={{
-                        backgroundColor: 'var(--card-bg)', 
-                        borderColor: 'var(--border-color)'
-                      }}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <SeverityBadge score={(analysis.risk_score ?? analysis.score ?? analysis.analysis_result?.risk_score ?? 0)} size="sm" />
-                          {isAnonymous && analysis.is_anonymous && (
-                            <span className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800">
-                              Anonymous
-                            </span>
-                          )}
-                        </div>
-                        <span className="font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>
-                          {formatDate(analysis.created_at)}
-                        </span>
-                      </div>
-                      
-                      <div className="mb-2">
-                        <p className="font-mono text-sm font-medium leading-tight" style={{color: 'var(--foreground)'}}>
-                          {truncateCommand(analysis.command)}
-                        </p>
-                      </div>
-
-                      {/* Cmdlets detected */}
-                      {analysis.cmdlets_detected && Array.isArray(analysis.cmdlets_detected) && analysis.cmdlets_detected.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {analysis.cmdlets_detected.slice(0, 2).map((cmdlet, index) => {
-                            const displayName = cmdlet.alias || 'Unknown';
-                            const shortName = displayName.length > 12 ? displayName.substring(0, 12) + '...' : displayName;
-                            
-                            return (
-                              <span
-                                key={index}
-                                className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800"
-                                title={`${cmdlet.alias} → ${cmdlet.cmdlet_name}`}
-                              >
-                                {shortName}
-                              </span>
-                            );
-                          })}
-                          {analysis.cmdlets_detected.length > 2 && (
-                            <span className="px-2 py-1 rounded text-xs font-mono" style={{backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)'}}>
-                              +{analysis.cmdlets_detected.length - 2} cmdlets
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {(analysis.signatures_detected || analysis.signatures) && Array.isArray(analysis.signatures_detected || analysis.signatures) && (analysis.signatures_detected || analysis.signatures).length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {(analysis.signatures_detected || analysis.signatures).slice(0, 2).map((sig, index) => {
-                            let sigName = '';
-                            if (typeof sig === 'object' && sig !== null) {
-                              sigName = sig.name || sig.keyword || 'Unknown';
-                            } else if (typeof sig === 'string') {
-                              sigName = sig;
-                            } else {
-                              sigName = 'Unknown';
-                            }
-                            
-                            const displayName = sigName.length > 15 ? sigName.substring(0, 15) + '...' : sigName;
-                            
-                            return (
-                              <span
-                                key={index}
-                                className="px-2 py-1 rounded text-xs font-mono bg-red-900/30 text-red-400 border border-red-800"
-                              >
-                                {displayName}
-                              </span>
-                            );
-                          })}
-                          {(analysis.signatures_detected || analysis.signatures).length > 2 && (
-                            <span className="px-2 py-1 rounded text-xs font-mono" style={{backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)'}}>
-                              +{(analysis.signatures_detected || analysis.signatures).length - 2} more
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                  )}
+                    ))
+                    )}
+                  </div>
                 </div>
+              </div>
+              
+              {/* Botões fixos no canto inferior direito - fora da área de scroll */}
+              <div className="p-4 flex justify-end gap-3 border-t" style={{borderColor: 'var(--border-color)'}}>
+                <button
+                  onClick={() => {
+                    closeAnalysisDrawer();
+                    router.push('/history');
+                  }}
+                  className="font-mono text-xs transition-colors hover:opacity-70"
+                  style={{color: 'var(--accent)'}}
+                  title="View full analysis history"
+                >
+                  View all
+                </button>
+                
+                {analyses.length > 0 && (
+                  <button
+                    onClick={handleDeleteRecentAnalyses}
+                    disabled={deleting}
+                    className="font-mono text-xs transition-colors hover:opacity-70"
+                    style={{
+                      color: deleting ? 'var(--muted-foreground)' : '#EF4444'
+                    }}
+                    title={isAnonymous ? "Clear all anonymous analyses from cookies" : "Clear recent analyses from chat view (keeps safely saved in account)"}
+                  >
+                    {deleting ? (isAnonymous ? 'Clearing...' : 'Clearing...') : (isAnonymous ? 'Clear' : 'Clear')}
+                  </button>
+                )}
               </div>
             </div>
           </div>

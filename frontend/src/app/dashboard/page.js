@@ -31,9 +31,36 @@ export default function DashboardPage() {
       setLoading(true);
       setError("");
       
-      const response = await getUserAnalyses(1, 10);
-      setAnalyses(response.analyses || []);
-      setStats(response.stats || {});
+      // Carregar análises diretamente do backend Python
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/user-analyses?limit=10`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Incluir cookies para autenticação
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('📊 Loaded dashboard data from backend:', result);
+      
+      // Processar dados do backend
+      const analyses = result.analyses || result || [];
+      setAnalyses(analyses);
+      
+      // Calcular stats localmente se não vierem do backend
+      const stats = result.stats || {
+        total_analyses: analyses.length,
+        critical_count: analyses.filter(a => (a.risk_score || 0) >= 10).length,
+        high_count: analyses.filter(a => (a.risk_score || 0) >= 8 && (a.risk_score || 0) < 10).length,
+        medium_count: analyses.filter(a => (a.risk_score || 0) >= 5 && (a.risk_score || 0) < 8).length,
+        avg_risk_score: analyses.length > 0 ? analyses.reduce((sum, a) => sum + (a.risk_score || 0), 0) / analyses.length : 0
+      };
+      setStats(stats);
       
     } catch (err) {
       setError(err.message || "Failed to load dashboard data");

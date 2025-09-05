@@ -5,6 +5,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { DrawerProvider } from "./contexts/DrawerContext";
 import { AnalysisDrawerProvider } from "./contexts/AnalysisDrawerContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import { AnalysisEventProvider } from "./contexts/AnalysisEventContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,17 +28,19 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
+        style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--background)', color: 'var(--foreground)', overflow: 'hidden' }}
       >
         <ThemeProvider>
           <AuthProvider>
-            <DrawerProvider>
-              <AnalysisDrawerProvider>
-                <Navbar />
-                <main className="flex-1">{children}</main>
-                <Footer />
-              </AnalysisDrawerProvider>
-            </DrawerProvider>
+              <AnalysisEventProvider>
+              <DrawerProvider>
+                <AnalysisDrawerProvider>
+                  <Navbar />
+                  <main className="flex-1">{children}</main>
+                  <Footer />
+                </AnalysisDrawerProvider>
+              </DrawerProvider>
+            </AnalysisEventProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

@@ -2,6 +2,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useAnalysisEvent } from "../../contexts/AnalysisEventContext";
 import { useRateLimit } from "../../../hooks/useRateLimit";
 import SeverityLegend from "../../components/SeverityLegend";
 import AnalysisCard from "../../components/AnalysisCard";
@@ -37,6 +38,7 @@ export default function AnalysisDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
+  const { notifyNewAnalysis } = useAnalysisEvent();
   const { 
     rateLimitInfo, 
     handleRateLimitResponse, 
@@ -185,7 +187,9 @@ export default function AnalysisDetailsPage() {
         
         // Se temos um analysis_id, redirecionar para a página específica da análise
         if (response.analysis_id) {
-         
+          // Notificar que uma nova análise foi feita
+          notifyNewAnalysis();
+          
           router.push(`/analysis/${response.analysis_id}`);
       return;
     }

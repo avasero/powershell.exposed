@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "./contexts/AuthContext";
+import { useAnalysisEvent } from "./contexts/AnalysisEventContext";
 import { useIpAddress } from "../hooks/useIpAddress";
 import { useRateLimit } from "../hooks/useRateLimit";
 import LoadingSpinner from "./components/LoadingSpinner";
@@ -13,6 +14,7 @@ import AnalysisChat from "./components/AnalysisChat";
 export default function Home() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
+  const { notifyNewAnalysis } = useAnalysisEvent();
   const { ipAddress, ipLocation, loading: ipLoading, error: ipError } = useIpAddress();
   const { 
     rateLimitInfo, 
@@ -155,6 +157,10 @@ export default function Home() {
         }
         
         resetRateLimit(); // Limpar estado do rate limit
+        
+        // Notificar que uma nova análise foi feita
+        notifyNewAnalysis();
+        
         router.push(`/analysis/${data.analysis_id}`);
       } else {
         setError(data.error || 'Analysis failed');
@@ -194,14 +200,14 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-screen overflow-hidden">
       {/* Chat lateral - sempre visível para todos os usuários */}
       <div className="flex-shrink-0">
         <AnalysisChat />
       </div>
       
-      {/* Conteúdo principal */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
+      {/* Conteúdo principal - sem scroll */}
+      <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center px-2" style={{color: 'var(--accent)'}}>
           powershell.exposed
         </h1>
@@ -304,16 +310,10 @@ export default function Home() {
             </div>
           )}
 
-
-          
           <InfoMessage 
             message={!error && command.trim() === "" ? "Examples: Get-Process | Where-Object CPU -gt 100 | Select Name, CPU" : ""}
           />
         </form>
-
-
-        
-
       </div>
     </div>
   );

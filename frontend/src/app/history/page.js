@@ -41,8 +41,27 @@ export default function HistoryPage() {
     try {
       setLoading(true);
       setError("");
-      const data = await getAllUserAnalyses();
-      setAnalyses(data || []);
+      
+      // Carregar análises diretamente do backend Python
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/user-analyses`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Incluir cookies para autenticação
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('📊 Loaded user analyses from backend:', result);
+      
+      // Processar dados do backend
+      const analyses = result.analyses || result || [];
+      setAnalyses(analyses);
     } catch (err) {
       setError("Error loading analysis history: " + err.message);
       setAnalyses([]);

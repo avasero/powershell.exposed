@@ -575,6 +575,78 @@ async def create_user_session_endpoint(request: Request):
             status_code=500
         )
 
+@app.get("/user-analyses")
+async def get_user_analyses(request: Request):
+    """
+    Busca análises do usuário logado ou sessão anônima
+    Suporta parâmetro limit para limitar quantidade de resultados
+    """
+    try:
+        # Obter parâmetros da query
+        limit = int(request.query_params.get("limit", 20))
+        
+        # Obter session_id dos cookies ou headers
+        session_id = request.cookies.get("session_id")
+        if not session_id:
+            # Tentar obter do header Authorization ou X-Session-ID
+            session_id = request.headers.get("X-Session-ID")
+        
+        print(f"🔍 Buscando análises para session_id: {session_id}")
+        
+        if not session_id:
+            return JSONResponse(
+                {"error": "Session ID required"},
+                status_code=401
+            )
+        
+        supabase = get_supabase_client()
+        
+        # Buscar análises da sessão (inclui análises anônimas e de usuários logados)
+        response = supabase.table('powershell_analyses') \
+            .select('*') \
+            .eq('session_id', session_id) \
+            .order('created_at', desc=True) \
+            .limit(limit) \
+            .execute()
+        
+        if response.data:
+            print(f"✅ Encontradas {len(response.data)} análises para sessão {session_id}")
+            
+            # Processar dados para compatibilidade com frontend
+            analyses = []
+            for analysis in response.data:
+                analyses.append({
+                    "id": analysis.get("id"),
+                    "uuid": analysis.get("uuid"),
+                    "command": analysis.get("command"),
+                    "risk_score": analysis.get("risk_score"),
+                    "severity": analysis.get("severity"),
+                    "signatures_detected": analysis.get("signatures_detected", []),
+                    "cmdlets_detected": analysis.get("cmdlets_detected", []),
+                    "created_at": analysis.get("created_at"),
+                    "is_malicious": analysis.get("is_malicious", False)
+                })
+            
+            return JSONResponse({
+                "success": True,
+                "analyses": analyses,
+                "total": len(analyses)
+            })
+        else:
+            print(f"⚠️ Nenhuma análise encontrada para sessão {session_id}")
+            return JSONResponse({
+                "success": True,
+                "analyses": [],
+                "total": 0
+            })
+            
+    except Exception as error:
+        print(f"❌ Erro ao buscar análises do usuário: {error}")
+        return JSONResponse(
+            {"error": f"Failed to fetch user analyses: {str(error)}"},
+            status_code=500
+        )
+
 @app.get("/analysis/{analysis_id}")
 async def get_analysis_by_id(analysis_id: str):
     """
