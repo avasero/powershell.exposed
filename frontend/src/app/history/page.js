@@ -44,8 +44,6 @@ export default function HistoryPage() {
       
       // Para usuários logados, usar user_id diretamente
       if (isAuthenticated() && user?.id) {
-        console.log('👤 [HISTORY PAGE] Usuário logado - usando user_id:', user.id);
-        
         // Carregar análises diretamente do backend Python
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         const response = await fetch(`${apiUrl}/user-analyses?user_id=${user.id}`, {
@@ -61,7 +59,7 @@ export default function HistoryPage() {
         }
 
         const result = await response.json();
-        console.log('📊 [HISTORY PAGE] Loaded user analyses from backend:', result);
+        // Log removido para melhorar performance
         
         // Processar dados do backend
         const analyses = result.analyses || result || [];
@@ -70,19 +68,16 @@ export default function HistoryPage() {
       }
       
       // Para usuários anônimos, usar session_id do localStorage
-      console.log('👤 [HISTORY PAGE] Usuário anônimo - usando session_id');
+      // Para usuários anônimos, usar session_id do localStorage
       
       // Obter session_id do localStorage
       const { getCurrentSessionId } = await import('../../utils/session');
       const sessionId = getCurrentSessionId();
       
       if (!sessionId) {
-        console.log('⚠️ [HISTORY PAGE] Nenhum session_id encontrado, não é possível carregar análises');
         setAnalyses([]);
         return;
       }
-      
-      console.log('🔍 [HISTORY PAGE] Carregando análises com session_id:', sessionId);
       
       // Carregar análises diretamente do backend Python
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';

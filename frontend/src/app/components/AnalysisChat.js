@@ -19,19 +19,7 @@ export default function AnalysisChat() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const router = useRouter();
 
-  useEffect(() => {
-    
-    
-    if (isAuthenticated()) {
-     
-      setIsAnonymous(false);
-      loadRecentAnalyses();
-    } else {
-      
-      setIsAnonymous(true);
-      loadAnonymousAnalyses();
-    }
-  }, [isAuthenticated, user]);
+  // useEffect removido para evitar conflitos
 
  
   // useEffect otimizado para evitar re-renders desnecessários
@@ -74,11 +62,8 @@ export default function AnalysisChat() {
       
       // Para usuários logados, usar user_id diretamente
       if (isAuthenticated() && user?.id) {
-        console.log('👤 [ANALYSIS CHAT] Usuário logado - usando user_id:', user.id);
-        
         // Carregar análises diretamente do backend Python
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        console.log('🌐 [ANALYSIS CHAT] Chamando API:', `${apiUrl}/user-analyses?limit=5&user_id=${user.id}`);
         
         const response = await fetch(`${apiUrl}/user-analyses?limit=5&user_id=${user.id}`, {
           method: 'GET',
@@ -91,7 +76,6 @@ export default function AnalysisChat() {
         // Logs removidos para melhorar performance
 
         if (!response.ok) {
-          console.log('❌ [ANALYSIS CHAT] Erro HTTP:', response.status);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
@@ -99,7 +83,6 @@ export default function AnalysisChat() {
         try {
           result = await response.json();
         } catch (jsonError) {
-          console.log('❌ [ANALYSIS CHAT] Erro ao fazer parse do JSON:', jsonError);
           throw new Error('Invalid JSON response');
         }
         // Processar dados do backend
