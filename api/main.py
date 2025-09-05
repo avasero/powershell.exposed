@@ -593,13 +593,8 @@ async def get_user_analyses(request: Request):
             # Tentar obter do header Authorization ou X-Session-ID
             session_id = request.headers.get("X-Session-ID")
         
-        print(f"🔍 [DEBUG] Headers recebidos: {dict(request.headers)}")
-        print(f"🔍 [DEBUG] Cookies recebidos: {dict(request.cookies)}")
-        print(f"🔍 [DEBUG] Query params recebidos: {dict(request.query_params)}")
-        print(f"🔍 Buscando análises para user_id: {user_id}, session_id: {session_id}")
-        
+            # Debug logs removidos para melhorar performance
         if not user_id and not session_id:
-            print(f"❌ [ERROR] Nenhum user_id ou session_id encontrado")
             return JSONResponse(
                 {"error": "User ID or Session ID required"},
                 status_code=401
@@ -609,7 +604,6 @@ async def get_user_analyses(request: Request):
         
         # Buscar análises por user_id (usuários logados) ou session_id (anônimos)
         if user_id:
-            print(f"🔍 Buscando análises por user_id: {user_id}")
             response = supabase.table('powershell_analyses') \
                 .select('*') \
                 .eq('user_id', user_id) \
@@ -617,7 +611,6 @@ async def get_user_analyses(request: Request):
                 .limit(limit) \
                 .execute()
         else:
-            print(f"🔍 Buscando análises por session_id: {session_id}")
             response = supabase.table('powershell_analyses') \
                 .select('*') \
                 .eq('session_id', session_id) \
@@ -626,9 +619,6 @@ async def get_user_analyses(request: Request):
                 .execute()
         
         if response.data:
-            search_type = "user_id" if user_id else "session_id"
-            search_value = user_id if user_id else session_id
-            print(f"✅ Encontradas {len(response.data)} análises para {search_type}: {search_value}")
             
             # Processar dados para compatibilidade com frontend
             analyses = []
@@ -794,15 +784,11 @@ async def analyze_command_pcre2(request: Request):
     and saves the analysis in the powershell_analyses table (replacing the Edge Function)
     Uses standard Python regex module for matching
     """
-    print("🚀 === FUNÇÃO ANALYZE-PCRE2 CHAMADA ===")
-    
     try:
         # VERIFICAR RATE LIMIT GLOBAL PRIMEIRO
         global_rate_limit_info = check_global_rate_limit()
-        print(f"🌍 Rate limit global: {global_rate_limit_info}")
         
         if not global_rate_limit_info["within_limit"]:
-            print(f"🚫 Rate limit global excedido: {global_rate_limit_info['current_count']}/{global_rate_limit_info['limit']}")
             return JSONResponse(
                 {
                     "error": "Search limit reached. Please try again in a moment",
@@ -813,11 +799,9 @@ async def analyze_command_pcre2(request: Request):
             )
         
         client_ip = getattr(request.state, 'client_ip', None)
-        print(f"🚀 IP real do cliente: {client_ip}")
         
         # Ler o body primeiro para ter acesso aos dados do captcha
         body = await request.json()
-        print(f"🚀 Request body: {body}")
         
         command = body.get("command", "")
         user_id = body.get("user_id")  
@@ -981,18 +965,11 @@ async def analyze_command_pcre2(request: Request):
         techniques = set()
         
         for signature in signatures:
-            print(f"\n🔍 Analisando signature: {signature['name']}")
-            print(f"   Patterns disponíveis: {signature['patterns']}")
-            print(f"   Max Match permitido: {signature['max_match']}")
-            
             all_signature_matches = []
             
             # Primeiro, coletar TODOS os matches de TODOS os patterns
             for pattern in signature["patterns"]:
                 try:
-                    print(f"   Testing pattern: '{pattern}'")
-                    print(f"   Command: '{command}'")
-                    
                     # Use MULTILINE and DOTALL flags to handle multi-line commands properly
                     # MULTILINE: ^ and $ match start/end of each line, not just string
                     # DOTALL: . matches newline characters
@@ -1000,14 +977,12 @@ async def analyze_command_pcre2(request: Request):
                     pattern_matches = list(regex.finditer(command))
                     
                     if pattern_matches:
-                        print(f"   ✅ MATCHES ENCONTRADOS: {len(pattern_matches)} matches para pattern '{pattern}'")
-                        
                         for match in pattern_matches:
                             matched_text = match.group(0)
                             match_start = match.start()
                             match_end = match.end()
                             
-                            print(f"      Pattern match: '{matched_text}' (posição {match_start}-{match_end})")
+                            # Log removido para melhorar performance
                             
                             # Adicionar à lista geral de matches
                             all_signature_matches.append({
@@ -1019,7 +994,8 @@ async def analyze_command_pcre2(request: Request):
                                 }
                             })
                     else:
-                        print(f"   ❌ No match for pattern: '{pattern}'")
+                        # Log removido para melhorar performance
+                        pass
                         
                 except re.error as regex_error:  
                     print(f"   ❌ Erro no regex pattern '{pattern}': {regex_error}")
@@ -1035,19 +1011,18 @@ async def analyze_command_pcre2(request: Request):
                     seen_positions.add(position_key)
                     unique_matches.append(match_info)
             
-            print(f"   📊 Total matches coletados: {len(all_signature_matches)}")
-            print(f"   📊 Matches únicos: {len(unique_matches)}")
+            # Logs removidos para melhorar performance
             
             # Aplicar limite max_match
             matches_found = min(len(unique_matches), signature["max_match"])
             final_matches = unique_matches[:matches_found]
             
-            print(f"   📊 Matches finais após max_match ({signature['max_match']}): {matches_found}")
+            # Log removido para melhorar performance
             
             # Preparar lista final de matches
             signature_matches = []
             for i, match_info in enumerate(final_matches):
-                print(f"      Final Match {i+1}: '{match_info['matched_text']}' (posição {match_info['position']['start']}-{match_info['position']['end']})")
+                # Log removido para melhorar performance
                 
                 signature_matches.append({
                     "pattern": match_info["pattern"],
@@ -1064,7 +1039,7 @@ async def analyze_command_pcre2(request: Request):
                 # Calcular score total para esta signature (score base × quantidade de matches)
                 signature_total_score = signature["score"] * matches_found
                 
-                print(f"   📊 Score calculado: {signature['score']} × {matches_found} = {signature_total_score}")
+                # Log removido para melhorar performance
                 
                 # Determinar qual pattern deu match (usar o primeiro pattern que encontrou matches)
                 matched_pattern = signature_matches[0]["pattern"] if signature_matches else "Unknown pattern"

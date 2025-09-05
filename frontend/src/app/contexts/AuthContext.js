@@ -44,9 +44,9 @@ const createUserSession = async (userId) => {
     
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     
-    // Timeout de 5 segundos para não travar o loading
+    // Timeout de 10 segundos para não travar o loading
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 5000)
+      setTimeout(() => reject(new Error('Timeout')), 10000)
     );
     
     const fetchPromise = fetch(`${apiUrl}/create-user-session`, {

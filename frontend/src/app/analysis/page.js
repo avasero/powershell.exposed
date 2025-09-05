@@ -141,7 +141,6 @@ export default function AnalysisPage() {
         // Salvar análise anônima em cookies se não estiver logado (ANTES do redirecionamento)
         if (!user?.id) {
           try {
-            console.log('🍪 [ANALYSIS PAGE] Salvando análise anônima em cookies...');
             saveAnonymousAnalysis({
               command: command,
               score: analysisData.risk_score,
@@ -150,9 +149,8 @@ export default function AnalysisPage() {
               cmdlets_detected: analysisData.cmdlets_detected || [],
               analysis_id: response.analysis_id
             });
-            console.log('✅ [ANALYSIS PAGE] Análise anônima salva em cookies');
           } catch (error) {
-            console.log('❌ [ANALYSIS PAGE] Erro ao salvar análise anônima:', error);
+            console.error('❌ [ANALYSIS PAGE] Erro ao salvar análise anônima:', error);
           }
         }
         

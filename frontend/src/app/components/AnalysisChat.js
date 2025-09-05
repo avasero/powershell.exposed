@@ -34,64 +34,40 @@ export default function AnalysisChat() {
   }, [isAuthenticated, user]);
 
  
+  // useEffect otimizado para evitar re-renders desnecessários
   useEffect(() => {
-    
-    
     if (isAuthenticated() && user) {
-      
       setIsAnonymous(false);
-      // Aguardar um pouco para dar tempo da migração acontecer
-      setTimeout(() => {
-        loadRecentAnalyses();
-      }, 1000);
+      loadRecentAnalyses();
+    } else if (!isAuthenticated()) {
+      setIsAnonymous(true);
+      loadAnonymousAnalyses();
     }
-  }, [user?.id, isAuthenticated, user]); // Observar mudanças no ID do usuário
+  }, [user?.id]); // Apenas observar mudanças no ID do usuário
 
   // Recarregar análises quando uma nova análise é feita (via evento global)
   useEffect(() => {
-    console.log('📡 [ANALYSIS CHAT] useEffect analysisCount disparado:', analysisCount);
-    console.log('📡 [ANALYSIS CHAT] isAuthenticated():', isAuthenticated());
-    console.log('📡 [ANALYSIS CHAT] isAnonymous:', isAnonymous);
-    
     if (analysisCount > 0) {
-      console.log('🔄 [ANALYSIS CHAT] Nova análise detectada via evento, recarregando chat...');
-      
       if (isAuthenticated() && !isAnonymous) {
-        console.log('👤 [ANALYSIS CHAT] Usuário logado - carregando análises do backend');
         loadRecentAnalyses();
       } else {
-        console.log('👤 [ANALYSIS CHAT] Usuário anônimo - carregando análises dos cookies');
         loadAnonymousAnalyses();
       }
-    } else {
-      console.log('⚠️ [ANALYSIS CHAT] Condições não atendidas para recarregar chat');
     }
-  }, [analysisCount, isAuthenticated, isAnonymous]);
+  }, [analysisCount]); // Removido isAuthenticated e isAnonymous das dependências
 
-  // Recarregar análises quando a página ganha foco (usuário volta de uma análise)
-  useEffect(() => {
-    const handleFocus = () => {
-      if (isAuthenticated() && !isAnonymous) {
-        console.log('🔄 Page focused, reloading analyses...');
-        loadRecentAnalyses();
-      }
-    };
+  // useEffect removido para evitar re-renders desnecessários
 
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [isAuthenticated, isAnonymous]);
-
-  // Atualizar timestamps a cada minuto
+  // Atualizar timestamps a cada 5 minutos (reduzir re-renders)
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000); // Atualizar a cada 60 segundos
+    }, 300000); // Atualizar a cada 5 minutos
 
     return () => clearInterval(interval);
   }, []);
 
   const loadRecentAnalyses = async () => {
-    console.log('🔄 [ANALYSIS CHAT] loadRecentAnalyses iniciado');
     
     try {
       setLoading(true);
@@ -112,52 +88,39 @@ export default function AnalysisChat() {
           credentials: 'include', // Incluir cookies para autenticação
         });
 
-        console.log('📤 [ANALYSIS CHAT] Query params enviados:', {
-          limit: 5,
-          user_id: user.id,
-        });
-
-        console.log('📥 [ANALYSIS CHAT] Resposta da API:', response.status, response.ok);
+        // Logs removidos para melhorar performance
 
         if (!response.ok) {
           console.log('❌ [ANALYSIS CHAT] Erro HTTP:', response.status);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const result = await response.json();
-        console.log('📊 [ANALYSIS CHAT] Loaded user analyses from backend:', result);
-        
+        let result;
+        try {
+          result = await response.json();
+        } catch (jsonError) {
+          console.log('❌ [ANALYSIS CHAT] Erro ao fazer parse do JSON:', jsonError);
+          throw new Error('Invalid JSON response');
+        }
         // Processar dados do backend
         const analyses = result.analyses || result || [];
-        console.log('📊 [ANALYSIS CHAT] Processed analyses:', analyses);
-        console.log('📊 [ANALYSIS CHAT] Sample analysis data:', analyses?.[0]);
-        console.log('📊 [ANALYSIS CHAT] IDs found:', analyses?.map(a => ({ id: a.id, command: a.command?.substring(0, 30) })));
-        
         setAnalyses(analyses);
-        console.log('✅ [ANALYSIS CHAT] Análises de usuário logado carregadas com sucesso');
         return;
       }
       
       // Para usuários anônimos, usar session_id do localStorage
-      console.log('👤 [ANALYSIS CHAT] Usuário anônimo - usando session_id');
       
       // Obter session_id do localStorage
       const { getCurrentSessionId } = await import('../../utils/session');
       const sessionId = getCurrentSessionId();
       
-      console.log('🔑 [ANALYSIS CHAT] Session ID obtido:', sessionId);
-      
       if (!sessionId) {
-        console.log('⚠️ [ANALYSIS CHAT] Nenhum session_id encontrado, não é possível carregar análises');
         setAnalyses([]);
         return;
       }
       
-      console.log('🔍 [ANALYSIS CHAT] Carregando análises com session_id:', sessionId);
-      
       // Carregar análises diretamente do backend Python
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      console.log('🌐 [ANALYSIS CHAT] Chamando API:', `${apiUrl}/user-analyses?limit=5`);
       
       const response = await fetch(`${apiUrl}/user-analyses?limit=5`, {
         method: 'GET',
@@ -168,78 +131,53 @@ export default function AnalysisChat() {
         credentials: 'include', // Incluir cookies para autenticação
       });
 
-      console.log('📥 [ANALYSIS CHAT] Resposta da API:', response.status, response.ok);
-
       if (!response.ok) {
         console.log('❌ [ANALYSIS CHAT] Erro HTTP:', response.status);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
-      console.log('📊 [ANALYSIS CHAT] Loaded user analyses from backend:', result);
       
       // Processar dados do backend
       const analyses = result.analyses || result || [];
-      console.log('📊 [ANALYSIS CHAT] Processed analyses:', analyses);
-      console.log('📊 [ANALYSIS CHAT] Sample analysis data:', analyses?.[0]);
-      console.log('📊 [ANALYSIS CHAT] IDs found:', analyses?.map(a => ({ id: a.id, command: a.command?.substring(0, 30) })));
-      
       setAnalyses(analyses);
-      console.log('✅ [ANALYSIS CHAT] Análises anônimas carregadas com sucesso');
      
     } catch (err) {
       console.error('❌ [ANALYSIS CHAT] Error loading recent analyses:', err);
       setAnalyses([]);
     } finally {
       setLoading(false);
-      console.log('🏁 [ANALYSIS CHAT] loadRecentAnalyses finalizado');
+      // Log removido para melhorar performance
     }
   };
 
   const loadAnonymousAnalyses = () => {
-    console.log('🍪 [ANALYSIS CHAT] loadAnonymousAnalyses iniciado');
-    
     try {
       setLoading(true);
       
       const data = getAnonymousAnalyses();
-      console.log('🍪 [ANALYSIS CHAT] Dados dos cookies:', data);
       
       // Limitar a apenas as últimas 5 análises para o chat
       const limitedData = data.slice(0, 5);
-      console.log('🍪 [ANALYSIS CHAT] Dados limitados (5):', limitedData);
-
       setAnalyses(limitedData);
-      console.log('✅ [ANALYSIS CHAT] Análises anônimas carregadas com sucesso');
       
     } catch (err) {
       console.error('❌ [ANALYSIS CHAT] Error loading anonymous analyses:', err);
-      console.error('❌ [ANALYSIS CHAT] Stack trace:', err.stack);
       setAnalyses([]);
     } finally {
       setLoading(false);
-      console.log('🏁 [ANALYSIS CHAT] loadAnonymousAnalyses finalizado');
     }
   };
 
   const handleAnalysisClick = (command, analysisId = null) => {
-    console.log('🔍 handleAnalysisClick called:', { 
-      command, 
-      analysisId, 
-      isAnonymous,
-      typeOfId: typeof analysisId,
-      idValid: analysisId && analysisId !== 'anon_' && !String(analysisId).startsWith('anon_')
-    });
     closeAnalysisDrawer();
     
     // Se temos um ID da análise, usar a página específica da análise
     if (analysisId && analysisId !== 'anon_' && !analysisId.startsWith('anon_')) {
-      console.log('✅ Navigating to analysis page:', `/analysis/${analysisId}`);
+      // Log removido para melhorar performance
       router.push(`/analysis/${analysisId}`);
     } else {
       // Fallback para o método antigo se não temos ID válido
-      console.log('⚠️ Using fallback navigation with command:', command);
-      console.log('⚠️ Reason: Invalid analysisId:', { analysisId, isAnon: analysisId === 'anon_', startsWithAnon: analysisId?.startsWith?.('anon_') });
       const encodedCommand = encodeURIComponent(command);
       router.push(`/analysis?cmd=${encodedCommand}`);
     }

@@ -19,11 +19,11 @@ export default function HistoryPage() {
   const [sortOrder, setSortOrder] = useState("desc"); // asc, desc
   const router = useRouter();
 
-  // Atualizar timestamps a cada minuto
+  // Atualizar timestamps a cada 5 minutos (reduzir re-renders)
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000);
+    }, 300000); // Atualizar a cada 5 minutos
 
     return () => clearInterval(interval);
   }, []);

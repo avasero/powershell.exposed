@@ -61,7 +61,7 @@ export default function AnalysisDetailsPage() {
     try {
       setLoading(true);
       setError("");
-      console.log('🔍 Loading analysis by ID:', params.id);
+      // Log removido para melhorar performance
 
       // Usar a API do backend em vez da API do frontend
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -69,7 +69,7 @@ export default function AnalysisDetailsPage() {
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const analysisData = await res.json();
 
-      console.log('📊 Analysis data loaded:', analysisData);
+      // Log removido para melhorar performance
       
       // Processar dados da análise (API do backend retorna {success: true, analysis: {...}})
       const analysis = analysisData.analysis || analysisData;
@@ -107,7 +107,6 @@ export default function AnalysisDetailsPage() {
 
   // Função para análise de novo comando (reutilizada da página original)
   const performAnalysis = async (command, ipAddress, ipLocation) => {
-    console.log('🔍 [ANALYSIS PAGE] performAnalysis iniciado com comando:', command);
     
     try {
       setLoading(true);
@@ -123,7 +122,6 @@ export default function AnalysisDetailsPage() {
       
       // Obter ou criar sessão anônima
       const sessionId = getOrCreateSession();
-      console.log('🔑 [ANALYSIS PAGE] Session ID obtido:', sessionId);
       
       // Preparar dados para a API
       const requestData = { 
@@ -139,13 +137,8 @@ export default function AnalysisDetailsPage() {
         session_id: sessionId
       };
       
-      console.log('📤 [ANALYSIS PAGE] Dados da requisição:', requestData);
-
-      
-
       // Chamar a API Python diretamente
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      console.log('🌐 [ANALYSIS PAGE] Chamando API:', `${apiUrl}/analyze-pcre2`);
       
       const analysisPromise = fetch(`${apiUrl}/analyze-pcre2`, {
         method: 'POST',
