@@ -584,47 +584,107 @@ async def get_user_analyses(request: Request):
     try:
         # Obter parâmetros da query
         limit = int(request.query_params.get("limit", 20))
+        user_id_from_query = request.query_params.get("user_id")
         
-        # Obter session_id dos cookies ou headers
+        # Obter user_id ou session_id dos headers e query params
+        user_id = request.headers.get("X-User-ID") or user_id_from_query
         session_id = request.cookies.get("session_id")
         if not session_id:
             # Tentar obter do header Authorization ou X-Session-ID
             session_id = request.headers.get("X-Session-ID")
         
-        print(f"🔍 Buscando análises para session_id: {session_id}")
+        print(f"🔍 [DEBUG] Headers recebidos: {dict(request.headers)}")
+        print(f"🔍 [DEBUG] Cookies recebidos: {dict(request.cookies)}")
+        print(f"🔍 [DEBUG] Query params recebidos: {dict(request.query_params)}")
+        print(f"🔍 Buscando análises para user_id: {user_id}, session_id: {session_id}")
         
-        if not session_id:
+        if not user_id and not session_id:
+            print(f"❌ [ERROR] Nenhum user_id ou session_id encontrado")
             return JSONResponse(
-                {"error": "Session ID required"},
+                {"error": "User ID or Session ID required"},
                 status_code=401
             )
         
         supabase = get_supabase_client()
         
-        # Buscar análises da sessão (inclui análises anônimas e de usuários logados)
-        response = supabase.table('powershell_analyses') \
-            .select('*') \
-            .eq('session_id', session_id) \
-            .order('created_at', desc=True) \
-            .limit(limit) \
-            .execute()
+        # Buscar análises por user_id (usuários logados) ou session_id (anônimos)
+        if user_id:
+            print(f"🔍 Buscando análises por user_id: {user_id}")
+            response = supabase.table('powershell_analyses') \
+                .select('*') \
+                .eq('user_id', user_id) \
+                .order('created_at', desc=True) \
+                .limit(limit) \
+                .execute()
+        else:
+            print(f"🔍 Buscando análises por session_id: {session_id}")
+            response = supabase.table('powershell_analyses') \
+                .select('*') \
+                .eq('session_id', session_id) \
+                .order('created_at', desc=True) \
+                .limit(limit) \
+                .execute()
         
         if response.data:
-            print(f"✅ Encontradas {len(response.data)} análises para sessão {session_id}")
+            search_type = "user_id" if user_id else "session_id"
+            search_value = user_id if user_id else session_id
+            print(f"✅ Encontradas {len(response.data)} análises para {search_type}: {search_value}")
             
             # Processar dados para compatibilidade com frontend
             analyses = []
             for analysis in response.data:
+                # Processar campos que podem vir como string JSON
+                signatures_detected = analysis.get("signatures_detected", [])
+                cmdlets_detected = analysis.get("cmdlets_detected", [])
+                analysis_result = analysis.get("analysis_result", {})
+                tactics = analysis.get("tactics", [])
+                techniques = analysis.get("techniques", [])
+                
+                # Se vieram como string JSON, fazer parse
+                if isinstance(signatures_detected, str):
+                    try:
+                        signatures_detected = json.loads(signatures_detected)
+                    except (json.JSONDecodeError, TypeError):
+                        signatures_detected = []
+                
+                if isinstance(cmdlets_detected, str):
+                    try:
+                        cmdlets_detected = json.loads(cmdlets_detected)
+                    except (json.JSONDecodeError, TypeError):
+                        cmdlets_detected = []
+                
+                if isinstance(analysis_result, str):
+                    try:
+                        analysis_result = json.loads(analysis_result)
+                    except (json.JSONDecodeError, TypeError):
+                        analysis_result = {}
+                
+                if isinstance(tactics, str):
+                    try:
+                        tactics = json.loads(tactics)
+                    except (json.JSONDecodeError, TypeError):
+                        tactics = []
+                
+                if isinstance(techniques, str):
+                    try:
+                        techniques = json.loads(techniques)
+                    except (json.JSONDecodeError, TypeError):
+                        techniques = []
+                
                 analyses.append({
                     "id": analysis.get("id"),
                     "uuid": analysis.get("uuid"),
                     "command": analysis.get("command"),
-                    "risk_score": analysis.get("risk_score"),
+                    "risk_score": float(analysis.get("risk_score", 0)) if analysis.get("risk_score") is not None else 0,
                     "severity": analysis.get("severity"),
-                    "signatures_detected": analysis.get("signatures_detected", []),
-                    "cmdlets_detected": analysis.get("cmdlets_detected", []),
+                    "signatures_detected": signatures_detected,
+                    "cmdlets_detected": cmdlets_detected,
+                    "analysis_result": analysis_result,
+                    "tactics": tactics,
+                    "techniques": techniques,
                     "created_at": analysis.get("created_at"),
-                    "is_malicious": analysis.get("is_malicious", False)
+                    "is_malicious": analysis.get("is_malicious", False),
+                    "is_anonymous": False  # Marcar como não anônimo para usuários logados
                 })
             
             return JSONResponse({

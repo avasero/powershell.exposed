@@ -42,17 +42,47 @@ export default function HistoryPage() {
       setLoading(true);
       setError("");
       
+      // Para usuários logados, usar user_id diretamente
+      if (isAuthenticated() && user?.id) {
+        console.log('👤 [HISTORY PAGE] Usuário logado - usando user_id:', user.id);
+        
+        // Carregar análises diretamente do backend Python
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${apiUrl}/user-analyses?user_id=${user.id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include', // Incluir cookies para autenticação
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('📊 [HISTORY PAGE] Loaded user analyses from backend:', result);
+        
+        // Processar dados do backend
+        const analyses = result.analyses || result || [];
+        setAnalyses(analyses);
+        return;
+      }
+      
+      // Para usuários anônimos, usar session_id do localStorage
+      console.log('👤 [HISTORY PAGE] Usuário anônimo - usando session_id');
+      
       // Obter session_id do localStorage
       const { getCurrentSessionId } = await import('../../utils/session');
       const sessionId = getCurrentSessionId();
       
       if (!sessionId) {
-        console.log('⚠️ Nenhum session_id encontrado, não é possível carregar análises');
+        console.log('⚠️ [HISTORY PAGE] Nenhum session_id encontrado, não é possível carregar análises');
         setAnalyses([]);
         return;
       }
       
-      console.log('🔍 Carregando análises com session_id:', sessionId);
+      console.log('🔍 [HISTORY PAGE] Carregando análises com session_id:', sessionId);
       
       // Carregar análises diretamente do backend Python
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -70,7 +100,7 @@ export default function HistoryPage() {
       }
 
       const result = await response.json();
-      console.log('📊 Loaded user analyses from backend:', result);
+      console.log('📊 [HISTORY PAGE] Loaded user analyses from backend:', result);
       
       // Processar dados do backend
       const analyses = result.analyses || result || [];

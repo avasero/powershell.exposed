@@ -96,6 +96,51 @@ export default function AnalysisChat() {
     try {
       setLoading(true);
       
+      // Para usuários logados, usar user_id diretamente
+      if (isAuthenticated() && user?.id) {
+        console.log('👤 [ANALYSIS CHAT] Usuário logado - usando user_id:', user.id);
+        
+        // Carregar análises diretamente do backend Python
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        console.log('🌐 [ANALYSIS CHAT] Chamando API:', `${apiUrl}/user-analyses?limit=5&user_id=${user.id}`);
+        
+        const response = await fetch(`${apiUrl}/user-analyses?limit=5&user_id=${user.id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include', // Incluir cookies para autenticação
+        });
+
+        console.log('📤 [ANALYSIS CHAT] Query params enviados:', {
+          limit: 5,
+          user_id: user.id,
+        });
+
+        console.log('📥 [ANALYSIS CHAT] Resposta da API:', response.status, response.ok);
+
+        if (!response.ok) {
+          console.log('❌ [ANALYSIS CHAT] Erro HTTP:', response.status);
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('📊 [ANALYSIS CHAT] Loaded user analyses from backend:', result);
+        
+        // Processar dados do backend
+        const analyses = result.analyses || result || [];
+        console.log('📊 [ANALYSIS CHAT] Processed analyses:', analyses);
+        console.log('📊 [ANALYSIS CHAT] Sample analysis data:', analyses?.[0]);
+        console.log('📊 [ANALYSIS CHAT] IDs found:', analyses?.map(a => ({ id: a.id, command: a.command?.substring(0, 30) })));
+        
+        setAnalyses(analyses);
+        console.log('✅ [ANALYSIS CHAT] Análises de usuário logado carregadas com sucesso');
+        return;
+      }
+      
+      // Para usuários anônimos, usar session_id do localStorage
+      console.log('👤 [ANALYSIS CHAT] Usuário anônimo - usando session_id');
+      
       // Obter session_id do localStorage
       const { getCurrentSessionId } = await import('../../utils/session');
       const sessionId = getCurrentSessionId();
@@ -140,7 +185,7 @@ export default function AnalysisChat() {
       console.log('📊 [ANALYSIS CHAT] IDs found:', analyses?.map(a => ({ id: a.id, command: a.command?.substring(0, 30) })));
       
       setAnalyses(analyses);
-      console.log('✅ [ANALYSIS CHAT] Análises carregadas com sucesso');
+      console.log('✅ [ANALYSIS CHAT] Análises anônimas carregadas com sucesso');
      
     } catch (err) {
       console.error('❌ [ANALYSIS CHAT] Error loading recent analyses:', err);
