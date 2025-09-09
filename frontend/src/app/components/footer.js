@@ -7,6 +7,9 @@ export default function Footer() {
       <div>
         &copy; {new Date().getFullYear()} <span style={{color: 'var(--primary-green)'}}>powershell.exposed</span>
       </div>
+      <div className="mt-1">
+        by <a href="https://avasero.com" target="_blank" rel="noopener noreferrer" style={{color: 'var(--primary-green)', textDecoration: 'underline'}}>avasero</a>
+      </div>
     </footer>
   );
 }

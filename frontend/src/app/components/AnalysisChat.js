@@ -286,10 +286,10 @@ export default function AnalysisChat() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0">
         {/* Área de scroll das análises */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden analysis-chat-scroll">
-          <div className="min-h-full">
+          <div className="p-2">
             {loading ? (
               <div className="p-4">
                 <div className="animate-pulse space-y-3">
@@ -315,8 +315,7 @@ export default function AnalysisChat() {
                 </div>
               </div>
             ) : (
-              <div className="p-2">
-                {analyses.map((analysis) => (
+              analyses.map((analysis) => (
                 <div
                   key={analysis.id}
                   onClick={() => handleAnalysisClick(analysis.command, analysis.uuid || analysis.id)}
@@ -403,36 +402,33 @@ export default function AnalysisChat() {
                     </div>
                   )}
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
           </div>
         </div>
         
         {/* Botões fixos no canto inferior direito - fora da área de scroll */}
-        <div className="p-2 flex justify-end gap-3 " style={{borderColor: 'var(--border-color)'}}>
+        <div className="p-3 flex justify-end gap-3 border-t flex-shrink-0" style={{borderColor: 'var(--border-color)', backgroundColor: 'var(--background)'}}>
           <button
             onClick={() => router.push('/history')}
-            className="font-mono text-md transition-colors hover:opacity-70"
+            className="font-mono text-sm transition-colors hover:opacity-70"
             style={{color: 'var(--accent)'}}
             title="View full analysis history"
           >
             View all
           </button>
           
-          {analyses.length > 0 && (
-            <button
-              onClick={handleDeleteRecentAnalyses}
-              disabled={deleting}
-              className="font-mono text-md transition-colors hover:opacity-70"
-              style={{
-                color: deleting ? 'var(--muted-foreground)' : '#EF4444'
-              }}
-              title={isAnonymous ? "Clear all anonymous analyses from cookies" : "Clear recent analyses from chat view (keeps safely saved in account)"}
-            >
-              {deleting ? (isAnonymous ? 'Clearing...' : 'Clearing...') : (isAnonymous ? 'Clear' : 'Clear')}
-            </button>
-          )}
+          <button
+            onClick={handleDeleteRecentAnalyses}
+            disabled={deleting}
+            className="font-mono text-sm transition-colors hover:opacity-70"
+            style={{
+              color: deleting ? 'var(--muted-foreground)' : '#EF4444'
+            }}
+            title={isAnonymous ? "Clear all anonymous analyses from cookies" : "Clear recent analyses from chat view (keeps safely saved in account)"}
+          >
+            {deleting ? (isAnonymous ? 'Clearing...' : 'Clearing...') : (isAnonymous ? 'Clear' : 'Clear')}
+          </button>
         </div>
       </div>
     </>

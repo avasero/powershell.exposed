@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
 import { useDrawer } from "../contexts/DrawerContext";
 import { useAnalysisDrawer } from "../contexts/AnalysisDrawerContext";
-import ThemeToggle from "./ThemeToggle";
 import HamburgerButton from "./HamburgerButton";
 import SideDrawer from "./SideDrawer";
 
@@ -26,18 +25,30 @@ export default function Navbar() {
     <>
       <nav className="w-full flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
         <div className="flex items-center">
-          <Link href="/" className="font-mono text-lg sm:text-xl font-bold" style={{color: 'var(--accent)'}}>
-            powershell.exposed
+          <Link href="/" className="flex items-center space-x-2 font-mono text-lg sm:text-xl font-bold" style={{color: 'var(--accent)'}}>
+            <svg 
+              viewBox="0 0 256 256" 
+              xmlns="http://www.w3.org/2000/svg" 
+              aria-label="powershell.exposed icon: ! >"
+              className="w-6 h-6 sm:w-8 sm:h-8"
+            >
+              <defs>
+                <mask id="cut3">
+                  <rect x="24" y="24" width="208" height="208" rx="28" fill="white"/>
+                  <line x1="86" y1="92" x2="86" y2="148" stroke="black" strokeWidth="20" strokeLinecap="round"/>
+                  <circle cx="86" cy="170" r="10" fill="black"/>
+                  <polyline points="120,100 172,128 120,156" fill="none"
+                    stroke="black" strokeWidth="24" strokeLinecap="round" strokeLinejoin="round"/>
+                </mask>
+              </defs>
+              <rect x="24" y="24" width="208" height="208" rx="28" fill="#1CC76D" mask="url(#cut3)"/>
+            </svg>
+            <span>powershell.exposed</span>
           </Link>
-          <span className="font-mono text-sm ml-2" style={{color: 'var(--muted-foreground)'}}>
-            by avasero
-          </span>
         </div>
         
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-4">
-          <ThemeToggle />
-          
           {isAuthenticated() ? (
             <>
               <span className="font-mono text-sm" style={{color: 'var(--foreground)'}}>

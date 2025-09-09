@@ -12,6 +12,7 @@ import ThemedButton from "../components/ThemedButton";
 import LoadingSpinner from "../components/LoadingSpinner";
 import AnalysisSkeleton from "../components/AnalysisSkeleton";
 import CommandInput from "../components/CommandInput";
+import { ErrorMessage, InfoMessage } from "../components/Messages";
 
   import { saveAnonymousAnalysis } from "../../utils/cookies";
 import { getOrCreateSession, saveSessionFromBackend } from "../../utils/session";
@@ -293,9 +294,9 @@ export default function AnalysisPage() {
             {loading ? 'Analyzing...' : 'Evaluate'}
           </button>
         </div>
-        <div className="text-xs text-center mt-2" style={{color: 'var(--muted-foreground)'}}>
-          Enter a new PowerShell command..
-        </div>
+        <InfoMessage 
+          message={!error && newCommand.trim() === "" ? "Examples: Get-Process | Where-Object CPU -gt 100 | Select Name, CPU" : ""}
+        />
       </div>
 
       {/* Rate Limit Info - Design Melhorado (igual à página principal) */}
@@ -530,10 +531,10 @@ export default function AnalysisPage() {
                <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
          <div className="border rounded-lg p-6 text-center" style={{backgroundColor: 'var(--muted)', borderColor: 'var(--border-color)'}}>
            <h2 className="text-lg sm:text-xl font-mono font-bold mb-2" style={{color: 'var(--foreground)'}}>
-             No Malicious Patterns Detected
+             Zero indicators found
            </h2>
            <p className="text-sm sm:text-base font-mono" style={{color: 'var(--muted-foreground)'}}>
-             This command appears to be safe based on our signature database.
+             This command does not seem to match any indicator.
            </p>
          </div>
        </div>
