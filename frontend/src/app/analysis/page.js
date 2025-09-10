@@ -540,101 +540,15 @@ export default function AnalysisPage() {
        </div>
       )}
 
-      {/* Further Notes */}
-      {result && (
+      {/* Disclaimer */}
+      {result && result.signatures && result.signatures.length > 0 && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--primary-purple)'}}>
-                         <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--primary-purple)'}}>
-               Evaluation Notes
-             </h2>
-                         <div className="font-mono text-sm space-y-3" style={{color: 'var(--muted-foreground)'}}>
-               {result.details && (
-                 <div className="p-3 rounded bg-gray-800">
-                   <strong>Analysis Summary:</strong> {result.details}
-                 </div>
-               )}
-               
-                               {/* Risk Assessment */}
-                {totalScore > 0 && (
-                  <div className="flex items-start gap-2">
-                    <span style={{color: 'var(--accent)'}}>•</span>
-                    <span><strong>Risk Level:</strong> {totalScore >= 10 ? 'CRITICAL' : totalScore >= 8 ? 'HIGH' : totalScore >= 5 ? 'MEDIUM' : totalScore >= 2 ? 'LOW' : 'INFORMATIONAL'} ({totalScore.toFixed(1)}/10)</span>
-                  </div>
-                )}
-               
-                               {/* Detection Patterns */}
-                {result.signatures && result.signatures.length > 0 && (
-                  <div className="flex items-start gap-2">
-                    <span style={{color: 'var(--accent)'}}>•</span>
-                    <span><strong>Detected Patterns:</strong> {result.signatures.length} signature{result.signatures.length !== 1 ? 's' : ''} identified using MITRE ATT&CK framework</span>
-                  </div>
-                )}
-               
-               {/* Suspicious Activity Warning */}
-               {result.signatures && result.signatures.length > 0 && (
-                 <div className="flex items-start gap-2">
-                   <span style={{color: 'var(--accent)'}}>•</span>
-                   <span><strong>Activity Assessment:</strong> This command shows potentially suspicious behavior patterns that require careful review and context analysis</span>
-                 </div>
-               )}
-               
-               {/* MITRE ATT&CK Coverage */}
-               {result.tactics && result.tactics.length > 0 && (
-                 <div className="flex items-start gap-2">
-                   <span style={{color: 'var(--accent)'}}>•</span>
-                   <span><strong>MITRE ATT&CK Coverage:</strong> {result.tactics.length} tactic{result.tactics.length !== 1 ? 's' : ''} and {result.techniques ? result.techniques.length : 0} technique{result.techniques && result.techniques.length !== 1 ? 's' : ''} identified</span>
-                 </div>
-               )}
-               
-               {/* PowerShell Specific Analysis */}
-               {result.signatures && result.signatures.some(sig => sig.name.includes('(')) && (
-                 <div className="flex items-start gap-2">
-                   <span style={{color: 'var(--accent)'}}>•</span>
-                   <span><strong>PowerShell Analysis:</strong> Command contains PowerShell cmdlets that were evaluated for security implications and execution context</span>
-                 </div>
-               )}
-               
-               {/* Decoded Content Note */}
-               {result.decoded && result.decoded !== result.cmd && (
-                 <div className="flex items-start gap-2">
-                   <span style={{color: 'var(--accent)'}}>•</span>
-                   <span><strong>Content Decoding:</strong> Command was successfully decoded, revealing underlying execution patterns and obfuscation techniques</span>
-                 </div>
-               )}
-               
-               {/* No Threats Detected */}
-               {result.signatures && result.signatures.length === 0 && totalScore === 0 && (
-                 <div className="flex items-start gap-2">
-                   <span style={{color: 'var(--accent)'}}>•</span>
-                   <span><strong>Security Status:</strong> No malicious patterns detected. Command appears safe based on current threat intelligence</span>
-                 </div>
-               )}
-               
-                               {/* Evaluation Methodology */}
-                <div className="flex items-start gap-2">
-                  <span style={{color: 'var(--accent)'}}>•</span>
-                  <span><strong>Evaluation Method:</strong> Multi-layered pattern recognition combining signature-based detection, behavioral analysis, and threat intelligence correlation</span>
-                </div>
-               
-               {/* Confidence Level */}
-               <div className="flex items-start gap-2">
-                 <span style={{color: 'var(--accent)'}}>•</span>
-                 <span><strong>Confidence Level:</strong> {result.signatures && result.signatures.length > 0 ? 'High - Multiple detection patterns confirmed' : 'High - Comprehensive analysis completed'}</span>
-               </div>
-               
-               {/* Recommendations */}
-               {totalScore > 0 && (
-                 <div className="flex items-start gap-2">
-                   <span style={{color: 'var(--accent)'}}>•</span>
-                   <span><strong>Recommendations:</strong> Review command execution context, monitor system behavior, and consider additional security controls if score exceeds 6.0</span>
-                 </div>
-               )}
-               
-                               {/* Footer */}
-                <div className="text-xs pt-3 border-t border-gray-600">
-                  Evaluation performed using advanced PowerShell command pattern recognition, behavioral analysis, and real-time threat intelligence correlation
-                </div>
-             </div>
+            <div className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+              Matched indicators are not inherently suspicious but highlight traces that may require closer examination. For interpretation details, check the link below:
+              <br /><br />
+              <span style={{color: 'var(--primary-purple)'}}>&lt;wiki link to be provided later&gt;</span>
+            </div>
           </div>
         </div>
       )}
