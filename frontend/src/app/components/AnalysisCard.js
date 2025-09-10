@@ -2,6 +2,33 @@
 
 import SeverityBadge from './SeverityBadge';
 
+// Function to truncate regex around the match
+function truncateRegexAroundMatch(pattern, matchedText, maxLength = 120) {
+  if (!pattern || pattern.length <= maxLength) return pattern;
+  
+  const matchIndex = pattern.toLowerCase().indexOf(matchedText.toLowerCase());
+  if (matchIndex === -1) return pattern;
+  
+  const start = Math.max(0, matchIndex - Math.floor(maxLength / 2));
+  const end = Math.min(pattern.length, start + maxLength);
+  
+  let truncated = pattern.substring(start, end);
+  
+  if (start > 0) truncated = '(...)' + truncated;
+  if (end < pattern.length) truncated = truncated + '(...)';
+  
+  return truncated;
+}
+
+// Function to generate YAML link
+function getYamlLink(signatureName) {
+  // Convert signature name to potential YAML filename
+  const filename = signatureName.toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, '-');
+  return `https://github.com/powershell-exposed/signatures/blob/main/${filename}.yml`;
+}
+
 export default function AnalysisCard({ 
   title, 
   description,
@@ -86,9 +113,23 @@ export default function AnalysisCard({
         style={variantStyles[variant]}
       >
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3">
-          <h4 className="font-mono font-bold text-base sm:text-lg mb-2 sm:mb-0" style={{color: variantTitleColors[variant]}}>
-            {title}
-          </h4>
+          <div className="flex-1">
+            <h4 className="font-mono font-bold text-base sm:text-lg mb-2 sm:mb-0" style={{color: variantTitleColors[variant]}}>
+              {title}
+            </h4>
+            {/* YAML Link */}
+            <div className="mb-2">
+              <a 
+                href={getYamlLink(title)} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-xs font-mono hover:underline"
+                style={{color: 'var(--primary-blue)'}}
+              >
+                📄 View YAML Source
+              </a>
+            </div>
+          </div>
           <div className="flex items-center gap-3">
             {severity && <SeverityBadge score={score} />}
             {score && (
@@ -158,24 +199,115 @@ export default function AnalysisCard({
           </div>
         )}
 
-        {/* Matched Patterns - mostrar patterns dos matches individuais */}
+        {/* Matched Patterns - mostrar de forma agrupada e otimizada */}
         {matchesInfo && matchesInfo.matchesDetails && matchesInfo.matchesDetails.length > 0 && (
           <div className="mb-4">
             <div className="text-sm font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
               Matched Patterns:
             </div>
-            <div className="space-y-2">
-              {matchesInfo.matchesDetails.map((match, idx) => (
-                <div key={idx} className="text-sm font-mono p-2 rounded break-all" 
-                  style={{backgroundColor: 'var(--muted)', color: 'var(--foreground)'}}>
-                  <div className="text-xs text-gray-400 mb-1">Pattern {idx + 1}:</div>
-                  <div className="font-bold break-all">{match.pattern || 'Unknown pattern'}</div>
-                  <div className="text-xs text-gray-400 mt-1">
-                    Matched: <span className="text-yellow-400 break-all">&ldquo;{match.matched_text}&rdquo;</span>
+            {(() => {
+              // Agrupar matches por pattern único para evitar repetição
+              const uniquePatterns = new Map();
+              matchesInfo.matchesDetails.forEach((match, idx) => {
+                const pattern = match.pattern || 'Unknown pattern';
+                if (!uniquePatterns.has(pattern)) {
+                  uniquePatterns.set(pattern, []);
+                }
+                uniquePatterns.get(pattern).push({...match, originalIndex: idx});
+              });
+
+              return Array.from(uniquePatterns.entries()).map(([pattern, matches], patternIdx) => (
+                <div key={patternIdx} className="text-sm font-mono p-3 mb-3 rounded border" 
+                  style={{backgroundColor: 'var(--muted)', color: 'var(--foreground)', borderColor: 'var(--border-color)'}}>
+                  
+                  {/* Pattern Header */}
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="text-xs text-gray-400">
+                      Pattern {patternIdx + 1} ({matches.length} match{matches.length !== 1 ? 'es' : ''})
+                    </div>
+                    <a 
+                      href={getYamlLink(title)} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-xs hover:underline"
+                      style={{color: 'var(--primary-blue)'}}
+                    >
+                      📄 YAML
+                    </a>
+                  </div>
+                  
+                  {/* Truncated Pattern with ALL matches highlighted */}
+                  <div className="font-bold break-all mb-2 p-2 rounded" style={{backgroundColor: 'var(--background)', fontSize: '11px'}}>
+                    {(() => {
+                      // Criar uma versão truncada que destaque todos os matches
+                      let displayPattern = pattern;
+                      
+                      // Se o pattern é muito longo, truncar mas manter visibilidade de todos os matches
+                      if (pattern.length > 150) {
+                        // Encontrar todas as posições dos matches no pattern
+                        const matchPositions = matches.map(match => ({
+                          text: match.matched_text,
+                          index: pattern.toLowerCase().indexOf(match.matched_text.toLowerCase())
+                        })).filter(pos => pos.index !== -1);
+                        
+                        if (matchPositions.length > 0) {
+                          // Encontrar o range que inclui todos os matches
+                          const minIndex = Math.min(...matchPositions.map(pos => pos.index));
+                          const maxIndex = Math.max(...matchPositions.map(pos => pos.index + pos.text.length));
+                          
+                          // Adicionar contexto ao redor
+                          const contextSize = 50;
+                          const start = Math.max(0, minIndex - contextSize);
+                          const end = Math.min(pattern.length, maxIndex + contextSize);
+                          
+                          displayPattern = pattern.substring(start, end);
+                          if (start > 0) displayPattern = '(...)' + displayPattern;
+                          if (end < pattern.length) displayPattern = displayPattern + '(...)';
+                        }
+                      }
+                      
+                      // Destacar TODOS os matches no pattern (truncado ou completo)
+                      let highlightedPattern = displayPattern;
+                      matches.forEach(match => {
+                        if (match.matched_text) {
+                          const regex = new RegExp(`(${match.matched_text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                          highlightedPattern = highlightedPattern.replace(regex, `<mark>$1</mark>`);
+                        }
+                      });
+                      
+                      // Converter as tags <mark> em componentes React
+                      const parts = highlightedPattern.split(/(<mark>.*?<\/mark>)/g);
+                      return parts.map((part, index) => {
+                        if (part.startsWith('<mark>') && part.endsWith('</mark>')) {
+                          const content = part.slice(6, -7); // Remove <mark> e </mark>
+                          return (
+                            <span key={index} className="bg-yellow-400 text-black px-1 rounded font-bold">
+                              {content}
+                            </span>
+                          );
+                        }
+                        return part;
+                      });
+                    })()}
+                  </div>
+                  
+                  {/* Matches compactos */}
+                  <div className="flex flex-wrap gap-2">
+                    {matches.map((match, matchIdx) => (
+                      <div key={matchIdx} className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
+                        style={{backgroundColor: 'var(--accent)', color: 'var(--background)'}}>
+                        <span className="font-bold">{match.matched_text}</span>
+                        {match.position && (
+                          <span className="opacity-75">
+                            [{match.position.start}-{match.position.end}]
+                          </span>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
+              ));
+            })()}
           </div>
         )}
 

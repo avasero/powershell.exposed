@@ -483,11 +483,11 @@ export default function AnalysisDetailsPage() {
 
             return (
               <>
-                                 {/* Detected Patterns importantes */}
+                                 {/* Indicator Regex importantes */}
                 {realSignatures.length > 0 && (
           <div className="mb-6">
                                          <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{color: 'var(--foreground)'}}>
-                       Detected Patterns
+                       Indicator Regex
             </h2>
                     <div className="space-y-4">
                       {realSignatures.map((signature, index) => (
