@@ -117,7 +117,6 @@ export default function AnalysisCard({
             <h4 className="font-mono font-bold text-base sm:text-lg mb-2 sm:mb-0" style={{color: variantTitleColors[variant]}}>
               {title}
             </h4>
-            {/* YAML Link */}
             <div className="mb-2">
               <a 
                 href={getYamlLink(title)} 
@@ -152,7 +151,6 @@ export default function AnalysisCard({
           </div>
         )}
 
-        {/* Matches Information */}
         {matchesInfo && (
           <div className="mb-4">
             <div className="text-sm font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
@@ -174,7 +172,6 @@ export default function AnalysisCard({
                 <span className="text-gray-400"> ({matchesInfo.baseScore || 'N/A'} × {matchesInfo.matchesFound || 'N/A'})</span>
               </div>
               
-              {/* Detalhes dos matches individuais */}
               {matchesInfo.matchesDetails && matchesInfo.matchesDetails.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-gray-600">
                   <div className="text-xs font-bold mb-2" style={{color: 'var(--accent)'}}>
@@ -199,14 +196,12 @@ export default function AnalysisCard({
           </div>
         )}
 
-        {/* Matched Patterns - mostrar de forma agrupada e otimizada */}
         {matchesInfo && matchesInfo.matchesDetails && matchesInfo.matchesDetails.length > 0 && (
           <div className="mb-4">
             <div className="text-sm font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
               Matched Patterns:
             </div>
             {(() => {
-              // Agrupar matches por pattern único para evitar repetição
               const uniquePatterns = new Map();
               matchesInfo.matchesDetails.forEach((match, idx) => {
                 const pattern = match.pattern || 'Unknown pattern';
@@ -220,7 +215,6 @@ export default function AnalysisCard({
                 <div key={patternIdx} className="text-sm font-mono p-3 mb-3 rounded border" 
                   style={{backgroundColor: 'var(--muted)', color: 'var(--foreground)', borderColor: 'var(--border-color)'}}>
                   
-                  {/* Pattern Header */}
                   <div className="flex justify-between items-start mb-2">
                     <div className="text-xs text-gray-400">
                       Pattern {patternIdx + 1} ({matches.length} match{matches.length !== 1 ? 'es' : ''})
@@ -236,26 +230,20 @@ export default function AnalysisCard({
                     </a>
                   </div>
                   
-                  {/* Truncated Pattern with ALL matches highlighted */}
                   <div className="font-bold break-all mb-2 p-2 rounded" style={{backgroundColor: 'var(--background)', fontSize: '11px'}}>
                     {(() => {
-                      // Criar uma versão truncada que destaque todos os matches
                       let displayPattern = pattern;
                       
-                      // Se o pattern é muito longo, truncar mas manter visibilidade de todos os matches
                       if (pattern.length > 150) {
-                        // Encontrar todas as posições dos matches no pattern
                         const matchPositions = matches.map(match => ({
                           text: match.matched_text,
                           index: pattern.toLowerCase().indexOf(match.matched_text.toLowerCase())
                         })).filter(pos => pos.index !== -1);
                         
                         if (matchPositions.length > 0) {
-                          // Encontrar o range que inclui todos os matches
                           const minIndex = Math.min(...matchPositions.map(pos => pos.index));
                           const maxIndex = Math.max(...matchPositions.map(pos => pos.index + pos.text.length));
                           
-                          // Adicionar contexto ao redor
                           const contextSize = 50;
                           const start = Math.max(0, minIndex - contextSize);
                           const end = Math.min(pattern.length, maxIndex + contextSize);
@@ -266,7 +254,6 @@ export default function AnalysisCard({
                         }
                       }
                       
-                      // Destacar TODOS os matches no pattern (truncado ou completo)
                       let highlightedPattern = displayPattern;
                       matches.forEach(match => {
                         if (match.matched_text) {
@@ -275,7 +262,6 @@ export default function AnalysisCard({
                         }
                       });
                       
-                      // Converter as tags <mark> em componentes React
                       const parts = highlightedPattern.split(/(<mark>.*?<\/mark>)/g);
                       return parts.map((part, index) => {
                         if (part.startsWith('<mark>') && part.endsWith('</mark>')) {
@@ -291,7 +277,6 @@ export default function AnalysisCard({
                     })()}
                   </div>
                   
-                  {/* Matches compactos */}
                   <div className="flex flex-wrap gap-2">
                     {matches.map((match, matchIdx) => (
                       <div key={matchIdx} className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"

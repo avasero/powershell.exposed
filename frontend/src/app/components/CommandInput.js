@@ -93,14 +93,12 @@ export default function CommandInput({
             rows={1}
           />
           
-          {/* Character counter */}
           <div className="absolute bottom-2 right-7 text-xs font-mono opacity-60" style={{color: value.length >= CHARACTER_LIMIT - 100 ? 'var(--warning)' : 'var(--muted-foreground)'}}>
             {value.length}/{CHARACTER_LIMIT}
           </div>
         </div>
       </div>
       
-      {/* Character limit warning */}
       {showCharacterWarning && (
         <div className="mt-2 text-sm font-mono flex items-center gap-2" style={{color: 'var(--warning)'}}>
           <span>⚠️</span>
@@ -113,7 +111,6 @@ export default function CommandInput({
         </div>
       )}
       
-      {/* Multi-line help text */}
       {value.includes('\n') && (
         <div className="mt-1 text-xs font-mono opacity-60" style={{color: 'var(--muted-foreground)'}}>
           💡 Multi-line command detected. Press Shift+Enter for new lines, Enter to analyze.

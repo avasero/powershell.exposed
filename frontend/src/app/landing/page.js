@@ -8,7 +8,7 @@ export default function LandingPage() {
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
       <div className="max-w-4xl mx-auto text-center space-y-8">
-        {/* Hero Section */}
+       
         <div className="space-y-4">
           <h1 className="text-3xl sm:text-4xl md:text-6xl font-mono font-bold" style={{color: 'var(--accent)'}}>
             PowerShell.exposed
@@ -18,7 +18,6 @@ export default function LandingPage() {
           </p>
         </div>
 
-        {/* Features */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-12">
           <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
             <h3 className="font-mono font-semibold mb-2" style={{color: 'var(--foreground)'}}>
@@ -48,7 +47,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* CTA Section */}
+        
         <div className="space-y-6">
           <p className="text-lg font-mono" style={{color: 'var(--foreground)'}}>
             Ready to start analyzing PowerShell commands?
@@ -56,7 +55,7 @@ export default function LandingPage() {
           
           {!isAuthenticated() && (
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              {/* Botão principal: Try Analysis (para usuários não logados) */}
+              
               <Link href="/">
                 <ThemedButton 
                   size="lg" 
@@ -98,7 +97,7 @@ export default function LandingPage() {
           )}
         </div>
 
-        {/* Info Section */}
+       
         <div className="mt-16 p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
           <h2 className="text-xl font-mono font-semibold mb-4" style={{color: 'var(--accent)'}}>
             How it works?

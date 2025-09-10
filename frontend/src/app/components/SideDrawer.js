@@ -56,18 +56,15 @@ export default function SideDrawer() {
 
   return (
     <div className="fixed inset-0 z-50 md:hidden">
-      {/* Backdrop */}
       <div 
         className={`drawer-backdrop absolute inset-0 bg-black bg-opacity-40 ${isDrawerOpen ? 'show' : ''}`}
         onClick={closeDrawer}
       />
       
-      {/* Drawer */}
       <div 
         className={`drawer-container drawer-shadow absolute right-0 top-0 h-full w-72 max-w-[75vw] ${isDrawerOpen ? 'show' : ''}`}
         style={{ backgroundColor: 'var(--card-bg)', borderLeft: '1px solid var(--border-color)' }}
       >
-        {/* Drawer Header */}
         <div className={`flex items-center justify-between p-4 border-b drawer-content-animate ${isDrawerOpen ? 'show' : ''}`} style={{ borderColor: 'var(--border-color)' }}>
           <h2 className="font-mono text-lg font-bold" style={{ color: 'var(--accent)' }}>
             Menu
@@ -95,9 +92,7 @@ export default function SideDrawer() {
           </button>
         </div>
 
-        {/* Drawer Content */}
         <div className={`flex flex-col p-4 space-y-4 drawer-content-animate ${isDrawerOpen ? 'show' : ''}`}>
-          {/* Theme Toggle */}
           <div className="flex items-center justify-between p-2 rounded-md" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
             <span className="font-mono text-sm" style={{ color: 'var(--foreground)' }}>
               Theme
@@ -105,12 +100,9 @@ export default function SideDrawer() {
             <ThemeToggle />
           </div>
 
-          {/* Navigation Links */}
           <div className="space-y-2">
-            {/* Removido o link do History - agora está no AnalysisChat */}
           </div>
 
-          {/* Authentication Section */}
           {isAuthenticated() ? (
             <div className="border-t pt-4 space-y-3" style={{ borderColor: 'var(--border-color)' }}>
               <div className="text-center p-3 rounded-md" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
@@ -162,7 +154,7 @@ export default function SideDrawer() {
         </div>
       </div>
 
-      {/* Registration Popup */}
+    
       {showRegisterPopup && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div 

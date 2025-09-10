@@ -119,7 +119,6 @@ export default function InlineCaptcha({
         </div>
       ) : captchaData ? (
         <div className="space-y-4">
-          {/* Captcha Question */}
           <div className="flex items-center justify-center py-6 rounded-lg" style={{backgroundColor: 'var(--muted)'}}>
             <div className="text-center">
               <div className="font-mono text-xl font-bold mb-2" style={{color: 'var(--foreground)'}}>
@@ -131,7 +130,6 @@ export default function InlineCaptcha({
             </div>
           </div>
 
-          {/* Answer Field */}
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <input
@@ -139,7 +137,7 @@ export default function InlineCaptcha({
                 value={answer}
                 onChange={(e) => {
                   setAnswer(e.target.value);
-                  setError(''); // Clear error when user types
+                  setError(''); 
                 }}
                 onKeyPress={(e) => {
                   if (e.key === 'Enter') {
@@ -161,7 +159,7 @@ export default function InlineCaptcha({
               />
             </div>
             
-            {/* Verify Button */}
+           
             <button
               type="button"
               onClick={handleSubmit}
@@ -182,7 +180,6 @@ export default function InlineCaptcha({
               )}
             </button>
 
-            {/* Refresh Button */}
             <button
               type="button"
               onClick={handleRefresh}
@@ -199,7 +196,6 @@ export default function InlineCaptcha({
             </button>
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="p-2 rounded text-sm font-mono text-center text-red-400 bg-red-900/20 border border-red-800">
               {error}

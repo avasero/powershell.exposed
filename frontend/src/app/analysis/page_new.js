@@ -125,7 +125,7 @@ export default function AnalysisPage() {
         Analysis Result
       </h1>
 
-      {/* Command Display */}
+     
       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-3 sm:p-4" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
         <div className="font-mono text-xs sm:text-sm mb-2" style={{color: 'var(--accent)'}}>Command analyzed:</div>
         <div className="flex items-start">
@@ -135,7 +135,7 @@ export default function AnalysisPage() {
         </div>
       </div>
 
-      {/* Risk Score Display */}
+     
       {result && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div 
@@ -159,7 +159,7 @@ export default function AnalysisPage() {
         </div>
       )}
 
-      {/* Signatures Found */}
+     
       {result && result.signatures && result.signatures.length > 0 && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{color: 'var(--foreground)'}}>
@@ -183,7 +183,7 @@ export default function AnalysisPage() {
         </div>
       )}
 
-      {/* Decoded Content */}
+     
       {result && result.decoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-4" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
           <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--foreground)'}}>
@@ -195,7 +195,7 @@ export default function AnalysisPage() {
         </div>
       )}
 
-      {/* Indicators */}
+     
       {result && result.indicators && result.indicators.length > 0 && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{color: 'var(--foreground)'}}>
@@ -205,7 +205,7 @@ export default function AnalysisPage() {
         </div>
       )}
 
-      {/* MITRE ATT&CK Tactics & Techniques */}
+     
       {result && (result.tactics?.length > 0 || result.techniques?.length > 0) && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 grid md:grid-cols-2 gap-4">
           {result.tactics && result.tactics.length > 0 && (
@@ -240,7 +240,7 @@ export default function AnalysisPage() {
         </div>
       )}
 
-      {/* Error Display */}
+     
       {error && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-4 border-red-500" style={{backgroundColor: 'var(--card-bg)'}}>
           <h2 className="text-lg font-mono font-bold mb-3 text-red-500">
@@ -252,12 +252,12 @@ export default function AnalysisPage() {
         </div>
       )}
 
-      {/* Severity Legend */}
+     
       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
         <SeverityLegend />
       </div>
 
-      {/* Action Buttons */}
+     
       <div className="flex flex-col sm:flex-row gap-4 mb-8">
         <ThemedButton onClick={() => router.push('/')}>
           Analyze Another Command

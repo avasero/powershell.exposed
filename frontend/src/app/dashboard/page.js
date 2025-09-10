@@ -145,7 +145,7 @@ export default function DashboardPage() {
             Your saved PowerShell analyses
           </p>
           
-          {/* Botão para nova análise */}
+        
           <div className="flex gap-4">
             <ThemedButton 
               onClick={() => router.push('/')}
@@ -171,7 +171,7 @@ export default function DashboardPage() {
         {error && <ErrorMessage message={error} />}
         {message && <InfoMessage message={message} />}
 
-        {/* Statistics Cards */}
+     
         {stats && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <div 
@@ -321,7 +321,7 @@ export default function DashboardPage() {
                     </div>
                   )}
                   
-                  {/* IP Address Information */}
+                
                   {analysis.ip_address && (
                     <div className="mb-4">
                       <h3 className="font-mono text-sm font-semibold mb-2" style={{color: 'var(--foreground)'}}>
@@ -335,7 +335,7 @@ export default function DashboardPage() {
                           🌐 {analysis.ip_address}
                         </span>
                         
-                        {/* Mostrar informações de localização se disponíveis */}
+                       
                         {analysis.ip_country && (
                           <span 
                             className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800"
@@ -375,7 +375,7 @@ export default function DashboardPage() {
                     </div>
                   )}
                   
-                  {/* Search Type Information */}
+               
                   {analysis.search_type && (
                     <div className="mb-4">
                       <h3 className="font-mono text-sm font-semibold mb-2" style={{color: 'var(--foreground)'}}>
@@ -392,7 +392,7 @@ export default function DashboardPage() {
                     </div>
                   )}
                   
-                  {/* User Agent Information */}
+                
                   {analysis.user_agent && (
                     <div className="mb-4">
                       <h3 className="font-mono text-sm font-semibold mb-2" style={{color: 'var(--foreground)'}}>

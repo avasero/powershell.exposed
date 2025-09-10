@@ -297,7 +297,7 @@ export default function AnalysisDetailsPage() {
         Evaluation Results
       </h1>
 
-      {/* Quick Search Input */}
+      
       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
         <div className="flex flex-col sm:flex-row gap-3 items-start">
           <div className="flex-1 w-full">
@@ -326,11 +326,9 @@ export default function AnalysisDetailsPage() {
         />
           </div>
           
-      {/* Rate Limit Info - Design Melhorado (igual à página principal) */}
       {rateLimitInfo && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mt-4 mb-6 rounded-lg border-2" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
           <div className="p-4">
-            {/* Header com informações do rate limit */}
             <div className="text-center mb-4">
               <div className="font-mono text-sm mb-2" style={{color: 'var(--muted-foreground)'}}>
                 <strong>Notice:</strong> You have made <span style={{color: 'var(--accent)'}}>{rateLimitInfo.current_count}</span> of <span style={{color: 'var(--accent)'}}>{rateLimitInfo.limit}</span> allowed searches in {rateLimitInfo.window_seconds} seconds.
@@ -339,7 +337,6 @@ export default function AnalysisDetailsPage() {
 
             {rateLimitInfo.current_count >= rateLimitInfo.limit && (
               <div>
-                {/* Status de Rate Limit */}
                 <div className="text-center mb-6">
                   <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border-2 border-red-500" style={{backgroundColor: 'var(--background)'}}>
                     <span className="text-2xl">🚫</span>
@@ -347,19 +344,15 @@ export default function AnalysisDetailsPage() {
           </div>
         </div>
 
-                {/* Timer Elegante */}
                 {isTimerActive && timeLeft > 0 && (
                   <div className="text-center">
                     <div className="inline-block p-6 rounded-xl border-2" style={{backgroundColor: 'var(--background)', borderColor: 'var(--accent)'}}>
-                      {/* Ícone do Timer */}
                       <div className="text-4xl mb-3">⏰</div>
                       
-                      {/* Título */}
                       <div className="font-mono font-bold text-xl mb-3" style={{color: 'var(--accent)'}}>
                         Wait for reset
                 </div>
                 
-                      {/* Contador Grande */}
                       <div className="font-mono text-3xl font-bold mb-4 px-4 py-2 rounded-lg border" style={{
                         color: 'var(--accent)', 
                         backgroundColor: 'var(--card-bg)',
@@ -368,12 +361,10 @@ export default function AnalysisDetailsPage() {
                         {formatTime}
                       </div>
                       
-                      {/* Descrição */}
                       <div className="font-mono text-sm max-w-xs mx-auto" style={{color: 'var(--muted-foreground)'}}>
                         You can make new searches when the timer reaches zero
                       </div>
                       
-                      {/* Barra de progresso visual */}
                       <div className="mt-4 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div 
                           className="h-2 rounded-full transition-all duration-1000" 
@@ -392,7 +383,6 @@ export default function AnalysisDetailsPage() {
           </div>
         )}
 
-             {/* Command Display */}
        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 p-3 sm:p-4" style={{backgroundColor: 'var(--muted)'}}>
          <div className="font-mono text-xs sm:text-sm mb-2" style={{color: 'var(--muted-foreground)'}}>Command evaluated:</div>
          <div className="flex items-start">
@@ -403,14 +393,12 @@ export default function AnalysisDetailsPage() {
             </div>
 
      
-       {/* Cumulative Base Score Display */}
       {result && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div 
             className="p-4 sm:p-6 rounded-lg border-2 border-green-400 text-center relative"
             style={{backgroundColor: 'var(--muted)'}}
           >
-            {/* Severity Legend no canto superior direito */}
             <div className="absolute top-4 right-4">
               <SeverityLegend />
                 </div>
@@ -424,11 +412,9 @@ export default function AnalysisDetailsPage() {
             <div className="text-xs sm:text-sm font-mono text-green-400 mb-2">
               {totalScore === 0 ? "No Malicious Indicators Detected" : "Cumulative score from all patterns"}
             </div>
-                         {/* Mostrar breakdown do score se houver patterns */}
             {result.signatures && result.signatures.length > 0 && (
               <div className="text-xs font-mono text-gray-400 border-t border-gray-600 pt-3 mt-3">
                 {(() => {
-                  // Para o breakdown, mostrar TODOS os cmdlets (incluindo duplicados)
                   const securitySigs = result.signatures.filter(sig => 
                     !sig.name.includes('(') || sig.score >= 4.0 || !sig.techniques?.includes('T1059.001') || sig.tactics?.length > 1
                   );
@@ -451,19 +437,16 @@ export default function AnalysisDetailsPage() {
             </div>
           </div>
         )}
-             {/* Individual Patterns Details */}
        {result && result.signatures && result.signatures.length > 0 && (
          <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-           {/* Filtrar signatures reais (não cmdlets básicos) */}
           {(() => {
             const realSignatures = result.signatures.filter(sig => 
-              !sig.name.includes('(') || // Não contém parênteses (não é cmdlet)
-              sig.score >= 4.0 || // Score alto o suficiente
-              !sig.techniques?.includes('T1059.001') || // Não é apenas execução básica
-              sig.tactics?.length > 1 // Tem múltiplas táticas
+              !sig.name.includes('(') || 
+              sig.score >= 4.0 || 
+              !sig.techniques?.includes('T1059.001') || 
+              sig.tactics?.length > 1 
             );
             
-            // Extrair nomes de cmdlets que já aparecem nas signatures importantes
             const importantCmdletNames = realSignatures
               .filter(sig => sig.name.includes('('))
               .map(sig => {
@@ -472,18 +455,17 @@ export default function AnalysisDetailsPage() {
               })
               .filter(Boolean);
             
-            // Para exibição, mostrar TODOS os cmdlets básicos (não filtrar duplicados)
             const basicCmdlets = result.signatures.filter(sig => 
-              sig.name.includes('(') && // Contém parênteses (é cmdlet)
-              sig.score < 4.0 && // Score baixo
-              sig.techniques?.includes('T1059.001') && // Apenas execução básica
-              sig.tactics?.length <= 1 // Só uma tática
-              // Removido o filtro de duplicados - mostrar todos
+              sig.name.includes('(') && 
+              sig.score < 4.0 && 
+              sig.techniques?.includes('T1059.001') && 
+              sig.tactics?.length <= 1
+              
             );
 
             return (
               <>
-                                 {/* Indicator Regex importantes */}
+                                
                 {realSignatures.length > 0 && (
           <div className="mb-6">
                                          <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{color: 'var(--foreground)'}}>
@@ -517,7 +499,6 @@ export default function AnalysisDetailsPage() {
           </div>
         )}
 
-                                  {/* PowerShell Cmdlets básicos - cards compactos */}
                   {basicCmdlets.length > 0 && (
           <div className="mb-6">
                       <h3 className="text-base font-mono font-bold mb-3" style={{color: 'var(--muted-foreground)'}}>
@@ -536,7 +517,6 @@ export default function AnalysisDetailsPage() {
                           <div className="text-xs font-mono" style={{color: 'var(--muted-foreground)'}}>
                             Score: {cmdlet.total_score || cmdlet.score} • Basic PowerShell
                           </div>
-                          {/* Mostrar informações de matches se houver múltiplos */}
                           {cmdlet.matches_found > 1 && (
                             <div className="text-xs font-mono mt-1" style={{color: 'var(--accent)'}}>
                               {cmdlet.matches_found} matches • Base: {cmdlet.base_score || cmdlet.score}
@@ -553,7 +533,6 @@ export default function AnalysisDetailsPage() {
           </div>
         )}
 
-      {/* No Indicators Message */}
       {result && (!result.signatures || result.signatures.length === 0) && totalScore === 0 && (
                  <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
            <div className="border rounded-lg p-6 text-center" style={{backgroundColor: 'var(--muted)', borderColor: 'var(--border-color)'}}>
@@ -567,7 +546,6 @@ export default function AnalysisDetailsPage() {
              </div>
           )}
 
-      {/* Disclaimer */}
       {result && result.signatures && result.signatures.length > 0 && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--primary-purple)'}}>
@@ -580,7 +558,6 @@ export default function AnalysisDetailsPage() {
         </div>
       )}
 
-      {/* Decoded Content */}
       {result && result.decoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-4" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
           <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--foreground)'}}>
@@ -592,7 +569,6 @@ export default function AnalysisDetailsPage() {
         </div>
       )}
       
-      {/* Error Display */}
       {error && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-4 border-red-500" style={{backgroundColor: 'var(--card-bg)'}}>
           <h2 className="text-lg font-mono font-bold mb-3 text-red-500">
@@ -604,7 +580,6 @@ export default function AnalysisDetailsPage() {
         </div>
       )}
 
-      {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
         <ThemedButton onClick={() => router.push('/')}>
           Evaluate Another Command
@@ -612,11 +587,10 @@ export default function AnalysisDetailsPage() {
           <ThemedButton 
           variant="outline"
           onClick={() => {
-            // Se temos um resultado com ID, usar o link limpo
             const baseUrl = window.location.origin;
             const shareUrl = result?.analysisId 
               ? `${baseUrl}/analysis/${result.analysisId}`
-              : window.location.href; // Fallback para URL atual se não tiver ID
+              : window.location.href; 
             navigator.clipboard.writeText(shareUrl);
           }}
         >

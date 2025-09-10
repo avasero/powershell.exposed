@@ -287,7 +287,6 @@ export default function AnalysisChat() {
       </div>
 
       <div className="flex-1 flex flex-col min-h-0">
-        {/* Área de scroll das análises */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden analysis-chat-scroll">
           <div className="p-2">
             {loading ? (
@@ -345,7 +344,6 @@ export default function AnalysisChat() {
                     </p>
                   </div>
 
-                  {/* Cmdlets detected */}
                   {analysis.cmdlets_detected && Array.isArray(analysis.cmdlets_detected) && analysis.cmdlets_detected.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-2">
                       {analysis.cmdlets_detected.slice(0, 2).map((cmdlet, index) => {
@@ -407,7 +405,6 @@ export default function AnalysisChat() {
           </div>
         </div>
         
-        {/* Botões fixos no canto inferior direito - fora da área de scroll */}
         <div className="p-3 flex justify-end gap-3 border-t flex-shrink-0" style={{borderColor: 'var(--border-color)', backgroundColor: 'var(--background)'}}>
           <button
             onClick={() => router.push('/history')}
@@ -436,23 +433,18 @@ export default function AnalysisChat() {
 
   return (
     <>
-      {/* Desktop - Chat lateral fixo */}
       <div className="hidden md:flex md:w-80 h-screen border-r flex-col flex-shrink-0" style={{borderColor: 'var(--border-color)', backgroundColor: 'var(--background)'}}>
         <AnalysisChatContent />
       </div>
 
-      {/* Mobile - Drawer sobreposto */}
       {isAnalysisDrawerOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          {/* Backdrop */}
           <div 
             className="absolute inset-0 bg-black bg-opacity-50"
             onClick={closeAnalysisDrawer}
           />
           
-          {/* Drawer */}
           <div className="absolute left-0 top-0 h-full w-3/4 border-r flex flex-col" style={{backgroundColor: 'var(--background)', borderColor: 'var(--border-color)'}}>
-            {/* Header com botão de fechar */}
             <div className="p-4 border-b flex items-center justify-between" style={{borderColor: 'var(--border-color)'}}>
               <div>
                 <h2 className="font-mono font-semibold text-lg" style={{color: 'var(--accent)'}}>
@@ -475,9 +467,7 @@ export default function AnalysisChat() {
               </button>
             </div>
             
-            {/* Conteúdo */}
             <div className="flex-1 flex flex-col">
-              {/* Área de scroll das análises */}
               <div className="flex-1 overflow-y-auto analysis-chat-scroll">
                 <div className="p-2">
                   <div>
@@ -536,7 +526,6 @@ export default function AnalysisChat() {
                           </p>
                         </div>
 
-                        {/* Cmdlets detected */}
                         {analysis.cmdlets_detected && Array.isArray(analysis.cmdlets_detected) && analysis.cmdlets_detected.length > 0 && (
                           <div className="flex flex-wrap gap-1 mb-2">
                             {analysis.cmdlets_detected.slice(0, 2).map((cmdlet, index) => {
@@ -598,7 +587,6 @@ export default function AnalysisChat() {
                 </div>
               </div>
               
-              {/* Botões fixos no canto inferior direito - fora da área de scroll */}
               <div className="p-4 flex justify-end gap-3 border-t" style={{borderColor: 'var(--border-color)'}}>
                 <button
                   onClick={() => {

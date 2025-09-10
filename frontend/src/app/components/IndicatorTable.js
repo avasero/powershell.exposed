@@ -44,7 +44,6 @@ export default function IndicatorTable({ signatures = [] }) {
           
           {signatures.map((sig, idx) => (
             <div key={idx} className="border rounded-lg overflow-hidden" style={{borderColor: 'var(--border-color)', backgroundColor: 'var(--card-bg)'}}>
-              {/* Header with Score and Name */}
               <div className="p-4 border-b flex items-center justify-between" style={{borderColor: 'var(--border-color)', backgroundColor: 'rgba(156, 254, 65, 0.05)'}}>
                 <div className="flex items-center gap-3">
                   <SeverityBadge score={sig.score} />
@@ -58,9 +57,7 @@ export default function IndicatorTable({ signatures = [] }) {
                 </div>
               </div>
 
-              {/* Content */}
               <div className="p-4 space-y-4">
-                {/* Description */}
                 <div>
                   <h5 className="font-mono text-sm font-bold mb-2" style={{color: 'var(--accent)'}}>Description:</h5>
                   <p className="font-mono text-sm" style={{color: 'var(--foreground)', opacity: 0.9}}>
@@ -68,7 +65,6 @@ export default function IndicatorTable({ signatures = [] }) {
                   </p>
                 </div>
 
-                {/* Matched Pattern */}
                 {(sig.matched_text || sig.keyword) && (
                   <div>
                     <h5 className="font-mono text-sm font-bold mb-2" style={{color: 'var(--accent)'}}>Matched Pattern:</h5>
@@ -78,9 +74,7 @@ export default function IndicatorTable({ signatures = [] }) {
                   </div>
                 )}
 
-                {/* MITRE ATT&CK Info */}
                 <div className="grid md:grid-cols-2 gap-4">
-                  {/* Tactics */}
                   {sig.tactic && sig.tactic.length > 0 && (
                     <div>
                       <h5 className="font-mono text-sm font-bold mb-2" style={{color: 'var(--accent)'}}>MITRE Tactics:</h5>
@@ -95,7 +89,6 @@ export default function IndicatorTable({ signatures = [] }) {
                     </div>
                   )}
 
-                  {/* Techniques */}
                   {sig.technique && sig.technique.length > 0 && (
                     <div>
                       <h5 className="font-mono text-sm font-bold mb-2" style={{color: 'var(--accent)'}}>MITRE Techniques:</h5>
@@ -111,7 +104,6 @@ export default function IndicatorTable({ signatures = [] }) {
                   )}
                 </div>
 
-                {/* References */}
                 {sig.reference && sig.reference.length > 0 && (
                   <div>
                     <h5 className="font-mono text-sm font-bold mb-2" style={{color: 'var(--accent)'}}>References:</h5>

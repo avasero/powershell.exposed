@@ -230,7 +230,7 @@ export default function HistoryPage() {
 
   return (
     <div className="flex-1 flex flex-col p-4 sm:p-6 md:p-8">
-      {/* Header */}
+    
       <div className="mb-6">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
           Analysis History
@@ -242,9 +242,9 @@ export default function HistoryPage() {
         </p>
       </div>
 
-      {/* Controls */}
+     
       <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        {/* Search Filter */}
+        
         <div className="flex-1 max-w-md">
           <input
             type="text"
@@ -260,7 +260,7 @@ export default function HistoryPage() {
           />
         </div>
 
-        {/* Sort Controls */}
+      
         <div className="flex gap-2 items-center">
           <select
             value={sortBy}
@@ -291,14 +291,14 @@ export default function HistoryPage() {
         </div>
       </div>
 
-      {/* Error Display */}
+    
       {error && (
         <div className="mb-6 p-4 rounded-lg border border-red-500" style={{backgroundColor: 'var(--card-bg)'}}>
           <p className="font-mono text-sm text-red-400">{error}</p>
         </div>
       )}
 
-      {/* Analyses Grid */}
+    
       {filteredAndSortedAnalyses.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center">
           <div className="text-center max-w-md">
@@ -330,7 +330,7 @@ export default function HistoryPage() {
                 borderColor: 'var(--border-color)'
               }}
             >
-              {/* Header */}
+           
               <div className="flex items-start justify-between mb-3">
                 <SeverityBadge 
                   score={analysis.risk_score ?? analysis.score ?? 0} 
@@ -341,14 +341,14 @@ export default function HistoryPage() {
                 </span>
               </div>
               
-              {/* Command */}
+          
               <div className="mb-3">
                 <p className="font-mono text-sm font-medium leading-tight" style={{color: 'var(--foreground)'}}>
                   {truncateCommand(analysis.command)}
                 </p>
               </div>
 
-              {/* Cmdlets detected */}
+             
               {analysis.cmdlets_detected && Array.isArray(analysis.cmdlets_detected) && analysis.cmdlets_detected.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-2">
                   {analysis.cmdlets_detected.slice(0, 2).map((cmdlet, index) => {
@@ -373,7 +373,7 @@ export default function HistoryPage() {
                 </div>
               )}
 
-              {/* Signatures detected */}
+             
               {(analysis.signatures_detected || analysis.signatures) && Array.isArray(analysis.signatures_detected || analysis.signatures) && (analysis.signatures_detected || analysis.signatures).length > 0 && (
                 <div className="flex flex-wrap gap-1">
                   {(analysis.signatures_detected || analysis.signatures).slice(0, 1).map((sig, index) => {
@@ -405,7 +405,7 @@ export default function HistoryPage() {
                 </div>
               )}
 
-              {/* Anonymous badge */}
+            
               {!isAuthenticated() && analysis.is_anonymous && (
                 <div className="mt-2 pt-2 border-t" style={{borderColor: 'var(--border-color)'}}>
                   <span className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800">
@@ -418,7 +418,7 @@ export default function HistoryPage() {
         </div>
       )}
 
-      {/* Footer Actions */}
+    
       {filteredAndSortedAnalyses.length > 0 && (
         <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
           <ThemedButton onClick={() => router.push('/')}>

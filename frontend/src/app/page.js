@@ -201,12 +201,12 @@ export default function Home() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Chat lateral - sempre visível para todos os usuários */}
+    
       <div className="flex-shrink-0">
         <AnalysisChat />
       </div>
       
-      {/* Conteúdo principal - sem scroll */}
+    
       <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center px-2" style={{color: 'var(--accent)'}}>
           powershell.exposed
@@ -244,11 +244,11 @@ export default function Home() {
           
           <ErrorMessage message={error} />
           
-          {/* Rate Limit Info - Design Melhorado */}
+          
           {rateLimitInfo && (
             <div className="mt-4 rounded-lg border-2" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
               <div className="p-4">
-                {/* Header com informações do rate limit */}
+                
                 <div className="text-center mb-4">
                   <div className="font-mono text-sm mb-2" style={{color: 'var(--muted-foreground)'}}>
                     <strong>Notice:</strong> You have made <span style={{color: 'var(--accent)'}}>{rateLimitInfo.current_count}</span> of <span style={{color: 'var(--accent)'}}>{rateLimitInfo.limit}</span> allowed searches in {rateLimitInfo.window_seconds} seconds.
@@ -257,7 +257,7 @@ export default function Home() {
 
                 {rateLimitInfo.current_count >= rateLimitInfo.limit && (
                   <div>
-                    {/* Status de Rate Limit */}
+                   
                     <div className="text-center mb-6">
                       <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border-2 border-red-500" style={{backgroundColor: 'var(--background)'}}>
                         <span className="text-2xl">🚫</span>
@@ -265,19 +265,19 @@ export default function Home() {
                       </div>
                     </div>
                     
-                    {/* Timer Elegante */}
+                   
                     {isTimerActive && timeLeft > 0 && (
                       <div className="text-center">
                         <div className="inline-block p-6 rounded-xl border-2" style={{backgroundColor: 'var(--background)', borderColor: 'var(--accent)'}}>
-                          {/* Ícone do Timer */}
+                         
                           <div className="text-4xl mb-3">⏰</div>
                           
-                          {/* Título */}
+                         
                           <div className="font-mono font-bold text-xl mb-3" style={{color: 'var(--accent)'}}>
                             Wait for reset
                           </div>
                           
-                          {/* Contador Grande */}
+                          
                           <div className="font-mono text-3xl font-bold mb-4 px-4 py-2 rounded-lg border" style={{
                             color: 'var(--accent)', 
                             backgroundColor: 'var(--card-bg)',
@@ -286,12 +286,12 @@ export default function Home() {
                             {formatTime}
                           </div>
                           
-                          {/* Descrição */}
+                        
                           <div className="font-mono text-sm max-w-xs mx-auto" style={{color: 'var(--muted-foreground)'}}>
                             You can make new searches when the timer reaches zero
                           </div>
                           
-                          {/* Barra de progresso visual (opcional) */}
+                         
                           <div className="mt-4 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                             <div 
                               className="h-2 rounded-full transition-all duration-1000" 

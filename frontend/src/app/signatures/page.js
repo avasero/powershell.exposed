@@ -102,7 +102,7 @@ export default function SignaturesPage() {
         Detection Signatures
       </h1>
 
-      {/* Estatísticas */}
+      
       <div className="w-full max-w-6xl mb-6">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="border rounded-lg p-3 text-center" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
@@ -128,10 +128,10 @@ export default function SignaturesPage() {
         </div>
       </div>
 
-      {/* Filtros */}
+    
       <div className="w-full max-w-6xl mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          {/* Busca */}
+        
           <div>
             <input
               type="text"
@@ -147,7 +147,7 @@ export default function SignaturesPage() {
             />
           </div>
           
-          {/* Filtro por Severidade */}
+          
           <div>
             <select
               value={selectedSeverity}
@@ -168,7 +168,7 @@ export default function SignaturesPage() {
             </select>
           </div>
           
-          {/* Filtro por Categoria */}
+        
           <div>
             <select
               value={selectedCategory}
@@ -195,7 +195,7 @@ export default function SignaturesPage() {
         </div>
       </div>
 
-      {/* Lista de Signatures */}
+     
       <div className="w-full max-w-6xl space-y-4 mb-8">
         {filteredSignatures.map((signature, index) => (
           <div 
@@ -237,7 +237,7 @@ export default function SignaturesPage() {
         ))}
       </div>
 
-      {/* Botões de navegação */}
+    
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <ThemedButton onClick={() => router.push("/")} className="mb-6">
           Back to Analysis
