@@ -19,7 +19,7 @@ export default function LandingPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-12">
-          <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
+          <div className="p-6 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
             <h3 className="font-mono font-semibold mb-2" style={{color: 'var(--foreground)'}}>
               Detailed Analysis
             </h3>
@@ -28,7 +28,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
+          <div className="p-6 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
             <h3 className="font-mono font-semibold mb-2" style={{color: 'var(--foreground)'}}>
               Fast and Accurate
             </h3>
@@ -37,7 +37,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
+          <div className="p-6 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
             <h3 className="font-mono font-semibold mb-2" style={{color: 'var(--foreground)'}}>
               Complete History
             </h3>
@@ -98,24 +98,24 @@ export default function LandingPage() {
         </div>
 
        
-        <div className="mt-16 p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
+        <div className="mt-16 p-6 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
           <h2 className="text-xl font-mono font-semibold mb-4" style={{color: 'var(--accent)'}}>
             How it works?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
-            <div className="text-center">
+            <div className="text-center p-4 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer">
               <div className="text-lg mb-2 font-bold" style={{color: 'var(--accent)'}}>1</div>
               <p>Paste your PowerShell command</p>
             </div>
-            <div className="text-center">
+            <div className="text-center p-4 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer">
               <div className="text-lg mb-2 font-bold" style={{color: 'var(--accent)'}}>2</div>
               <p>Automatic analysis is executed</p>
             </div>
-            <div className="text-center">
+            <div className="text-center p-4 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer">
               <div className="text-lg mb-2 font-bold" style={{color: 'var(--accent)'}}>3</div>
               <p>Receive detailed report</p>
             </div>
-            <div className="text-center">
+            <div className="text-center p-4 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer">
               <div className="text-lg mb-2 font-bold" style={{color: 'var(--accent)'}}>4</div>
               <p>Save to your dashboard</p>
             </div>

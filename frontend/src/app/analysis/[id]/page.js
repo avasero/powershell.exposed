@@ -312,10 +312,9 @@ export default function AnalysisDetailsPage() {
           <button
             onClick={handleNewAnalysis}
             disabled={!newCommand.trim() || loading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
-            className="px-6 py-3 rounded-lg font-mono font-bold text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+            className="px-6 py-3 rounded-lg font-mono font-bold text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 bg-black/80 border border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
             style={{
-              backgroundColor: 'var(--accent)',
-              color: 'var(--background)'
+              color: 'var(--accent)'
             }}
           >
             {loading ? 'Analyzing...' : 'Evaluate'}
@@ -327,7 +326,7 @@ export default function AnalysisDetailsPage() {
           </div>
           
       {rateLimitInfo && (
-        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mt-4 mb-6 rounded-lg border-2" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mt-4 mb-6 rounded-lg border-2 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
           <div className="p-4">
             <div className="text-center mb-4">
               <div className="font-mono text-sm mb-2" style={{color: 'var(--muted-foreground)'}}>
@@ -338,7 +337,7 @@ export default function AnalysisDetailsPage() {
             {rateLimitInfo.current_count >= rateLimitInfo.limit && (
               <div>
                 <div className="text-center mb-6">
-                  <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border-2 border-red-500" style={{backgroundColor: 'var(--background)'}}>
+                  <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border-2 border-red-500 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer">
                     <span className="text-2xl">🚫</span>
                     <span className="font-mono font-bold text-red-500">Rate limit reached</span>
           </div>
@@ -346,17 +345,15 @@ export default function AnalysisDetailsPage() {
 
                 {isTimerActive && timeLeft > 0 && (
                   <div className="text-center">
-                    <div className="inline-block p-6 rounded-xl border-2" style={{backgroundColor: 'var(--background)', borderColor: 'var(--accent)'}}>
+                    <div className="inline-block p-6 rounded-xl border-2 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
                       <div className="text-4xl mb-3">⏰</div>
                       
                       <div className="font-mono font-bold text-xl mb-3" style={{color: 'var(--accent)'}}>
                         Wait for reset
                 </div>
                 
-                      <div className="font-mono text-3xl font-bold mb-4 px-4 py-2 rounded-lg border" style={{
-                        color: 'var(--accent)', 
-                        backgroundColor: 'var(--card-bg)',
-                        borderColor: 'var(--border-color)'
+                      <div className="font-mono text-3xl font-bold mb-4 px-4 py-2 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer" style={{
+                        color: 'var(--accent)'
                       }}>
                         {formatTime}
                       </div>
@@ -383,7 +380,7 @@ export default function AnalysisDetailsPage() {
           </div>
         )}
 
-       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 p-3 sm:p-4" style={{backgroundColor: 'var(--muted)'}}>
+       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 p-3 sm:p-4 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
          <div className="font-mono text-xs sm:text-sm mb-2" style={{color: 'var(--muted-foreground)'}}>Command evaluated:</div>
          <div className="flex items-start">
            <span className="font-mono text-sm sm:text-base break-all" style={{color: 'var(--foreground)'}}>
@@ -396,8 +393,7 @@ export default function AnalysisDetailsPage() {
       {result && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div 
-            className="p-4 sm:p-6 rounded-lg border-2 border-green-400 text-center relative"
-            style={{backgroundColor: 'var(--muted)'}}
+            className="p-4 sm:p-6 rounded-lg border-2 border-green-400 text-center relative bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer"
           >
             <div className="absolute top-4 right-4">
               <SeverityLegend />
@@ -508,8 +504,7 @@ export default function AnalysisDetailsPage() {
                       {basicCmdlets.map((cmdlet, index) => (
                         <div 
                           key={`cmdlet-${index}`}
-                          className="border rounded p-3 text-center"
-                          style={{backgroundColor: 'var(--muted)', borderColor: 'var(--border-color)'}}
+                          className="border rounded p-3 text-center bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
                         >
                           <div className="font-mono text-sm font-bold mb-1" style={{color: 'var(--foreground)'}}>
                             {cmdlet.name}
@@ -535,7 +530,7 @@ export default function AnalysisDetailsPage() {
 
       {result && (!result.signatures || result.signatures.length === 0) && totalScore === 0 && (
                  <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-           <div className="border rounded-lg p-6 text-center" style={{backgroundColor: 'var(--muted)', borderColor: 'var(--border-color)'}}>
+           <div className="border rounded-lg p-6 text-center bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
              <h2 className="text-lg sm:text-xl font-mono font-bold mb-2" style={{color: 'var(--foreground)'}}>
                Zero indicators found
                </h2>
@@ -548,7 +543,7 @@ export default function AnalysisDetailsPage() {
 
       {result && result.signatures && result.signatures.length > 0 && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-          <div className="border rounded-lg p-4" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--primary-purple)'}}>
+          <div className="border rounded-lg p-4 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
             <div className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
               Matched indicators are not inherently suspicious but highlight traces that may require closer examination. For interpretation details, check the link below:
               <br /><br />
@@ -559,18 +554,18 @@ export default function AnalysisDetailsPage() {
       )}
 
       {result && result.decoded && (
-        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-4" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-4 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
           <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--foreground)'}}>
             Decoded Content
           </h2>
-          <div className="font-mono text-sm break-all p-3 rounded" style={{backgroundColor: 'var(--muted)', color: 'var(--foreground)'}}>
+          <div className="font-mono text-sm break-all p-3 rounded bg-black/80 border border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer" style={{color: 'var(--foreground)'}}>
             {result.decoded}
           </div>
         </div>
       )}
       
       {error && (
-        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-4 border-red-500" style={{backgroundColor: 'var(--card-bg)'}}>
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-4 border-red-500 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
           <h2 className="text-lg font-mono font-bold mb-3 text-red-500">
             Error
           </h2>

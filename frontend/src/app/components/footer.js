@@ -3,12 +3,12 @@ import React from "react";
 
 export default function Footer() {
   return (
-    <footer className="w-full py-4 text-center border-t font-mono text-sm" style={{backgroundColor: 'var(--primary-black)', borderColor: 'var(--primary-green)', color: 'var(--primary-white)'}}>
-      <div>
-        &copy; {new Date().getFullYear()} <span style={{color: 'var(--primary-green)'}}>powershell.exposed</span>
+    <footer className="w-full py-4 text-center border-t font-mono text-sm bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
+      <div style={{color: 'var(--foreground)'}}>
+        &copy; {new Date().getFullYear()} <span style={{color: 'var(--accent)'}}>powershell.exposed</span>
       </div>
-      <div className="mt-1">
-        by <a href="https://avasero.com" target="_blank" rel="noopener noreferrer" style={{color: 'var(--primary-green)', textDecoration: 'underline'}}>avasero</a>
+      <div className="mt-1" style={{color: 'var(--muted-foreground)'}}>
+        by <a href="https://avasero.com" target="_blank" rel="noopener noreferrer" style={{color: 'var(--accent)', textDecoration: 'underline'}}>avasero</a>
       </div>
     </footer>
   );

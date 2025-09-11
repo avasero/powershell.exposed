@@ -70,7 +70,7 @@ export default function CommandInput({
 
   return (
     <div className="w-full">
-      <div className={`flex flex-col sm:flex-row items-stretch sm:items-center rounded-lg overflow-hidden border-2 ${error ? 'border-red-500' : showCharacterWarning ? 'border-yellow-500' : ''}`} style={{backgroundColor: 'var(--card-bg)', borderColor: error ? '#ef4444' : showCharacterWarning ? '#eab308' : 'var(--border-color)'}}>
+      <div className={`flex flex-col sm:flex-row items-stretch sm:items-center rounded-lg overflow-hidden border-2 ${error ? 'border-red-500' : showCharacterWarning ? 'border-yellow-500' : 'border-green-500/30'} bg-black/80 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer`} style={{borderColor: error ? '#ef4444' : showCharacterWarning ? '#eab308' : 'rgba(34, 197, 94, 0.3)'}}>
         <span className="px-3 sm:px-4 py-3 font-mono text-sm sm:text-base border-b sm:border-b-0 sm:border-r border-opacity-30 flex-shrink-0" style={{color: 'var(--accent)', borderColor: 'var(--border-color)'}}>
           PS &gt;
         </span>
@@ -81,9 +81,8 @@ export default function CommandInput({
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="w-full font-mono px-3 sm:px-4 py-3 border-none outline-none resize-none text-sm sm:text-base"
+            className="w-full font-mono px-3 sm:px-4 py-3 border-none outline-none resize-none text-sm sm:text-base bg-transparent"
             style={{
-              backgroundColor: 'var(--card-bg)', 
               color: 'var(--foreground)',
               minHeight: `${MIN_HEIGHT}px`,
               maxHeight: `${MAX_HEIGHT}px`,

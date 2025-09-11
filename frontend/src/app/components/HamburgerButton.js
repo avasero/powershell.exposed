@@ -8,7 +8,7 @@ export default function HamburgerButton() {
   return (
     <button
       onClick={toggleDrawer}
-      className="p-2 rounded-md md:hidden"
+      className="p-2 rounded-md md:hidden bg-black/80 border border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
       style={{ color: 'var(--accent)' }}
       aria-label="Toggle menu"
     >

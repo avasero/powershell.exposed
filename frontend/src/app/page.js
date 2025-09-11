@@ -10,6 +10,7 @@ import { ErrorMessage, InfoMessage } from "./components/Messages";
 import CommandInput from "./components/CommandInput";
 import ThemedButton from "./components/ThemedButton";
 import AnalysisChat from "./components/AnalysisChat";
+import MatrixRain from "./components/MatrixRain";
 
 export default function Home() {
   const router = useRouter();
@@ -200,14 +201,15 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
-    
-      <div className="flex-shrink-0">
+    <div className="flex h-screen overflow-hidden relative">
+      <MatrixRain />
+      
+      <div className="flex-shrink-0 relative z-10">
         <AnalysisChat />
       </div>
       
     
-      <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden relative z-10">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center px-2" style={{color: 'var(--accent)'}}>
           powershell.exposed
         </h1>

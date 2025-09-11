@@ -24,7 +24,7 @@ export default function IndicatorTable({ signatures = [] }) {
   return (
     <div className="space-y-6">
       {signatures.length === 0 ? (
-        <div className="border rounded-lg p-6 text-center" style={{borderColor: 'var(--border-color)', backgroundColor: 'var(--card-bg)'}}>
+        <div className="border rounded-lg p-6 text-center bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
           <h3 className="font-mono text-lg font-bold mb-2" style={{color: 'var(--accent)'}}>
             No Indicators Detected
           </h3>
@@ -34,8 +34,8 @@ export default function IndicatorTable({ signatures = [] }) {
         </div>
       ) : (
         <>
-          <div className="border rounded-lg overflow-hidden" style={{borderColor: 'var(--border-color)'}}>
-            <div className="p-4 border-b" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
+          <div className="border rounded-lg overflow-hidden bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
+            <div className="p-4 border-b border-green-500/30">
               <h3 className="font-mono text-lg font-bold" style={{color: 'var(--accent)'}}>
                 Detected Signatures ({signatures.length})
               </h3>
@@ -43,8 +43,8 @@ export default function IndicatorTable({ signatures = [] }) {
           </div>
           
           {signatures.map((sig, idx) => (
-            <div key={idx} className="border rounded-lg overflow-hidden" style={{borderColor: 'var(--border-color)', backgroundColor: 'var(--card-bg)'}}>
-              <div className="p-4 border-b flex items-center justify-between" style={{borderColor: 'var(--border-color)', backgroundColor: 'rgba(156, 254, 65, 0.05)'}}>
+            <div key={idx} className="border rounded-lg overflow-hidden bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
+              <div className="p-4 border-b flex items-center justify-between border-green-500/30" style={{backgroundColor: 'rgba(156, 254, 65, 0.05)'}}>
                 <div className="flex items-center gap-3">
                   <SeverityBadge score={sig.score} />
                   <h4 className="font-mono text-lg font-bold" style={{color: 'var(--foreground)'}}>

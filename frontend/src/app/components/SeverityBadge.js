@@ -13,14 +13,14 @@ export default function SeverityBadge({ score, className = "" }) {
   // Handle undefined score gracefully
   if (score === undefined || score === null) {
     return (
-      <span className={`font-mono text-xs px-1 sm:px-2 py-1 rounded border border-gray-400 text-gray-400 ${className}`}>
+      <span className={`font-mono text-xs px-1 sm:px-2 py-1 rounded border border-gray-400 text-gray-400 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer ${className}`}>
         N/A
       </span>
     );
   }
 
   return (
-    <span className={`font-mono text-xs px-1 sm:px-2 py-1 rounded border ${getScoreColor(score)} ${className}`}>
+    <span className={`font-mono text-xs px-1 sm:px-2 py-1 rounded border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer ${getScoreColor(score)} ${className}`}>
       {score.toFixed(1)}
     </span>
   );

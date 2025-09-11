@@ -9,45 +9,24 @@ export default function ThemedButton({
   className = "",
   ...props 
 }) {
-  const baseClasses = "font-mono font-semibold rounded transition-all duration-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
+  const baseClasses = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-primary/90 cursor-target relative bg-black border-2 border-green-500/50 text-green-400/80 hover:border-green-500 hover:text-green-400 font-black font-mono uppercase tracking-wider shadow-[0_0_15px_rgba(34,197,94,0.2)] hover:shadow-[0_0_25px_rgba(34,197,94,0.4)] transition-all overflow-hidden group";
   
   const sizeClasses = {
-    sm: "px-3 py-1 text-xs sm:text-sm",
-    md: "px-4 py-2 text-sm sm:text-base", 
-    lg: "px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base",
-    xl: "px-6 py-3 text-base sm:text-lg"
-  };
-
-  const variantStyles = {
-    primary: {
-      backgroundColor: 'var(--accent)',
-      color: 'var(--background)',
-      border: 'none'
-    },
-    secondary: {
-      backgroundColor: 'var(--card-bg)',
-      color: 'var(--secondary)',
-      borderColor: 'var(--secondary)',
-      border: '1px solid'
-    },
-    outline: {
-      backgroundColor: 'transparent',
-      color: 'var(--accent)',
-      borderColor: 'var(--accent)',
-      border: '1px solid'
-    }
+    sm: "h-8 px-4 py-2 text-xs",
+    md: "h-10 px-6 py-3 text-sm", 
+    lg: "h-12 px-8 py-4 text-base",
+    xl: "h-14 px-12 py-7 text-xl"
   };
 
   return (
     <button
       className={`${baseClasses} ${sizeClasses[size]} ${className}`}
-      style={variantStyles[variant]}
       disabled={disabled || loading}
       {...props}
     >
       {loading ? (
         <div className="flex items-center space-x-2">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2" style={{borderColor: 'currentColor'}}></div>
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-400"></div>
           <span>Loading...</span>
         </div>
       ) : (

@@ -24,11 +24,9 @@ export default function FormInput({
         id={id}
         name={name}
         required={required}
-        className="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none font-mono"
+        className="mt-1 block w-full px-3 py-2 rounded-lg border text-card-foreground shadow-sm cursor-target bg-black/80 border-green-500/30 p-4 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer focus:outline-none font-mono"
         style={{
-          backgroundColor: 'var(--card-bg)',
-          color: 'var(--foreground)',
-          borderColor: 'var(--border-color)'
+          color: 'var(--foreground)'
         }}
         value={value}
         onChange={onChange}

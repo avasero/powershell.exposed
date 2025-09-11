@@ -23,7 +23,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="w-full flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
+      <nav className="w-full flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)]">
         <div className="flex items-center">
           <Link href="/" className="flex items-center space-x-2 font-mono text-lg sm:text-xl font-bold" style={{color: 'var(--accent)'}}>
             <svg 
@@ -56,10 +56,9 @@ export default function Navbar() {
               </span>
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 font-mono font-semibold rounded text-sm transition-colors hover:opacity-80"
+                className="px-4 py-2 font-mono font-semibold rounded text-sm transition-all hover:opacity-80 bg-black/80 border border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
                 style={{
-                  backgroundColor: 'var(--accent)', 
-                  color: 'var(--background)'
+                  color: 'var(--accent)'
                 }}
               >
                 Logout
@@ -69,10 +68,9 @@ export default function Navbar() {
             <>
               <Link 
                 href="/"
-                className="px-4 py-2 font-mono font-semibold rounded text-sm border transition-colors hover:opacity-80"
+                className="px-4 py-2 font-mono font-semibold rounded text-sm border transition-all hover:opacity-80 bg-black/80 border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
                 style={{
-                  backgroundColor: 'var(--accent)', 
-                  color: 'var(--background)'
+                  color: 'var(--accent)'
                 }}
                 onClick={() => {
                   
@@ -82,21 +80,18 @@ export default function Navbar() {
               </Link>
               <Link 
                 href="/login"
-                className="px-4 py-2 font-mono font-semibold rounded text-sm border transition-colors hover:opacity-80"
+                className="px-4 py-2 font-mono font-semibold rounded text-sm border transition-all hover:opacity-80 bg-black/80 border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
                 style={{
-                  backgroundColor: 'transparent', 
-                  color: 'var(--accent)',
-                  borderColor: 'var(--accent)'
+                  color: 'var(--accent)'
                 }}
               >
                 Login
               </Link>
               <Link 
                 href="/register"
-                className="px-4 py-2 font-mono font-semibold rounded text-sm transition-colors hover:opacity-80"
+                className="px-4 py-2 font-mono font-semibold rounded text-sm transition-all hover:opacity-80 bg-black/80 border border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
                 style={{
-                  backgroundColor: 'var(--accent)', 
-                  color: 'var(--background)'
+                  color: 'var(--accent)'
                 }}
               >
                 Sign Up
@@ -111,7 +106,7 @@ export default function Navbar() {
           {isAuthenticated() && pathname === '/' && (
             <button
               onClick={openAnalysisDrawer}
-              className="p-2 rounded-md transition-colors hover:opacity-80"
+              className="p-2 rounded-md transition-all hover:opacity-80 bg-black/80 border border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
               style={{color: 'var(--accent)'}}
               aria-label="Open analyses"
             >
@@ -125,10 +120,9 @@ export default function Navbar() {
           {!isAuthenticated() && (
             <Link 
               href="/"
-              className="px-3 py-2 font-mono font-semibold rounded text-xs transition-colors hover:opacity-80"
+              className="px-3 py-2 font-mono font-semibold rounded text-xs transition-all hover:opacity-80 bg-black/80 border border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
               style={{
-                backgroundColor: 'var(--accent)', 
-                color: 'var(--background)'
+                color: 'var(--accent)'
               }}
               onClick={() => {
                

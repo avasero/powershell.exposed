@@ -273,7 +273,7 @@ export default function AnalysisChat() {
   // Componente de conteúdo reutilizável
   const AnalysisChatContent = () => (
     <>
-      <div className="p-4 border-b flex-shrink-0" style={{borderColor: 'var(--border-color)'}}>
+      <div className="p-4 border-b flex-shrink-0 border-green-500/30 bg-black/80">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-mono font-semibold text-lg" style={{color: 'var(--accent)'}}>
@@ -299,7 +299,7 @@ export default function AnalysisChat() {
               </div>
             ) : analyses.length === 0 ? (
               <div className="p-4 flex flex-col justify-center h-full">
-                <div className="text-center">
+                <div className="text-center rounded-lg border p-6 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
                   <p className="font-mono text-sm mb-4" style={{color: 'var(--muted-foreground)'}}>
                     {isAnonymous ? 'No anonymous analyses yet' : 'No analyses to show'}
                   </p>
@@ -318,11 +318,7 @@ export default function AnalysisChat() {
                 <div
                   key={analysis.id}
                   onClick={() => handleAnalysisClick(analysis.command, analysis.uuid || analysis.id)}
-                  className="p-3 mb-2 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80"
-                  style={{
-                    backgroundColor: 'var(--card-bg)', 
-                    borderColor: 'var(--border-color)'
-                  }}
+                  className="p-3 mb-2 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80 bg-black/80 border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.3)]"
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
@@ -405,7 +401,7 @@ export default function AnalysisChat() {
           </div>
         </div>
         
-        <div className="p-3 flex justify-end gap-3 border-t flex-shrink-0" style={{borderColor: 'var(--border-color)', backgroundColor: 'var(--background)'}}>
+        <div className="p-3 flex justify-end gap-3 border-t flex-shrink-0 border-green-500/30 bg-black/80">
           <button
             onClick={() => router.push('/history')}
             className="font-mono text-sm transition-colors hover:opacity-70"
@@ -433,7 +429,7 @@ export default function AnalysisChat() {
 
   return (
     <>
-      <div className="hidden md:flex md:w-80 h-screen border-r flex-col flex-shrink-0" style={{borderColor: 'var(--border-color)', backgroundColor: 'var(--background)'}}>
+      <div className="hidden md:flex md:w-80 h-screen border-r flex-col flex-shrink-0 bg-black/80 border-green-500/30">
         <AnalysisChatContent />
       </div>
 
@@ -444,8 +440,8 @@ export default function AnalysisChat() {
             onClick={closeAnalysisDrawer}
           />
           
-          <div className="absolute left-0 top-0 h-full w-3/4 border-r flex flex-col" style={{backgroundColor: 'var(--background)', borderColor: 'var(--border-color)'}}>
-            <div className="p-4 border-b flex items-center justify-between" style={{borderColor: 'var(--border-color)'}}>
+          <div className="absolute left-0 top-0 h-full w-3/4 border-r flex flex-col bg-black/80 border-green-500/30">
+            <div className="p-4 border-b flex items-center justify-between border-green-500/30">
               <div>
                 <h2 className="font-mono font-semibold text-lg" style={{color: 'var(--accent)'}}>
                   {isAnonymous ? 'Recent Analyses' : 'All Your Analyses'}
@@ -481,7 +477,7 @@ export default function AnalysisChat() {
                       </div>
                     ) : analyses.length === 0 ? (
                       <div className="p-4 flex flex-col justify-center h-full">
-                        <div className="text-center">
+                        <div className="text-center rounded-lg border p-6 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
                           <p className="font-mono text-sm mb-4" style={{color: 'var(--muted-foreground)'}}>
                             {isAnonymous ? 'No anonymous analyses yet' : 'No analyses to show'}
                           </p>
@@ -500,11 +496,7 @@ export default function AnalysisChat() {
                       <div
                         key={analysis.id}
                         onClick={() => handleAnalysisClick(analysis.command, analysis.uuid || analysis.id)}
-                        className="p-3 mb-2 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80"
-                        style={{
-                          backgroundColor: 'var(--card-bg)', 
-                          borderColor: 'var(--border-color)'
-                        }}
+                        className="p-3 mb-2 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80 bg-black/80 border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.3)]"
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center gap-2">
@@ -587,7 +579,7 @@ export default function AnalysisChat() {
                 </div>
               </div>
               
-              <div className="p-4 flex justify-end gap-3 border-t" style={{borderColor: 'var(--border-color)'}}>
+              <div className="p-4 flex justify-end gap-3 border-t border-green-500/30 bg-black/80">
                 <button
                   onClick={() => {
                     closeAnalysisDrawer();
