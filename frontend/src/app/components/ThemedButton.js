@@ -9,7 +9,13 @@ export default function ThemedButton({
   className = "",
   ...props 
 }) {
-  const baseClasses = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-primary/90 cursor-target relative bg-black border-2 border-green-500/50 text-green-400/80 hover:border-green-500 hover:text-green-400 font-black font-mono uppercase tracking-wider shadow-[0_0_15px_rgba(34,197,94,0.2)] hover:shadow-[0_0_25px_rgba(34,197,94,0.4)] transition-all overflow-hidden group";
+  const baseClasses = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 cursor-target relative font-black font-mono uppercase tracking-wider transition-all overflow-hidden group";
+  
+  const variantClasses = {
+    primary: "bg-black border-2 border-green-500/50 text-green-400/80 hover:border-green-500 hover:text-green-400 hover:bg-primary/90 shadow-[0_0_15px_rgba(34,197,94,0.2)] hover:shadow-[0_0_25px_rgba(34,197,94,0.4)]",
+    ghost: "bg-transparent border border-green-500/30 text-green-400/80 hover:border-green-500/50 hover:text-green-400 hover:bg-black/80 shadow-[0_0_15px_rgba(34,197,94,0.2)] hover:shadow-[0_0_25px_rgba(34,197,94,0.3)]",
+    destructive: "bg-black border-2 border-red-500/50 text-red-400/80 hover:border-red-500 hover:text-red-400 hover:bg-primary/90 shadow-[0_0_15px_rgba(239,68,68,0.2)] hover:shadow-[0_0_25px_rgba(239,68,68,0.4)]"
+  };
   
   const sizeClasses = {
     sm: "h-8 px-4 py-2 text-xs",
@@ -20,7 +26,7 @@ export default function ThemedButton({
 
   return (
     <button
-      className={`${baseClasses} ${sizeClasses[size]} ${className}`}
+      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       disabled={disabled || loading}
       {...props}
     >

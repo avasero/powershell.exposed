@@ -20,12 +20,23 @@ export function SuccessMessage({ message, className = "" }) {
   );
 }
 
-export function InfoMessage({ message, className = "" }) {
+export function InfoMessage({ message, className = "", onClick, clickable = false }) {
   if (!message) return null;
   
+  const handleClick = () => {
+    if (onClick && clickable) {
+      onClick();
+    }
+  };
+  
   return (
-    <div className={`mt-2 text-xs font-mono px-2 ${className}`} style={{color: 'var(--accent)', opacity: 0.7}}>
-      💡 {message}
+    <div 
+      className={`mt-2 text-xs font-mono px-2 ${clickable ? 'cursor-pointer hover:opacity-100 transition-all duration-200 hover:bg-green-500/10 rounded' : ''} ${className}`} 
+      style={{color: 'var(--accent)', opacity: clickable ? 0.9 : 0.7}}
+      onClick={handleClick}
+      title={clickable ? "Click to use this example" : ""}
+    >
+      💡 {message} {clickable && <span className="text-green-400 ml-1">(click to use)</span>}
     </div>
   );
 }

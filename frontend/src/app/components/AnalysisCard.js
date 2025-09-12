@@ -199,7 +199,7 @@ export default function AnalysisCard({
         {matchesInfo && matchesInfo.matchesDetails && matchesInfo.matchesDetails.length > 0 && (
           <div className="mb-4">
             <div className="text-sm font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
-              Matched Patterns:
+              Indicators Breakdown
             </div>
             {(() => {
               const uniquePatterns = new Map();
@@ -223,10 +223,11 @@ export default function AnalysisCard({
                       href={getYamlLink(title)} 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="text-xs hover:underline"
+                      className="text-xs hover:underline cursor-pointer"
                       style={{color: 'var(--primary-blue)'}}
+                      title="Click on the YAML to see the full regex"
                     >
-                      📄 YAML
+                      📄 YAML (click to see full regex)
                     </a>
                   </div>
                   

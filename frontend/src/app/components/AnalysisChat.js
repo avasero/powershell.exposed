@@ -7,6 +7,7 @@ import { useAnalysisEvent } from "../contexts/AnalysisEventContext";
 import { getUserAnalyses, deleteRecentAnalyses, getAllUserAnalyses, getRecentUserAnalysesForChat } from "../../../utils/database";
 import { getAnonymousAnalyses, clearAnonymousAnalyses, deleteAnonymousAnalysis, debugCookies } from "../../utils/cookies";
 import SeverityBadge from "./SeverityBadge";
+import ThemedButton from "./ThemedButton";
 
 export default function AnalysisChat() {
   const { isAuthenticated, user } = useAuth();
@@ -402,26 +403,25 @@ export default function AnalysisChat() {
         </div>
         
         <div className="p-3 flex justify-end gap-3 border-t flex-shrink-0 border-green-500/30 bg-black/80">
-          <button
+          <ThemedButton
             onClick={() => router.push('/history')}
-            className="font-mono text-sm transition-colors hover:opacity-70"
-            style={{color: 'var(--accent)'}}
+            size="sm"
+            variant="ghost"
             title="View full analysis history"
           >
             View all
-          </button>
+          </ThemedButton>
           
-          <button
+          <ThemedButton
             onClick={handleDeleteRecentAnalyses}
             disabled={deleting}
-            className="font-mono text-sm transition-colors hover:opacity-70"
-            style={{
-              color: deleting ? 'var(--muted-foreground)' : '#EF4444'
-            }}
+            size="sm"
+            variant="destructive"
+            loading={deleting}
             title={isAnonymous ? "Clear all anonymous analyses from cookies" : "Clear recent analyses from chat view (keeps safely saved in account)"}
           >
             {deleting ? (isAnonymous ? 'Clearing...' : 'Clearing...') : (isAnonymous ? 'Clear' : 'Clear')}
-          </button>
+          </ThemedButton>
         </div>
       </div>
     </>
