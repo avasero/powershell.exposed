@@ -248,7 +248,7 @@ async def analyze_command_endpoint(request: Request):
                     "cache_age_minutes": round((int(time.time() * 1000) - cache_timestamp) / 60000, 1) if cache_timestamp > 0 else 0
                 }
             },
-            "analysis_id": db_result.get("uuid") if db_result.get("success") else None,
+            "analysis_id": db_result.get("short_id") if db_result.get("success") else None,
             "session_id": session_id
         })
         
@@ -532,56 +532,71 @@ async def get_user_analyses_endpoint(request: Request):
 
 async def get_analysis_by_id_endpoint(analysis_id: str):
     """
-    Busca uma análise específica por UUID público ou ID do banco (compatibilidade)
+    Busca uma análise específica por short_id, UUID ou ID do banco (compatibilidade)
     Permite acesso público para análises compartilháveis
     """
     try:
         print(f"🔍 Buscando análise com ID: {analysis_id}")
         
-        # Verificar se é um UUID (formato: 8-4-4-4-12 caracteres)
-        import re
-        uuid_pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-        is_uuid = re.match(uuid_pattern, analysis_id, re.IGNORECASE)
-        
         supabase = get_supabase_client()
         
-        if is_uuid:
-            # Buscar análise diretamente pelo UUID no banco
-            print(f"🔍 Buscando análise por UUID no banco: {analysis_id}")
-            response = supabase.table('powershell_analyses').select('*').eq('uuid', analysis_id).single().execute()
+        # Primeiro, tentar buscar por short_id (8 caracteres alfanuméricos)
+        if len(analysis_id) == 8 and analysis_id.isalnum():
+            print(f"🔍 Buscando análise por short_id: {analysis_id}")
+            response = supabase.table('powershell_analyses').select('*').eq('short_id', analysis_id).single().execute()
             
-            if not response.data:
-                print(f"❌ UUID não encontrado no banco: {analysis_id}")
+            if response.data:
+                analysis_data = response.data
+                print(f"✅ Análise encontrada por short_id: {analysis_data.get('id')}")
+            else:
+                print(f"❌ Short ID não encontrado: {analysis_id}")
                 return JSONResponse(
                     {"error": "Analysis not found"},
                     status_code=404
                 )
-            
-            analysis_data = response.data
-            print(f"✅ Análise encontrada por UUID: {analysis_data.get('id')}")
         else:
-            # Assumir que é um ID do banco (compatibilidade com análises antigas)
-            try:
-                db_id = int(analysis_id)
-                print(f"🔄 Usando ID do banco diretamente: {db_id} (compatibilidade)")
-                
-                # Buscar análise por ID do banco
-                response = supabase.table('powershell_analyses').select('*').eq('id', db_id).single().execute()
+            # Verificar se é um UUID (formato: 8-4-4-4-12 caracteres)
+            import re
+            uuid_pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+            is_uuid = re.match(uuid_pattern, analysis_id, re.IGNORECASE)
+            
+            if is_uuid:
+                # Buscar análise diretamente pelo UUID no banco
+                print(f"🔍 Buscando análise por UUID no banco: {analysis_id}")
+                response = supabase.table('powershell_analyses').select('*').eq('uuid', analysis_id).single().execute()
                 
                 if not response.data:
+                    print(f"❌ UUID não encontrado no banco: {analysis_id}")
                     return JSONResponse(
                         {"error": "Analysis not found"},
                         status_code=404
                     )
                 
                 analysis_data = response.data
-                print(f"✅ Análise encontrada por ID: {analysis_data.get('id')}")
-            except ValueError:
-                print(f"❌ ID inválido: {analysis_id}")
-                return JSONResponse(
-                    {"error": "Invalid analysis ID"},
-                    status_code=400
-                )
+                print(f"✅ Análise encontrada por UUID: {analysis_data.get('id')}")
+            else:
+                # Assumir que é um ID do banco (compatibilidade com análises antigas)
+                try:
+                    db_id = int(analysis_id)
+                    print(f"🔄 Usando ID do banco diretamente: {db_id} (compatibilidade)")
+                    
+                    # Buscar análise por ID do banco
+                    response = supabase.table('powershell_analyses').select('*').eq('id', db_id).single().execute()
+                    
+                    if not response.data:
+                        return JSONResponse(
+                            {"error": "Analysis not found"},
+                            status_code=404
+                        )
+                    
+                    analysis_data = response.data
+                    print(f"✅ Análise encontrada por ID: {analysis_data.get('id')}")
+                except ValueError:
+                    print(f"❌ ID inválido: {analysis_id}")
+                    return JSONResponse(
+                        {"error": "Invalid analysis ID"},
+                        status_code=400
+                    )
         
         # Remover informações sensíveis para compartilhamento público
         safe_analysis = {

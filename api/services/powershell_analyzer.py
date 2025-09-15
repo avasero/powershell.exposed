@@ -4,6 +4,8 @@ Módulo de análise de comandos PowerShell
 import re
 import time
 import json
+import secrets
+import string
 from services.session_manager import get_supabase_client
 from config.settings import CACHE_DURATION
 
@@ -12,28 +14,53 @@ signatures_cache = None
 cache_timestamp = 0
 
 
+def generate_short_id(length: int = 8) -> str:
+    """Gera um ID curto usando caracteres alfanuméricos"""
+    characters = string.ascii_lowercase + string.digits
+    return ''.join(secrets.choice(characters) for _ in range(length))
+
+
 async def load_signatures_from_db() -> list:
     """Carrega assinaturas do banco de dados com cache"""
     global signatures_cache, cache_timestamp
     
     try:
+        print("🔍 [LOAD_SIGNATURES] Iniciando carregamento de assinaturas...")
         now = int(time.time() * 1000)
+        print(f"🔍 [LOAD_SIGNATURES] Timestamp atual: {now}")
+        print(f"🔍 [LOAD_SIGNATURES] Cache timestamp: {cache_timestamp}")
+        print(f"🔍 [LOAD_SIGNATURES] Cache duration: {CACHE_DURATION}")
+        
         if signatures_cache and (now - cache_timestamp) < CACHE_DURATION:
-            print("Using cached signatures")
+            print("✅ [LOAD_SIGNATURES] Usando assinaturas do cache")
             return signatures_cache
         
-        print("Loading signatures from Supabase database...")
+        print("🔄 [LOAD_SIGNATURES] Cache expirado ou vazio, carregando do banco...")
+        print("🔍 [LOAD_SIGNATURES] Conectando ao Supabase...")
         supabase = get_supabase_client()
+        print("✅ [LOAD_SIGNATURES] Cliente Supabase criado")
         
+        print("🔍 [LOAD_SIGNATURES] Executando query no banco...")
         response = supabase.table('powershell_signatures') \
             .select('*') \
             .eq('is_active', True) \
             .order('basescore', desc=True) \
             .execute()
         
+        print(f"🔍 [LOAD_SIGNATURES] Query executada. Status: {response}")
+        print(f"🔍 [LOAD_SIGNATURES] Dados retornados: {len(response.data) if response.data else 0} registros")
+        
         if response.data:
+            print("✅ [LOAD_SIGNATURES] Dados encontrados, processando...")
             converted_signatures = []
-            for sig in response.data:
+            for i, sig in enumerate(response.data):
+                print(f"🔍 [LOAD_SIGNATURES] Processando registro {i+1}: {sig.get('name', 'Unknown')}")
+                print(f"🔍 [LOAD_SIGNATURES] Link bruto: {sig.get('link')}")
+                print(f"🔍 [LOAD_SIGNATURES] Tipo do link: {type(sig.get('link'))}")
+                
+                link_value = sig.get("link") if sig.get("link") else None
+                print(f"🔍 [LOAD_SIGNATURES] Link processado: {link_value}")
+                
                 converted_signatures.append({
                     "name": sig.get("name", "Unknown"),
                     "patterns": sig.get("patterns", []) if isinstance(sig.get("patterns"), list) else [],
@@ -44,19 +71,24 @@ async def load_signatures_from_db() -> list:
                     "description": sig.get("description", "No description available"),
                     "reference": sig.get("reference", []) if isinstance(sig.get("reference"), list) else [],
                     "max_match": int(sig.get("max_match", 1)),
-                    "link": sig.get("link") if sig.get("link") else None
+                    "link": link_value
                 })
             
             signatures_cache = converted_signatures
             cache_timestamp = now
             
-            print(f"Loaded and cached {len(converted_signatures)} signatures from database")
+            print(f"✅ [LOAD_SIGNATURES] Carregadas e cacheadas {len(converted_signatures)} assinaturas")
             
+            print("🔍 [LOAD_SIGNATURES] RESUMO DAS ASSINATURAS:")
             for sig in converted_signatures:
-                print(f"Signature: {sig['name']}")
-                print(f"  Patterns: {sig['patterns']}")
-                print(f"  Max Match: {sig['max_match']}")
-                print(f"  Link: {sig['link']}")
+                print(f"📋 [LOAD_SIGNATURES] Signature: {sig['name']}")
+                print(f"📋 [LOAD_SIGNATURES]   Patterns: {len(sig['patterns'])} patterns")
+                print(f"📋 [LOAD_SIGNATURES]   Max Match: {sig['max_match']}")
+                print(f"📋 [LOAD_SIGNATURES]   Link: {sig['link']}")
+                if sig['link']:
+                    print(f"📋 [LOAD_SIGNATURES]   ✅ LINK ENCONTRADO: {sig['link']}")
+                else:
+                    print(f"📋 [LOAD_SIGNATURES]   ❌ SEM LINK")
                 print()
             
             return converted_signatures
@@ -71,6 +103,9 @@ async def load_signatures_from_db() -> list:
 
 def analyze_command_patterns(command: str, signatures: list) -> dict:
     """Analisa um comando PowerShell contra as assinaturas"""
+    print(f"🔍 [ANALYZE] Iniciando análise do comando: {command[:50]}...")
+    print(f"🔍 [ANALYZE] Total de assinaturas disponíveis: {len(signatures)}")
+    
     detected_signatures = []
     total_score = 0
     tactics = set()
@@ -135,13 +170,16 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         
         # Se encontrou matches para esta signature
         if matches_found > 0:
+            print(f"✅ [ANALYZE] ASSINATURA DETECTADA: {signature['name']}")
+            print(f"🔍 [ANALYZE] Link da assinatura: {signature.get('link')}")
+            
             # Calcular score total para esta signature (score base × quantidade de matches)
             signature_total_score = signature["score"] * matches_found
             
             # Determinar qual pattern deu match (usar o primeiro pattern que encontrou matches)
             matched_pattern = signature_matches[0]["pattern"] if signature_matches else "Unknown pattern"
             
-            detected_signatures.append({
+            detected_signature = {
                 "name": signature["name"],
                 "description": signature["description"],
                 "severity": signature["severity"],
@@ -153,8 +191,12 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                 "pattern": matched_pattern,
                 "tactics": signature["tactics"],
                 "techniques": signature["techniques"],
-                "reference": signature.get("reference", [])
-            })
+                "reference": signature.get("reference", []),
+                "link": signature.get("link")
+            }
+            
+            print(f"🔍 [ANALYZE] Link na assinatura detectada: {detected_signature['link']}")
+            detected_signatures.append(detected_signature)
             
             tactics.update(signature["tactics"])
             techniques.update(signature["techniques"])
@@ -204,6 +246,10 @@ async def save_analysis_to_db(
         supabase = get_supabase_client()
         print("✅ Conectado ao Supabase com sucesso")
         
+        # Gerar ID curto único
+        short_id = generate_short_id()
+        print(f"🔍 ID curto gerado: {short_id}")
+        
         # Preparar dados para inserção no banco
         insert_data = {
             "command": command,
@@ -220,7 +266,8 @@ async def save_analysis_to_db(
             "ip_region": region,
             "ip_timezone": timezone,
             "search_type": search_type,
-            "user_agent": user_agent
+            "user_agent": user_agent,
+            "short_id": short_id
         }
         
         if user_id:
@@ -243,7 +290,8 @@ async def save_analysis_to_db(
             return {
                 "success": True,
                 "db_id": db_response.data[0].get('id'),
-                "uuid": db_response.data[0].get('uuid')
+                "uuid": db_response.data[0].get('uuid'),
+                "short_id": short_id
             }
         else:
             print("⚠️ Análise não foi salva no banco")
