@@ -43,7 +43,8 @@ async def load_signatures_from_db() -> list:
                     "score": float(sig.get("basescore", 0)),
                     "description": sig.get("description", "No description available"),
                     "reference": sig.get("reference", []) if isinstance(sig.get("reference"), list) else [],
-                    "max_match": int(sig.get("max_match", 1))
+                    "max_match": int(sig.get("max_match", 1)),
+                    "link": sig.get("link") if sig.get("link") else None
                 })
             
             signatures_cache = converted_signatures
@@ -55,6 +56,7 @@ async def load_signatures_from_db() -> list:
                 print(f"Signature: {sig['name']}")
                 print(f"  Patterns: {sig['patterns']}")
                 print(f"  Max Match: {sig['max_match']}")
+                print(f"  Link: {sig['link']}")
                 print()
             
             return converted_signatures

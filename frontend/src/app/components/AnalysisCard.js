@@ -42,10 +42,13 @@ export default function AnalysisCard({
   technique,
   reference,
   matchesInfo,
+  link,
   children, 
   variant = "default",
   className = "" 
 }) {
+  // Debug: log the link prop
+  console.log(`AnalysisCard for "${title}": link =`, link);
   const variantStyles = {
     default: {
       backgroundColor: 'var(--card-bg)',
@@ -117,17 +120,19 @@ export default function AnalysisCard({
             <h4 className="font-mono font-bold text-base sm:text-lg mb-2 sm:mb-0" style={{color: variantTitleColors[variant]}}>
               {title}
             </h4>
-            <div className="mb-2">
-              <a 
-                href={getYamlLink(title)} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="text-xs font-mono hover:underline"
-                style={{color: 'var(--primary-blue)'}}
-              >
-                📄 View YAML Source
-              </a>
-            </div>
+            {link && (
+              <div className="mb-2">
+                <a 
+                  href={link} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-xs font-mono hover:underline"
+                  style={{color: 'var(--primary-blue)'}}
+                >
+                  📄 View YAML Source
+                </a>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-3">
             {severity && <SeverityBadge score={score} />}
@@ -281,16 +286,18 @@ export default function AnalysisCard({
                     <div className="text-xs text-gray-400">
                       Pattern {patternIdx + 1} ({matches.length} match{matches.length !== 1 ? 'es' : ''})
                     </div>
-                    <a 
-                      href={getYamlLink(title)} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="text-xs hover:underline cursor-pointer"
-                      style={{color: 'var(--primary-blue)'}}
-                      title="Click on the YAML to see the full regex"
-                    >
-                      📄 YAML (click to see full regex)
-                    </a>
+                    {link && (
+                      <a 
+                        href={link} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-xs hover:underline cursor-pointer"
+                        style={{color: 'var(--primary-blue)'}}
+                        title="Click on the YAML to see the full regex"
+                      >
+                        📄 YAML (click to see full regex)
+                      </a>
+                    )}
                   </div>
                   
                   <div className="font-bold break-all mb-2 p-2 rounded" style={{backgroundColor: 'var(--background)', fontSize: '11px'}}>

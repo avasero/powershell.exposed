@@ -446,6 +446,7 @@ export default function AnalysisPage() {
                           tactic={signature.tactics || signature.tactic || []}
                           technique={signature.techniques || signature.technique || []}
                           reference={signature.reference || ''}
+                          link={signature.link || null}
                           matchesInfo={{
                             matchesFound: signature.matches_found || 1,
                             baseScore: signature.base_score || signature.score || 0,
