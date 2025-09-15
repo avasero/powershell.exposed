@@ -199,7 +199,7 @@ export default function AnalysisCard({
         {matchesInfo && matchesInfo.matchesDetails && matchesInfo.matchesDetails.length > 0 && (
           <div className="mb-4">
             <div className="text-sm font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
-              Indicators Breakdown
+              Matches Details
             </div>
             {(() => {
               const uniquePatterns = new Map();
@@ -210,6 +210,68 @@ export default function AnalysisCard({
                 }
                 uniquePatterns.get(pattern).push({...match, originalIndex: idx});
               });
+
+              // Função para compactar o padrão entre os matches
+              const compactPatternWithMatches = (pattern, matches) => {
+                if (matches.length === 0) return pattern;
+                
+                // Ordenar matches por posição no padrão
+                const sortedMatches = matches
+                  .map(match => ({
+                    ...match,
+                    index: pattern.toLowerCase().indexOf(match.matched_text.toLowerCase())
+                  }))
+                  .filter(match => match.index !== -1)
+                  .sort((a, b) => a.index - b.index);
+                
+                if (sortedMatches.length === 0) return pattern;
+                
+                let result = '';
+                let lastEnd = 0;
+                
+                sortedMatches.forEach((match, idx) => {
+                  const matchStart = match.index;
+                  const matchEnd = matchStart + match.matched_text.length;
+                  
+                  // Adicionar texto antes do match
+                  if (matchStart > lastEnd) {
+                    const beforeText = pattern.substring(lastEnd, matchStart);
+                    
+                    // Para o primeiro match, mostrar mais contexto (até 50 caracteres)
+                    if (idx === 0) {
+                      if (beforeText.length > 50) {
+                        result += '(...)' + beforeText.substring(beforeText.length - 50);
+                      } else {
+                        result += beforeText;
+                      }
+                    } else {
+                      // Para matches subsequentes, compactar mais (20 caracteres)
+                      if (beforeText.length > 20) {
+                        result += '(...)';
+                      } else {
+                        result += beforeText;
+                      }
+                    }
+                  }
+                  
+                  // Adicionar o match destacado
+                  result += `<mark>${match.matched_text}</mark>`;
+                  
+                  lastEnd = matchEnd;
+                });
+                
+                // Adicionar texto após o último match - mostrar mais contexto (até 50 caracteres)
+                if (lastEnd < pattern.length) {
+                  const afterText = pattern.substring(lastEnd);
+                  if (afterText.length > 50) {
+                    result += afterText.substring(0, 50) + '(...)';
+                  } else {
+                    result += afterText;
+                  }
+                }
+                
+                return result;
+              };
 
               return Array.from(uniquePatterns.entries()).map(([pattern, matches], patternIdx) => (
                 <div key={patternIdx} className="text-sm font-mono p-3 mb-3 rounded border" 
@@ -233,37 +295,9 @@ export default function AnalysisCard({
                   
                   <div className="font-bold break-all mb-2 p-2 rounded" style={{backgroundColor: 'var(--background)', fontSize: '11px'}}>
                     {(() => {
-                      let displayPattern = pattern;
+                      const compactPattern = compactPatternWithMatches(pattern, matches);
                       
-                      if (pattern.length > 150) {
-                        const matchPositions = matches.map(match => ({
-                          text: match.matched_text,
-                          index: pattern.toLowerCase().indexOf(match.matched_text.toLowerCase())
-                        })).filter(pos => pos.index !== -1);
-                        
-                        if (matchPositions.length > 0) {
-                          const minIndex = Math.min(...matchPositions.map(pos => pos.index));
-                          const maxIndex = Math.max(...matchPositions.map(pos => pos.index + pos.text.length));
-                          
-                          const contextSize = 50;
-                          const start = Math.max(0, minIndex - contextSize);
-                          const end = Math.min(pattern.length, maxIndex + contextSize);
-                          
-                          displayPattern = pattern.substring(start, end);
-                          if (start > 0) displayPattern = '(...)' + displayPattern;
-                          if (end < pattern.length) displayPattern = displayPattern + '(...)';
-                        }
-                      }
-                      
-                      let highlightedPattern = displayPattern;
-                      matches.forEach(match => {
-                        if (match.matched_text) {
-                          const regex = new RegExp(`(${match.matched_text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-                          highlightedPattern = highlightedPattern.replace(regex, `<mark>$1</mark>`);
-                        }
-                      });
-                      
-                      const parts = highlightedPattern.split(/(<mark>.*?<\/mark>)/g);
+                      const parts = compactPattern.split(/(<mark>.*?<\/mark>)/g);
                       return parts.map((part, index) => {
                         if (part.startsWith('<mark>') && part.endsWith('</mark>')) {
                           const content = part.slice(6, -7); // Remove <mark> e </mark>

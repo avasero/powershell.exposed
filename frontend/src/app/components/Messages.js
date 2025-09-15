@@ -36,7 +36,7 @@ export function InfoMessage({ message, className = "", onClick, clickable = fals
       onClick={handleClick}
       title={clickable ? "Click to use this example" : ""}
     >
-      💡 {message} {clickable && <span className="text-green-400 ml-1">(click to use)</span>}
+      💡 {message} {clickable && <span className="text-green-400 ml-1"></span>}
     </div>
   );
 }
