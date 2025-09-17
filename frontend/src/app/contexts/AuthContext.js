@@ -1,7 +1,7 @@
 "use client"
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { getAnonymousAnalyses, clearAnonymousAnalyses } from '../../utils/cookies';
 import { clearSessionFromStorage, saveSessionFromBackend } from '../../utils/session';
 

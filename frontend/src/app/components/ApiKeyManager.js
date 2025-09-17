@@ -24,7 +24,7 @@ export default function ApiKeyManager() {
       setLoading(true);
       setError('');
 
-      const { makeAuthenticatedJSONRequest } = await import('../../../lib/api');
+      const { makeAuthenticatedJSONRequest } = await import('../../lib/api');
       const response = await makeAuthenticatedJSONRequest('/user/api-key');
 
       if (response.success) {
@@ -43,7 +43,7 @@ export default function ApiKeyManager() {
       setError('');
       setSuccess('');
 
-      const { makeAuthenticatedJSONRequest } = await import('../../../lib/api');
+      const { makeAuthenticatedJSONRequest } = await import('../../lib/api');
       const response = await makeAuthenticatedJSONRequest('/user/api-key', {
         method: 'POST'
       });
@@ -69,7 +69,7 @@ export default function ApiKeyManager() {
       setError('');
       setSuccess('');
 
-      const { makeAuthenticatedJSONRequest } = await import('../../../lib/api');
+      const { makeAuthenticatedJSONRequest } = await import('../../lib/api');
       const response = await makeAuthenticatedJSONRequest('/user/api-key', {
         method: 'PUT'
       });
@@ -96,7 +96,7 @@ export default function ApiKeyManager() {
       setError('');
       setSuccess('');
 
-      const { makeAuthenticatedJSONRequest } = await import('../../../lib/api');
+      const { makeAuthenticatedJSONRequest } = await import('../../lib/api');
       const response = await makeAuthenticatedJSONRequest('/user/api-key', {
         method: 'DELETE'
       });
@@ -259,7 +259,7 @@ export default function ApiKeyManager() {
           <p><strong>1. Copy your API Key above</strong></p>
           <p><strong>2. In Postman or any HTTP client:</strong></p>
           <ul className="ml-4 space-y-1">
-            <li>• Set Authorization to "Bearer Token"</li>
+            <li>• Set Authorization to &quot;Bearer Token&quot;</li>
             <li>• Paste your API Key (starts with pse_)</li>
           </ul>
           <p><strong>3. Available endpoints:</strong></p>

@@ -109,7 +109,7 @@ export default function Home() {
 
 
       // Chamar a API Python diretamente com autenticação opcional
-      const { makeAuthenticatedRequest } = await import('../../../lib/api');
+      const { makeAuthenticatedRequest } = await import('../../lib/api');
       const response = await makeAuthenticatedRequest('/analyze-pcre2', {
         method: 'POST',
         body: JSON.stringify(requestData)

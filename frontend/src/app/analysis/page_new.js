@@ -2,7 +2,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { analyzeCommand } from "../../../lib/supabase";
+import { analyzeCommand } from "../../lib/supabase";
 import SeverityLegend from "../components/SeverityLegend";
 import AnalysisCard from "../components/AnalysisCard";
 import SeverityBadge from "../components/SeverityBadge";
