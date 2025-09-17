@@ -318,7 +318,7 @@ export default function AnalysisChat() {
               analyses.map((analysis) => (
                 <div
                   key={analysis.id}
-                  onClick={() => handleAnalysisClick(analysis.command, analysis.uuid || analysis.id)}
+                  onClick={() => handleAnalysisClick(analysis.command, analysis.short_id || analysis.uuid || analysis.id)}
                   className="p-3 mb-2 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80 bg-black/80 border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.3)]"
                 >
                   <div className="flex items-start justify-between mb-2">
@@ -495,7 +495,7 @@ export default function AnalysisChat() {
                       analyses.map((analysis) => (
                       <div
                         key={analysis.id}
-                        onClick={() => handleAnalysisClick(analysis.command, analysis.uuid || analysis.id)}
+                        onClick={() => handleAnalysisClick(analysis.command, analysis.short_id || analysis.uuid || analysis.id)}
                         className="p-3 mb-2 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80 bg-black/80 border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.3)]"
                       >
                         <div className="flex items-start justify-between mb-2">
