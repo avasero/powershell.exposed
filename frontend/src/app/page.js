@@ -108,11 +108,10 @@ export default function Home() {
 
 
 
-      // Chamar a API Python diretamente
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/analyze-pcre2`, {
+      // Chamar a API Python diretamente com autenticação opcional
+      const { makeAuthenticatedRequest } = await import('../../../lib/api');
+      const response = await makeAuthenticatedRequest('/analyze-pcre2', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData)
       });
 

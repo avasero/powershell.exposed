@@ -59,9 +59,8 @@ export async function analyzeCommand(command, ipAddress = null, ipLocation = nul
 
   const { data: { session } } = await supabase.auth.getSession()
   
-  if (!session) {
-    throw new Error('User not authenticated')
-  }
+  // Note: This function now works for both authenticated and anonymous users
+  // Authentication is optional for analysis
 
   
   // Log detalhado dos dados sendo enviados
@@ -76,11 +75,19 @@ export async function analyzeCommand(command, ipAddress = null, ipLocation = nul
   
 
 
+  // Prepare headers with optional authentication
+  const headers = {
+    'Content-Type': 'application/json',
+  }
+  
+  // Add authorization header if user is authenticated
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`
+  }
+
   const response = await fetch(`/api/analyze`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: headers,
     body: JSON.stringify(requestBody)
   })
 

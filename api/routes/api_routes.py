@@ -3,8 +3,10 @@ Rotas da API para análise de comandos PowerShell
 """
 import json
 import time
-from fastapi import Request, HTTPException
+from typing import Optional, Dict, Any
+from fastapi import Request, HTTPException, Depends
 from fastapi.responses import JSONResponse
+from middleware.auth_middleware import get_current_user_optional
 
 from middleware.rate_limiting import (
     check_global_rate_limit, add_global_request, check_rate_limit,
@@ -21,7 +23,10 @@ from services.session_manager import get_or_create_session, get_supabase_client
 from utils.geolocation import get_ip_location, get_client_ip_from_request
 
 
-async def analyze_command_endpoint(request: Request):
+async def analyze_command_endpoint(
+    request: Request,
+    current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
+):
     """
     Analyzes a PowerShell command using signatures from the Supabase database
     and saves the analysis in the powershell_analyses table
@@ -46,7 +51,8 @@ async def analyze_command_endpoint(request: Request):
         body = await request.json()
         
         command = body.get("command", "")
-        user_id = body.get("user_id")  
+        # Use authenticated user ID if available, otherwise use provided user_id
+        user_id = current_user["id"] if current_user else body.get("user_id")
         ip_address = body.get("ip_address") or client_ip  
         country = body.get("country")
         city = body.get("city")
@@ -410,7 +416,10 @@ async def create_user_session_endpoint(request: Request):
         )
 
 
-async def get_user_analyses_endpoint(request: Request):
+async def get_user_analyses_endpoint(
+    request: Request,
+    current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
+):
     """
     Busca análises do usuário logado ou sessão anônima
     Suporta parâmetro limit para limitar quantidade de resultados
@@ -420,8 +429,8 @@ async def get_user_analyses_endpoint(request: Request):
         limit = int(request.query_params.get("limit", 20))
         user_id_from_query = request.query_params.get("user_id")
         
-        # Obter user_id ou session_id dos headers e query params
-        user_id = request.headers.get("X-User-ID") or user_id_from_query
+        # Use authenticated user ID if available
+        user_id = current_user["id"] if current_user else (request.headers.get("X-User-ID") or user_id_from_query)
         session_id = request.cookies.get("session_id")
         if not session_id:
             # Tentar obter do header Authorization ou X-Session-ID

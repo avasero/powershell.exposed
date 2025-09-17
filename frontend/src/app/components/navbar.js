@@ -56,6 +56,13 @@ export default function Navbar() {
                 {user?.user_metadata?.username || user?.email}
               </span>
               <ThemedButton
+                onClick={() => window.location.href = '/api-keys'}
+                size="sm"
+                variant="outline"
+              >
+                🔑 API Keys
+              </ThemedButton>
+              <ThemedButton
                 onClick={handleLogout}
                 size="sm"
               >
