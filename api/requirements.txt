@@ -1,6 +1,2 @@
 fastapi
-supabase
-python-dotenv
-aiohttp
-python-jose[cryptography]
-python-multipart
+uvicorn
