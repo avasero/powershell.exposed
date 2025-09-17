@@ -1,5 +1,5 @@
 """
-Endpoints para gerenciamento de API Keys
+API Key Management Endpoints
 """
 from typing import Dict, Any
 from fastapi import HTTPException, Depends
@@ -9,13 +9,19 @@ from services.api_key_manager import (
     create_user_api_key, get_user_api_key, 
     revoke_user_api_key, regenerate_user_api_key
 )
+from models.schemas import ApiKeyResponse, ErrorResponse
 
 
 async def get_user_api_key_endpoint(
     current_user: Dict[str, Any] = Depends(get_current_user_required)
-):
+) -> ApiKeyResponse:
     """
-    Busca a API Key do usuário autenticado
+    Get User API Key
+    
+    Retrieves the current active API Key for the authenticated user.
+    Returns API Key details including usage statistics.
+    
+    Requires JWT authentication (not API Key to avoid loops).
     """
     try:
         # Só permitir acesso via JWT (não via API Key para evitar loops)
@@ -60,7 +66,12 @@ async def create_user_api_key_endpoint(
     current_user: Dict[str, Any] = Depends(get_current_user_required)
 ):
     """
-    Cria uma nova API Key para o usuário autenticado
+    Create User API Key
+    
+    Creates a new API Key for the authenticated user. Each user can have
+    only one active API Key at a time. 
+    
+    The API Key can be used for external tools like Postman or cURL.
     """
     try:
         # Só permitir acesso via JWT
@@ -103,7 +114,10 @@ async def revoke_user_api_key_endpoint(
     current_user: Dict[str, Any] = Depends(get_current_user_required)
 ):
     """
-    Revoga (desativa) a API Key do usuário autenticado
+    Revoke User API Key
+    
+    Revokes (deactivates) the user's current API Key. The key will
+    immediately stop working and cannot be used for API access.
     """
     try:
         # Só permitir acesso via JWT
@@ -139,7 +153,10 @@ async def regenerate_user_api_key_endpoint(
     current_user: Dict[str, Any] = Depends(get_current_user_required)
 ):
     """
-    Regenera uma nova API Key para o usuário (revoga a antiga)
+    Regenerate User API Key
+    
+    Generates a new API Key for the user and revokes the old one.
+    The old API Key will immediately stop working.
     """
     try:
         # Só permitir acesso via JWT

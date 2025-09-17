@@ -7,6 +7,11 @@ from typing import Optional, Dict, Any
 from fastapi import Request, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from middleware.auth_middleware import get_current_user_optional
+from models.schemas import (
+    AnalyzeCommandRequest, AnalyzeCommandResponse, 
+    CreateUserSessionRequest, GenerateCaptchaRequest, 
+    VerifyCaptchaRequest, ErrorResponse
+)
 
 from middleware.rate_limiting import (
     check_global_rate_limit, add_global_request, check_rate_limit,
@@ -24,12 +29,19 @@ from utils.geolocation import get_ip_location, get_client_ip_from_request
 
 
 async def analyze_command_endpoint(
-    request: Request,
+    request_data: AnalyzeCommandRequest,
     current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
-):
+) -> AnalyzeCommandResponse:
     """
-    Analyzes a PowerShell command using signatures from the Supabase database
-    and saves the analysis in the powershell_analyses table
+    Analyze PowerShell Command
+    
+    Analyzes a PowerShell command using signatures from the database and returns:
+    - Risk score and severity level
+    - Detected malicious signatures
+    - MITRE ATT&CK tactics and techniques
+    - Detailed pattern matches
+    
+    Works for both authenticated and anonymous users.
     """
     try:
         # VERIFICAR RATE LIMIT GLOBAL PRIMEIRO
@@ -45,24 +57,19 @@ async def analyze_command_endpoint(
                 status_code=429
             )
         
-        client_ip = get_client_ip_from_request(request)
-        
-        # Ler o body primeiro para ter acesso aos dados do captcha
-        body = await request.json()
-        
-        command = body.get("command", "")
-        # Use authenticated user ID if available, otherwise use provided user_id
-        user_id = current_user["id"] if current_user else body.get("user_id")
-        ip_address = body.get("ip_address") or client_ip  
-        country = body.get("country")
-        city = body.get("city")
-        region = body.get("region")
-        timezone = body.get("timezone")
-        user_agent = body.get("user_agent") or request.headers.get("user-agent", "FastAPI-Client")
-        search_type = body.get("search_type", "API")
-        session_id = body.get("session_id")
-        captcha_token = body.get("captcha_token")
-        captcha_answer = body.get("captcha_answer")
+        # Extrair dados do schema com fallbacks seguros
+        command = request_data.command
+        user_id = current_user["id"] if current_user else getattr(request_data, 'user_id', None)
+        ip_address = getattr(request_data, 'ip_address', None) or "127.0.0.1"
+        country = getattr(request_data, 'country', None)
+        city = getattr(request_data, 'city', None)
+        region = getattr(request_data, 'region', None)
+        timezone = getattr(request_data, 'timezone', None)
+        user_agent = getattr(request_data, 'user_agent', None) or "FastAPI-Client"
+        search_type = getattr(request_data, 'search_type', None) or "API"
+        session_id = getattr(request_data, 'session_id', None)
+        captcha_token = getattr(request_data, 'captcha_token', None)
+        captcha_answer = getattr(request_data, 'captcha_answer', None)
         
         # Garantir que temos um session_id para aplicar rate limiting
         if not session_id:
@@ -266,11 +273,15 @@ async def analyze_command_endpoint(
         )
 
 
-async def generate_captcha_endpoint(request: Request):
-    """Generates a new captcha challenge for the user"""
+async def generate_captcha_endpoint(request_data: GenerateCaptchaRequest) -> Dict[str, Any]:
+    """
+    Generate Captcha Challenge
+    
+    Generates a mathematical captcha challenge for users who have exceeded
+    their rate limit. Solving the captcha allows continued API usage.
+    """
     try:
-        body = await request.json()
-        session_id = body.get("session_id")
+        session_id = request_data.session_id
         
         if not session_id:
             return JSONResponse(
@@ -302,14 +313,17 @@ async def generate_captcha_endpoint(request: Request):
         )
 
 
-async def verify_captcha_endpoint(request: Request):
-    """Verifica a resposta do captcha"""
+async def verify_captcha_endpoint(request_data: VerifyCaptchaRequest) -> Dict[str, Any]:
+    """
+    Verify Captcha Answer
+    
+    Verifies the user's captcha answer. If correct, resets the rate limit
+    for the session, allowing continued API usage.
+    """
     try:
-        body = await request.json()
-        
-        token = body.get("token")
-        answer = body.get("answer")
-        session_id = body.get("session_id")
+        token = request_data.token
+        answer = request_data.answer
+        session_id = request_data.session_id
         
         if not token or not answer or not session_id:
             return JSONResponse(
@@ -362,18 +376,20 @@ async def verify_captcha_endpoint(request: Request):
         )
 
 
-async def create_user_session_endpoint(request: Request):
-    """Cria uma nova sessão para usuário logado"""
+async def create_user_session_endpoint(request_data: CreateUserSessionRequest) -> Dict[str, Any]:
+    """
+    Create User Session
+    
+    Creates a new session for authenticated users to track their activity
+    and apply rate limiting. Required for proper user session management.
+    """
     try:
-        client_ip = get_client_ip_from_request(request)
-        body = await request.json()
-        
-        user_id = body.get("user_id")
-        ip_address = body.get("ip_address") or client_ip
-        user_agent = body.get("user_agent") or request.headers.get("user-agent", "Unknown")
-        country = body.get("country")
-        city = body.get("city")
-        region = body.get("region")
+        user_id = request_data.user_id
+        ip_address = getattr(request_data, 'ip_address', None) or "127.0.0.1"
+        user_agent = getattr(request_data, 'user_agent', None) or "Unknown"
+        country = getattr(request_data, 'country', None)
+        city = getattr(request_data, 'city', None)
+        region = getattr(request_data, 'region', None)
         
         if not user_id:
             return JSONResponse(

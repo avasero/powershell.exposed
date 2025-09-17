@@ -1,5 +1,5 @@
 """
-Protected API routes that require authentication
+Protected API Routes - Authentication Required
 """
 from fastapi import Request, HTTPException, Depends
 from fastapi.responses import JSONResponse
@@ -220,8 +220,13 @@ async def get_user_command_evaluations_endpoint(
     user: Dict[str, Any] = Depends(get_current_user_required)
 ):
     """
-    Busca todas as análises/avaliações de comandos do usuário autenticado
-    Endpoint protegido que funciona com JWT ou API Key
+    Get User Command Evaluations
+    
+    Retrieves all PowerShell command analyses for the authenticated user.
+    This endpoint works with both JWT tokens and API Keys.
+    
+    Returns complete analysis history with risk scores, detected signatures,
+    and MITRE ATT&CK mappings.
     """
     try:
         supabase = get_supabase_client()

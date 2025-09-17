@@ -11,16 +11,48 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-# Configurações
+# Importar schemas para documentação
+try:
+    from models.schemas import AnalyzeCommandResponse, ErrorResponse, RateLimitResponse
+except ImportError:
+    # Fallback se schemas não estiverem disponíveis
+    AnalyzeCommandResponse = dict
+    ErrorResponse = dict  
+    RateLimitResponse = dict
+
+# Configuration
 API_TITLE = "PowerShell.exposed API"
-API_DESCRIPTION = "API para análise de comandos PowerShell"  
+API_DESCRIPTION = """
+## PowerShell Security Analysis API
+
+A comprehensive REST API for analyzing PowerShell commands and detecting potential security threats.
+
+### Features:
+- **Command Analysis**: Analyze PowerShell scripts against a database of malicious signatures
+- **Risk Assessment**: Get risk scores and severity levels (very_low to critical)
+- **MITRE ATT&CK Mapping**: Identify tactics and techniques used by threats
+- **API Key Support**: Use personal API keys for external tools (Postman, cURL)
+- **Rate Limiting**: Built-in protection with captcha bypass options
+
+### Authentication:
+- **Anonymous**: Basic analysis without registration
+- **JWT Tokens**: Web application authentication
+- **API Keys**: Personal keys for external tool integration (format: `pse_xxxxxxxx`)
+
+### Getting Started:
+1. Analyze commands with `POST /analyze-pcre2`
+2. Create an account to get personal API keys
+3. Use API keys in external tools with `Authorization: Bearer pse_your_key`
+"""
 API_VERSION = "1.0.0"
 
-# Criar aplicação FastAPI
+# Create FastAPI application
 app = FastAPI(
     title=API_TITLE,
     description=API_DESCRIPTION,
-    version=API_VERSION
+    version=API_VERSION,
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
 
 # Configurar CORS
@@ -49,16 +81,25 @@ try:
     from routes.api_routes import (
         root_endpoint, health_check_endpoint, analyze_command_endpoint,
         get_user_analyses_endpoint, get_analysis_by_id_endpoint,
-        create_user_session_endpoint
+        create_user_session_endpoint, generate_captcha_endpoint, verify_captcha_endpoint
     )
     
     # Substituir rotas básicas por versões completas
     app.get("/", include_in_schema=False)(root_endpoint)
     app.get("/health", include_in_schema=False)(health_check_endpoint)
-    app.post("/analyze-pcre2")(analyze_command_endpoint)
-    app.get("/user-analyses")(get_user_analyses_endpoint)
-    app.get("/analysis/{analysis_id}")(get_analysis_by_id_endpoint)
-    app.post("/create-user-session")(create_user_session_endpoint)
+    app.post("/analyze-pcre2", 
+             tags=["Command Analysis"],
+             summary="Analyze PowerShell Command",
+             responses={
+                 200: {"model": AnalyzeCommandResponse},
+                 400: {"model": ErrorResponse},
+                 429: {"model": RateLimitResponse}
+             })(analyze_command_endpoint)
+    app.get("/user-analyses", tags=["User Data"], summary="Get User Analyses")(get_user_analyses_endpoint)
+    app.get("/analysis/{analysis_id}", tags=["Command Analysis"], summary="Get Analysis by ID")(get_analysis_by_id_endpoint)
+    app.post("/create-user-session", tags=["Session Management"], summary="Create User Session")(create_user_session_endpoint)
+    app.post("/generate-captcha", tags=["Rate Limiting"], summary="Generate Captcha")(generate_captcha_endpoint)
+    app.post("/verify-captcha", tags=["Rate Limiting"], summary="Verify Captcha")(verify_captcha_endpoint)
     
     print("✅ Rotas básicas carregadas")
     
@@ -94,10 +135,10 @@ try:
         revoke_user_api_key_endpoint, regenerate_user_api_key_endpoint
     )
     
-    app.get("/user/api-key")(get_user_api_key_endpoint)
-    app.post("/user/api-key")(create_user_api_key_endpoint)
-    app.delete("/user/api-key")(revoke_user_api_key_endpoint)
-    app.put("/user/api-key")(regenerate_user_api_key_endpoint)
+    app.get("/user/api-key", tags=["API Key Management"], summary="Get User API Key")(get_user_api_key_endpoint)
+    app.post("/user/api-key", tags=["API Key Management"], summary="Create API Key")(create_user_api_key_endpoint)
+    app.delete("/user/api-key", tags=["API Key Management"], summary="Revoke API Key")(revoke_user_api_key_endpoint)
+    app.put("/user/api-key", tags=["API Key Management"], summary="Regenerate API Key")(regenerate_user_api_key_endpoint)
     
     print("✅ API Key endpoints carregados")
     
@@ -120,7 +161,7 @@ except ImportError as e:
 # Carregar rotas protegidas
 try:
     from routes.protected_routes import get_user_command_evaluations_endpoint
-    app.get("/user/command-evaluations")(get_user_command_evaluations_endpoint)
+    app.get("/user/command-evaluations", tags=["User Data"], summary="Get User Command Evaluations")(get_user_command_evaluations_endpoint)
     print("✅ Rotas protegidas carregadas")
 except ImportError as e:
     print(f"⚠️ Rotas protegidas não disponíveis: {e}")
