@@ -142,21 +142,24 @@ const ensureUserProfile = async (user) => {
 // Função para migrar análises anônimas para usuário logado
 const migrateAnonymousAnalyses = async (userId) => {
   try {
- 
+    // TEMPORARIAMENTE DESABILITADO para evitar rate limit no login
+    console.log('⚠️ Migração automática temporariamente desabilitada');
+    return;
     
     const anonymousAnalyses = getAnonymousAnalyses();
    
-    
     if (anonymousAnalyses.length === 0) {
-     
       return;
     }
 
-    // Migrar cada análise anônima
+    // Migrar apenas as primeiras 3 análises para não estourar rate limit
+    const analysesToMigrate = anonymousAnalyses.slice(0, 3);
+    console.log(`🔄 Migrando ${analysesToMigrate.length} análises de ${anonymousAnalyses.length} total`);
+    
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     let migratedCount = 0;
     
-    for (const analysis of anonymousAnalyses) {
+    for (const analysis of analysesToMigrate) {
       try {
         const response = await fetch(`${apiUrl}/analyze-pcre2`, {
           method: 'POST',
@@ -178,12 +181,17 @@ const migrateAnonymousAnalyses = async (userId) => {
 
         if (response.ok) {
           migratedCount++;
-         
+          console.log(`✅ Análise migrada: ${analysis.command.substring(0, 30)}...`);
         } else {
           console.error(`❌ Erro ao migrar análise: ${analysis.command.substring(0, 50)}...`);
         }
       } catch (error) {
         console.error(`❌ Erro ao migrar análise individual:`, error);
+      }
+      
+      // Delay de 200ms entre migrações para não sobrecarregar rate limit
+      if (analysesToMigrate.indexOf(analysis) < analysesToMigrate.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
     }
     
