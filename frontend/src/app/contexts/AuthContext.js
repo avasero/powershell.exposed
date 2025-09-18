@@ -161,11 +161,9 @@ const migrateAnonymousAnalyses = async (userId) => {
     
     for (const analysis of analysesToMigrate) {
       try {
-        const response = await fetch(`${apiUrl}/analyze-pcre2`, {
+        const { makeAuthenticatedRequest } = await import('../../lib/api');
+        const response = await makeAuthenticatedRequest('/analyze-pcre2', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify({
             command: analysis.command,
             user_id: userId,

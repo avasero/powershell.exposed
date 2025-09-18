@@ -97,11 +97,10 @@ export default function AnalysisPage() {
 
 
 
-      // Chamar a API Python diretamente (não via proxy)
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const analysisPromise = fetch(`${apiUrl}/analyze-pcre2`, {
+      // Chamar a API Python usando makeAuthenticatedRequest
+      const { makeAuthenticatedRequest } = await import('../../lib/api');
+      const analysisPromise = makeAuthenticatedRequest('/analyze-pcre2', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData)
       }).then(async response => {
         const data = await response.json();

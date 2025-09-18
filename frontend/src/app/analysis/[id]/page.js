@@ -64,9 +64,9 @@ export default function AnalysisDetailsPage() {
       setError("");
       // Log removido para melhorar performance
 
-      // Usar a API do backend em vez da API do frontend
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const res = await fetch(`${apiUrl}/analysis/${params.id}`);
+      // Usar a API do backend usando makeAuthenticatedRequest
+      const { makeAuthenticatedRequest } = await import('../../../lib/api');
+      const res = await makeAuthenticatedRequest(`/analysis/${params.id}`);
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const analysisData = await res.json();
 
@@ -130,12 +130,11 @@ export default function AnalysisDetailsPage() {
         session_id: sessionId
       };
       
-      // Chamar a API Python diretamente
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      // Chamar a API Python usando makeAuthenticatedRequest
+      const { makeAuthenticatedRequest } = await import('../../../lib/api');
       
-      const response = await fetch(`${apiUrl}/analyze-pcre2`, {
+      const response = await makeAuthenticatedRequest('/analyze-pcre2', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData)
       });
       

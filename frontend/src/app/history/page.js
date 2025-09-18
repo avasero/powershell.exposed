@@ -46,12 +46,9 @@ export default function HistoryPage() {
       if (isAuthenticated() && user?.id) {
         // Carregar análises diretamente do backend Python
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const response = await fetch(`${apiUrl}/user-analyses?user_id=${user.id}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include', // Incluir cookies para autenticação
+        const { makeAuthenticatedRequest } = await import('../../lib/api');
+        const response = await makeAuthenticatedRequest(`/user-analyses?user_id=${user.id}`, {
+          method: 'GET'
         });
 
         if (!response.ok) {
@@ -81,13 +78,12 @@ export default function HistoryPage() {
       
       // Carregar análises diretamente do backend Python
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/user-analyses`, {
+      const { makeAuthenticatedRequest } = await import('../../lib/api');
+      const response = await makeAuthenticatedRequest(`/user-analyses`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
           'X-Session-ID': sessionId, // Enviar session_id no header
-        },
-        credentials: 'include', // Incluir cookies para autenticação
+        }
       });
 
       if (!response.ok) {
