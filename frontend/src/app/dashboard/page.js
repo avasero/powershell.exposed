@@ -299,7 +299,7 @@ export default function DashboardPage() {
                         {analysis.cmdlets_detected.slice(0, 3).map((cmdlet, index) => (
                           <span 
                             key={index}
-                            className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800"
+                            className="px-2 py-1 rounded text-xs font-mono bg-green-900/30 text-green-400 border border-green-800"
                             title={`${cmdlet.alias} → ${cmdlet.cmdlet_name}`}
                           >
                             {cmdlet.alias}
@@ -334,7 +334,7 @@ export default function DashboardPage() {
                        
                         {analysis.ip_country && (
                           <span 
-                            className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800"
+                            className="px-2 py-1 rounded text-xs font-mono bg-green-900/30 text-green-400 border border-green-800"
                             title={`Country: ${analysis.ip_country}`}
                           >
                             🏳️ {analysis.ip_country}

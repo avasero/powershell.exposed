@@ -321,7 +321,7 @@ export default function AnalysisChat() {
                     <div className="flex items-center gap-2">
                       <SeverityBadge score={(analysis.risk_score ?? analysis.score ?? analysis.analysis_result?.risk_score ?? 0)} size="sm" />
                       {isAnonymous && analysis.is_anonymous && (
-                        <span className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800">
+                        <span className="px-2 py-1 rounded text-xs font-mono bg-green-900/30 text-green-400 border border-green-800">
                           Anonymous
                         </span>
                       )}
@@ -346,7 +346,7 @@ export default function AnalysisChat() {
                         return (
                           <span
                             key={index}
-                            className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800"
+                            className="px-2 py-1 rounded text-xs font-mono bg-green-900/30 text-green-400 border border-green-800"
                             title={`${cmdlet.alias} → ${cmdlet.cmdlet_name}`}
                           >
                             {shortName}
@@ -498,7 +498,7 @@ export default function AnalysisChat() {
                           <div className="flex items-center gap-2">
                             <SeverityBadge score={(analysis.risk_score ?? analysis.score ?? analysis.analysis_result?.risk_score ?? 0)} size="sm" />
                             {isAnonymous && analysis.is_anonymous && (
-                              <span className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800">
+                              <span className="px-2 py-1 rounded text-xs font-mono bg-green-900/30 text-green-400 border border-green-800">
                                 Anonymous
                               </span>
                             )}
@@ -523,7 +523,7 @@ export default function AnalysisChat() {
                               return (
                                 <span
                                   key={index}
-                                  className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800"
+                                  className="px-2 py-1 rounded text-xs font-mono bg-green-900/30 text-green-400 border border-green-800"
                                   title={`${cmdlet.alias} → ${cmdlet.cmdlet_name}`}
                                 >
                                   {shortName}

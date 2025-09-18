@@ -31,7 +31,7 @@ export const ThemeProvider = ({ children }) => {
       root.style.setProperty('--primary-purple', '#5B2C87');
       root.style.setProperty('--primary-black', '#FFFFFF');
       root.style.setProperty('--primary-white', '#000000');
-      root.style.setProperty('--primary-blue', '#1E40AF');
+      root.style.setProperty('--primary-blue', '#16A34A');
       root.style.setProperty('--background', '#F8F9FA');
       root.style.setProperty('--foreground', '#212529');
       root.style.setProperty('--accent', '#2D8A2F');
@@ -46,7 +46,7 @@ export const ThemeProvider = ({ children }) => {
       root.style.setProperty('--primary-purple', '#703FEC');
       root.style.setProperty('--primary-black', '#000000');
       root.style.setProperty('--primary-white', '#FFFFFF');
-      root.style.setProperty('--primary-blue', '#007BFF');
+      root.style.setProperty('--primary-blue', '#22C55E');
       root.style.setProperty('--background', '#000000');
       root.style.setProperty('--foreground', '#FFFFFF');
       root.style.setProperty('--accent', '#20e073');

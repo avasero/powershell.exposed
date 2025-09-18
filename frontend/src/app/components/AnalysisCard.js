@@ -180,7 +180,7 @@ export default function AnalysisCard({
               {matchesInfo.matchesDetails && matchesInfo.matchesDetails.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-gray-600">
                   <div className="text-xs font-bold mb-2" style={{color: 'var(--accent)'}}>
-                    Match Details:
+                    String Matches:
                   </div>
                   <div className="space-y-2">
                     {matchesInfo.matchesDetails.map((match, idx) => (
@@ -204,7 +204,7 @@ export default function AnalysisCard({
         {matchesInfo && matchesInfo.matchesDetails && matchesInfo.matchesDetails.length > 0 && (
           <div className="mb-4">
             <div className="text-sm font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
-              Matches Details
+              Match Location
             </div>
             {(() => {
               const uniquePatterns = new Map();

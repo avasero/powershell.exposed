@@ -24,7 +24,7 @@ function getScoreColor(score) {
   if (score >= 8) return "border-orange-400 text-orange-400";      // High: 8.0+
   if (score >= 5) return "border-yellow-400 text-yellow-400";      // Medium: 5.0+
   if (score >= 2) return "border-green-400 text-green-400";        // Low: 2.0+
-  return "border-blue-400 text-blue-400";                          // Informational: 1.0
+  return "border-green-400 text-green-400";                          // Informational: 1.0
 }
 
 function getScoreLabel(score) {

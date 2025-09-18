@@ -354,7 +354,7 @@ export default function HistoryPage() {
                     return (
                       <span
                         key={index}
-                        className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800"
+                        className="px-2 py-1 rounded text-xs font-mono bg-green-900/30 text-green-400 border border-green-800"
                         title={`${cmdlet.alias} → ${cmdlet.cmdlet_name}`}
                       >
                         {shortName}
@@ -404,7 +404,7 @@ export default function HistoryPage() {
             
               {!isAuthenticated() && analysis.is_anonymous && (
                 <div className="mt-2 pt-2 border-t" style={{borderColor: 'var(--border-color)'}}>
-                  <span className="px-2 py-1 rounded text-xs font-mono bg-blue-900/30 text-blue-400 border border-blue-800">
+                  <span className="px-2 py-1 rounded text-xs font-mono bg-green-900/30 text-green-400 border border-green-800">
                     Anonymous Analysis
                   </span>
                 </div>

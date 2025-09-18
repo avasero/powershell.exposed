@@ -25,7 +25,7 @@ const SCORE_RANGES = {
 };
 
 const SCORE_COLORS = {
-  informational: "border-blue-400 text-blue-400",
+  informational: "border-green-400 text-green-400",
   low: "border-green-400 text-green-400",
   medium: "border-yellow-400 text-yellow-400", 
   high: "border-orange-400 text-orange-400",

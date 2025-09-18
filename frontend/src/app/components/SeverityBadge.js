@@ -6,7 +6,7 @@ function getScoreColor(score) {
   if (score >= 6.1) return "border-orange-400 text-orange-400"; // High: 6.1-8.0
   if (score >= 4.1) return "border-yellow-400 text-yellow-400"; // Medium: 4.1-6.0
   if (score >= 2.1) return "border-green-400 text-green-400";   // Low: 2.1-4.0
-  return "border-blue-400 text-blue-400";                      // Very Low: 1.0-2.0
+  return "border-green-400 text-green-400";                      // Very Low: 1.0-2.0
 }
 
 export default function SeverityBadge({ score, className = "" }) {
