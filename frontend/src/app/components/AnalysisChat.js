@@ -296,7 +296,7 @@ export default function AnalysisChat() {
               </div>
             ) : analyses.length === 0 ? (
               <div className="p-4 flex flex-col justify-center h-full">
-                <div className="text-center rounded-lg border p-6 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
+                <div className="text-center rounded-lg border p-6 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
                   <p className="font-mono text-sm mb-4" style={{color: 'var(--muted-foreground)'}}>
                     {isAnonymous ? 'No anonymous analyses yet' : 'No analyses to show'}
                   </p>
@@ -315,7 +315,7 @@ export default function AnalysisChat() {
                 <div
                   key={analysis.id}
                   onClick={() => handleAnalysisClick(analysis.command, analysis.short_id || analysis.uuid || analysis.id)}
-                  className="p-3 mb-2 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80 bg-black/80 border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.3)]"
+                  className="p-3 mb-2 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80 bg-black/80 border-green-500/30 hover:border-green-500/50 "
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
@@ -473,7 +473,7 @@ export default function AnalysisChat() {
                       </div>
                     ) : analyses.length === 0 ? (
                       <div className="p-4 flex flex-col justify-center h-full">
-                        <div className="text-center rounded-lg border p-6 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
+                        <div className="text-center rounded-lg border p-6 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
                           <p className="font-mono text-sm mb-4" style={{color: 'var(--muted-foreground)'}}>
                             {isAnonymous ? 'No anonymous analyses yet' : 'No analyses to show'}
                           </p>
@@ -492,7 +492,7 @@ export default function AnalysisChat() {
                       <div
                         key={analysis.id}
                         onClick={() => handleAnalysisClick(analysis.command, analysis.short_id || analysis.uuid || analysis.id)}
-                        className="p-3 mb-2 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80 bg-black/80 border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.3)]"
+                        className="p-3 mb-2 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80 bg-black/80 border-green-500/30 hover:border-green-500/50 "
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center gap-2">

@@ -112,7 +112,7 @@ export default function AnalysisCard({
   if (title && (description || severity || score)) {
     return (
       <div 
-        className={`border rounded-lg p-4 sm:p-6 mb-4 sm:mb-6 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer ${className}`} 
+        className={`border rounded-lg p-4 sm:p-6 mb-4 sm:mb-6 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ${className}`} 
         style={variantStyles[variant]}
       >
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3">
@@ -421,7 +421,7 @@ export default function AnalysisCard({
   // Layout simples para uso geral
   return (
     <div 
-      className={`border rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer ${className}`} 
+      className={`border rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ${className}`} 
       style={variantStyles[variant]}
     >
       {title && (

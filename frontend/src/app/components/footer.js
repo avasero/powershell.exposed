@@ -3,7 +3,7 @@ import React from "react";
 
 export default function Footer() {
   return (
-    <footer className="w-full py-4 text-center border-t font-mono text-sm bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
+    <footer className="w-full py-4 text-center border-t font-mono text-sm bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all">
       <div style={{color: 'var(--foreground)'}}>
         &copy; {new Date().getFullYear()} <span style={{color: 'var(--accent)'}}>powershell.exposed</span>
       </div>

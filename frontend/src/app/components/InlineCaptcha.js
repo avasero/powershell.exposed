@@ -98,7 +98,7 @@ export default function InlineCaptcha({
   };
 
   return (
-    <div className={`border rounded-lg p-4 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer ${className}`}>
+    <div className={`border rounded-lg p-4 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ${className}`}>
       <div className="flex items-center gap-2 mb-3">
         <span className="text-lg">🔒</span>
         <h3 className="font-mono font-bold text-sm" style={{color: 'var(--foreground)'}}>
@@ -146,7 +146,7 @@ export default function InlineCaptcha({
                   }
                 }}
                 placeholder="Your answer..."
-                className="w-full px-3 py-2 rounded-lg border font-mono text-sm text-center bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer"
+                className="w-full px-3 py-2 rounded-lg border font-mono text-sm text-center bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all"
                 style={{
                   borderColor: error ? '#ef4444' : 'rgba(34, 197, 94, 0.3)',
                   color: 'var(--foreground)'

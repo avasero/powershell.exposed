@@ -24,7 +24,7 @@ export default function IndicatorTable({ signatures = [] }) {
   return (
     <div className="space-y-6">
       {signatures.length === 0 ? (
-        <div className="border rounded-lg p-6 text-center bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
+        <div className="border rounded-lg p-6 text-center bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
           <h3 className="font-mono text-lg font-bold mb-2" style={{color: 'var(--accent)'}}>
             No Indicators Detected
           </h3>
@@ -34,7 +34,7 @@ export default function IndicatorTable({ signatures = [] }) {
         </div>
       ) : (
         <>
-          <div className="border rounded-lg overflow-hidden bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
+          <div className="border rounded-lg overflow-hidden bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
             <div className="p-4 border-b border-green-500/30">
               <h3 className="font-mono text-lg font-bold" style={{color: 'var(--accent)'}}>
                 Detected Signatures ({signatures.length})
@@ -43,7 +43,7 @@ export default function IndicatorTable({ signatures = [] }) {
           </div>
           
           {signatures.map((sig, idx) => (
-            <div key={idx} className="border rounded-lg overflow-hidden bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer">
+            <div key={idx} className="border rounded-lg overflow-hidden bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
               <div className="p-4 border-b flex items-center justify-between border-green-500/30" style={{backgroundColor: 'rgba(156, 254, 65, 0.05)'}}>
                 <div className="flex items-center gap-3">
                   <SeverityBadge score={sig.score} />

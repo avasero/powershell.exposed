@@ -62,7 +62,7 @@ export default function SideDrawer() {
       />
       
       <div 
-        className={`drawer-container drawer-shadow absolute right-0 top-0 h-full w-72 max-w-[75vw] bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] ${isDrawerOpen ? 'show' : ''}`}
+        className={`drawer-container drawer-shadow absolute right-0 top-0 h-full w-72 max-w-[75vw] bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all  ${isDrawerOpen ? 'show' : ''}`}
         style={{ borderLeft: '1px solid rgba(34, 197, 94, 0.3)' }}
       >
         <div className={`flex items-center justify-between p-4 border-b drawer-content-animate border-green-500/30 ${isDrawerOpen ? 'show' : ''}`}>
@@ -71,7 +71,7 @@ export default function SideDrawer() {
           </h2>
           <button
             onClick={closeDrawer}
-            className="p-2 rounded-md hover:bg-opacity-10 transition-all bg-black/80 border border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
+            className="p-2 rounded-md hover:bg-opacity-10 transition-all bg-black/80 border border-green-500/30 hover:border-green-500/50  cursor-pointer"
             style={{ color: 'var(--accent)' }}
             aria-label="Close menu"
           >
@@ -93,7 +93,7 @@ export default function SideDrawer() {
         </div>
 
         <div className={`flex flex-col p-4 space-y-4 drawer-content-animate ${isDrawerOpen ? 'show' : ''}`}>
-          <div className="flex items-center justify-between p-2 rounded-md bg-black/80 border border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer">
+          <div className="flex items-center justify-between p-2 rounded-md bg-black/80 border border-green-500/30 hover:border-green-500/50 transition-all  cursor-pointer">
             <span className="font-mono text-sm" style={{ color: 'var(--foreground)' }}>
               Theme
             </span>
@@ -105,7 +105,7 @@ export default function SideDrawer() {
 
           {isAuthenticated() ? (
             <div className="border-t pt-4 space-y-3 border-green-500/30">
-              <div className="text-center p-3 rounded-md bg-black/80 border border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer">
+              <div className="text-center p-3 rounded-md bg-black/80 border border-green-500/30 hover:border-green-500/50 transition-all  cursor-pointer">
                 <span className="font-mono text-sm block mb-1" style={{ color: 'var(--foreground)' }}>
                   Logged in as:
                 </span>
@@ -116,7 +116,7 @@ export default function SideDrawer() {
               
               <button
                 onClick={handleLogout}
-                className="w-full px-4 py-3 font-mono font-semibold rounded text-sm transition-all duration-200 hover:opacity-80 bg-black/80 border border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
+                className="w-full px-4 py-3 font-mono font-semibold rounded text-sm transition-all duration-200 hover:opacity-80 bg-black/80 border border-green-500/30 hover:border-green-500/50  cursor-pointer"
                 style={{
                   color: 'var(--accent)'
                 }}
@@ -129,7 +129,7 @@ export default function SideDrawer() {
               <Link
                 href="/login"
                 onClick={handleLinkClick}
-                className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm border transition-all duration-200 hover:opacity-80 text-center bg-black/80 border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
+                className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm border transition-all duration-200 hover:opacity-80 text-center bg-black/80 border-green-500/30 hover:border-green-500/50  cursor-pointer"
                 style={{
                   color: 'var(--accent)'
                 }}
@@ -138,7 +138,7 @@ export default function SideDrawer() {
               </Link>
               <button
                 onClick={handleRegisterClick}
-                className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm transition-all duration-200 hover:opacity-80 text-center bg-black/80 border border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
+                className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm transition-all duration-200 hover:opacity-80 text-center bg-black/80 border border-green-500/30 hover:border-green-500/50  cursor-pointer"
                 style={{
                   color: 'var(--accent)'
                 }}
@@ -158,7 +158,7 @@ export default function SideDrawer() {
             onClick={() => setShowRegisterPopup(false)}
           />
           <div 
-            className="relative rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl bg-black/80 border border-green-500/30 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer"
+            className="relative rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl bg-black/80 border border-green-500/30 hover:border-green-500/50 transition-all  cursor-pointer"
           >
             <div className="text-center">
               <div className="mb-4">
@@ -190,7 +190,7 @@ export default function SideDrawer() {
               </p>
               <button
                 onClick={() => setShowRegisterPopup(false)}
-                className="px-4 py-2 font-mono font-semibold rounded text-sm transition-all duration-200 hover:opacity-80 bg-black/80 border border-green-500/30 hover:border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
+                className="px-4 py-2 font-mono font-semibold rounded text-sm transition-all duration-200 hover:opacity-80 bg-black/80 border border-green-500/30 hover:border-green-500/50  cursor-pointer"
                 style={{
                   color: 'var(--accent)'
                 }}

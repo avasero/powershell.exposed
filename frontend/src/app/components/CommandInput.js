@@ -70,7 +70,7 @@ export default function CommandInput({
 
   return (
     <div className="w-full">
-      <div className={`flex flex-col sm:flex-row items-stretch sm:items-center rounded-lg overflow-hidden border-2 ${error ? 'border-red-500' : showCharacterWarning ? 'border-yellow-500' : 'border-green-500/30'} bg-black/80 hover:border-green-500/50 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] cursor-pointer`} style={{borderColor: error ? '#ef4444' : showCharacterWarning ? '#eab308' : 'rgba(34, 197, 94, 0.3)'}}>
+      <div className={`flex flex-col sm:flex-row items-stretch sm:items-center rounded-lg overflow-hidden border-2 ${error ? 'border-red-500' : showCharacterWarning ? 'border-yellow-500' : 'border-green-500/30'} bg-black/80 hover:border-green-500/50 transition-all`} style={{borderColor: error ? '#ef4444' : showCharacterWarning ? '#eab308' : 'rgba(34, 197, 94, 0.3)'}}>
         <span className="px-3 sm:px-4 py-3 font-mono text-sm sm:text-base border-b sm:border-b-0 sm:border-r border-opacity-30 flex-shrink-0" style={{color: 'var(--accent)', borderColor: 'var(--border-color)'}}>
           PS &gt;
         </span>
