@@ -10,6 +10,20 @@ class AnalyzeCommandRequest(BaseModel):
     """Schema for PowerShell command analysis request"""
     command: str = Field(..., description="PowerShell command to analyze", example="Get-Process")
     
+    # Optional fields from frontend
+    user_id: Optional[str] = Field(None, description="User ID (if authenticated)")
+    ip_address: Optional[str] = Field(None, description="Client IP address")
+    user_agent: Optional[str] = Field(None, description="User agent string")
+    country: Optional[str] = Field(None, description="Country name")
+    city: Optional[str] = Field(None, description="City name")
+    region: Optional[str] = Field(None, description="Region/state name")
+    timezone: Optional[str] = Field(None, description="Timezone")
+    search_type: Optional[str] = Field(None, description="Search type (WEB/API)")
+    session_id: Optional[str] = Field(None, description="Session ID")
+    
+    # Captcha fields
+    captcha_token: Optional[str] = Field(None, description="Captcha token")
+    captcha_answer: Optional[str] = Field(None, description="Captcha answer")
     
 
 class CreateUserSessionRequest(BaseModel):

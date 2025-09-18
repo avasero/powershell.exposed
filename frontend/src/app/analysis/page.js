@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useAnalysisEvent } from "../contexts/AnalysisEventContext";
 import { useRateLimit } from "../../hooks/useRateLimit";
+import { useIpAddress } from "../../hooks/useIpAddress";
 import SeverityLegend from "../components/SeverityLegend";
 import AnalysisCard from "../components/AnalysisCard";
 import SeverityBadge from "../components/SeverityBadge";
@@ -39,6 +40,7 @@ export default function AnalysisPage() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const { notifyNewAnalysis } = useAnalysisEvent();
+  const { ipAddress, ipLocation, loading: ipLoading, error: ipError } = useIpAddress();
   const { 
     rateLimitInfo, 
     handleRateLimitResponse, 
@@ -65,7 +67,10 @@ export default function AnalysisPage() {
 
   // Função de análise local removida - agora respeitamos sempre o rate limiting da API
 
-  const performAnalysis = async (command, ipAddress, ipLocation) => {
+  const performAnalysis = async (command, providedIpAddress, providedIpLocation) => {
+    // Usar IP e localização do hook se não fornecidos
+    const finalIpAddress = providedIpAddress || ipAddress;
+    const finalIpLocation = providedIpLocation || ipLocation;
     try {
       setLoading(true);
       setError("");
@@ -85,11 +90,11 @@ export default function AnalysisPage() {
       const requestData = { 
         command,
         user_id: user?.id || null,  // Enviar null se não logado, não UUID padrão
-        ip_address: ipAddress,
-        country: ipLocation?.country,
-        city: ipLocation?.city,
-        region: ipLocation?.region,
-        timezone: ipLocation?.timezone,
+        ip_address: finalIpAddress,
+        country: finalIpLocation?.country,
+        city: finalIpLocation?.city,
+        region: finalIpLocation?.region,
+        timezone: finalIpLocation?.timezone,
         user_agent: navigator.userAgent,
         search_type: "WEB",  // Sempre WEB quando vindo do frontend
         session_id: sessionId
@@ -219,7 +224,7 @@ export default function AnalysisPage() {
         timezone
       };
       
-      performAnalysis(command, ipAddress, ipLocation);
+      performAnalysis(command);
     } else if (!command.trim()) {
       setLoading(false);
       setResult({
@@ -250,8 +255,8 @@ export default function AnalysisPage() {
       // Limpar apenas o erro, mas manter o resultado atual para evitar flick
       setError("");
       
-      // Executar nova análise diretamente
-      await performAnalysis(newCommand.trim(), null, {});
+      // Executar nova análise diretamente (IP será obtido do hook automaticamente)
+      await performAnalysis(newCommand.trim());
       
       // Limpar o campo de input apenas se a análise foi bem-sucedida
       setNewCommand("");

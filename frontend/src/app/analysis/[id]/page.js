@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useAnalysisEvent } from "../../contexts/AnalysisEventContext";
 import { useRateLimit } from "../../../hooks/useRateLimit";
+import { useIpAddress } from "../../../hooks/useIpAddress";
 import SeverityLegend from "../../components/SeverityLegend";
 import AnalysisCard from "../../components/AnalysisCard";
 import SeverityBadge from "../../components/SeverityBadge";
@@ -39,6 +40,7 @@ export default function AnalysisDetailsPage() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const { notifyNewAnalysis } = useAnalysisEvent();
+  const { ipAddress, ipLocation, loading: ipLoading, error: ipError } = useIpAddress();
   const { 
     rateLimitInfo, 
     handleRateLimitResponse, 
@@ -108,7 +110,10 @@ export default function AnalysisDetailsPage() {
   }, [params.id, loadAnalysis]);
 
   // Função para análise de novo comando (reutilizada da página original)
-  const performAnalysis = async (command, ipAddress, ipLocation) => {
+  const performAnalysis = async (command, providedIpAddress, providedIpLocation) => {
+    // Usar IP e localização do hook se não fornecidos
+    const finalIpAddress = providedIpAddress || ipAddress;
+    const finalIpLocation = providedIpLocation || ipLocation;
     try {
       setNewAnalysisLoading(true);
       setError("");
@@ -120,11 +125,11 @@ export default function AnalysisDetailsPage() {
       const requestData = { 
         command,
         user_id: user?.id || null,
-        ip_address: ipAddress,
-        country: ipLocation?.country,
-        city: ipLocation?.city,
-        region: ipLocation?.region,
-        timezone: ipLocation?.timezone,
+        ip_address: finalIpAddress,
+        country: finalIpLocation?.country,
+        city: finalIpLocation?.city,
+        region: finalIpLocation?.region,
+        timezone: finalIpLocation?.timezone,
         user_agent: navigator.userAgent,
         search_type: "WEB",
         session_id: sessionId
@@ -235,8 +240,8 @@ export default function AnalysisDetailsPage() {
       // Clear error but keep current result to avoid flicker
       setError("");
       
-      // Perform new analysis - this will handle loading state and redirect
-      await performAnalysis(newCommand.trim(), null, {});
+      // Perform new analysis - this will handle loading state and redirect (IP será obtido do hook automaticamente)
+      await performAnalysis(newCommand.trim());
       
       // Clear input field only if analysis was successful
       setNewCommand("");

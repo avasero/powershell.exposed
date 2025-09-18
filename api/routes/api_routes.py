@@ -59,17 +59,31 @@ async def analyze_command_endpoint(
         
         # Extrair dados do schema com fallbacks seguros
         command = request_data.command
-        user_id = current_user["id"] if current_user else getattr(request_data, 'user_id', None)
-        ip_address = getattr(request_data, 'ip_address', None) or "127.0.0.1"
-        country = getattr(request_data, 'country', None)
-        city = getattr(request_data, 'city', None)
-        region = getattr(request_data, 'region', None)
-        timezone = getattr(request_data, 'timezone', None)
-        user_agent = getattr(request_data, 'user_agent', None) or "FastAPI-Client"
-        search_type = getattr(request_data, 'search_type', None) or "API"
-        session_id = getattr(request_data, 'session_id', None)
-        captcha_token = getattr(request_data, 'captcha_token', None)
-        captcha_answer = getattr(request_data, 'captcha_answer', None)
+        user_id = current_user["id"] if current_user else request_data.user_id
+        ip_address = request_data.ip_address or "127.0.0.1"
+        country = request_data.country
+        city = request_data.city
+        region = request_data.region
+        timezone = request_data.timezone
+        user_agent = request_data.user_agent or "FastAPI-Client"
+        
+        # Determinar search_type baseado no tipo de autenticação
+        if current_user and current_user.get("auth_type") == "api_key":
+            # API Key = uso externo (Postman, cURL, etc)
+            search_type = "API"
+        elif current_user and current_user.get("auth_type") == "jwt":
+            # JWT Token = interface web
+            search_type = "WEB"
+        elif request_data.search_type:
+            # Usar o tipo enviado pelo frontend se não há autenticação
+            search_type = request_data.search_type
+        else:
+            # Fallback para API se não há informação
+            search_type = "API"
+        
+        session_id = request_data.session_id
+        captcha_token = request_data.captcha_token
+        captcha_answer = request_data.captcha_answer
         
         # Garantir que temos um session_id para aplicar rate limiting
         if not session_id:
@@ -385,11 +399,11 @@ async def create_user_session_endpoint(request_data: CreateUserSessionRequest) -
     """
     try:
         user_id = request_data.user_id
-        ip_address = getattr(request_data, 'ip_address', None) or "127.0.0.1"
-        user_agent = getattr(request_data, 'user_agent', None) or "Unknown"
-        country = getattr(request_data, 'country', None)
-        city = getattr(request_data, 'city', None)
-        region = getattr(request_data, 'region', None)
+        ip_address = request_data.ip_address or "127.0.0.1"
+        user_agent = request_data.user_agent or "Unknown"
+        country = request_data.country
+        city = request_data.city
+        region = request_data.region
         
         if not user_id:
             return JSONResponse(
