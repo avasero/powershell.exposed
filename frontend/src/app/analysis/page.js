@@ -157,14 +157,12 @@ export default function AnalysisPage() {
         
         // Se temos um analysis_id, redirecionar para a página específica da análise
         if (response.analysis_id) {
-          // Notificar que uma nova análise foi feita ANTES do redirecionamento
+          // Notificar que uma nova análise foi feita
           notifyNewAnalysis();
           
-          // Pequeno delay para garantir que o evento seja processado
-          setTimeout(() => {
-            router.push(`/analysis/${response.analysis_id}`);
-          }, 100);
-          return; // Não processar mais nada, pois vamos redirecionar
+          // Redirecionar imediatamente sem delay para evitar stutter
+          router.push(`/analysis/${response.analysis_id}`);
+          return; // Sair da função imediatamente
         }
         
         const analysisResult = {

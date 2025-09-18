@@ -160,6 +160,7 @@ export default function Home() {
         // Notificar que uma nova análise foi feita
         notifyNewAnalysis();
         
+        // Redirecionar imediatamente para evitar stutter
         router.push(`/analysis/${data.analysis_id}`);
       } else {
         setError(data.error || 'Analysis failed');

