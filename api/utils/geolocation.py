@@ -14,7 +14,7 @@ async def get_ip_location(ip_address: str) -> dict:
         url = f"{IPAPI_BASE_URL}/{ip_address}/json/"
         
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=IPAPI_TIMEOUT) as response:
+            async with session.get(url, timeout=3) as response:
                 if response.status == 200:
                     data = await response.json()
                     
@@ -25,11 +25,9 @@ async def get_ip_location(ip_address: str) -> dict:
                         "timezone": data.get("timezone")
                     }
                 else:
-                    print(f"⚠️ Erro ao buscar localização do IP {ip_address}: {response.status}")
                     return {}
                     
-    except Exception as error:
-        print(f"❌ Erro ao capturar geolocalização do IP {ip_address}: {error}")
+    except Exception:
         return {}
 
 

@@ -75,8 +75,8 @@ export default function AnalysisPage() {
       setLoading(true);
       setError("");
       
-      // Garantir que o skeleton apareça por pelo menos 800ms para UX
-      const minDelay = new Promise(resolve => setTimeout(resolve, 800));
+      // Remover delay artificial para melhorar performance
+      const minDelay = Promise.resolve();
       
       // Timeout de 15 segundos para análise
       const timeoutPromise = new Promise((_, reject) =>

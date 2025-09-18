@@ -76,7 +76,6 @@ def add_global_request():
     """Adds a new request to the global counter"""
     current_time = time.time()
     global_request_timestamps.append(current_time)
-    print(f"🌍 Requisição global adicionada. Total: {len(global_request_timestamps)}/{GLOBAL_RATE_LIMIT_REQUESTS}")
 
 
 def check_rate_limit(session_id: str) -> dict:
@@ -88,7 +87,6 @@ def check_rate_limit(session_id: str) -> dict:
     
     # Se não há session_id, não aplicar rate limiting
     if not session_id:
-        print("⚠️ Session ID não fornecido - sem rate limiting")
         return {
             "within_limit": True,
             "current_count": 0,
@@ -114,8 +112,6 @@ def check_rate_limit(session_id: str) -> dict:
         oldest_request = min(current_requests)
         reset_time = oldest_request + RATE_LIMIT_WINDOW
         seconds_until_reset = max(0, int(reset_time - current_time))
-        print(f"🕐 Calculando timer para sessão {session_id}: oldest_request={oldest_request}, current_time={current_time}")
-        print(f"🕐 Reset em: {seconds_until_reset} segundos")
     
     return {
         "within_limit": request_count < RATE_LIMIT_REQUESTS,
@@ -131,21 +127,16 @@ def check_rate_limit(session_id: str) -> dict:
 def add_request_to_rate_limit(session_id: str):
     """Adds a new request to the counter"""
     if not session_id:
-        print("⚠️ Session ID não fornecido - não adicionando ao rate limit")
         return
     
     current_time = time.time()
     request_counts[session_id].append(current_time)
-    print(f"📊 Requisição adicionada para sessão {session_id}. Total: {len(request_counts[session_id])}")
 
 
 def reset_rate_limit(session_id: str):
     """Resets the rate limit counter for a session"""
     if session_id and session_id in request_counts:
         del request_counts[session_id]
-        print(f"🔄 Rate limit resetado para sessão: {session_id}")
-    elif not session_id:
-        print("⚠️ Session ID não fornecido para reset do rate limit")
 
 
 def generate_captcha() -> dict:

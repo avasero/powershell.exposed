@@ -49,11 +49,9 @@ const createUserSession = async (userId) => {
       setTimeout(() => reject(new Error('Timeout')), 10000)
     );
     
-    const fetchPromise = fetch(`${apiUrl}/create-user-session`, {
+    const { makeAuthenticatedRequest } = await import('../../lib/api');
+    const fetchPromise = makeAuthenticatedRequest('/create-user-session', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify({
         user_id: userId,
         ip_address: ipAddress,

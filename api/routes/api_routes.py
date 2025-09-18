@@ -87,7 +87,6 @@ async def analyze_command_endpoint(
         
         # Garantir que temos um session_id para aplicar rate limiting
         if not session_id:
-            print("🔍 Session ID não fornecido, criando/obtendo sessão primeiro...")
             supabase = get_supabase_client()
             session_id = await get_or_create_session(
                 supabase=supabase,
@@ -98,13 +97,11 @@ async def analyze_command_endpoint(
                 city=city,
                 region=region
             )
-            print(f"✅ Session ID obtido: {session_id}")
         
         # Verificar rate limit usando session_id
         rate_limit_info = None
         if session_id:
             rate_limit_info = check_rate_limit(session_id)
-            print(f"🔒 Rate limit info para sessão {session_id}: {rate_limit_info}")
             
             # Se passou do limite básico (5), usuário pode OU esperar OU fazer captcha
             if not rate_limit_info["within_limit"]:
@@ -123,8 +120,6 @@ async def analyze_command_endpoint(
         
         # Se usuário passou do limite (5), verificar se tem captcha válido
         if session_id and rate_limit_info and not rate_limit_info["within_limit"] and (captcha_token and captcha_answer):
-            print(f"🔒 Verificando captcha para contornar rate limit da sessão {session_id}...")
-            
             # Verificar se captcha é válido
             if captcha_token not in captcha_tokens:
                 return JSONResponse(
@@ -174,47 +169,24 @@ async def analyze_command_endpoint(
             # ✅ CAPTCHA VÁLIDO - RESETAR RATE LIMIT COMPLETAMENTE
             mark_captcha_solved(captcha_token)
             reset_rate_limit(session_id)
-            print(f"✅ Captcha resolvido! Rate limit resetado para sessão: {session_id}")
-            print(f"🔄 Sessão pode continuar fazendo análises normalmente")
-            
-            # Adicionar esta requisição como a primeira do novo ciclo (após reset)
             add_request_to_rate_limit(session_id)
-            print(f"🔄 Nova requisição adicionada após reset. Count: 1")
         else:
             # Se não tem captcha válido, adicionar ao contador normalmente
             if session_id:
                 add_request_to_rate_limit(session_id)
-                print(f"📊 Requisição adicionada para sessão {session_id}")
         
         # ADICIONAR REQUISIÇÃO AO CONTADOR GLOBAL
         add_global_request()
         
         if ip_address and not country and search_type == "API":
-            print(f"🌍 Capturando geolocalização automática para IP: {ip_address}")
             location_data = await get_ip_location(ip_address)
             if location_data:
                 country = location_data.get("country") or country
                 city = location_data.get("city") or city
                 region = location_data.get("region") or region
                 timezone = location_data.get("timezone") or timezone
-                print(f"✅ Geollocalização capturada: {country}, {city}, {region}, {timezone}")
-            else:
-                print(f"⚠️ Não foi possível capturar geolocalização para IP: {ip_address}")
-        
-        print(f"🚀 Dados extraídos:")
-        print(f"   - Command: {command}")
-        print(f"   - User ID: {user_id}")
-        print(f"   - IP: {ip_address}")
-        print(f"   - Country: {country}")
-        print(f"   - City: {city}")
-        print(f"   - Region: {region}")
-        print(f"   - Timezone: {timezone}")
-        print(f"   - User Agent: {user_agent}")
-        print(f"   - Search Type: {search_type}")
-        print(f"   - Session ID: {session_id}")
         
         if not command or not isinstance(command, str):
-            print("❌ Command inválido")
             return JSONResponse(
                 {"error": "Command is required and must be a string"},
                 status_code=400
@@ -410,8 +382,6 @@ async def create_user_session_endpoint(request_data: CreateUserSessionRequest) -
                 {"error": "user_id is required"},
                 status_code=400
             )
-        
-        print(f"🔄 Criando nova sessão para usuário: {user_id}")
         
         supabase = get_supabase_client()
         

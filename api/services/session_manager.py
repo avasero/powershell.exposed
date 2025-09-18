@@ -21,7 +21,6 @@ async def get_or_create_session(
     """
     try:
         if not ip_address:
-            print("⚠️ IP não fornecido, não é possível criar/obter sessão")
             return None
         
         # Criar string de localização
@@ -33,15 +32,12 @@ async def get_or_create_session(
         # Se user_id é fornecido, procurar sessão do usuário específico
         # Se não, procurar sessão anônima (user_id = null) para o IP
         if user_id:
-            print(f"🔍 Procurando sessão existente para usuário: {user_id}")
             existing_session = supabase.table('sessions').select('id').eq('user_id', user_id).gte('created_at', yesterday.isoformat()).limit(1).execute()
         else:
-            print(f"🔍 Procurando sessão anônima existente para IP: {ip_address}")
             existing_session = supabase.table('sessions').select('id').eq('ip', ip_address).is_('user_id', 'null').gte('created_at', yesterday.isoformat()).limit(1).execute()
         
         if existing_session.data:
             session_id = existing_session.data[0]['id']
-            print(f"✅ Sessão existente encontrada: {session_id}")
             return session_id
         
         # Criar nova sessão
@@ -52,16 +48,12 @@ async def get_or_create_session(
             "location": location
         }
         
-        print(f"🔍 Criando nova sessão com dados: {session_data}")
         new_session = supabase.table('sessions').insert(session_data).execute()
         
         if new_session.data:
             session_id = new_session.data[0]['id']
-            print(f"✅ Nova sessão criada: {session_id} para {'usuário ' + user_id if user_id else 'anônimo'}")
             return session_id
         else:
-            print("❌ Erro ao criar nova sessão")
-            print(f"❌ Response: {new_session}")
             return None
             
     except Exception as error:
