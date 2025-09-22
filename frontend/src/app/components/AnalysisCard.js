@@ -29,6 +29,12 @@ function getYamlLink(signatureName) {
   return `https://github.com/powershell-exposed/signatures/blob/main/${filename}.yml`;
 }
 
+// Function to truncate long text with ellipsis
+function truncateText(text, maxLength = 50) {
+  if (!text || text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + '...';
+}
+
 export default function AnalysisCard({ 
   title, 
   description,
@@ -321,11 +327,13 @@ export default function AnalysisCard({
                   
                   <div className="flex flex-wrap gap-2">
                     {matches.map((match, matchIdx) => (
-                      <div key={matchIdx} className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
+                      <div key={matchIdx} className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs max-w-full"
                         style={{backgroundColor: 'var(--accent)', color: 'var(--background)'}}>
-                        <span className="font-bold">{match.matched_text}</span>
+                        <span className="font-bold break-all" title={match.matched_text}>
+                          {truncateText(match.matched_text, 50)}
+                        </span>
                         {match.position && (
-                          <span className="opacity-75">
+                          <span className="opacity-75 flex-shrink-0">
                             [{match.position.start}-{match.position.end}]
                           </span>
                         )}
