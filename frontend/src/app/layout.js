@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "PowerShell.exposed - Malware Detection Tool",
+  title: "Community-driven PowerShell Detection Indicators",
   description: "Advanced PowerShell command analysis for malware detection",
 };
 
