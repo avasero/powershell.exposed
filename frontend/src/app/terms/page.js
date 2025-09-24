@@ -35,7 +35,7 @@ export default function TermsAndConditions() {
               1. Acceptance of Terms
             </h2>
             <p style={{color: 'var(--foreground)'}}>
-              By accessing and using PowerShell.exposed ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. 
+              By accessing and using PowerShell.exposed, you accept and agree to be bound by the terms and provision of this agreement. 
               If you do not agree to abide by the above, please do not use this service.
             </p>
           </section>
@@ -69,7 +69,7 @@ export default function TermsAndConditions() {
               <ul className="list-disc ml-6 space-y-1">
                 <li>Creating, distributing, or facilitating malicious software</li>
                 <li>Any illegal activities or violations of applicable laws</li>
-                <li>Analyzing commands you don't own without proper authorization</li>
+                <li>Analyzing commands you don&apos;t own without proper authorization</li>
                 <li>Attempting to bypass, exploit, or overwhelm the service</li>
               </ul>
             </div>
@@ -117,7 +117,7 @@ export default function TermsAndConditions() {
             <div style={{color: 'var(--foreground)'}} className="space-y-3">
               <p><strong>Service Availability:</strong></p>
               <ul className="list-disc ml-6 space-y-1">
-                <li>The service is provided "as is" without warranties of any kind</li>
+                <li>The service is provided &quot;as is&quot; without warranties of any kind</li>
                 <li>We do not guarantee 100% uptime or availability</li>
                 <li>Analysis results are for informational purposes only</li>
               </ul>
