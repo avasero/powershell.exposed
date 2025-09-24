@@ -43,6 +43,7 @@ async def get_current_user_optional(
         payload = decode_jwt_token(token)
         user = extract_user_from_token(payload)
         user["auth_type"] = "jwt"
+        user["access_token"] = token  # Incluir o token original
         return user
         
     except AuthenticationError as e:
@@ -94,6 +95,7 @@ async def get_current_user_required(
         payload = decode_jwt_token(token)
         user = extract_user_from_token(payload)
         user["auth_type"] = "jwt"
+        user["access_token"] = token  # Incluir o token original
         
         # Verify user has authenticated role
         if not verify_token_permissions(user, "authenticated"):
