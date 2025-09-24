@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import Link from "next/link";
 
 export default function Footer() {
   return (
@@ -9,6 +10,10 @@ export default function Footer() {
       </div>
       <div className="mt-1" style={{color: 'var(--muted-foreground)'}}>
         by <a href="https://avasero.com" target="_blank" rel="noopener noreferrer" style={{color: 'var(--accent)', textDecoration: 'underline'}}>avasero</a>
+        {' • '}
+        <Link href="/terms" style={{color: 'var(--accent)', textDecoration: 'underline'}}>
+          Terms & Conditions
+        </Link>
       </div>
     </footer>
   );

@@ -69,8 +69,7 @@ def get_supabase_client() -> Client:
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
         raise ValueError("SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY devem estar configurados")
     
-    print(f"🔧 Usando Supabase URL: {SUPABASE_URL}")
-    print(f"🔧 Service Role Key: {SUPABASE_SERVICE_ROLE_KEY[:20]}...")
+    
     
     client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
     return client

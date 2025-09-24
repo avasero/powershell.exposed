@@ -28,7 +28,7 @@ async def create_user_api_key(user_id: str, name: str = "Default API Key", acces
         from services.session_manager import get_supabase_client_with_user_context
         supabase = get_supabase_client_with_user_context(access_token)
         
-        print(f"🔧 Usando cliente Supabase com contexto de usuário")
+       
         
         # Verificar se usuário já tem uma API Key ativa
         existing_response = supabase.table('profiles') \

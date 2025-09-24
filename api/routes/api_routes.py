@@ -98,7 +98,7 @@ async def analyze_command_endpoint(
                 region=region
             )
         
-        # Verificar rate limit usando session_id
+    
         rate_limit_info = None
         if session_id:
             rate_limit_info = check_rate_limit(session_id)
@@ -587,7 +587,7 @@ async def get_analysis_by_id_endpoint(analysis_id: str):
                 # Assumir que é um ID do banco (compatibilidade com análises antigas)
                 try:
                     db_id = int(analysis_id)
-                    print(f"🔄 Usando ID do banco diretamente: {db_id} (compatibilidade)")
+                    
                     
                     # Buscar análise por ID do banco
                     response = supabase.table('powershell_analyses').select('*').eq('id', db_id).single().execute()
@@ -599,7 +599,7 @@ async def get_analysis_by_id_endpoint(analysis_id: str):
                         )
                     
                     analysis_data = response.data
-                    print(f"✅ Análise encontrada por ID: {analysis_data.get('id')}")
+                   
                 except ValueError:
                     print(f"❌ ID inválido: {analysis_id}")
                     return JSONResponse(

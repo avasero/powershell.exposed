@@ -55,18 +55,19 @@ export default function Navbar() {
               <span className="font-mono text-sm" style={{color: 'var(--foreground)'}}>
                 {user?.user_metadata?.username || user?.email}
               </span>
-              <ThemedButton
-                onClick={() => window.location.href = '/api-keys'}
-                size="sm"
-                variant="outline"
-              >
-                🔑 API Keys
-              </ThemedButton>
+              
               <ThemedButton
                 onClick={handleLogout}
                 size="sm"
               >
                 Logout
+              </ThemedButton>
+              <ThemedButton
+                onClick={() => window.location.href = '/settings'}
+                size="sm"
+                variant="outline"
+              >
+                Settings
               </ThemedButton>
             </>
           ) : (
