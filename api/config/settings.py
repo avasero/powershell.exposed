@@ -7,10 +7,9 @@ from dotenv import load_dotenv
 # Carregar variáveis de ambiente
 load_dotenv('.env.local', override=True)
 
-# Rate limiting e captcha
-RATE_LIMIT_REQUESTS = 5   # Máximo de requisições por janela de tempo (SEM captcha)
+# Rate limiting
+RATE_LIMIT_REQUESTS = 5   # Máximo de requisições por janela de tempo
 RATE_LIMIT_WINDOW = 60    # Janela de tempo em segundos
-CAPTCHA_REQUIRED_AFTER = 6  # Captcha necessário a partir da 6ª requisição (permite mais com captcha)
 
 # Global rate limiting
 GLOBAL_RATE_LIMIT_REQUESTS = 1000  # Máximo de requisições globais por minuto (DEBUG - mudar para 1000)
@@ -41,5 +40,4 @@ API_VERSION = "1.0.0"
 IPAPI_TIMEOUT = 10
 IPAPI_BASE_URL = "https://ipapi.co"
 
-# Configurações de captcha
-CAPTCHA_EXPIRY_TIME = 300  # 5 minutos em segundos
+

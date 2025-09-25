@@ -246,7 +246,7 @@ export default function AnalysisPage() {
     if (newCommand.trim()) {
       // Verificar se já atingiu rate limit antes de prosseguir
       if (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit) {
-        setError("Rate limit atingido. Aguarde o timer ou resolva o captcha.");
+        setError("Rate limit reached. Please wait for the timer to reset.");
         return;
       }
       

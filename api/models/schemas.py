@@ -21,9 +21,7 @@ class AnalyzeCommandRequest(BaseModel):
     search_type: Optional[str] = Field(None, description="Search type (WEB/API)")
     session_id: Optional[str] = Field(None, description="Session ID")
     
-    # Captcha fields
-    captcha_token: Optional[str] = Field(None, description="Captcha token")
-    captcha_answer: Optional[str] = Field(None, description="Captcha answer")
+
     
 
 class CreateUserSessionRequest(BaseModel):
@@ -36,16 +34,7 @@ class CreateUserSessionRequest(BaseModel):
     region: Optional[str] = Field(None, description="Region/state name")
 
 
-class GenerateCaptchaRequest(BaseModel):
-    """Schema for captcha generation"""
-    session_id: str = Field(..., description="Session ID requiring captcha")
 
-
-class VerifyCaptchaRequest(BaseModel):
-    """Schema for captcha verification"""
-    token: str = Field(..., description="Captcha token")
-    answer: str = Field(..., description="Captcha answer")
-    session_id: str = Field(..., description="Session ID")
 
 
 class UpdateProfileRequest(BaseModel):
@@ -209,7 +198,6 @@ class RateLimitResponse(BaseModel):
     """Schema for rate limit response"""
     error: str
     rate_limit_info: Dict[str, Any]
-    requires_captcha: bool
     session_id: str
     message: str
     
@@ -223,8 +211,7 @@ class RateLimitResponse(BaseModel):
                     "window_seconds": 60,
                     "seconds_until_reset": 45
                 },
-                "requires_captcha": True,
                 "session_id": "session-uuid",
-                "message": "You have made 6 searches. Wait 45 seconds OR solve captcha."
+                "message": "You have made 6 searches. Please wait 45 seconds before trying again."
             }
         }

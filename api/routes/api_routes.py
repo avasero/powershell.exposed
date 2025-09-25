@@ -9,15 +9,13 @@ from fastapi.responses import JSONResponse
 from middleware.auth_middleware import get_current_user_optional
 from models.schemas import (
     AnalyzeCommandRequest, AnalyzeCommandResponse, 
-    CreateUserSessionRequest, GenerateCaptchaRequest, 
-    VerifyCaptchaRequest, ErrorResponse
+    CreateUserSessionRequest, ErrorResponse
 )
 
 from middleware.rate_limiting import (
     check_global_rate_limit, add_global_request, check_rate_limit,
-    add_request_to_rate_limit, reset_rate_limit, generate_captcha,
-    verify_captcha, store_captcha_solution, mark_captcha_solved,
-    captcha_tokens, global_request_timestamps, GLOBAL_RATE_LIMIT_REQUESTS,
+    add_request_to_rate_limit, reset_rate_limit,
+    global_request_timestamps, GLOBAL_RATE_LIMIT_REQUESTS,
     GLOBAL_RATE_LIMIT_WINDOW
 )
 from services.powershell_analyzer import (
@@ -82,8 +80,6 @@ async def analyze_command_endpoint(
             search_type = "API"
         
         session_id = request_data.session_id
-        captcha_token = request_data.captcha_token
-        captcha_answer = request_data.captcha_answer
         
         # Garantir que temos um session_id para aplicar rate limiting
         if not session_id:
@@ -99,81 +95,24 @@ async def analyze_command_endpoint(
             )
         
     
-        rate_limit_info = None
+        # Check rate limit for session
         if session_id:
             rate_limit_info = check_rate_limit(session_id)
             
-            # Se passou do limite básico (5), usuário pode OU esperar OU fazer captcha
+            # If rate limit exceeded, return error with wait time
             if not rate_limit_info["within_limit"]:
-                # Se não tem captcha, oferecer as duas opções
-                if not (captcha_token and captcha_answer):
-                    return JSONResponse(
-                        {
-                            "error": "Rate limit exceeded",
-                            "rate_limit_info": rate_limit_info,
-                            "requires_captcha": True,
-                            "session_id": session_id,
-                            "message": f"You have made {rate_limit_info['current_count']} searches in this session. You can either wait {rate_limit_info.get('seconds_until_reset', 0)} seconds OR solve the captcha to continue immediately."
-                        },
-                        status_code=400  # 400 para mostrar captcha, não 429
-                    )
-        
-        # Se usuário passou do limite (5), verificar se tem captcha válido
-        if session_id and rate_limit_info and not rate_limit_info["within_limit"] and (captcha_token and captcha_answer):
-            # Verificar se captcha é válido
-            if captcha_token not in captcha_tokens:
                 return JSONResponse(
                     {
-                        "error": "Invalid or expired captcha token",
-                        "requires_captcha": True,
+                        "error": "Rate limit exceeded",
                         "rate_limit_info": rate_limit_info,
-                        "session_id": session_id
+                        "session_id": session_id,
+                        "message": f"You have made {rate_limit_info['current_count']} searches in this session. Please wait {rate_limit_info.get('seconds_until_reset', 0)} seconds before trying again."
                     },
-                    status_code=400
+                    status_code=429
                 )
             
-            token_data = captcha_tokens[captcha_token]
-            if token_data["session_id"] != session_id:
-                return JSONResponse(
-                    {
-                        "error": "Captcha token does not belong to this session",
-                        "requires_captcha": True,
-                        "rate_limit_info": rate_limit_info,
-                        "session_id": session_id
-                    },
-                    status_code=400
-                )
-            
-            if time.time() > token_data["expires_at"]:
-                return JSONResponse(
-                    {
-                        "error": "Captcha token expired",
-                        "requires_captcha": True,
-                        "rate_limit_info": rate_limit_info,
-                        "session_id": session_id
-                    },
-                    status_code=400
-                )
-            
-            if not verify_captcha(captcha_token, captcha_answer):
-                return JSONResponse(
-                    {
-                        "error": "Incorrect captcha answer",
-                        "requires_captcha": True,
-                        "rate_limit_info": rate_limit_info,
-                        "session_id": session_id
-                    },
-                    status_code=400
-                )
-            
-            # ✅ CAPTCHA VÁLIDO - RESETAR RATE LIMIT COMPLETAMENTE
-            mark_captcha_solved(captcha_token)
-            reset_rate_limit(session_id)
+            # Add request to rate limit counter
             add_request_to_rate_limit(session_id)
-        else:
-            # Se não tem captcha válido, adicionar ao contador normalmente
-            if session_id:
-                add_request_to_rate_limit(session_id)
         
         # ADICIONAR REQUISIÇÃO AO CONTADOR GLOBAL
         add_global_request()
@@ -259,107 +198,7 @@ async def analyze_command_endpoint(
         )
 
 
-async def generate_captcha_endpoint(request_data: GenerateCaptchaRequest) -> Dict[str, Any]:
-    """
-    Generate Captcha Challenge
-    
-    Generates a mathematical captcha challenge for users who have exceeded
-    their rate limit. Solving the captcha allows continued API usage.
-    """
-    try:
-        session_id = request_data.session_id
-        
-        if not session_id:
-            return JSONResponse(
-                {"error": "Session ID is required"},
-                status_code=400
-            )
-        
-        # Gerar captcha
-        captcha_data = generate_captcha()
-        
-        # Armazenar solução e token
-        store_captcha_solution(captcha_data["token"], captcha_data["solution"], session_id)
-        
-        print(f"🔐 Captcha gerado para sessão {session_id}: {captcha_data['question']}")
-        
-        return JSONResponse({
-            "success": True,
-            "captcha": {
-                "token": captcha_data["token"],
-                "question": captcha_data["question"]
-            }
-        })
-        
-    except Exception as error:
-        print(f"Error generating captcha: {error}")
-        return JSONResponse(
-            {"error": f"Internal error: {str(error)}"},
-            status_code=500
-        )
 
-
-async def verify_captcha_endpoint(request_data: VerifyCaptchaRequest) -> Dict[str, Any]:
-    """
-    Verify Captcha Answer
-    
-    Verifies the user's captcha answer. If correct, resets the rate limit
-    for the session, allowing continued API usage.
-    """
-    try:
-        token = request_data.token
-        answer = request_data.answer
-        session_id = request_data.session_id
-        
-        if not token or not answer or not session_id:
-            return JSONResponse(
-                {"error": "Token, answer and session_id are required"},
-                status_code=400
-            )
-        
-        # Verificar se o token existe e pertence à sessão
-        if token not in captcha_tokens:
-            return JSONResponse(
-                {"error": "Invalid or expired token"},
-                status_code=400
-            )
-        
-        token_data = captcha_tokens[token]
-        if token_data["session_id"] != session_id:
-            return JSONResponse(
-                {"error": "Token does not belong to this session"},
-                status_code=400
-            )
-        
-        if time.time() > token_data["expires_at"]:
-            return JSONResponse(
-                {"error": "Token expired"},
-                status_code=400
-            )
-        
-        # Verificar resposta
-        is_correct = verify_captcha(token, answer)
-        
-        if is_correct:
-            mark_captcha_solved(token)
-            print(f"✅ Captcha resolvido com sucesso para sessão {session_id}")
-            return JSONResponse({
-                "success": True,
-                "message": "Captcha solved successfully"
-            })
-        else:
-            print(f"❌ Resposta incorreta do captcha para sessão {session_id}")
-            return JSONResponse(
-                {"error": "Incorrect answer"},
-                status_code=400
-            )
-            
-    except Exception as error:
-        print(f"Error verifying captcha: {error}")
-        return JSONResponse(
-            {"error": f"Internal error: {str(error)}"},
-            status_code=500
-        )
 
 
 async def create_user_session_endpoint(request_data: CreateUserSessionRequest) -> Dict[str, Any]:
