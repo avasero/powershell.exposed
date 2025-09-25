@@ -15,9 +15,6 @@ export default function ApiKeyManager() {
   const [showRevealModal, setShowRevealModal] = useState(false);
   const [newApiKey, setNewApiKey] = useState('');
 
-  // Debug log to track modal state
-  console.log('🔍 ApiKeyManager render:', { showRevealModal, newApiKey, hasApiKey: !!apiKey });
-
   useEffect(() => {
     if (isAuthenticated()) {
       loadApiKey();
@@ -55,12 +52,10 @@ export default function ApiKeyManager() {
 
       if (response.success) {
         // Store complete key temporarily for modal
-        console.log('🔑 API Key created, showing modal...', response.api_key.api_key);
         setNewApiKey(response.api_key.api_key);
         setShowRevealModal(true);
         setApiKey(response.api_key);
         setSuccess(response.message);
-        console.log('📊 Modal state set:', { newApiKey: response.api_key.api_key, showRevealModal: true });
       }
     } catch (err) {
       setError(err.message);
