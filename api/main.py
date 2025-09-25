@@ -133,10 +133,10 @@ try:
         revoke_user_api_key_endpoint, regenerate_user_api_key_endpoint
     )
     
-    app.get("/user/api-key", tags=["API Key Management"], summary="Get User API Key")(get_user_api_key_endpoint)
-    app.post("/user/api-key", tags=["API Key Management"], summary="Create API Key")(create_user_api_key_endpoint)
-    app.delete("/user/api-key", tags=["API Key Management"], summary="Revoke API Key")(revoke_user_api_key_endpoint)
-    app.put("/user/api-key", tags=["API Key Management"], summary="Regenerate API Key")(regenerate_user_api_key_endpoint)
+    app.get("/user/api-key", include_in_schema=False)(get_user_api_key_endpoint)
+    app.post("/user/api-key", include_in_schema=False)(create_user_api_key_endpoint)
+    app.delete("/user/api-key", include_in_schema=False)(revoke_user_api_key_endpoint)
+    app.put("/user/api-key", include_in_schema=False)(regenerate_user_api_key_endpoint)
     
     print("✅ API Key endpoints carregados")
     
