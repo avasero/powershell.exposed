@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import Navbar from "./components/navbar";
 import Footer from "./components/footer";
+import CookieBanner from "./components/CookieBanner";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { DrawerProvider } from "./contexts/DrawerContext";
 import { AnalysisDrawerProvider } from "./contexts/AnalysisDrawerContext";
@@ -19,7 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "PowerShell.exposed - Malware Detection Tool",
+  title: "Community-driven PowerShell Detection Indicators",
   description: "Advanced PowerShell command analysis for malware detection",
 };
 
@@ -38,6 +39,7 @@ export default function RootLayout({ children }) {
                   <Navbar />
                   <main className="flex-1">{children}</main>
                   <Footer />
+                  <CookieBanner />
                 </AnalysisDrawerProvider>
               </DrawerProvider>
             </AnalysisEventProvider>

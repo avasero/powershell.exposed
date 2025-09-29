@@ -62,11 +62,36 @@ async def get_or_create_session(
 
 
 def get_supabase_client() -> Client:
-    """Cria e retorna um cliente Supabase"""
+    """Cria e retorna um cliente Supabase com Service Role (deveria bypassar RLS)"""
     from supabase import create_client
     from config.settings import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
     
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
         raise ValueError("SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY devem estar configurados")
     
-    return create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    
+    
+    client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    return client
+
+
+def get_supabase_client_with_user_context(access_token: str = None) -> Client:
+    """Cria cliente Supabase com contexto de usuário para RLS"""
+    from supabase import create_client
+    from config.settings import SUPABASE_URL, SUPABASE_ANON_KEY
+    
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        raise ValueError("SUPABASE_URL e SUPABASE_ANON_KEY devem estar configurados")
+    
+    print(f"🔧 Criando cliente com contexto de usuário")
+    print(f"🔧 Access token presente: {bool(access_token)}")
+    if access_token:
+        print(f"🔧 Access token: {access_token[:20]}...")
+    
+    client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+    
+    if access_token:
+        # Definir o token JWT no cabeçalho de autorização
+        client.postgrest.auth(access_token)
+        
+    return client

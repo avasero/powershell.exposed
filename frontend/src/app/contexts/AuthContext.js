@@ -78,7 +78,6 @@ const createUserSession = async (userId) => {
 // Função para garantir que o perfil do usuário existe
 const ensureUserProfile = async (user) => {
   try {
-    console.log('🔍 Verificando se perfil existe para:', user.email);
     
     // Timeout de 10 segundos para operações do Supabase
     const timeoutPromise = new Promise((_, reject) => 
@@ -98,7 +97,6 @@ const ensureUserProfile = async (user) => {
     ]);
     
     if (existingProfile) {
-      console.log('✅ Perfil já existe');
       return;
     }
     
@@ -108,7 +106,6 @@ const ensureUserProfile = async (user) => {
     }
     
     // Criar perfil se não existe
-    console.log('🔄 Criando perfil para usuário:', user.email);
     
     const profileData = {
       id: user.id,
@@ -128,8 +125,6 @@ const ensureUserProfile = async (user) => {
     
     if (insertError) {
       console.error('❌ Erro ao criar perfil:', insertError);
-    } else {
-      console.log('✅ Perfil criado com sucesso');
     }
     
   } catch (error) {
@@ -141,7 +136,6 @@ const ensureUserProfile = async (user) => {
 const migrateAnonymousAnalyses = async (userId) => {
   try {
     // TEMPORARIAMENTE DESABILITADO para evitar rate limit no login
-    console.log('⚠️ Migração automática temporariamente desabilitada');
     return;
     
     const anonymousAnalyses = getAnonymousAnalyses();
@@ -152,7 +146,6 @@ const migrateAnonymousAnalyses = async (userId) => {
 
     // Migrar apenas as primeiras 3 análises para não estourar rate limit
     const analysesToMigrate = anonymousAnalyses.slice(0, 3);
-    console.log(`🔄 Migrando ${analysesToMigrate.length} análises de ${anonymousAnalyses.length} total`);
     
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     let migratedCount = 0;
@@ -177,7 +170,6 @@ const migrateAnonymousAnalyses = async (userId) => {
 
         if (response.ok) {
           migratedCount++;
-          console.log(`✅ Análise migrada: ${analysis.command.substring(0, 30)}...`);
         } else {
           console.error(`❌ Erro ao migrar análise: ${analysis.command.substring(0, 50)}...`);
         }
@@ -211,7 +203,7 @@ export const AuthProvider = ({ children }) => {
   const pathname = usePathname();
 
   // Pages that don't need authentication
-  const publicRoutes = useMemo(() => ['/login', '/register', '/signatures', '/landing', '/analysis', '/auth/confirm', '/history', '/'], []);
+  const publicRoutes = useMemo(() => ['/login', '/register', '/signatures', '/landing', '/analysis', '/auth/confirm', '/history', '/terms', '/'], []);
 
   useEffect(() => {
    
@@ -250,17 +242,13 @@ export const AuthProvider = ({ children }) => {
     
     // Forçar loading a parar após 15 segundos como fallback absoluto
     const forceStopLoading = setTimeout(() => {
-      console.warn('⚠️ Forçando parada do loading após timeout');
       setLoading(false);
     }, 15000);
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔐 Auth state change:', event, session?.user?.email);
-
         if (event === 'SIGNED_IN' && session) {
-          console.log('✅ Usuário logado via magic link');
           setUser(session.user);
           
           // Executar operações em background sem bloquear o loading
@@ -279,13 +267,10 @@ export const AuthProvider = ({ children }) => {
             }
           })();
         } else if (event === 'SIGNED_OUT') {
-          console.log('👋 Usuário deslogado');
           setUser(null);
         } else if (session) {
-          console.log('🔄 Sessão existente encontrada');
           setUser(session.user);
         } else {
-          console.log('❌ Nenhuma sessão encontrada');
           setUser(null);
         }
        

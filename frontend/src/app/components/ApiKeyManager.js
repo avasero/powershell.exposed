@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ErrorMessage, InfoMessage } from './Messages';
 import ThemedButton from './ThemedButton';
 import LoadingSpinner from './LoadingSpinner';
+import ApiKeyRevealModal from './ApiKeyRevealModal';
 
 export default function ApiKeyManager() {
   const { user, isAuthenticated } = useAuth();
@@ -11,7 +12,8 @@ export default function ApiKeyManager() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [copied, setCopied] = useState(false);
+  const [showRevealModal, setShowRevealModal] = useState(false);
+  const [newApiKey, setNewApiKey] = useState('');
 
   useEffect(() => {
     if (isAuthenticated()) {
@@ -49,6 +51,9 @@ export default function ApiKeyManager() {
       });
 
       if (response.success) {
+        // Store complete key temporarily for modal
+        setNewApiKey(response.api_key.api_key);
+        setShowRevealModal(true);
         setApiKey(response.api_key);
         setSuccess(response.message);
       }
@@ -75,9 +80,13 @@ export default function ApiKeyManager() {
       });
 
       if (response.success) {
+        // Store complete key temporarily for modal
+        console.log('🔄 API Key regenerated, showing modal...', response.api_key.api_key);
+        setNewApiKey(response.api_key.api_key);
+        setShowRevealModal(true);
         setApiKey(response.api_key);
         setSuccess(response.message);
-        setCopied(false);
+        console.log('📊 Modal state set:', { newApiKey: response.api_key.api_key, showRevealModal: true });
       }
     } catch (err) {
       setError(err.message);
@@ -104,7 +113,6 @@ export default function ApiKeyManager() {
       if (response.success) {
         setApiKey(null);
         setSuccess(response.message);
-        setCopied(false);
       }
     } catch (err) {
       setError(err.message);
@@ -113,21 +121,29 @@ export default function ApiKeyManager() {
     }
   };
 
-  const copyToClipboard = async () => {
-    if (apiKey?.api_key) {
-      try {
-        await navigator.clipboard.writeText(apiKey.api_key);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 3000);
-      } catch (err) {
-        setError('Failed to copy to clipboard');
-      }
-    }
-  };
-
   const formatDate = (dateString) => {
     if (!dateString) return 'Never';
-    return new Date(dateString).toLocaleString();
+    return new Date(dateString).toLocaleString('en-US');
+  };
+
+  const maskApiKey = (key) => {
+    if (!key) return '';
+    // Mostra os primeiros 8 caracteres e os últimos 4, mascarando o meio
+    if (key.length <= 12) return key;
+    const start = key.substring(0, 8);
+    const end = key.substring(key.length - 4);
+    const middle = '*'.repeat(Math.max(8, key.length - 12));
+    return `${start}${middle}${end}`;
+  };
+
+  const handleCloseModal = () => {
+    setShowRevealModal(false);
+    setNewApiKey('');
+  };
+
+  const handleModalCopy = () => {
+    // Additional feedback when copied from modal
+    console.log('API Key copied from modal');
   };
 
   if (!isAuthenticated()) {
@@ -174,16 +190,12 @@ export default function ApiKeyManager() {
                         color: 'var(--foreground)'
                       }}
                     >
-                      {apiKey.api_key}
+                      {maskApiKey(apiKey.api_key)}
                     </code>
-                    <ThemedButton
-                      onClick={copyToClipboard}
-                      variant="outline"
-                      className="flex-shrink-0"
-                    >
-                      {copied ? '✅ Copied!' : '📋 Copy'}
-                    </ThemedButton>
                   </div>
+                  <p className="text-xs font-mono mt-1" style={{color: 'var(--muted-foreground)'}}>
+                    💡 The complete key is only shown once during creation for security
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 text-sm font-mono">
@@ -256,7 +268,7 @@ export default function ApiKeyManager() {
           📖 How to Use Your API Key
         </h3>
         <div className="space-y-2 font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-          <p><strong>1. Copy your API Key above</strong></p>
+          <p><strong>1. Copy your API Key from the modal when creating</strong></p>
           <p><strong>2. In Postman or any HTTP client:</strong></p>
           <ul className="ml-4 space-y-1">
             <li>• Set Authorization to &quot;Bearer Token&quot;</li>
@@ -269,6 +281,15 @@ export default function ApiKeyManager() {
           </ul>
         </div>
       </div>
+
+      {/* Modal to reveal complete API Key */}
+      {showRevealModal && (
+        <ApiKeyRevealModal
+          apiKey={newApiKey}
+          onClose={handleCloseModal}
+          onCopy={handleModalCopy}
+        />
+      )}
     </div>
   );
 }

@@ -32,7 +32,7 @@ A comprehensive REST API for analyzing PowerShell commands and detecting potenti
 - **Risk Assessment**: Get risk scores and severity levels (very_low to critical)
 - **MITRE ATT&CK Mapping**: Identify tactics and techniques used by threats
 - **API Key Support**: Use personal API keys for external tools (Postman, cURL)
-- **Rate Limiting**: Built-in protection with captcha bypass options
+- **Rate Limiting**: Built-in protection against abuse
 
 ### Authentication & Access Control:
 - **Web Application**: Anonymous access allowed only through official frontend
@@ -102,7 +102,7 @@ try:
     from routes.api_routes import (
         root_endpoint, health_check_endpoint, analyze_command_endpoint,
         get_user_analyses_endpoint, get_analysis_by_id_endpoint,
-        create_user_session_endpoint, generate_captcha_endpoint, verify_captcha_endpoint
+        create_user_session_endpoint
     )
     
     # Substituir rotas básicas por versões completas
@@ -119,8 +119,6 @@ try:
     app.get("/user-analyses", tags=["User Data"], summary="Get User Analyses")(get_user_analyses_endpoint)
     app.get("/analysis/{analysis_id}", tags=["Command Analysis"], summary="Get Analysis by ID")(get_analysis_by_id_endpoint)
     app.post("/create-user-session", tags=["Session Management"], summary="Create User Session")(create_user_session_endpoint)
-    app.post("/generate-captcha", tags=["Rate Limiting"], summary="Generate Captcha")(generate_captcha_endpoint)
-    app.post("/verify-captcha", tags=["Rate Limiting"], summary="Verify Captcha")(verify_captcha_endpoint)
     
     print("✅ Rotas básicas carregadas")
     
@@ -156,10 +154,10 @@ try:
         revoke_user_api_key_endpoint, regenerate_user_api_key_endpoint
     )
     
-    app.get("/user/api-key", tags=["API Key Management"], summary="Get User API Key")(get_user_api_key_endpoint)
-    app.post("/user/api-key", tags=["API Key Management"], summary="Create API Key")(create_user_api_key_endpoint)
-    app.delete("/user/api-key", tags=["API Key Management"], summary="Revoke API Key")(revoke_user_api_key_endpoint)
-    app.put("/user/api-key", tags=["API Key Management"], summary="Regenerate API Key")(regenerate_user_api_key_endpoint)
+    app.get("/user/api-key", include_in_schema=False)(get_user_api_key_endpoint)
+    app.post("/user/api-key", include_in_schema=False)(create_user_api_key_endpoint)
+    app.delete("/user/api-key", include_in_schema=False)(revoke_user_api_key_endpoint)
+    app.put("/user/api-key", include_in_schema=False)(regenerate_user_api_key_endpoint)
     
     print("✅ API Key endpoints carregados")
     

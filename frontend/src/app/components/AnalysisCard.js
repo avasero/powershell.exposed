@@ -29,6 +29,12 @@ function getYamlLink(signatureName) {
   return `https://github.com/powershell-exposed/signatures/blob/main/${filename}.yml`;
 }
 
+// Function to truncate long text with ellipsis
+function truncateText(text, maxLength = 50) {
+  if (!text || text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + '...';
+}
+
 export default function AnalysisCard({ 
   title, 
   description,
@@ -206,135 +212,137 @@ export default function AnalysisCard({
             <div className="text-sm font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
               Match Location
             </div>
-            {(() => {
-              const uniquePatterns = new Map();
-              matchesInfo.matchesDetails.forEach((match, idx) => {
-                const pattern = match.pattern || 'Unknown pattern';
-                if (!uniquePatterns.has(pattern)) {
-                  uniquePatterns.set(pattern, []);
-                }
-                uniquePatterns.get(pattern).push({...match, originalIndex: idx});
-              });
+            <div className="text-sm font-mono p-3 rounded" style={{backgroundColor: 'var(--muted)', color: 'var(--foreground)'}}>
+              {(() => {
+                const uniquePatterns = new Map();
+                matchesInfo.matchesDetails.forEach((match, idx) => {
+                  const pattern = match.pattern || 'Unknown pattern';
+                  if (!uniquePatterns.has(pattern)) {
+                    uniquePatterns.set(pattern, []);
+                  }
+                  uniquePatterns.get(pattern).push({...match, originalIndex: idx});
+                });
 
-              // Função para compactar o padrão entre os matches
-              const compactPatternWithMatches = (pattern, matches) => {
-                if (matches.length === 0) return pattern;
-                
-                // Ordenar matches por posição no padrão
-                const sortedMatches = matches
-                  .map(match => ({
-                    ...match,
-                    index: pattern.toLowerCase().indexOf(match.matched_text.toLowerCase())
-                  }))
-                  .filter(match => match.index !== -1)
-                  .sort((a, b) => a.index - b.index);
-                
-                if (sortedMatches.length === 0) return pattern;
-                
-                let result = '';
-                let lastEnd = 0;
-                
-                sortedMatches.forEach((match, idx) => {
-                  const matchStart = match.index;
-                  const matchEnd = matchStart + match.matched_text.length;
+                // Função para compactar o padrão entre os matches
+                const compactPatternWithMatches = (pattern, matches) => {
+                  if (matches.length === 0) return pattern;
                   
-                  // Adicionar texto antes do match
-                  if (matchStart > lastEnd) {
-                    const beforeText = pattern.substring(lastEnd, matchStart);
+                  // Ordenar matches por posição no padrão
+                  const sortedMatches = matches
+                    .map(match => ({
+                      ...match,
+                      index: pattern.toLowerCase().indexOf(match.matched_text.toLowerCase())
+                    }))
+                    .filter(match => match.index !== -1)
+                    .sort((a, b) => a.index - b.index);
+                  
+                  if (sortedMatches.length === 0) return pattern;
+                  
+                  let result = '';
+                  let lastEnd = 0;
+                  
+                  sortedMatches.forEach((match, idx) => {
+                    const matchStart = match.index;
+                    const matchEnd = matchStart + match.matched_text.length;
                     
-                    // Para o primeiro match, mostrar mais contexto (até 50 caracteres)
-                    if (idx === 0) {
-                      if (beforeText.length > 50) {
-                        result += '(...)' + beforeText.substring(beforeText.length - 50);
+                    // Adicionar texto antes do match
+                    if (matchStart > lastEnd) {
+                      const beforeText = pattern.substring(lastEnd, matchStart);
+                      
+                      // Para o primeiro match, mostrar mais contexto (até 50 caracteres)
+                      if (idx === 0) {
+                        if (beforeText.length > 50) {
+                          result += '(...)' + beforeText.substring(beforeText.length - 50);
+                        } else {
+                          result += beforeText;
+                        }
                       } else {
-                        result += beforeText;
+                        // Para matches subsequentes, compactar mais (20 caracteres)
+                        if (beforeText.length > 20) {
+                          result += '(...)';
+                        } else {
+                          result += beforeText;
+                        }
                       }
+                    }
+                    
+                    // Adicionar o match destacado
+                    result += `<mark>${match.matched_text}</mark>`;
+                    
+                    lastEnd = matchEnd;
+                  });
+                  
+                  // Adicionar texto após o último match - mostrar mais contexto (até 50 caracteres)
+                  if (lastEnd < pattern.length) {
+                    const afterText = pattern.substring(lastEnd);
+                    if (afterText.length > 50) {
+                      result += afterText.substring(0, 50) + '(...)';
                     } else {
-                      // Para matches subsequentes, compactar mais (20 caracteres)
-                      if (beforeText.length > 20) {
-                        result += '(...)';
-                      } else {
-                        result += beforeText;
-                      }
+                      result += afterText;
                     }
                   }
                   
-                  // Adicionar o match destacado
-                  result += `<mark>${match.matched_text}</mark>`;
-                  
-                  lastEnd = matchEnd;
-                });
-                
-                // Adicionar texto após o último match - mostrar mais contexto (até 50 caracteres)
-                if (lastEnd < pattern.length) {
-                  const afterText = pattern.substring(lastEnd);
-                  if (afterText.length > 50) {
-                    result += afterText.substring(0, 50) + '(...)';
-                  } else {
-                    result += afterText;
-                  }
-                }
-                
-                return result;
-              };
+                  return result;
+                };
 
-              return Array.from(uniquePatterns.entries()).map(([pattern, matches], patternIdx) => (
-                <div key={patternIdx} className="text-sm font-mono p-3 mb-3 rounded border" 
-                  style={{backgroundColor: 'var(--muted)', color: 'var(--foreground)', borderColor: 'var(--border-color)'}}>
-                  
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="text-xs text-gray-400">
-                      Pattern {patternIdx + 1} ({matches.length} match{matches.length !== 1 ? 'es' : ''})
-                    </div>
-                    {link && (
-                      <a 
-                        href={link} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="text-xs hover:underline cursor-pointer"
-                        style={{color: 'var(--primary-blue)'}}
-                        title="Click on the YAML to see the full regex"
-                      >
-                        📄 YAML (click to see full regex)
-                      </a>
-                    )}
-                  </div>
-                  
-                  <div className="font-bold break-all mb-2 p-2 rounded" style={{backgroundColor: 'var(--background)', fontSize: '11px'}}>
-                    {(() => {
-                      const compactPattern = compactPatternWithMatches(pattern, matches);
-                      
-                      const parts = compactPattern.split(/(<mark>.*?<\/mark>)/g);
-                      return parts.map((part, index) => {
-                        if (part.startsWith('<mark>') && part.endsWith('</mark>')) {
-                          const content = part.slice(6, -7); // Remove <mark> e </mark>
-                          return (
-                            <span key={index} className="bg-yellow-400 text-black px-1 rounded font-bold">
-                              {content}
-                            </span>
-                          );
-                        }
-                        return part;
-                      });
-                    })()}
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-2">
-                    {matches.map((match, matchIdx) => (
-                      <div key={matchIdx} className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
-                        style={{backgroundColor: 'var(--accent)', color: 'var(--background)'}}>
-                        <span className="font-bold">{match.matched_text}</span>
-                        {match.position && (
-                          <span className="opacity-75">
-                            [{match.position.start}-{match.position.end}]
-                          </span>
-                        )}
+                return Array.from(uniquePatterns.entries()).map(([pattern, matches], patternIdx) => (
+                  <div key={patternIdx} className="mb-3 last:mb-0">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="text-xs text-white">
+                        Pattern {patternIdx + 1} ({matches.length} match{matches.length !== 1 ? 'es' : ''})
                       </div>
-                    ))}
+                      {link && (
+                        <a 
+                          href={link} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-xs hover:underline cursor-pointer"
+                          style={{color: 'var(--primary-blue)'}}
+                          title="Click on the YAML to see the full regex"
+                        >
+                          📄 YAML (click to see full regex)
+                        </a>
+                      )}
+                    </div>
+                    
+                    <div className="font-bold break-all mb-2 p-2 rounded" style={{backgroundColor: 'var(--background)', fontSize: '11px', border: '1px solid var(--border-color)'}}>
+                      {(() => {
+                        const compactPattern = compactPatternWithMatches(pattern, matches);
+                        
+                        const parts = compactPattern.split(/(<mark>.*?<\/mark>)/g);
+                        return parts.map((part, index) => {
+                          if (part.startsWith('<mark>') && part.endsWith('</mark>')) {
+                            const content = part.slice(6, -7); // Remove <mark> e </mark>
+                            return (
+                              <span key={index} className="bg-yellow-400 text-black px-1 rounded font-bold">
+                                {content}
+                              </span>
+                            );
+                          }
+                          return part;
+                        });
+                      })()}
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2">
+                      {matches.map((match, matchIdx) => (
+                        <div key={matchIdx} className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs max-w-full"
+                          style={{backgroundColor: 'var(--accent)', color: 'var(--background)'}}>
+                          <span className="font-bold break-all" title={match.matched_text}>
+                            {truncateText(match.matched_text, 50)}
+                          </span>
+                          {match.position && (
+                            <span className="opacity-75 flex-shrink-0">
+                              [{match.position.start}-{match.position.end}]
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ));
-            })()}
+                ));
+              })()}
+            </div>
           </div>
         )}
 

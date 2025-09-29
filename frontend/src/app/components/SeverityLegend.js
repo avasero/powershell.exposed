@@ -40,8 +40,8 @@ export default function SeverityLegend({ className = "" }) {
       {/* Tooltip Trigger */}
       <div className="flex items-center justify-center gap-2">
         <button
-          className="w-5 h-5 rounded-full border border-current flex items-center justify-center text-xs font-bold hover:bg-current hover:text-black transition-colors"
-          style={{color: 'var(--accent)'}}
+          className="w-5 h-5 rounded-full border border-current flex items-center justify-center text-xs font-normal hover:bg-current hover:text-black transition-colors"
+          style={{color: 'var(--accent)', textTransform: 'none'}}
           onMouseEnter={() => setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
           title="Score ranges information"

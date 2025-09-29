@@ -9,8 +9,6 @@ export async function POST(request) {
       region, 
       timezone, 
       user_agent,
-      captcha_token,
-      captcha_answer,
       session_id
     } = await request.json();
     
@@ -32,11 +30,7 @@ export async function POST(request) {
       session_id
     };
 
-    // Incluir dados do captcha se fornecidos
-    if (captcha_token && captcha_answer) {
-      requestBody.captcha_token = captcha_token;
-      requestBody.captcha_answer = captcha_answer;
-    }
+
 
     const response = await fetch('https://powershell-fastapi.vercel.app/analyze-pcre2', {
       method: 'POST',

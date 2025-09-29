@@ -18,29 +18,89 @@ export default function AnalysisChat() {
   const [deleting, setDeleting] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [hiddenAnalyses, setHiddenAnalyses] = useState(new Set());
   const router = useRouter();
 
   // useEffect removido para evitar conflitos
 
+  // Funções para gerenciar análises escondidas no localStorage
+  const getHiddenAnalysesKey = () => {
+    if (isAnonymous) {
+      return 'powershell-exposed-hidden-anonymous-analyses';
+    } else if (user?.id) {
+      return `powershell-exposed-hidden-analyses-${user.id}`;
+    }
+    return 'powershell-exposed-hidden-analyses-default';
+  };
+
+  const loadHiddenAnalyses = () => {
+    try {
+      const key = getHiddenAnalysesKey();
+      const hidden = localStorage.getItem(key);
+      if (hidden) {
+        const hiddenSet = new Set(JSON.parse(hidden));
+        setHiddenAnalyses(hiddenSet); // Sempre atualizar o estado
+        return hiddenSet;
+      }
+    } catch (error) {
+      console.error('Error loading hidden analyses:', error);
+    }
+    const emptySet = new Set();
+    setHiddenAnalyses(emptySet); // Sempre atualizar o estado mesmo quando vazio
+    return emptySet;
+  };
+
+  const saveHiddenAnalyses = (hiddenSet) => {
+    try {
+      const key = getHiddenAnalysesKey();
+      localStorage.setItem(key, JSON.stringify([...hiddenSet]));
+    } catch (error) {
+      console.error('Error saving hidden analyses:', error);
+    }
+  };
+
+  const hideAllCurrentAnalyses = () => {
+    const newHiddenSet = new Set(hiddenAnalyses);
+    analyses.forEach(analysis => {
+      const analysisId = analysis.short_id || analysis.uuid || analysis.id;
+      if (analysisId) {
+        newHiddenSet.add(analysisId);
+      }
+    });
+    setHiddenAnalyses(newHiddenSet);
+    saveHiddenAnalyses(newHiddenSet);
+    
+    // Força uma atualização no localStorage para garantir persistência
+    setTimeout(() => {
+      const updatedHiddenSet = loadHiddenAnalyses();
+      console.log('Hidden analyses updated:', [...updatedHiddenSet]);
+    }, 100);
+  };
+
  
   // useEffect otimizado para evitar re-renders desnecessários
   useEffect(() => {
+    // Carregar análises escondidas primeiro
+    const hiddenSet = loadHiddenAnalyses();
+    
     if (isAuthenticated() && user) {
       setIsAnonymous(false);
-      loadRecentAnalyses();
+      loadRecentAnalyses(hiddenSet);
     } else if (!isAuthenticated()) {
       setIsAnonymous(true);
-      loadAnonymousAnalyses();
+      loadAnonymousAnalyses(hiddenSet);
     }
   }, [user?.id]); // Apenas observar mudanças no ID do usuário
 
   // Recarregar análises quando uma nova análise é feita (via evento global)
   useEffect(() => {
     if (analysisCount > 0) {
+      // Carregar estado mais atual das análises escondidas do localStorage
+      const currentHiddenSet = loadHiddenAnalyses();
       if (isAuthenticated() && !isAnonymous) {
-        loadRecentAnalyses();
+        loadRecentAnalyses(currentHiddenSet);
       } else {
-        loadAnonymousAnalyses();
+        loadAnonymousAnalyses(currentHiddenSet);
       }
     }
   }, [analysisCount]); // Removido isAuthenticated e isAnonymous das dependências
@@ -56,7 +116,7 @@ export default function AnalysisChat() {
     return () => clearInterval(interval);
   }, []);
 
-  const loadRecentAnalyses = async () => {
+  const loadRecentAnalyses = async (hiddenSet = hiddenAnalyses) => {
     
     try {
       setLoading(true);
@@ -67,7 +127,7 @@ export default function AnalysisChat() {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         
         const { makeAuthenticatedRequest } = await import('../../lib/api');
-        const response = await makeAuthenticatedRequest(`/user-analyses?limit=5&user_id=${user.id}`, {
+        const response = await makeAuthenticatedRequest(`/user-analyses?limit=20&user_id=${user.id}`, {
           method: 'GET'
         });
 
@@ -83,9 +143,24 @@ export default function AnalysisChat() {
         } catch (jsonError) {
           throw new Error('Invalid JSON response');
         }
-        // Processar dados do backend
-        const analyses = result.analyses || result || [];
-        setAnalyses(analyses);
+        // Processar dados do backend e filtrar análises escondidas
+        const allAnalyses = result.analyses || result || [];
+        console.log('📊 All analyses from API:', allAnalyses.length);
+        console.log('🙈 Hidden analyses:', [...hiddenSet]);
+        
+        const filteredAnalyses = allAnalyses
+          .filter(analysis => {
+            const analysisId = analysis.short_id || analysis.uuid || analysis.id;
+            const isHidden = hiddenSet.has(analysisId);
+            if (isHidden) {
+              console.log('⚠️ Filtering out hidden analysis:', analysisId);
+            }
+            return !isHidden;
+          })
+          .slice(0, 5); // Limitar a 5 após filtrar
+        
+        console.log('✅ Filtered analyses for chat:', filteredAnalyses.length);
+        setAnalyses(filteredAnalyses);
         return;
       }
       
@@ -104,7 +179,7 @@ export default function AnalysisChat() {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       
       const { makeAuthenticatedRequest } = await import('../../lib/api');
-      const response = await makeAuthenticatedRequest(`/user-analyses?limit=5`, {
+      const response = await makeAuthenticatedRequest(`/user-analyses?limit=20`, {
         method: 'GET',
         headers: {
           'X-Session-ID': sessionId, // Enviar session_id no header
@@ -118,9 +193,24 @@ export default function AnalysisChat() {
 
       const result = await response.json();
       
-      // Processar dados do backend
-      const analyses = result.analyses || result || [];
-      setAnalyses(analyses);
+      // Processar dados do backend e filtrar análises escondidas
+      const allAnalyses = result.analyses || result || [];
+      console.log('📊 All session analyses from API:', allAnalyses.length);
+      console.log('🙈 Hidden analyses:', [...hiddenSet]);
+      
+      const filteredAnalyses = allAnalyses
+        .filter(analysis => {
+          const analysisId = analysis.short_id || analysis.uuid || analysis.id;
+          const isHidden = hiddenSet.has(analysisId);
+          if (isHidden) {
+            console.log('⚠️ Filtering out hidden session analysis:', analysisId);
+          }
+          return !isHidden;
+        })
+        .slice(0, 5); // Limitar a 5 após filtrar
+      
+      console.log('✅ Filtered session analyses for chat:', filteredAnalyses.length);
+      setAnalyses(filteredAnalyses);
      
     } catch (err) {
       console.error('❌ [ANALYSIS CHAT] Error loading recent analyses:', err);
@@ -131,15 +221,21 @@ export default function AnalysisChat() {
     }
   };
 
-  const loadAnonymousAnalyses = () => {
+  const loadAnonymousAnalyses = (hiddenSet = hiddenAnalyses) => {
     try {
       setLoading(true);
       
       const data = getAnonymousAnalyses();
       
-      // Limitar a apenas as últimas 5 análises para o chat
-      const limitedData = data.slice(0, 5);
-      setAnalyses(limitedData);
+      // Filtrar análises escondidas e limitar a apenas as últimas 5 análises para o chat
+      const filteredData = data
+        .filter(analysis => {
+          const analysisId = analysis.id;
+          return !hiddenSet.has(analysisId);
+        })
+        .slice(0, 5);
+      
+      setAnalyses(filteredData);
       
     } catch (err) {
       console.error('❌ [ANALYSIS CHAT] Error loading anonymous analyses:', err);
@@ -165,7 +261,7 @@ export default function AnalysisChat() {
 
   const handleDeleteRecentAnalyses = async () => {
     if (isAnonymous) {
-      // Para usuários anônimos: limpar cookies
+      // Para usuários anônimos: limpar cookies (comportamento original)
       if (!confirm('Are you sure you want to clear all anonymous analyses from cookies? This will remove all stored analyses (not just the 5 shown here) and cannot be undone.')) {
         return;
       }
@@ -173,6 +269,10 @@ export default function AnalysisChat() {
       try {
         setDeleting(true);
         clearAnonymousAnalyses();
+        // Também limpar análises escondidas para usuários anônimos
+        const key = getHiddenAnalysesKey();
+        localStorage.removeItem(key);
+        setHiddenAnalyses(new Set());
         setAnalyses([]);
       } catch (err) {
         console.error('Error clearing anonymous analyses:', err);
@@ -181,19 +281,23 @@ export default function AnalysisChat() {
         setDeleting(false);
       }
     } else {
-      // Para usuários logados: apenas limpar o estado local (não deletar do banco)
-      if (!confirm('Are you sure you want to clear all analyses from this chat view? All your analyses will remain safely saved in your account and will reappear when you refresh the page.')) {
+      // Para usuários logados: esconder análises atuais do chat
+      if (!confirm('Are you sure you want to hide these analyses from the chat view? They will remain safely saved in your account and visible in the history page, but won\'t appear in this chat until you refresh or clear the hidden list.')) {
         return;
       }
       
       try {
         setDeleting(true);
-        // Apenas limpar o estado local - não deletar do banco
+        
+        // Esconder todas as análises atuais
+        hideAllCurrentAnalyses();
+        
+        // Limpar a visualização do chat
         setAnalyses([]);
         
       } catch (err) {
-        console.error('Error clearing chat:', err);
-        alert('Error clearing chat. Please try again.');
+        console.error('Error hiding analyses from chat:', err);
+        alert('Error hiding analyses. Please try again.');
       } finally {
         setDeleting(false);
       }
@@ -414,9 +518,9 @@ export default function AnalysisChat() {
             size="sm"
             variant="destructive"
             loading={deleting}
-            title={isAnonymous ? "Clear all anonymous analyses from cookies" : "Clear recent analyses from chat view (keeps safely saved in account)"}
+            title={isAnonymous ? "Clear all anonymous analyses from cookies" : "Hide current analyses from chat view (they remain in your account and history page)"}
           >
-            {deleting ? (isAnonymous ? 'Clearing...' : 'Clearing...') : (isAnonymous ? 'Clear' : 'Clear')}
+            {deleting ? (isAnonymous ? 'Clearing...' : 'Hiding...') : (isAnonymous ? 'Clear' : 'Hide from chat')}
           </ThemedButton>
         </div>
       </div>
@@ -596,9 +700,9 @@ export default function AnalysisChat() {
                     style={{
                       color: deleting ? 'var(--muted-foreground)' : '#EF4444'
                     }}
-                    title={isAnonymous ? "Clear all anonymous analyses from cookies" : "Clear recent analyses from chat view (keeps safely saved in account)"}
+                    title={isAnonymous ? "Clear all anonymous analyses from cookies" : "Hide current analyses from chat view (they remain in your account and history page)"}
                   >
-                    {deleting ? (isAnonymous ? 'Clearing...' : 'Clearing...') : (isAnonymous ? 'Clear' : 'Clear')}
+                    {deleting ? (isAnonymous ? 'Clearing...' : 'Hiding...') : (isAnonymous ? 'Clear' : 'Hide from chat')}
                   </button>
                 )}
               </div>

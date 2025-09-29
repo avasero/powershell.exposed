@@ -241,7 +241,7 @@ export default function Home() {
                 />
               </div>
             
-            <div className="flex-shrink-0 flex items-center">
+            <div className="flex-shrink-0 flex items-center md:pt-20">
               <ThemedButton
                 type="submit"
                 disabled={error !== "" || loading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}

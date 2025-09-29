@@ -31,7 +31,10 @@ async def get_user_api_key_endpoint(
                 detail="This endpoint requires JWT authentication, not API Key"
             )
         
-        api_key_data = await get_user_api_key(current_user["id"])
+        api_key_data = await get_user_api_key(
+            current_user["id"],
+            access_token=current_user.get("access_token")
+        )
         
         if api_key_data:
             return JSONResponse({
@@ -81,7 +84,10 @@ async def create_user_api_key_endpoint(
                 detail="This endpoint requires JWT authentication, not API Key"
             )
         
-        api_key_data = await create_user_api_key(current_user["id"])
+        api_key_data = await create_user_api_key(
+            current_user["id"], 
+            access_token=current_user.get("access_token")
+        )
         
         if api_key_data:
             return JSONResponse({
@@ -127,7 +133,10 @@ async def revoke_user_api_key_endpoint(
                 detail="This endpoint requires JWT authentication, not API Key"
             )
         
-        success = await revoke_user_api_key(current_user["id"])
+        success = await revoke_user_api_key(
+            current_user["id"],
+            access_token=current_user.get("access_token")
+        )
         
         if success:
             return JSONResponse({
@@ -166,7 +175,10 @@ async def regenerate_user_api_key_endpoint(
                 detail="This endpoint requires JWT authentication, not API Key"
             )
         
-        api_key_data = await regenerate_user_api_key(current_user["id"])
+        api_key_data = await regenerate_user_api_key(
+            current_user["id"], 
+            current_user.get("access_token")
+        )
         
         if api_key_data:
             return JSONResponse({

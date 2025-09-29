@@ -114,6 +114,17 @@ export default function SideDrawer() {
                 </div>
               </div>
               
+              <Link
+                href="/settings"
+                onClick={handleLinkClick}
+                className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm border transition-all duration-200 hover:opacity-80 text-center bg-black/80 border-green-500/30 hover:border-green-500/50  cursor-pointer"
+                style={{
+                  color: 'var(--accent)'
+                }}
+              >
+                Settings
+              </Link>
+              
               <button
                 onClick={handleLogout}
                 className="w-full px-4 py-3 font-mono font-semibold rounded text-sm transition-all duration-200 hover:opacity-80 bg-black/80 border border-green-500/30 hover:border-green-500/50  cursor-pointer"
