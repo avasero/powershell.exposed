@@ -34,15 +34,24 @@ A comprehensive REST API for analyzing PowerShell commands and detecting potenti
 - **API Key Support**: Use personal API keys for external tools (Postman, cURL)
 - **Rate Limiting**: Built-in protection with captcha bypass options
 
-### Authentication:
-- **Anonymous**: Basic analysis without registration
-- **JWT Tokens**: Web application authentication
-- **API Keys**: Personal keys for external tool integration (format: `pse_xxxxxxxx`)
+### Authentication & Access Control:
+- **Web Application**: Anonymous access allowed only through official frontend
+- **Direct API Access**: Requires API Key authentication for external tools
+- **JWT Tokens**: Web application user authentication
+- **API Keys**: Personal keys for external integration (format: `pse_xxxxxxxx`)
+
+### Access Restrictions:
+⚠️ **Anonymous access is restricted to the official web application only.**
+
+For direct API access (Postman, cURL, scripts):
+1. Create an account on the web application
+2. Generate an API Key in your profile
+3. Use the API Key: `Authorization: Bearer pse_your_key`
 
 ### Getting Started:
-1. Analyze commands with `POST /analyze-pcre2`
-2. Create an account to get personal API keys
-3. Use API keys in external tools with `Authorization: Bearer pse_your_key`
+1. **Web App**: Visit the frontend to analyze commands anonymously
+2. **API Access**: Get an API Key from your profile for external tools
+3. **Endpoint**: `POST /analyze-pcre2` with proper authentication
 """
 API_VERSION = "1.0.0"
 
@@ -61,14 +70,26 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "https://powershell-exposed.vercel.app", 
-        "https://powershell-exposed-git-main-gabriels-projects.vercel.app"
+        
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
-# Tentar carregar middleware de autenticação
+# IMPORTANTE: Ordem dos middlewares é crucial no FastAPI
+# Os middlewares são executados na ordem REVERSA de como são adicionados
+# Por isso, adicionamos primeiro o que queremos executar POR ÚLTIMO
+
+# 1. Middleware de validação do frontend (executado PRIMEIRO)
+try:
+    from middleware.frontend_validation import validate_anonymous_access
+    app.middleware("http")(validate_anonymous_access)
+    print("✅ Frontend validation middleware carregado")
+except ImportError as e:
+    print(f"⚠️ Frontend validation middleware não disponível: {e}")
+
+# 2. Middleware de autenticação (executado SEGUNDO) 
 try:
     from middleware.auth_middleware import auth_middleware
     app.middleware("http")(auth_middleware)

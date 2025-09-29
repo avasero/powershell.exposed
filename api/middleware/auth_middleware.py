@@ -140,6 +140,7 @@ async def get_user_from_request_headers(request: Request) -> Optional[Dict[str, 
     """
     Extract user from request headers manually
     Useful for custom middleware or when you need more control
+    Supports both JWT tokens and API Keys
     """
     try:
         authorization = request.headers.get("Authorization")
@@ -153,15 +154,34 @@ async def get_user_from_request_headers(request: Request) -> Optional[Dict[str, 
         
         token = authorization[7:]  # Remove "Bearer " prefix
         
+        # Check if it's an API Key (starts with pse_)
+        if token.startswith("pse_"):
+            try:
+                api_key_data = await validate_api_key(token)
+                if api_key_data:
+                    return {
+                        "id": api_key_data["user_id"],
+                        "email": api_key_data.get("profile", {}).get("email") if api_key_data.get("profile") else None,
+                        "role": "authenticated",
+                        "auth_type": "api_key",
+                        "api_key_name": api_key_data["api_key_name"],
+                        "usage_count": api_key_data["usage_count"]
+                    }
+            except Exception as e:
+                print(f"API Key validation error in middleware: {e}")
+                return None
+        
+        # Otherwise, try JWT token
         try:
             payload = decode_jwt_token(token)
             user = extract_user_from_token(payload)
+            user["auth_type"] = "jwt"
             return user
         except AuthenticationError as e:
-            print(f"Authentication error in middleware: {e}")
+            print(f"JWT authentication error in middleware: {e}")
             return None
         except Exception as e:
-            print(f"Unexpected auth error in middleware: {e}")
+            print(f"Unexpected JWT auth error in middleware: {e}")
             return None
     except Exception as e:
         print(f"Error in auth middleware: {e}")
