@@ -76,19 +76,13 @@ export default function Navbar() {
                 onClick={() => window.location.href = '/'}
                 size="sm"
               >
-                Try Evaluation
+                Evaluate Command
               </ThemedButton>
               <ThemedButton
                 onClick={() => window.location.href = '/login'}
                 size="sm"
               >
                 Login
-              </ThemedButton>
-              <ThemedButton
-                onClick={() => window.location.href = '/register'}
-                size="sm"
-              >
-                Sign Up
               </ThemedButton>
             </>
           )}

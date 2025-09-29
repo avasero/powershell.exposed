@@ -33,14 +33,14 @@ export default function LoginPage() {
           setError('Please enter a valid email address.');
         } else if (error.message.includes('rate limit')) {
           setError('Too many requests. Please wait a moment before trying again.');
-        } else if (error.message.includes('User not found') || error.message.includes('Signup')) {
-          setError('No account found with this email. Please sign up first or check your email.');
         } else {
-          setError(error.message);
+          // For security reasons, don't reveal if email exists or not
+          setMagicLinkSent(true);
+          setMessage('Login link sent! Check your email to complete the login.');
         }
       } else {
         setMagicLinkSent(true);
-        setMessage('Magic link sent! Check your email to complete the login.');
+        setMessage('Login link sent! Check your email to complete the login.');
       }
     } catch (err) {
       setError('Unexpected error during login');
@@ -58,7 +58,7 @@ export default function LoginPage() {
             Login
           </h1>
           <p className="mt-2 font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-            {magicLinkSent ? 'Check your email for the magic link' : 'Enter your email to receive a login link'}
+            {magicLinkSent ? 'Check your email' : 'Enter your email to receive a login link'}
           </p>
         </div>
 
@@ -80,22 +80,30 @@ export default function LoginPage() {
               <ThemedButton
                 type="submit"
                 disabled={loading}
+                variant="primary"
                 className="w-full"
+                style={{
+                  borderColor: 'var(--accent)',
+                  color: 'var(--accent)'
+                }}
               >
-                {loading ? <LoadingSpinner size="sm" /> : 'Send Magic Link'}
+                {loading ? <LoadingSpinner size="sm" /> : 'Login'}
               </ThemedButton>
             </form>
           ) : (
             <div className="space-y-4 text-center">
               <div className="text-6xl mb-4">📧</div>
               <h2 className="text-xl font-mono font-bold" style={{color: 'var(--accent)'}}>
-                Magic Link Sent!
+                Login Link Sent!
               </h2>
               <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
                 We&apos;ve sent a secure login link to <strong>{email}</strong>
               </p>
               <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
-                Click the link in your email to complete the login process.
+                Click the link in your email to complete the login process. This link is valid for 1 hour.
+              </p>
+              <p className="text-sm font-mono" style={{color: 'var(--accent)'}}>
+                If you&apos;ve not received a login link you probably have not signed up yet
               </p>
               
               {message && <InfoMessage message={message} />}
@@ -109,6 +117,10 @@ export default function LoginPage() {
                   }}
                   variant="outline"
                   className="w-full"
+                  style={{
+                    borderColor: 'var(--accent)',
+                    color: 'var(--accent)'
+                  }}
                 >
                   Send Another Link
                 </ThemedButton>
@@ -136,12 +148,8 @@ export default function LoginPage() {
               <ThemedButton 
                 variant="outline" 
                 className="w-full"
-                style={{
-                  borderColor: 'var(--accent)',
-                  color: 'var(--accent)'
-                }}
               >
-                Try Analysis Without Account
+                Evaluate Command Without Account
               </ThemedButton>
             </Link>
           </div>

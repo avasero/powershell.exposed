@@ -54,7 +54,7 @@ export default function RegisterPage() {
         }
       } else {
         setMagicLinkSent(true);
-        setMessage('Magic link sent! Check your email to complete the registration.');
+        setMessage('Registration link sent! Check your email to complete the registration.');
       }
     } catch (err) {
       setError('Unexpected error during registration');
@@ -97,7 +97,7 @@ export default function RegisterPage() {
             Sign Up
           </h1>
           <p className="mt-2 font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-            {magicLinkSent ? 'Check your email for the magic link' : 'Create your account with magic link'}
+            {magicLinkSent ? 'Check your email' : 'Create your account with magic link'}
           </p>
         </div>
 
@@ -121,7 +121,12 @@ export default function RegisterPage() {
                 <ThemedButton
                   onClick={handleLoginInstead}
                   disabled={loading}
+                  variant="primary"
                   className="w-full"
+                  style={{
+                    borderColor: 'var(--accent)',
+                    color: 'var(--accent)'
+                  }}
                 >
                   {loading ? <LoadingSpinner size="sm" /> : 'Send Login Link'}
                 </ThemedButton>
@@ -164,7 +169,12 @@ export default function RegisterPage() {
               <ThemedButton
                 type="submit"
                 disabled={loading}
+                variant="outline"
                 className="w-full"
+                style={{
+                  borderColor: 'var(--accent)',
+                  color: 'var(--accent)'
+                }}
               >
                 {loading ? <LoadingSpinner size="sm" /> : 'Create Account'}
               </ThemedButton>
@@ -173,13 +183,16 @@ export default function RegisterPage() {
             <div className="space-y-4 text-center">
               <div className="text-6xl mb-4">📧</div>
               <h2 className="text-xl font-mono font-bold" style={{color: 'var(--accent)'}}>
-                Magic Link Sent!
+                Registration Link Sent!
               </h2>
               <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
                 We&apos;ve sent a secure registration link to <strong>{email}</strong>
               </p>
               <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
-                Click the link in your email to complete your account creation.
+                Click the link in your email to complete your account creation. This link is valid for 1 hour.
+              </p>
+              <p className="text-sm font-mono" style={{color: 'var(--accent)'}}>
+                If you&apos;ve not received a registration link, please try again
               </p>
               
               {message && <InfoMessage message={message} />}
@@ -193,6 +206,10 @@ export default function RegisterPage() {
                   }}
                   variant="outline"
                   className="w-full"
+                  style={{
+                    borderColor: 'var(--accent)',
+                    color: 'var(--accent)'
+                  }}
                 >
                   Send Another Link
                 </ThemedButton>
@@ -220,12 +237,8 @@ export default function RegisterPage() {
               <ThemedButton 
                 variant="outline" 
                 className="w-full"
-                style={{
-                  borderColor: 'var(--accent)',
-                  color: 'var(--accent)'
-                }}
               >
-                Try Analysis Without Account
+                Evaluate Command Without Account
               </ThemedButton>
             </Link>
           </div>
