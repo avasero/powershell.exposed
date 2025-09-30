@@ -109,7 +109,7 @@ export default function LandingPage() {
             </div>
             <div className="text-center p-4 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
               <div className="text-lg mb-2 font-bold" style={{color: 'var(--accent)'}}>2</div>
-              <p>Hit ENTER or click "Evaluate"</p>
+              <p>Hit ENTER or click &quot;Evaluate&quot;</p>
             </div>
             <div className="text-center p-4 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
               <div className="text-lg mb-2 font-bold" style={{color: 'var(--accent)'}}>3</div>
