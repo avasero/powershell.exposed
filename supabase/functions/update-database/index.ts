@@ -15,6 +15,7 @@ interface YamlIndicator {
   technique: string | string[]
   reference: string | string[]
   max_match?: number | string
+  link?: string  // ✅ NOVO: Campo link adicionado
 }
 
 interface DatabaseIndicator {
@@ -28,6 +29,7 @@ interface DatabaseIndicator {
   reference: string[]
   max_match: number
   is_active: boolean
+  link?: string  // ✅ NOVO: Campo link adicionado
 }
 
 function parseYamlIndicator(yamlData: any): DatabaseIndicator | null {
@@ -136,7 +138,14 @@ function parseYamlIndicator(yamlData: any): DatabaseIndicator | null {
     
     console.log(`🎯 Max_match configurado para ${name}: ${maxMatch}`)
     
-    return {
+    // ✅ NOVO: Processar link
+    let link: string | undefined = undefined
+    if (yamlData.link && typeof yamlData.link === 'string') {
+      link = yamlData.link
+      console.log(`🔗 Link configurado para ${name}: ${link}`)
+    }
+    
+    const indicator: DatabaseIndicator = {
       name,
       description,
       patterns,
@@ -148,6 +157,13 @@ function parseYamlIndicator(yamlData: any): DatabaseIndicator | null {
       max_match: maxMatch,
       is_active: true
     }
+    
+    // ✅ NOVO: Adicionar link apenas se estiver presente
+    if (link) {
+      indicator.link = link
+    }
+    
+    return indicator
   } catch (e) {
     console.log(`❌ Erro ao processar indicador: ${e.message}`)
     return null
@@ -172,20 +188,27 @@ async function updateSupabaseDatabase(supabase: any, indicators: DatabaseIndicat
       }
       
       if (existing) {
-        // Atualizar indicador existente
+        // ✅ ATUALIZADO: Atualizar indicador existente com link
+        const updateData: any = {
+          description: indicator.description,
+          patterns: indicator.patterns,
+          basescore: indicator.basescore,
+          severity: indicator.severity,
+          tactics: indicator.tactics,
+          techniques: indicator.techniques,
+          reference: indicator.reference,
+          max_match: indicator.max_match,
+          updated_at: new Date().toISOString()
+        }
+        
+        // Adicionar link apenas se estiver presente
+        if (indicator.link) {
+          updateData.link = indicator.link
+        }
+        
         const { error: updateError } = await supabase
           .from('powershell_signatures')
-          .update({
-            description: indicator.description,
-            patterns: indicator.patterns,
-            basescore: indicator.basescore,
-            severity: indicator.severity,
-            tactics: indicator.tactics,
-            techniques: indicator.techniques,
-            reference: indicator.reference,
-            max_match: indicator.max_match,
-            updated_at: new Date().toISOString()
-          })
+          .update(updateData)
           .eq('id', existing.id)
         
         if (updateError) throw updateError
@@ -193,23 +216,30 @@ async function updateSupabaseDatabase(supabase: any, indicators: DatabaseIndicat
         console.log(`✅ Atualizado indicador: ${indicator.name}`)
         successCount++
       } else {
-        // Inserir novo indicador
+        // ✅ ATUALIZADO: Inserir novo indicador com link
+        const insertData: any = {
+          name: indicator.name,
+          description: indicator.description,
+          patterns: indicator.patterns,
+          basescore: indicator.basescore,
+          severity: indicator.severity,
+          tactics: indicator.tactics,
+          techniques: indicator.techniques,
+          reference: indicator.reference,
+          max_match: indicator.max_match,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          is_active: true
+        }
+        
+        // Adicionar link apenas se estiver presente
+        if (indicator.link) {
+          insertData.link = indicator.link
+        }
+        
         const { error: insertError } = await supabase
           .from('powershell_signatures')
-          .insert({
-            name: indicator.name,
-            description: indicator.description,
-            patterns: indicator.patterns,
-            basescore: indicator.basescore,
-            severity: indicator.severity,
-            tactics: indicator.tactics,
-            techniques: indicator.techniques,
-            reference: indicator.reference,
-            max_match: indicator.max_match,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            is_active: true
-          })
+          .insert(insertData)
         
         if (insertError) throw insertError
         

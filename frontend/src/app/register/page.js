@@ -15,7 +15,6 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [magicLinkSent, setMagicLinkSent] = useState(false);
-  const [showEmailExistsPrompt, setShowEmailExistsPrompt] = useState(false);
   
   const { signUpWithMagicLink, signInWithMagicLink, checkEmailExists } = useAuth();
   const router = useRouter();
@@ -25,30 +24,22 @@ export default function RegisterPage() {
     setLoading(true);
     setError('');
     setMessage('');
-    setShowEmailExistsPrompt(false);
 
     try {
-      // Primeiro, verificar se o email já existe
-      const { exists, error: checkError } = await checkEmailExists(email);
-      
-      if (checkError) {
-        // Se houve erro na verificação (rate limit, etc.), prosseguir com registro normal
-        console.warn('Could not check email existence:', checkError.message);
-        // Continuar com o fluxo normal de registro
-      } else if (exists === true) {
-        // Email já existe, mostrar prompt para login
-        setShowEmailExistsPrompt(true);
-        setLoading(false);
-        return;
-      }
-      // Se exists === false ou null, prosseguir com registro
-
-      // Email não existe, prosseguir com registro
+      // Tentar registrar diretamente - se email já existir, Supabase retornará erro específico
       const { data, error } = await signUpWithMagicLink(email, username);
       
       if (error) {
         if (error.message.includes('Invalid email')) {
           setError('Please enter a valid email address.');
+        } else if (error.message.includes('User already registered') || 
+                   error.message.includes('already registered') ||
+                   error.message.includes('already exists')) {
+          // Email já existe - mostrar mensagem de sucesso sem revelar que existe
+          // Por razões de segurança, não enviamos nenhum email
+          console.log('Email already exists, showing success message without sending any email');
+          setMagicLinkSent(false);
+          setMessage('Registration link sent! Check your email to complete the registration.');
         } else {
           setError(error.message);
         }
@@ -64,28 +55,6 @@ export default function RegisterPage() {
     }
   };
 
-  const handleLoginInstead = async () => {
-    setLoading(true);
-    setError('');
-    setMessage('');
-    setShowEmailExistsPrompt(false);
-
-    try {
-      const { data, error } = await signInWithMagicLink(email);
-      
-      if (error) {
-        setError(error.message);
-      } else {
-        setMagicLinkSent(true);
-        setMessage('Login link sent! Check your email to sign in.');
-      }
-    } catch (err) {
-      setError('Unexpected error during login');
-      console.error('Login error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
 
 
@@ -102,48 +71,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
-          {showEmailExistsPrompt ? (
-            <div className="space-y-4 text-center">
-              <div className="text-4xl mb-4">🤔</div>
-              <h2 className="text-xl font-mono font-bold" style={{color: 'var(--accent)'}}>
-                Email Already Exists
-              </h2>
-              <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
-                An account with <strong>{email}</strong> already exists.
-              </p>
-              <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
-                Would you like to log in instead?
-              </p>
-              
-              {error && <ErrorMessage message={error} />}
-              
-              <div className="space-y-3">
-                <ThemedButton
-                  onClick={handleLoginInstead}
-                  disabled={loading}
-                  variant="primary"
-                  className="w-full"
-                  style={{
-                    borderColor: 'var(--accent)',
-                    color: 'var(--accent)'
-                  }}
-                >
-                  {loading ? <LoadingSpinner size="sm" /> : 'Send Login Link'}
-                </ThemedButton>
-                
-                <ThemedButton
-                  onClick={() => {
-                    setShowEmailExistsPrompt(false);
-                    setError('');
-                  }}
-                  variant="outline"
-                  className="w-full"
-                >
-                  Back to Form
-                </ThemedButton>
-              </div>
-            </div>
-          ) : !magicLinkSent ? (
+          {!magicLinkSent ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <FormInput
                 label="Email"
@@ -189,7 +117,7 @@ export default function RegisterPage() {
                 We&apos;ve sent a secure registration link to <strong>{email}</strong>
               </p>
               <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
-                Click the link in your email to complete your account creation. This link is valid for 1 hour.
+                Click the link in your email to complete your account creation. This link is valid for 15 minutes.
               </p>
               <p className="text-sm font-mono" style={{color: 'var(--accent)'}}>
                 If you&apos;ve not received a registration link, please try again

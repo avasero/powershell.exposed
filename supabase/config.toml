@@ -14,6 +14,10 @@ additional_redirect_urls = ["https://localhost:3000"]
 jwt_expiry = 3600
 enable_signup = true
 
+# Magic link expiry configuration
+# Note: OTP expiry is configured in the Supabase dashboard under Authentication > Settings
+# Default is 3600 seconds (1 hour), can be changed to 900 seconds (15 minutes)
+
 [auth.email]
 enable_signup = true
 double_confirm_changes = true

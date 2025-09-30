@@ -308,40 +308,11 @@ export const AuthProvider = ({ children }) => {
     }
   }, [user, loading, pathname, router, publicRoutes]);
 
-  // Função para verificar se email já existe
+  // Função desabilitada - não verificamos mais se email existe para evitar envio de emails
   const checkEmailExists = async (email) => {
-    try {
-      // Tentar fazer signInWithOtp sem criar usuário para verificar se existe
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false // Não criar usuário, apenas verificar
-        }
-      });
-
-      // Se não deu erro, significa que o email foi encontrado e email será enviado
-      if (!error) {
-        return { exists: true, error: null };
-      }
-
-      // Verificar tipos específicos de erro
-      if (error.message.includes('Signup') || 
-          error.message.includes('User not found') ||
-          error.message.includes('Invalid login') ||
-          error.message.includes('Email not found')) {
-        return { exists: false, error: null };
-      }
-
-      // Para rate limit ou outros erros, retornar o erro mas não podemos determinar se existe
-      if (error.message.includes('rate limit') || error.message.includes('too many')) {
-        return { exists: null, error: error }; // null = não conseguimos determinar
-      }
-
-      // Outros erros - assumir que não existe
-      return { exists: false, error: null };
-    } catch (error) {
-      return { exists: null, error: error };
-    }
+    // Por razões de segurança, sempre retornamos que não conseguimos verificar
+    // Isso força o signup a sempre tentar criar a conta, e o Supabase lida com duplicatas
+    return { exists: null, error: null };
   };
 
   const signUpWithMagicLink = async (email, username) => {

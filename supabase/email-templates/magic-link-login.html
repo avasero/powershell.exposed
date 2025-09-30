@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your PowerShell.exposed Session Awaits</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000000;
+            color: #e5e5e5;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #000000;
+            border: 2px solid rgba(28, 199, 109, 0.3);
+            border-radius: 8px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 40px 20px 20px;
+            border-bottom: 1px solid rgba(28, 199, 109, 0.3);
+        }
+        
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #1CC76D;
+            text-decoration: none;
+            margin-bottom: 10px;
+        }
+        
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .welcome-text {
+            font-size: 16px;
+            margin-bottom: 30px;
+            color: #e5e5e5;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background-color: #000000;
+            border: 2px solid #1CC76D;
+            color: #1CC76D;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(28, 199, 109, 0.2);
+        }
+        
+        .cta-button:hover {
+            background-color: rgba(28, 199, 109, 0.1);
+            box-shadow: 0 0 25px rgba(28, 199, 109, 0.4);
+        }
+        
+        .cta-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .footer {
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid rgba(28, 199, 109, 0.3);
+            font-size: 12px;
+            color: #666666;
+        }
+        
+        @media only screen and (max-width: 600px) {
+            .container {
+                border: none;
+                border-radius: 0;
+            }
+            
+            .content {
+                padding: 30px 20px;
+            }
+            
+            .header {
+                padding: 30px 20px 15px;
+            }
+            
+            .logo {
+                font-size: 20px;
+            }
+            
+            .logo-icon {
+                width: 28px;
+                height: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <mask id="cut3">
+                            <rect x="24" y="24" width="208" height="208" rx="28" fill="white"/>
+                            <line x1="86" y1="92" x2="86" y2="148" stroke="black" stroke-width="20" stroke-linecap="round"/>
+                            <circle cx="86" cy="170" r="10" fill="black"/>
+                            <polyline points="120,100 172,128 120,156" fill="none"
+                                stroke="black" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+                        </mask>
+                    </defs>
+                    <rect x="24" y="24" width="208" height="208" rx="28" fill="#1CC76D" mask="url(#cut3)"/>
+                </svg>
+                <span>PowerShell.exposed</span>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="welcome-text">
+                Follow the link below to securely sign in to your PowerShell.exposed account. This one-time login link is valid for the next 15 minutes.
+            </div>
+            
+            <div class="cta-container">
+                <a href="{{ .ConfirmationURL }}" class="cta-button">Log In to Your Account</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; 2025 <strong>powershell.exposed</strong>, All Rights Reserved</p>
+        </div>
+    </div>
+</body>
+</html>
