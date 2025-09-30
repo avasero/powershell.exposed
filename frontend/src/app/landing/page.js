@@ -14,35 +14,35 @@ export default function LandingPage() {
             PowerShell.exposed
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl font-mono" style={{color: 'var(--muted-foreground)'}}>
-            Advanced PowerShell command analysis for malware detection
+            Community-Driven PowerShell Detection Indicators
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-12">
           <div className="p-6 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
             <h3 className="font-mono font-semibold mb-2" style={{color: 'var(--foreground)'}}>
-              Detailed Analysis
+              Free Pattern Indicator Matching
             </h3>
             <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-              Detects malicious patterns in PowerShell commands based on known signatures
+              Public access to all pattern/regex-based indicators
             </p>
           </div>
 
           <div className="p-6 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
             <h3 className="font-mono font-semibold mb-2" style={{color: 'var(--foreground)'}}>
-              Fast and Accurate
+              Real-Time Evaluation
             </h3>
             <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-              Real-time analysis with severity classification and risk scoring
+              Detailed analysis, including historic evaluations for registered users
             </p>
           </div>
 
           <div className="p-6 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
             <h3 className="font-mono font-semibold mb-2" style={{color: 'var(--foreground)'}}>
-              Complete History
+              Detection Model API
             </h3>
             <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-              Save and manage all your analyses with a personalized dashboard
+              Coming Soon, with premium indicators (behavioral, anomaly)
             </p>
           </div>
         </div>
@@ -100,24 +100,20 @@ export default function LandingPage() {
        
         <div className="mt-16 p-6 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
           <h2 className="text-xl font-mono font-semibold mb-4" style={{color: 'var(--accent)'}}>
-            How it works?
+            How It Works?
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
             <div className="text-center p-4 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
               <div className="text-lg mb-2 font-bold" style={{color: 'var(--accent)'}}>1</div>
-              <p>Paste your PowerShell command</p>
+              <p>Write or paste PowerShell command(s)</p>
             </div>
             <div className="text-center p-4 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
               <div className="text-lg mb-2 font-bold" style={{color: 'var(--accent)'}}>2</div>
-              <p>Automatic analysis is executed</p>
+              <p>Hit ENTER or click "Evaluate"</p>
             </div>
             <div className="text-center p-4 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
               <div className="text-lg mb-2 font-bold" style={{color: 'var(--accent)'}}>3</div>
-              <p>Receive detailed report</p>
-            </div>
-            <div className="text-center p-4 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
-              <div className="text-lg mb-2 font-bold" style={{color: 'var(--accent)'}}>4</div>
-              <p>Save to your dashboard</p>
+              <p>Consume the report and insights</p>
             </div>
           </div>
         </div>
