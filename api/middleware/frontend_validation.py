@@ -152,21 +152,28 @@ async def validate_anonymous_access(request: Request, call_next):
                             }
                         )
                 else:
-                    # Token presente mas NÃO é uma API Key válida
-                    # Para uso externo (Postman), APENAS API Keys são permitidas
-                    print(f"❌ Token presente mas não é uma API Key válida - BLOQUEANDO")
-                    print(f"   Token: {token[:20]}... (Para uso externo, apenas API Keys são permitidas)")
+                    # Token presente mas NÃO é uma API Key (pode ser JWT)
+                    print(f"🔍 Token detectado (não é API Key) - verificando origem...")
                     
-                    return JSONResponse(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        content={
-                            "error": "Invalid authentication method for external access",
-                            "detail": "For external tools (Postman, cURL), only valid API Keys are allowed. Create an API Key in your profile on the web application.",
-                            "error_code": "EXTERNAL_ACCESS_REQUIRES_API_KEY",
-                            "documentation": "/docs",
-                            "web_app_url": "https://powershell-exposed.vercel.app"
-                        }
-                    )
+                    # Se vem do frontend, permitir JWT tokens (será validado no auth_middleware)
+                    if is_request_from_frontend(request):
+                        print(f"✅ Token JWT do frontend - permitindo validação pelo auth_middleware")
+                        # Deixar passar para o auth_middleware validar o JWT
+                    else:
+                        # Para uso externo (Postman), APENAS API Keys são permitidas
+                        print(f"❌ Token presente mas não é uma API Key válida - BLOQUEANDO")
+                        print(f"   Token: {token[:20]}... (Para uso externo, apenas API Keys são permitidas)")
+                        
+                        return JSONResponse(
+                            status_code=status.HTTP_401_UNAUTHORIZED,
+                            content={
+                                "error": "Invalid authentication method for external access",
+                                "detail": "For external tools (Postman, cURL), only valid API Keys are allowed. Create an API Key in your profile on the web application.",
+                                "error_code": "EXTERNAL_ACCESS_REQUIRES_API_KEY",
+                                "documentation": "/docs",
+                                "web_app_url": "https://powershell-exposed.vercel.app"
+                            }
+                        )
             else:
                 # NÃO há token de autenticação (acesso anônimo)
                 print(f"👤 Acesso anônimo detectado - verificando origem...")
