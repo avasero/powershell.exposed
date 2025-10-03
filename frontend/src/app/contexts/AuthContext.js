@@ -291,7 +291,7 @@ export const AuthProvider = ({ children }) => {
     
     if (!loading) {
       // Verificar rotas públicas incluindo rotas dinâmicas
-      const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/analysis/') || pathname.startsWith('/auth/');
+      const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/analysis/') || pathname.startsWith('/auth/') || pathname.startsWith('/indicators/');
       const userIsAuthenticated = user !== null;
 
       
@@ -398,7 +398,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   // If not authenticated and not on a public route, don't render anything (already redirected)
-  const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/analysis/') || pathname.startsWith('/auth/');
+  const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/analysis/') || pathname.startsWith('/auth/') || pathname.startsWith('/indicators');
   if (!isAuthenticated() && !isPublicRoute) {
     return null;
   }
