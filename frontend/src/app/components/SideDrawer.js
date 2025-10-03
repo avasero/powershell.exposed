@@ -101,6 +101,27 @@ export default function SideDrawer() {
           </div>
 
           <div className="space-y-2">
+            <Link
+              href="/indicators"
+              onClick={handleLinkClick}
+              className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm border transition-all duration-200 hover:opacity-80 text-center bg-black/80 border-green-500/30 hover:border-green-500/50 cursor-pointer"
+              style={{
+                color: 'var(--accent)'
+              }}
+            >
+              📊 PowerShell Indicators
+            </Link>
+            
+            <Link
+              href="/dashboard"
+              onClick={handleLinkClick}
+              className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm border transition-all duration-200 hover:opacity-80 text-center bg-black/80 border-green-500/30 hover:border-green-500/50 cursor-pointer"
+              style={{
+                color: 'var(--accent)'
+              }}
+            >
+              🏠 Dashboard
+            </Link>
           </div>
 
           {isAuthenticated() ? (
