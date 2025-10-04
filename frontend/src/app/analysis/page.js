@@ -52,6 +52,7 @@ export default function AnalysisPage() {
   const [result, setResult] = useState(null);
   const [cmd, setCmd] = useState("");
   const [loading, setLoading] = useState(true);
+  const [freshAnalysisLoading, setFreshAnalysisLoading] = useState(false); // ⚡ Novo estado para análise fresca
   const [error, setError] = useState("");
   const [newCommand, setNewCommand] = useState("");
   const analysisExecutedRef = useRef(false);
@@ -72,13 +73,10 @@ export default function AnalysisPage() {
     const finalIpAddress = providedIpAddress || ipAddress;
     const finalIpLocation = providedIpLocation || ipLocation;
     try {
-      setLoading(true);
+      // ⚡ NÃO MOSTRAR LOADING AINDA - vamos ver se é cache primeiro
       setError("");
       
-      // Remover delay artificial para melhorar performance
-      const minDelay = Promise.resolve();
-      
-      // Timeout de 15 segundos para análise
+      // Timeout de 15 segundos para análise (só para análises frescas)
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Analysis timeout - taking too long')), 15000)
       );
@@ -104,11 +102,26 @@ export default function AnalysisPage() {
 
       // Chamar a API Python usando makeAuthenticatedRequest
       const { makeAuthenticatedRequest } = await import('../../lib/api');
+      
+      // ⚡ FAZER UMA CHAMADA RÁPIDA PARA DETECTAR SE É CACHE
       const analysisPromise = makeAuthenticatedRequest('/analyze-pcre2', {
         method: 'POST',
         body: JSON.stringify(requestData)
       }).then(async response => {
         const data = await response.json();
+        
+        // 🎯 DETECTAR CACHE IMEDIATAMENTE na resposta
+        const isFromCache = data.from_cache === true;
+        
+        if (isFromCache) {
+          console.log('⚡ CACHE HIT: Resultado instantâneo do cache!');
+          // ⚡ CACHE: NÃO MOSTRAR LOADING - resposta instantânea
+          setFreshAnalysisLoading(false);
+        } else {
+          console.log('🧪 FRESH ANALYSIS: Análise completa executada');
+          // 🧪 FRESH: MOSTRAR LOADING agora que sabemos que vai demorar
+          setFreshAnalysisLoading(true);
+        }
         
         // Verificar se precisa de rate limiting
         const needsHandling = handleRateLimitResponse(response, data);
@@ -123,19 +136,32 @@ export default function AnalysisPage() {
         
         return data;
       }).catch(error => {
+        // Para qualquer erro, mostrar loading (pode ser análise fresca que falhou)
+        setFreshAnalysisLoading(true);
         if (error.message === 'Rate limit excedido') {
           throw error;
         }
         throw new Error(`Erro da API: ${error.message}`);
       });
       
-      // Executar análise e delay mínimo em paralelo
-      const [response] = await Promise.all([
-        Promise.race([analysisPromise, timeoutPromise]),
-        minDelay
-      ]);
+      // ⚡ PRIMEIRA CHAMADA SEM TIMEOUT para detectar cache rapidamente
+      let response;
+      try {
+        response = await analysisPromise;
+      } catch (error) {
+        // Se deu erro, pode ser análise fresca que precisa de timeout
+        throw error;
+      }
       
       if (response.success) {
+        // 🎯 CONFIRMAR CACHE na resposta final
+        const isFromCache = response.from_cache === true;
+        
+        if (isFromCache) {
+          console.log('⚡ CACHE CONFIRMED: Exibindo resultado instantâneo');
+        } else {
+          console.log('🧪 FRESH ANALYSIS COMPLETED: Exibindo resultado pós-análise');
+        }
         const analysisData = response.analysis;
         
         // Salvar session_id retornado pelo backend
@@ -178,7 +204,9 @@ export default function AnalysisPage() {
           details: analysisData.analysis_details?.recommendations?.join(", ") || "",
           tactics: analysisData.tactics || [],
           techniques: analysisData.techniques || [],
-          analysisId: response.analysis_id // Capturar o ID da análise
+          analysisId: response.analysis_id, // Capturar o ID da análise
+          fromCache: isFromCache, // 🎯 ADICIONAR FLAG DE CACHE
+          cacheInfo: response.analysis?.cache_info // Informações detalhadas do cache
         };
         
         setResult(analysisResult);
@@ -189,6 +217,7 @@ export default function AnalysisPage() {
       // Se é erro de rate limit, não prosseguir - apenas mostrar o erro
       if (err.message === 'Rate limit excedido') {
         setLoading(false);
+        setFreshAnalysisLoading(false);
         return; // O rate limiting já foi tratado pelo handleRateLimitResponse
       }
       
@@ -196,7 +225,9 @@ export default function AnalysisPage() {
       setError(err.message);
       setResult(null);
     } finally {
+      // ⚡ Sempre desligar ambos os loadings no final
       setLoading(false);
+      setFreshAnalysisLoading(false);
     }
   };
 
@@ -263,7 +294,8 @@ export default function AnalysisPage() {
     }
   };
 
-  if (loading) {
+  // ⚡ SÓ MOSTRAR SKELETON PARA ANÁLISES FRESCAS, NÃO PARA CACHE
+  if (loading && freshAnalysisLoading) {
     return <AnalysisSkeleton />;
   }
 
@@ -282,16 +314,16 @@ export default function AnalysisPage() {
               onChange={(e) => setNewCommand(e.target.value)}
               onSubmit={handleNewAnalysis}
               placeholder="Type or paste a PS payload..."
-              disabled={loading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
+              disabled={freshAnalysisLoading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
             />
           </div>
           <ThemedButton
             onClick={handleNewAnalysis}
-            disabled={!newCommand.trim() || loading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
+            disabled={!newCommand.trim() || freshAnalysisLoading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
             className="flex-shrink-0"
-            loading={loading}
+            loading={freshAnalysisLoading}
           >
-            {loading ? 'Analyzing...' : 'Evaluate'}
+            {freshAnalysisLoading ? 'Analyzing...' : 'Evaluate'}
           </ThemedButton>
         </div>
         <InfoMessage 
@@ -360,6 +392,21 @@ export default function AnalysisPage() {
      
       {result && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+          {/* 🎯 INDICAÇÃO DE CACHE */}
+          {result.fromCache && (
+            <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center gap-3">
+              <span className="text-2xl">⚡</span>
+              <div className="flex-1">
+                <div className="font-mono font-bold text-blue-400 text-sm">
+                  INSTANT RESULT FROM CACHE
+                </div>
+                <div className="font-mono text-xs text-blue-300/70">
+                  This command was previously analyzed - showing cached results instantly
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div 
             className="p-4 sm:p-6 rounded-lg border-2 border-green-400 text-center relative bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all"
           >

@@ -22,6 +22,10 @@ from services.powershell_analyzer import (
     load_signatures_from_db, analyze_command_patterns, calculate_severity_and_risk,
     save_analysis_to_db, clear_signatures_cache, signatures_cache, cache_timestamp
 )
+from services.cache_service import (
+    generate_phash, check_cache, save_to_cache, should_cache_result,
+    create_cache_compatible_result, extract_indicators_matched
+)
 from services.session_manager import get_or_create_session, get_supabase_client
 from utils.geolocation import get_ip_location, get_client_ip_from_request
 
@@ -131,6 +135,81 @@ async def analyze_command_endpoint(
                 status_code=400
             )
         
+        # STEP 1: Generate phash for the command
+        phash = generate_phash(command)
+        print(f"🔍 Generated phash for command: {phash}")
+        
+        # STEP 2: Check cache DB for existing results
+        cached_result = await check_cache(phash)
+        
+        if cached_result:
+            print(f"🎯 CACHE HIT: Analysis retrieved from cache for phash: {phash}")
+            cache_created = cached_result.get("created_at")
+            print(f"📅 Cache entry created: {cache_created}")
+            
+            # Use cached results - extract from results_blob
+            results_blob = cached_result.get("results_blob", {})
+            
+            # Backwards compatibility: handle both old and new cache formats
+            analysis_result_for_save = results_blob.copy()
+            
+            # Ensure 'total_score' field exists (old cache entries only had 'risk_score')
+            if "total_score" not in analysis_result_for_save:
+                analysis_result_for_save["total_score"] = results_blob.get("risk_score", 0.0)
+            
+            # Ensure 'detected_signatures' field exists (old cache entries only had 'signatures_detected')
+            if "detected_signatures" not in analysis_result_for_save:
+                analysis_result_for_save["detected_signatures"] = results_blob.get("signatures_detected", [])
+            
+            risk_score = analysis_result_for_save.get('total_score', 0)
+            detected_count = len(analysis_result_for_save.get('detected_signatures', []))
+            print(f"⚡ INSTANT RESPONSE: Risk Score: {risk_score}, Signatures: {detected_count} (FROM CACHE)")
+            
+            # Save to powershell_analyses table with cached results (marked as cache)
+            db_result = await save_analysis_to_db(
+                command=command,
+                analysis_result=analysis_result_for_save,
+                user_id=user_id,
+                session_id=session_id,
+                ip_address=ip_address,
+                country=country,
+                city=city,
+                region=region,
+                timezone=timezone,
+                search_type=search_type,
+                user_agent=user_agent,
+                is_cache=True
+            )
+            
+            return JSONResponse({
+                "success": True,
+                "from_cache": True,  # FLAG CLARA PARA O FRONTEND
+                "analysis": {
+                    "command": command,
+                    "is_malicious": results_blob.get("is_malicious", False),
+                    "risk_score": results_blob.get("risk_score", 0.0),
+                    "severity": results_blob.get("severity", "very_low"),
+                    "signatures_detected": results_blob.get("signatures_detected", []),
+                    "tactics": results_blob.get("tactics", []),
+                    "techniques": results_blob.get("techniques", []),
+                    "total_signatures_checked": results_blob.get("total_signatures_checked", 0),
+                    "detected_count": results_blob.get("detected_count", 0),
+                    "cache_info": {
+                        "cached": True,
+                        "cache_hit": True,
+                        "phash": phash,
+                        "cache_created_at": cached_result.get("created_at"),
+                        "instant_response": True
+                    }
+                },
+                "analysis_id": db_result.get("short_id") if db_result.get("success") else None,
+                "session_id": session_id
+            })
+        
+        print(f"🔍 CACHE MISS for phash: {phash} - No cached analysis found")
+        print(f"🧪 FRESH ANALYSIS starting - Running full pattern analysis (this will take a moment)")
+        
+        # STEP 3: Cache miss - run full analysis via /analyse-pcre2 logic
         signatures = await load_signatures_from_db()
         
         if not signatures:
@@ -154,7 +233,22 @@ async def analyze_command_endpoint(
         # Ordenar assinaturas por score
         analysis_result["detected_signatures"].sort(key=lambda x: x["total_score"], reverse=True)
         
-        # Salvar no banco
+        # STEP 3.1: Check if we should cache this result (only if indicators matched)
+        cache_saved = False
+        if should_cache_result(analysis_result):
+            print(f"💾 Saving to cache - indicators detected: {len(analysis_result['detected_signatures'])}")
+            
+            # Prepare cache data
+            indicators_matched = extract_indicators_matched(analysis_result)
+            cache_compatible_result = create_cache_compatible_result(analysis_result)
+            
+            # Save to cache
+            cache_saved = await save_to_cache(phash, indicators_matched, cache_compatible_result)
+        else:
+            print(f"⏭️  Skipping cache - no indicators detected")
+        
+        # STEP 4: Save to powershell_analyses table (fresh analysis)
+        print(f"💾 FRESH ANALYSIS: Saving to database (is_cache=False)")
         db_result = await save_analysis_to_db(
             command=command,
             analysis_result=analysis_result,
@@ -166,11 +260,13 @@ async def analyze_command_endpoint(
             region=region,
             timezone=timezone,
             search_type=search_type,
-            user_agent=user_agent
+            user_agent=user_agent,
+            is_cache=False
         )
         
         return JSONResponse({
             "success": True,
+            "from_cache": False,  # FLAG CLARA PARA O FRONTEND
             "analysis": {
                 "command": command,
                 "is_malicious": is_malicious,
@@ -182,8 +278,11 @@ async def analyze_command_endpoint(
                 "total_signatures_checked": len(signatures),
                 "detected_count": len(analysis_result["detected_signatures"]),
                 "cache_info": {
-                    "cached": signatures_cache is not None,
-                    "cache_age_minutes": round((int(time.time() * 1000) - cache_timestamp) / 60000, 1) if cache_timestamp > 0 else 0
+                    "cached": cache_saved,
+                    "cache_hit": False,
+                    "phash": phash,
+                    "signatures_cache_active": signatures_cache is not None,
+                    "signatures_cache_age_minutes": round((int(time.time() * 1000) - cache_timestamp) / 60000, 1) if cache_timestamp > 0 else 0
                 }
             },
             "analysis_id": db_result.get("short_id") if db_result.get("success") else None,

@@ -195,7 +195,8 @@ async def save_analysis_to_db(
     region: str = None,
     timezone: str = None,
     search_type: str = "API",
-    user_agent: str = "FastAPI-Client"
+    user_agent: str = "FastAPI-Client",
+    is_cache: bool = False
 ) -> dict:
     """Salva análise no banco de dados"""
     try:
@@ -219,7 +220,8 @@ async def save_analysis_to_db(
             "ip_timezone": timezone,
             "search_type": search_type,
             "user_agent": user_agent,
-            "short_id": short_id
+            "short_id": short_id,
+            "is_cache": is_cache
         }
         
         if user_id:

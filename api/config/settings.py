@@ -22,7 +22,6 @@ CACHE_DURATION = 10 * 60 * 1000  # 10 minutos em milissegundos
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "https://powershell-exposed.vercel.app",
-    "https://powershell-exposed-git-main-gabriels-projects.vercel.app"
 ]
 
 # Configurações do Supabase
