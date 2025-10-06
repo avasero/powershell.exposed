@@ -323,7 +323,7 @@ export default function AnalysisPage() {
       </div>
 
       {rateLimitInfo && (
-        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mt-4 mb-6 rounded-lg border-2 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all">
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mt-4 mb-6 rounded-lg border-2 bg-black/80 border-green-500/30">
           <div className="p-4">
             <div className="text-center mb-4">
               <div className="font-mono text-sm mb-2" style={{color: 'var(--muted-foreground)'}}>
@@ -334,7 +334,7 @@ export default function AnalysisPage() {
             {rateLimitInfo.current_count >= rateLimitInfo.limit && (
               <div>
                 <div className="text-center mb-6">
-                  <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border-2 border-red-500 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all">
+                  <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border-2 border-red-500 bg-black/80 border-green-500/30">
                     <span className="text-2xl">🚫</span>
                     <span className="font-mono font-bold text-red-500">Rate limit reached</span>
                   </div>
@@ -342,14 +342,14 @@ export default function AnalysisPage() {
                 
                 {isTimerActive && timeLeft > 0 && (
                   <div className="text-center">
-                    <div className="inline-block p-6 rounded-xl border-2 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all">
+                    <div className="inline-block p-6 rounded-xl border-2 bg-black/80 border-green-500/30">
                       <div className="text-4xl mb-3">⏰</div>
                       
                       <div className="font-mono font-bold text-xl mb-3" style={{color: 'var(--accent)'}}>
                         Wait for reset
                       </div>
                       
-                      <div className="font-mono text-3xl font-bold mb-4 px-4 py-2 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all" style={{
+                      <div className="font-mono text-3xl font-bold mb-4 px-4 py-2 rounded-lg border bg-black/80 border-green-500/30" style={{
                         color: 'var(--accent)'
                       }}>
                         {formatTime}
@@ -397,7 +397,7 @@ export default function AnalysisPage() {
           )}
           
           <div 
-            className="p-4 sm:p-6 rounded-lg border-2 border-green-400 text-center relative bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all"
+            className="p-4 sm:p-6 rounded-lg border-2 border-green-400 text-center relative bg-black/80 border-green-500/30"
           >
             <div className="absolute top-4 right-4">
               <SeverityLegend />
@@ -507,7 +507,7 @@ export default function AnalysisPage() {
                       {basicCmdlets.map((cmdlet, index) => (
                         <div 
                           key={`cmdlet-${index}`}
-                          className="border rounded p-3 text-center bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all"
+                          className="border rounded p-3 text-center bg-black/80 border-green-500/30"
                         >
                           <div className="font-mono text-sm font-bold mb-1" style={{color: 'var(--foreground)'}}>
                             {cmdlet.name}
@@ -533,7 +533,7 @@ export default function AnalysisPage() {
 
       {result && (!result.signatures || result.signatures.length === 0) && totalScore === 0 && (
                <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-         <div className="border rounded-lg p-6 text-center bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all">
+         <div className="border rounded-lg p-6 text-center bg-black/80 border-green-500/30">
            <h2 className="text-lg sm:text-xl font-mono font-bold mb-2" style={{color: 'var(--foreground)'}}>
              Zero indicators found
            </h2>
@@ -546,7 +546,7 @@ export default function AnalysisPage() {
 
       {result && result.signatures && result.signatures.length > 0 && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-          <div className="border rounded-lg p-4 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all">
+          <div className="border rounded-lg p-4 bg-black/80 border-green-500/30">
             <div className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
               Matched indicators are not inherently suspicious but highlight traces that may require closer examination. For interpretation details, check the link below:
               <br /><br />
@@ -557,7 +557,7 @@ export default function AnalysisPage() {
       )}
 
       {result && result.decoded && (
-        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-4 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all">
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-4 bg-black/80 border-green-500/30">
           <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--foreground)'}}>
             Decoded Content
           </h2>
@@ -567,7 +567,7 @@ export default function AnalysisPage() {
         </div>
       )}
       {error && (
-        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-4 border-red-500 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all">
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-4 border-red-500 bg-black/80 border-green-500/30">
           <h2 className="text-lg font-mono font-bold mb-3 text-red-500">
             Error
           </h2>

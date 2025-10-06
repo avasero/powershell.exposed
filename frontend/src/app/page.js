@@ -323,7 +323,7 @@ export default function Home() {
           
           
           {rateLimitInfo && (
-            <div className="mt-4 rounded-lg border-2" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
+            <div className="mt-4 rounded-lg border-2 bg-black/80 border-green-500/30">
               <div className="p-4">
                 
                 <div className="text-center mb-4">

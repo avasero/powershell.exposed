@@ -1,4 +1,4 @@
-    "use client";
+"use client";
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -62,7 +62,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
+        <div className="p-6 rounded-lg border bg-black/80 border-green-500/30">
           {!magicLinkSent ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <FormInput

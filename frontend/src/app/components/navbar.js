@@ -24,7 +24,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="w-full flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all">
+      <nav className="w-full flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b bg-black/80 border-green-500/30">
         <div className="flex items-center">
           <Link href="/" className="flex items-center space-x-2 font-mono text-lg sm:text-xl font-bold" style={{color: 'var(--accent)'}}>
             <svg 

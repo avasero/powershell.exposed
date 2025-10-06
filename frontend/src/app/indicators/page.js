@@ -11,40 +11,33 @@ export default function IndicatorsPage() {
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedSeverity, setSelectedSeverity] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({});
+  const [sortField, setSortField] = useState(""); // Campo atual de ordenação
+  const [sortOrder, setSortOrder] = useState("asc"); // asc ou desc
   const router = useRouter();
 
-  const severityOptions = [
-    { value: "", label: "All Severities" },
-    { value: "LOW", label: "Low" },
-    { value: "MEDIUM", label: "Medium" },
-    { value: "HIGH", label: "High" },
-    { value: "CRITICAL", label: "Critical" }
-  ];
-
   // Debounced search function
-  const debounceSearch = useCallback((searchValue, severity, page) => {
+  const debounceSearch = useCallback((searchValue, page) => {
     const timeoutId = setTimeout(() => {
-      loadIndicators(searchValue, severity, page);
+      loadIndicators(searchValue, page);
     }, 500);
     return () => clearTimeout(timeoutId);
   }, []);
 
   useEffect(() => {
-    if (searchTerm === "" && selectedSeverity === "" && currentPage === 1) {
+    if (searchTerm === "" && currentPage === 1 && !sortField) {
       loadIndicators();
     } else {
       setSearching(true);
-      const cleanup = debounceSearch(searchTerm, selectedSeverity, currentPage);
+      const cleanup = debounceSearch(searchTerm, currentPage);
       return cleanup;
     }
-  }, [currentPage, selectedSeverity, searchTerm, debounceSearch]);
+  }, [currentPage, searchTerm, debounceSearch]);
 
-  const loadIndicators = async (search = searchTerm, severity = selectedSeverity, page = currentPage) => {
+  const loadIndicators = async (search = searchTerm, page = currentPage) => {
     try {
-      if (search !== searchTerm || severity !== selectedSeverity || page !== currentPage) {
+      if (search !== searchTerm || page !== currentPage) {
         setSearching(true);
       } else {
         setLoading(true);
@@ -53,12 +46,8 @@ export default function IndicatorsPage() {
       
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: "20"
+        limit: "10"
       });
-      
-      if (severity) {
-        params.append('severity', severity);
-      }
       
       if (search && search.trim()) {
         params.append('search', search.trim());
@@ -82,23 +71,100 @@ export default function IndicatorsPage() {
     }
   };
 
-  const handleSeverityChange = (severity) => {
-    setSelectedSeverity(severity);
-    setCurrentPage(1);
+  // Função para ordenar localmente
+  const sortIndicators = (field) => {
+    let newOrder = "asc";
+    
+    // Se já está ordenando por esse campo, inverte a ordem
+    if (sortField === field) {
+      newOrder = sortOrder === "asc" ? "desc" : "asc";
+    }
+    
+    setSortField(field);
+    setSortOrder(newOrder);
+    
+    const sorted = [...indicators].sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (field) {
+        case "label":
+          aValue = (a.name || "").toLowerCase();
+          bValue = (b.name || "").toLowerCase();
+          break;
+        case "severity":
+          const severityOrder = { "LOW": 1, "MEDIUM": 2, "HIGH": 3, "CRITICAL": 4 };
+          aValue = severityOrder[a.severity?.toUpperCase()] || 0;
+          bValue = severityOrder[b.severity?.toUpperCase()] || 0;
+          break;
+        case "basescore":
+          aValue = a.basescore || 0;
+          bValue = b.basescore || 0;
+          break;
+        case "description":
+          aValue = (a.description || "").toLowerCase();
+          bValue = (b.description || "").toLowerCase();
+          break;
+        case "last_modification":
+          aValue = a.last_modification ? new Date(a.last_modification).getTime() : 0;
+          bValue = b.last_modification ? new Date(b.last_modification).getTime() : 0;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (newOrder === "asc") {
+        return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+      } else {
+        return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+      }
+    });
+    
+    setIndicators(sorted);
   };
 
   const getSeverityColor = (severity) => {
     switch (severity?.toUpperCase()) {
-      case 'CRITICAL': return 'text-red-400 bg-red-900/30 border-red-800';
-      case 'HIGH': return 'text-orange-400 bg-orange-900/30 border-orange-800';
-      case 'MEDIUM': return 'text-yellow-400 bg-yellow-900/30 border-yellow-800';
-      case 'LOW': return 'text-green-400 bg-green-900/30 border-green-800';
-      default: return 'text-gray-400 bg-gray-900/30 border-gray-800';
+      case 'CRITICAL': return 'text-red-400';
+      case 'HIGH': return 'text-orange-400';
+      case 'MEDIUM': return 'text-yellow-400';
+      case 'LOW': return 'text-green-400';
+      default: return 'text-gray-400';
     }
   };
 
   const handleIndicatorClick = (indicatorId) => {
     router.push(`/indicators/${indicatorId}`);
+  };
+
+  const truncateText = (text, maxLength = 50) => {
+    if (!text) return '-';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
+  // Componente para o ícone de ordenação
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) {
+      return (
+        <svg className="w-4 h-4 inline ml-1 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+      );
+    }
+    
+    if (sortOrder === "asc") {
+      return (
+        <svg className="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+        </svg>
+      );
+    } else {
+      return (
+        <svg className="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      );
+    }
   };
 
   if (loading && indicators.length === 0) {
@@ -111,24 +177,27 @@ export default function IndicatorsPage() {
 
   return (
     <div className="flex-1 p-4 sm:p-6 md:p-8">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
             PowerShell Indicators
           </h1>
-          <p className="font-mono text-sm mb-4" style={{color: 'var(--muted-foreground)'}}>
-            Detection indicators available in the database
+          <p className="font-mono text-sm mb-6" style={{color: 'var(--muted-foreground)'}}>
+            Browse and search detection indicators
           </p>
           
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-4">
-            <div className="flex-1 flex gap-2">
+          {/* Search Bar */}
+          <div className="flex gap-2 mb-4">
+            <div className="flex-1 relative">
               <input
                 type="text"
                 placeholder="Search by name or description..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1 px-3 py-2 rounded border font-mono text-sm"
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full px-4 py-3 rounded border font-mono text-sm"
                 style={{
                   backgroundColor: 'var(--card-bg)',
                   borderColor: 'var(--border-color)',
@@ -136,36 +205,30 @@ export default function IndicatorsPage() {
                 }}
               />
               {searching && (
-                <div className="flex items-center px-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2" style={{borderColor: 'var(--accent)'}}></div>
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2" style={{borderColor: 'var(--accent)'}}></div>
                 </div>
               )}
             </div>
-            
-            <select
-              value={selectedSeverity}
-              onChange={(e) => handleSeverityChange(e.target.value)}
-              className="px-3 py-2 rounded border font-mono text-sm"
-              style={{
-                backgroundColor: 'var(--card-bg)',
-                borderColor: 'var(--border-color)',
-                color: 'var(--foreground)'
-              }}
-            >
-              {severityOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            {searchTerm && (
+              <ThemedButton
+                variant="outline"
+                onClick={() => {
+                  setSearchTerm("");
+                  setCurrentPage(1);
+                }}
+              >
+                Clear
+              </ThemedButton>
+            )}
           </div>
 
           {/* Stats */}
           {pagination.total > 0 && (
             <div className="flex flex-wrap gap-4 text-sm font-mono mb-4" style={{color: 'var(--muted-foreground)'}}>
-              <span>Total: <strong style={{color: 'var(--accent)'}}>{pagination.total}</strong></span>
+              <span>Total: <strong style={{color: 'var(--accent)'}}>{pagination.total}</strong> indicators</span>
+              <span>Showing: <strong style={{color: 'var(--accent)'}}>{((pagination.page - 1) * 10) + 1}</strong> - <strong style={{color: 'var(--accent)'}}>{Math.min(pagination.page * 10, pagination.total)}</strong></span>
               <span>Page: <strong style={{color: 'var(--accent)'}}>{pagination.page}</strong> of <strong style={{color: 'var(--accent)'}}>{pagination.totalPages}</strong></span>
-              {selectedSeverity && <span>Filter: <strong style={{color: 'var(--accent)'}}>{severityOptions.find(s => s.value === selectedSeverity)?.label}</strong></span>}
             </div>
           )}
         </div>
@@ -173,63 +236,103 @@ export default function IndicatorsPage() {
         {error && <ErrorMessage message={error} />}
 
         {indicators.length === 0 ? (
-          <div className="text-center py-12">
+          <div className="text-center py-12 border rounded-lg bg-black/80 border-green-500/30">
             <p className="font-mono text-lg mb-4" style={{color: 'var(--muted-foreground)'}}>
-              {searchTerm || selectedSeverity ? "No indicators found with current filters" : "No indicators found"}
+              {searchTerm ? "No indicators found matching your search" : "No indicators found"}
             </p>
-            {(searchTerm || selectedSeverity) && (
+            {searchTerm && (
               <ThemedButton onClick={() => {
                 setSearchTerm("");
-                setSelectedSeverity("");
                 setCurrentPage(1);
               }}>
-                Clear Filters
+                Clear Search
               </ThemedButton>
             )}
           </div>
         ) : (
           <>
-            {/* Simplified Indicators List */}
-            <div className="space-y-2">
-              {indicators.map((indicator) => (
-                <div 
-                  key={indicator.id}
-                  onClick={() => handleIndicatorClick(indicator.id)}
-                  className="p-4 rounded border cursor-pointer hover:bg-opacity-80 transition-all" 
-                  style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-1">
-                        <h3 className="font-mono font-bold text-lg truncate" style={{color: 'var(--foreground)'}}>
-                          {indicator.name}
-                        </h3>
-                        <span 
-                          className={`px-2 py-1 rounded text-xs font-mono font-bold border ${getSeverityColor(indicator.severity)}`}
+            {/* Table */}
+            <div className="overflow-x-auto border rounded-lg bg-black/80 border-green-500/30">
+              <table className="w-full">
+                <thead className="border-b border-green-500/30">
+                  <tr className="bg-black/40">
+                    <th 
+                      onClick={() => sortIndicators("label")}
+                      className="px-4 py-3 text-left font-mono text-sm font-bold cursor-pointer hover:bg-green-500/10 transition-colors" 
+                      style={{color: 'var(--accent)'}}
+                    >
+                      Label <SortIcon field="label" />
+                    </th>
+                    <th 
+                      onClick={() => sortIndicators("severity")}
+                      className="px-4 py-3 text-left font-mono text-sm font-bold cursor-pointer hover:bg-green-500/10 transition-colors" 
+                      style={{color: 'var(--accent)'}}
+                    >
+                      Severity <SortIcon field="severity" />
+                    </th>
+                    <th 
+                      onClick={() => sortIndicators("basescore")}
+                      className="px-4 py-3 text-left font-mono text-sm font-bold cursor-pointer hover:bg-green-500/10 transition-colors" 
+                      style={{color: 'var(--accent)'}}
+                    >
+                      Base Score <SortIcon field="basescore" />
+                    </th>
+                    <th 
+                      onClick={() => sortIndicators("description")}
+                      className="px-4 py-3 text-left font-mono text-sm font-bold cursor-pointer hover:bg-green-500/10 transition-colors" 
+                      style={{color: 'var(--accent)'}}
+                    >
+                      Description <SortIcon field="description" />
+                    </th>
+                    <th 
+                      onClick={() => sortIndicators("last_modification")}
+                      className="px-4 py-3 text-left font-mono text-sm font-bold cursor-pointer hover:bg-green-500/10 transition-colors" 
+                      style={{color: 'var(--accent)'}}
+                    >
+                      Last Modified <SortIcon field="last_modification" />
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {indicators.map((indicator, index) => (
+                    <tr 
+                      key={indicator.id}
+                      className="border-b border-green-500/20 hover:bg-green-500/5 transition-colors"
+                      style={{
+                        backgroundColor: index % 2 === 0 ? 'transparent' : 'rgba(0, 0, 0, 0.2)'
+                      }}
+                    >
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => handleIndicatorClick(indicator.id)}
+                          className="font-mono text-sm font-bold text-left hover:opacity-80 transition-opacity"
+                          style={{color: 'var(--foreground)'}}
                         >
-                          {indicator.severity}
+                          {truncateText(indicator.name, 40)}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`font-mono text-sm font-bold ${getSeverityColor(indicator.severity)}`}>
+                          {indicator.severity || 'N/A'}
                         </span>
-                        <span className="font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>
-                          Score: {indicator.basescore}/10
-                        </span>
-                      </div>
-                      {indicator.description && (
-                        <p className="font-mono text-sm truncate" style={{color: 'var(--muted-foreground)'}}>
-                          {indicator.description}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 ml-4">
-                      <span className="font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>
-                        ID: {indicator.id}
-                      </span>
-                      <svg className="w-4 h-4" style={{color: 'var(--muted-foreground)'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-sm" style={{color: 'var(--foreground)'}}>
+                        {indicator.basescore || 0}/10
+                      </td>
+                      <td className="px-4 py-3 font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+                        {truncateText(indicator.description, 60)}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>
+                        {indicator.last_modification ? new Date(indicator.last_modification).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        }) : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             {/* Pagination */}
@@ -244,9 +347,40 @@ export default function IndicatorsPage() {
                   ← Previous
                 </ThemedButton>
                 
-                <span className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-                  Page {currentPage} of {pagination.totalPages}
-                </span>
+                <div className="flex gap-2">
+                  {[...Array(pagination.totalPages)].map((_, i) => {
+                    const pageNum = i + 1;
+                    // Show first, last, current, and pages around current
+                    if (
+                      pageNum === 1 ||
+                      pageNum === pagination.totalPages ||
+                      (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`px-3 py-1 rounded font-mono text-sm transition-all ${
+                            currentPage === pageNum
+                              ? 'bg-green-500/20 border-2 border-green-500/50 font-bold'
+                              : 'border border-green-500/30 hover:bg-green-500/10'
+                          }`}
+                          style={{
+                            color: currentPage === pageNum ? 'var(--accent)' : 'var(--muted-foreground)'
+                          }}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    } else if (
+                      pageNum === currentPage - 2 ||
+                      pageNum === currentPage + 2
+                    ) {
+                      return <span key={pageNum} className="px-2" style={{color: 'var(--muted-foreground)'}}>...</span>;
+                    }
+                    return null;
+                  })}
+                </div>
                 
                 <ThemedButton
                   variant="ghost"
@@ -264,3 +398,4 @@ export default function IndicatorsPage() {
     </div>
   );
 }
+

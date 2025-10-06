@@ -19,7 +19,7 @@ export default function LandingPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-12">
-          <div className="p-6 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
+          <div className="p-6 rounded-lg border bg-black/80 border-green-500/30">
             <h3 className="font-mono font-semibold mb-2" style={{color: 'var(--foreground)'}}>
               Free Pattern Indicator Matching
             </h3>
@@ -28,7 +28,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="p-6 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
+          <div className="p-6 rounded-lg border bg-black/80 border-green-500/30">
             <h3 className="font-mono font-semibold mb-2" style={{color: 'var(--foreground)'}}>
               Real-Time Evaluation
             </h3>
@@ -37,7 +37,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="p-6 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
+          <div className="p-6 rounded-lg border bg-black/80 border-green-500/30">
             <h3 className="font-mono font-semibold mb-2" style={{color: 'var(--foreground)'}}>
               Detection Model API
             </h3>
@@ -98,20 +98,20 @@ export default function LandingPage() {
         </div>
 
        
-        <div className="mt-16 p-6 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
+        <div className="mt-16 p-6 rounded-lg border bg-black/80 border-green-500/30">
           <h2 className="text-xl font-mono font-semibold mb-4" style={{color: 'var(--accent)'}}>
             How It Works?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
-            <div className="text-center p-4 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
+            <div className="text-center p-4 rounded-lg border bg-black/80 border-green-500/30">
               <div className="text-lg mb-2 font-bold" style={{color: 'var(--accent)'}}>1</div>
               <p>Write or paste PowerShell command(s)</p>
             </div>
-            <div className="text-center p-4 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
+            <div className="text-center p-4 rounded-lg border bg-black/80 border-green-500/30">
               <div className="text-lg mb-2 font-bold" style={{color: 'var(--accent)'}}>2</div>
               <p>Hit ENTER or click &quot;Evaluate&quot;</p>
             </div>
-            <div className="text-center p-4 rounded-lg border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
+            <div className="text-center p-4 rounded-lg border bg-black/80 border-green-500/30">
               <div className="text-lg mb-2 font-bold" style={{color: 'var(--accent)'}}>3</div>
               <p>Consume the report and insights</p>
             </div>
