@@ -66,172 +66,161 @@ export default function AnalysisPage() {
   //   }
   // }, [isAuthenticated, router]);
 
-  // Função de análise local removida - agora respeitamos sempre o rate limiting da API
-
-  const performAnalysis = async (command, providedIpAddress, providedIpLocation) => {
-    // Usar IP e localização do hook se não fornecidos
-    const finalIpAddress = providedIpAddress || ipAddress;
-    const finalIpLocation = providedIpLocation || ipLocation;
-    try {
-      // ⚡ NÃO MOSTRAR LOADING AINDA - vamos ver se é cache primeiro
-      setError("");
-      
-      // Timeout de 15 segundos para análise (só para análises frescas)
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Analysis timeout - taking too long')), 15000)
-      );
-      
-      // Obter ou criar sessão anônima
-      const sessionId = getOrCreateSession();
-      
-      // Preparar dados para a API
-      const requestData = { 
-        command,
-        user_id: user?.id || null,  // Enviar null se não logado, não UUID padrão
-        ip_address: finalIpAddress,
-        country: finalIpLocation?.country,
-        city: finalIpLocation?.city,
-        region: finalIpLocation?.region,
-        timezone: finalIpLocation?.timezone,
-        user_agent: navigator.userAgent,
-        search_type: "WEB",  // Sempre WEB quando vindo do frontend
-        session_id: sessionId
-      };
 
 
-
-      // Chamar a API Python usando makeAuthenticatedRequest
-      const { makeAuthenticatedRequest } = await import('../../lib/api');
-      
-      // ⚡ FAZER UMA CHAMADA RÁPIDA PARA DETECTAR SE É CACHE
-      const analysisPromise = makeAuthenticatedRequest('/analyze-pcre2', {
-        method: 'POST',
-        body: JSON.stringify(requestData)
-      }).then(async response => {
-        const data = await response.json();
+  const performAnalysis = useCallback(
+    async (command, providedIpAddress, providedIpLocation) => {
+      const finalIpAddress = providedIpAddress || ipAddress;
+      const finalIpLocation = providedIpLocation || ipLocation;
+      try {
+        setError("");
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Analysis timeout - taking too long')), 15000)
+        );
+        const sessionId = getOrCreateSession();
         
-        // 🎯 DETECTAR CACHE IMEDIATAMENTE na resposta
-        const isFromCache = data.from_cache === true;
+        const requestData = { 
+          command,
+          user_id: user?.id || null, 
+          ip_address: finalIpAddress,
+          country: finalIpLocation?.country,
+          city: finalIpLocation?.city,
+          region: finalIpLocation?.region,
+          timezone: finalIpLocation?.timezone,
+          user_agent: navigator.userAgent,
+          search_type: "WEB",  
+          session_id: sessionId
+        };
+
+        const { makeAuthenticatedRequest } = await import('../../lib/api');
         
-        if (isFromCache) {
-          console.log('⚡ CACHE HIT: Resultado instantâneo do cache!');
-          // ⚡ CACHE: NÃO MOSTRAR LOADING - resposta instantânea
-          setFreshAnalysisLoading(false);
-        } else {
-          console.log('🧪 FRESH ANALYSIS: Análise completa executada');
-          // 🧪 FRESH: MOSTRAR LOADING agora que sabemos que vai demorar
+        const analysisPromise = makeAuthenticatedRequest('/analyze-pcre2', {
+          method: 'POST',
+          body: JSON.stringify(requestData)
+        }).then(async response => {
+          const data = await response.json();
+          
+          const isFromCache = data.from_cache === true;
+          
+          if (isFromCache) {
+            setFreshAnalysisLoading(false);
+          } else {
+           
+            
+            setFreshAnalysisLoading(true);
+          }
+          
+          const needsHandling = handleRateLimitResponse(response, data);
+          
+          if (needsHandling) {
+            throw new Error('Rate limit excedido');
+          }
+          
+          if (!response.ok) {
+            throw new Error(data.error || `HTTP error! status: ${response.status}`);
+          }
+          
+          return data;
+        }).catch(error => {
           setFreshAnalysisLoading(true);
-        }
+          if (error.message === 'Rate limit excedido') {
+            throw error;
+          }
+          throw new Error(`Erro da API: ${error.message}`);
+        });
+   
+        let response;
+        try {
+          response = await analysisPromise;
+        } catch (error) {
         
-        // Verificar se precisa de rate limiting
-        const needsHandling = handleRateLimitResponse(response, data);
-        
-        if (needsHandling) {
-          throw new Error('Rate limit excedido');
-        }
-        
-        if (!response.ok) {
-          throw new Error(data.error || `HTTP error! status: ${response.status}`);
-        }
-        
-        return data;
-      }).catch(error => {
-        // Para qualquer erro, mostrar loading (pode ser análise fresca que falhou)
-        setFreshAnalysisLoading(true);
-        if (error.message === 'Rate limit excedido') {
           throw error;
         }
-        throw new Error(`Erro da API: ${error.message}`);
-      });
-      
-      // ⚡ PRIMEIRA CHAMADA SEM TIMEOUT para detectar cache rapidamente
-      let response;
-      try {
-        response = await analysisPromise;
-      } catch (error) {
-        // Se deu erro, pode ser análise fresca que precisa de timeout
-        throw error;
-      }
-      
-      if (response.success) {
-        // 🎯 CONFIRMAR CACHE na resposta final
-        const isFromCache = response.from_cache === true;
         
-        if (isFromCache) {
-          console.log('⚡ CACHE CONFIRMED: Exibindo resultado instantâneo');
-        } else {
-          console.log('🧪 FRESH ANALYSIS COMPLETED: Exibindo resultado pós-análise');
-        }
-        const analysisData = response.analysis;
-        
-        // Salvar session_id retornado pelo backend
-        if (response.session_id && !user?.id) {
-          saveSessionFromBackend(response.session_id);
-        }
-        
-        // Salvar análise anônima em cookies se não estiver logado (ANTES do redirecionamento)
-        if (!user?.id) {
-          try {
-            saveAnonymousAnalysis({
-              command: command,
-              score: analysisData.risk_score,
-              severity: analysisData.is_malicious ? "malicious" : "safe",
-              signatures: analysisData.signatures_detected || [],
-              cmdlets_detected: analysisData.cmdlets_detected || [],
-              analysis_id: response.analysis_id
-            });
-          } catch (error) {
-            console.error('❌ [ANALYSIS PAGE] Erro ao salvar análise anônima:', error);
-          }
-        }
-        
-        // Se temos um analysis_id, redirecionar para a página específica da análise
-        if (response.analysis_id) {
-          // Notificar que uma nova análise foi feita
-          notifyNewAnalysis();
+        if (response.success) {
+          const isFromCache = response.from_cache === true;
           
-          // Redirecionar imediatamente sem delay para evitar stutter
-          router.push(`/analysis/${response.analysis_id}`);
-          return; // Sair da função imediatamente
+         
+          const analysisData = response.analysis;
+          
+ 
+          if (response.session_id && !user?.id) {
+            saveSessionFromBackend(response.session_id);
+          }
+          
+          if (!user?.id) {
+            try {
+              saveAnonymousAnalysis({
+                command: command,
+                score: analysisData.risk_score,
+                severity: analysisData.is_malicious ? "malicious" : "safe",
+                signatures: analysisData.signatures_detected || [],
+                cmdlets_detected: analysisData.cmdlets_detected || [],
+                analysis_id: response.analysis_id
+              });
+            } catch (error) {
+              console.error('❌ [ANALYSIS PAGE] error:', error);
+            }
+          }
+          
+          if (response.analysis_id) {
+
+            notifyNewAnalysis();
+            
+     
+            router.push(`/analysis/${response.analysis_id}`);
+            return; 
+          }
+          
+          const analysisResult = {
+            score: analysisData.risk_score,
+            severity: analysisData.is_malicious ? "malicious" : "safe",
+            signatures: (analysisData.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
+            decoded: analysisData.decoded_command,
+            indicators: analysisData.analysis_details?.indicators || [],
+            details: analysisData.analysis_details?.recommendations?.join(", ") || "",
+            tactics: analysisData.tactics || [],
+            techniques: analysisData.techniques || [],
+            analysisId: response.analysis_id, 
+            fromCache: isFromCache,
+            cacheInfo: response.analysis?.cache_info
+          };
+          
+          setResult(analysisResult);
+        } else {
+          throw new Error(response.error || 'Analysis failed');
+        }
+      } catch (err) {
+        if (err.message === 'Rate limit excedido') {
+          setLoading(false);
+          setFreshAnalysisLoading(false);
+          return; 
         }
         
-        const analysisResult = {
-          score: analysisData.risk_score,
-          severity: analysisData.is_malicious ? "malicious" : "safe",
-          signatures: (analysisData.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
-          decoded: analysisData.decoded_command,
-          indicators: analysisData.analysis_details?.indicators || [],
-          details: analysisData.analysis_details?.recommendations?.join(", ") || "",
-          tactics: analysisData.tactics || [],
-          techniques: analysisData.techniques || [],
-          analysisId: response.analysis_id, // Capturar o ID da análise
-          fromCache: isFromCache, // 🎯 ADICIONAR FLAG DE CACHE
-          cacheInfo: response.analysis?.cache_info // Informações detalhadas do cache
-        };
-        
-        setResult(analysisResult);
-      } else {
-        throw new Error(response.error || 'Analysis failed');
-      }
-    } catch (err) {
-      // Se é erro de rate limit, não prosseguir - apenas mostrar o erro
-      if (err.message === 'Rate limit excedido') {
+      
+        setError(err.message);
+        setResult(null);
+      } finally {
+       
         setLoading(false);
         setFreshAnalysisLoading(false);
-        return; // O rate limiting já foi tratado pelo handleRateLimitResponse
       }
-      
-      // Para outros erros da API, mostrar o erro sem fallback
-      setError(err.message);
-      setResult(null);
-    } finally {
-      // ⚡ Sempre desligar ambos os loadings no final
-      setLoading(false);
-      setFreshAnalysisLoading(false);
-    }
-  };
+    },
+    [
+      ipAddress,
+      ipLocation,
+      user,
+      notifyNewAnalysis,
+      router,
+      handleRateLimitResponse,
+      setError,
+      setFreshAnalysisLoading,
+      setResult,
+      setLoading
+    ]
+  );
 
-  // Análise otimizada usando backend Python
+
   useEffect(() => {
     
     const command = params.get("cmd") || "";
@@ -245,9 +234,9 @@ export default function AnalysisPage() {
     setNewCommand(command);
     
     if (command.trim() && !analysisExecutedRef.current) {
-      analysisExecutedRef.current = true; // Marcar como executada
+      analysisExecutedRef.current = true;
       
-      // Criar objeto de localização
+    
       const ipLocation = {
         country,
         city,
@@ -269,32 +258,32 @@ export default function AnalysisPage() {
     }
   }, [params, performAnalysis]);
   
-  // Calculate total risk score from result - soma de TUDO (sem remover duplicatas do total)
+ 
   const totalScore = result ? result.score : 0;
   
-  // Handle new command analysis
+
   const handleNewAnalysis = async () => {
     if (newCommand.trim()) {
-      // Verificar se já atingiu rate limit antes de prosseguir
+    
       if (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit) {
         setError("Rate limit reached. Please wait for the timer to reset.");
         return;
       }
       
-      analysisExecutedRef.current = false; // Resetar flag para permitir nova análise
+      analysisExecutedRef.current = false; 
       
-      // Limpar apenas o erro, mas manter o resultado atual para evitar flick
+  
       setError("");
       
-      // Executar nova análise diretamente (IP será obtido do hook automaticamente)
+   
       await performAnalysis(newCommand.trim());
       
-      // Limpar o campo de input apenas se a análise foi bem-sucedida
+    
       setNewCommand("");
     }
   };
 
-  // ⚡ SÓ MOSTRAR SKELETON PARA ANÁLISES FRESCAS, NÃO PARA CACHE
+
   if (loading && freshAnalysisLoading) {
     return <AnalysisSkeleton />;
   }
@@ -597,11 +586,11 @@ export default function AnalysisPage() {
         <ThemedButton
           variant="outline"
           onClick={() => {
-            // Se temos um resultado com ID, usar o link limpo
+          
             const baseUrl = window.location.origin;
             const shareUrl = result?.analysisId 
               ? `${baseUrl}/analysis/${result.analysisId}`
-              : window.location.href; // Fallback para URL atual se não tiver ID
+              : window.location.href; 
             navigator.clipboard.writeText(shareUrl);
           }}
         >

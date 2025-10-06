@@ -16,7 +16,7 @@ export async function POST(request) {
       return Response.json({ error: 'Command is required' }, { status: 400 });
     }
     
-    // Fazer proxy para a API Python
+   
     const requestBody = { 
       command,
       user_id,
@@ -26,7 +26,7 @@ export async function POST(request) {
       region,
       timezone,
       user_agent,
-      search_type: "WEB",  // Frontend sempre é WEB
+      search_type: "WEB",  
       session_id
     };
 
@@ -42,7 +42,7 @@ export async function POST(request) {
     
     const data = await response.json();
     
-    // Retornar resposta com o status correto (incluindo rate limiting)
+  
     if (!response.ok) {
       return Response.json(data, { status: response.status });
     }

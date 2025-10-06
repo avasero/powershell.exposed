@@ -48,7 +48,7 @@ async def get_current_user_optional(
         
     except AuthenticationError as e:
         # For optional authentication, we don't raise an error
-        print(f"Optional auth failed: {e}")
+        print(f"Authentication error in optional auth: {e}")
         return None
     except Exception as e:
         print(f"Unexpected error in optional auth: {e}")

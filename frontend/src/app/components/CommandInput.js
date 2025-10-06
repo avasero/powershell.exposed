@@ -15,21 +15,20 @@ export default function CommandInput({
   const CHARACTER_LIMIT = 5000;
   const MAX_ROWS = 10;
   const MIN_HEIGHT = 50;
-  const LINE_HEIGHT = 24; // Approximate line height in pixels
-  const MAX_HEIGHT = MIN_HEIGHT + (LINE_HEIGHT * (MAX_ROWS - 2)); // Account for padding
-
+  const LINE_HEIGHT = 24; 
+  const MAX_HEIGHT = MIN_HEIGHT + (LINE_HEIGHT * (MAX_ROWS - 2));
   useEffect(() => {
     if (textareaRef.current) {
-      // Reset height to auto to get the correct scrollHeight
+     
       textareaRef.current.style.height = 'auto';
       
-      // Calculate the new height based on content, with limits
+      
       const scrollHeight = textareaRef.current.scrollHeight;
       const newHeight = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, scrollHeight));
       
       textareaRef.current.style.height = newHeight + 'px';
       
-      // Enable scrolling if content exceeds max height
+   
       if (scrollHeight > MAX_HEIGHT) {
         textareaRef.current.style.overflowY = 'auto';
       } else {
@@ -38,9 +37,9 @@ export default function CommandInput({
     }
   }, [value, MAX_HEIGHT]);
 
-  // Check character limit and show warning
+ 
   useEffect(() => {
-    if (value.length >= CHARACTER_LIMIT - 100) { // Show warning 100 chars before limit
+    if (value.length >= CHARACTER_LIMIT - 100) {
       setShowCharacterWarning(true);
     } else {
       setShowCharacterWarning(false);
@@ -48,7 +47,7 @@ export default function CommandInput({
   }, [value]);
 
   const handleKeyDown = (e) => {
-    // Submit on Enter (without Shift)
+    
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (onSubmit && value.trim()) {

@@ -27,7 +27,8 @@ def generate_phash(command: str) -> int:
 
 async def check_cache(phash: int) -> Optional[Dict[str, Any]]:
     """
-    Check if analysis results exist in cache for the given phash
+    ⚡ LIGHTNING FAST cache check
+    Optimized for minimum latency
     
     Args:
         phash (int): The CRC32 hash of the command
@@ -36,26 +37,30 @@ async def check_cache(phash: int) -> Optional[Dict[str, Any]]:
         Optional[Dict]: Cached results if found, None otherwise
     """
     try:
+        # ⚡ OPTIMIZED QUERY: Select only essential fields for speed
         supabase = get_supabase_client()
         
+        # Use minimal select to reduce data transfer
         response = supabase.table('cache_results') \
-            .select('*') \
+            .select('phash, created_at, results_blob') \
             .eq('phash', phash) \
+            .limit(1) \
             .execute()
         
         if response.data and len(response.data) > 0:
             cache_entry = response.data[0]
+            print(f"⚡ [CACHE] INSTANT HIT for phash {phash}")
             return {
                 "phash": cache_entry.get("phash"),
                 "created_at": cache_entry.get("created_at"),
-                "indicators_matched": cache_entry.get("indicators_matched"),
                 "results_blob": cache_entry.get("results_blob")
             }
         
+        print(f"❌ [CACHE] Miss for phash {phash}")
         return None
         
     except Exception as error:
-        print(f"❌ Error checking cache: {error}")
+        print(f"❌ [CACHE] Error checking cache: {error}")
         return None
 
 

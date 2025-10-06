@@ -55,26 +55,56 @@ export default function AnalysisDetailsPage() {
   const [newAnalysisLoading, setNewAnalysisLoading] = useState(false);
   const [error, setError] = useState("");
   const [newCommand, setNewCommand] = useState("");
+  const [cacheHit, setCacheHit] = useState(false);
+  const [isCacheRedirect, setIsCacheRedirect] = useState(false);
+  const [cacheRedirectInfo, setCacheRedirectInfo] = useState(null);
   const analysisExecutedRef = useRef(false);
 
+  useEffect(() => {
+    const cacheRedirectInfo = sessionStorage.getItem('cache_redirect_info');
+    if (cacheRedirectInfo) {
+      try {
+        const info = JSON.parse(cacheRedirectInfo);
+        if (info.is_cache_hit && info.analysis_id === params.id) {
+          setIsCacheRedirect(true);
+          setCacheRedirectInfo(info);
+          setLoading(false); 
+          
+       
+          sessionStorage.removeItem('cache_redirect_info');
+        }
+      } catch (e) {
+        console.error('Error parsing cache redirect info:', e);
+      }
+    }
+  }, [params.id]);
 
 
-  // Função para carregar análise por ID
   const loadAnalysis = useCallback(async () => {
     try {
-      setLoading(true);
+     
+      if (!isCacheRedirect) {
+        setLoading(true);
+      }
+      
       setError("");
-      // Log removido para melhorar performance
-
-      // Usar a API do backend usando makeAuthenticatedRequest
+      
+      const loadStartTime = performance.now();
+      
       const { makeAuthenticatedRequest } = await import('../../../lib/api');
-      const res = await makeAuthenticatedRequest(`/analysis/${params.id}`);
+      const res = await makeAuthenticatedRequest(`/analysis/${params.id}`, {
+        headers: isCacheRedirect ? {
+          'Cache-Control': 'max-age=300',
+          'X-Cache-Redirect': 'true'
+        } : {}
+      });
+      
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const analysisData = await res.json();
 
-      // Log removido para melhorar performance
+      const loadTime = performance.now() - loadStartTime;
       
-      // Processar dados da análise (API do backend retorna {success: true, analysis: {...}})
+  
       const analysis = analysisData.analysis || analysisData;
       const analysisResult = analysis.analysis_result || analysis;
       
@@ -90,7 +120,7 @@ export default function AnalysisDetailsPage() {
         details: analysisResult.analysis_details?.recommendations?.join(", ") || "",
         tactics: analysis.tactics || analysisResult.tactics || [],
         techniques: analysis.techniques || analysisResult.techniques || [],
-        analysisId: params.id // ID da análise para links compartilháveis
+        analysisId: params.id 
       };
       
       setResult(processedResult);
@@ -100,28 +130,31 @@ export default function AnalysisDetailsPage() {
     } finally {
       setLoading(false);
     }
-  }, [params.id]);
+  }, [params.id, isCacheRedirect, cacheRedirectInfo]);
 
-  // Carregar análise quando componente monta
+  
   useEffect(() => {
     if (params.id) {
       loadAnalysis();
     }
   }, [params.id, loadAnalysis]);
 
-  // Função para análise de novo comando (reutilizada da página original)
+
   const performAnalysis = async (command, providedIpAddress, providedIpLocation) => {
-    // Usar IP e localização do hook se não fornecidos
+ 
     const finalIpAddress = providedIpAddress || ipAddress;
     const finalIpLocation = providedIpLocation || ipLocation;
     try {
       setNewAnalysisLoading(true);
       setError("");
+      setCacheHit(false); 
       
-      // Obter ou criar sessão anônima
+     
+      const startTime = performance.now();
+      
+     
       const sessionId = getOrCreateSession();
       
-      // Preparar dados para a API
       const requestData = { 
         command,
         user_id: user?.id || null,
@@ -135,7 +168,7 @@ export default function AnalysisDetailsPage() {
         session_id: sessionId
       };
       
-      // Chamar a API Python usando makeAuthenticatedRequest
+    
       const { makeAuthenticatedRequest } = await import('../../../lib/api');
       
       const response = await makeAuthenticatedRequest('/analyze-pcre2', {
@@ -145,7 +178,17 @@ export default function AnalysisDetailsPage() {
       
       const data = await response.json();
       
-      // Verificar se precisa de rate limiting
+   
+      const responseTime = performance.now() - startTime;
+      
+     
+      const isCacheHit = data.from_cache === true || data.analysis?.cache_info?.cache_hit === true;
+      
+      if (isCacheHit) {
+        setCacheHit(true);
+      }
+      
+     
       const needsHandling = handleRateLimitResponse(response, data);
       
       if (needsHandling) {
@@ -160,12 +203,18 @@ export default function AnalysisDetailsPage() {
       if (data.success) {
         const analysisData = data.analysis;
         
-        // Salvar session_id retornado pelo backend
+        if (!data.analysis_id || data.analysis_id === "temp-cache-id" || data.analysis_id === "cache-error") {
+          setError("Analysis error - please try again");
+          setNewAnalysisLoading(false);
+          return;
+        }
+        
+       
         if (data.session_id && !user?.id) {
           saveSessionFromBackend(data.session_id);
         }
         
-        // Salvar análise anônima em cookies se não estiver logado
+       
         if (!user?.id) {
           try {
             saveAnonymousAnalysis({
@@ -177,18 +226,29 @@ export default function AnalysisDetailsPage() {
               analysis_id: data.analysis_id
             });
           } catch (error) {
-            console.error('Error saving anonymous analysis:', error);
+            
           }
         }
         
-        // Se temos um analysis_id, redirecionar imediatamente
+       
         if (data.analysis_id) {
-          // Notificar que uma nova análise foi feita
+          
           notifyNewAnalysis();
           
-          // Redirecionar imediatamente para evitar stutter
-          router.push(`/analysis/${data.analysis_id}`);
-          return; // Sair da função imediatamente
+          if (isCacheHit) {
+            sessionStorage.setItem('cache_redirect_info', JSON.stringify({
+              is_cache_hit: true,
+              analysis_id: data.analysis_id,
+              redirect_time: Date.now(),
+              phash: data.analysis?.cache_info?.phash,
+              response_time_ms: responseTime
+            }));
+            
+            router.replace(`/analysis/${data.analysis_id}`);
+          } else {
+            router.push(`/analysis/${data.analysis_id}`);
+          }
+          return; 
         }
 
         const analysisResult = {
@@ -209,7 +269,7 @@ export default function AnalysisDetailsPage() {
         throw new Error(response.error || 'Analysis failed');
       }
     } catch (err) {
-      // Handle rate limit errors gracefully
+   
       if (err.message === 'Rate limit excedido') {
         setNewAnalysisLoading(false);
         return;
@@ -222,33 +282,31 @@ export default function AnalysisDetailsPage() {
     }
   };
   
-  // Calculate total risk score from result
+
   const totalScore = result ? result.score : 0;
   
-  // Handle new command analysis
+
   const handleNewAnalysis = async () => {
     if (newCommand.trim()) {
-      // Verificar se já atingiu rate limit antes de prosseguir
+     
       if (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit) {
         setError("Rate limit reached. Please wait for the timer to reset.");
         return;
       }
       
-      // Reset analysis flag
+    
       analysisExecutedRef.current = false;
       
-      // Clear error but keep current result to avoid flicker
+     
       setError("");
       
-      // Perform new analysis - this will handle loading state and redirect (IP será obtido do hook automaticamente)
       await performAnalysis(newCommand.trim());
       
-      // Clear input field only if analysis was successful
       setNewCommand("");
     }
   };
 
-  if (loading) {
+  if (loading && !isCacheRedirect) {
     return <AnalysisSkeleton />;
   }
 
@@ -284,9 +342,6 @@ export default function AnalysisDetailsPage() {
         {newAnalysisLoading && (
           <div className="mt-4 p-4 rounded-lg border bg-black/80 border-green-500/30 text-center">
             <LoadingSpinner />
-            <p className="mt-2 font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-              Analyzing new command...
-            </p>
           </div>
         )}
         <InfoMessage 
@@ -537,6 +592,8 @@ export default function AnalysisDetailsPage() {
           </div>
         </div>
       )}
+
+     
 
       <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
         <ThemedButton onClick={() => router.push('/')}>

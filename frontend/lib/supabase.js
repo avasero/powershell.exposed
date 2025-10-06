@@ -9,11 +9,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Cache simples para análises (limpa a cada 5 minutos)
-const analysisCache = new Map()
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
 
-// Função para limpar cache expirado
+const analysisCache = new Map()
+const CACHE_DURATION = 5 * 60 * 1000 
+
+
 function cleanExpiredCache() {
   const now = Date.now()
   for (const [key, value] of analysisCache.entries()) {
@@ -23,18 +23,17 @@ function cleanExpiredCache() {
   }
 }
 
-// Gerar chave de cache baseada no comando
+
 function getCacheKey(command) {
   return command.toLowerCase().trim()
 }
 
-// Função para limpar todo o cache manualmente
+
 export function clearAnalysisCache() {
   analysisCache.clear()
   
 }
 
-// Função para verificar tamanho do cache
 export function getCacheStats() {
   cleanExpiredCache()
   return {
@@ -43,12 +42,12 @@ export function getCacheStats() {
   }
 }
 
-// Função para analisar comando PowerShell
+
 export async function analyzeCommand(command, ipAddress = null, ipLocation = null) {
-  // Limpar cache expirado
+
   cleanExpiredCache()
   
-  // Verificar cache primeiro
+
   const cacheKey = getCacheKey(command)
   const cached = analysisCache.get(cacheKey)
   
@@ -59,11 +58,10 @@ export async function analyzeCommand(command, ipAddress = null, ipLocation = nul
 
   const { data: { session } } = await supabase.auth.getSession()
   
-  // Note: This function now works for both authenticated and anonymous users
-  // Authentication is optional for analysis
+ 
 
   
-  // Log detalhado dos dados sendo enviados
+
   const requestBody = { 
     command,
     ip_address: ipAddress,
@@ -75,12 +73,12 @@ export async function analyzeCommand(command, ipAddress = null, ipLocation = nul
   
 
 
-  // Prepare headers with optional authentication
+ 
   const headers = {
     'Content-Type': 'application/json',
   }
   
-  // Add authorization header if user is authenticated
+
   if (session?.access_token) {
     headers['Authorization'] = `Bearer ${session.access_token}`
   }
@@ -107,7 +105,7 @@ export async function analyzeCommand(command, ipAddress = null, ipLocation = nul
   const result = await response.json()
 
   
-  // Armazenar no cache
+
   analysisCache.set(cacheKey, {
     result: result,
     timestamp: Date.now()
@@ -116,7 +114,7 @@ export async function analyzeCommand(command, ipAddress = null, ipLocation = nul
   return result
 }
 
-// Função para buscar uma análise específica via API backend (permite acesso público)
+
 export async function getAnalysisById(id) {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -142,7 +140,7 @@ export async function getAnalysisById(id) {
   }
 }
 
-// Função para buscar uma análise específica (versão antiga para usuários logados)
+
 export async function getAnalysisByIdAuthenticated(id) {
   const { data: { session } } = await supabase.auth.getSession()
   
@@ -164,7 +162,7 @@ export async function getAnalysisByIdAuthenticated(id) {
   return data
 }
 
-// Função para buscar estatísticas do dashboard
+
 export async function getDashboardStats() {
   const { data: { session } } = await supabase.auth.getSession()
   
@@ -178,7 +176,7 @@ export async function getDashboardStats() {
     .eq('user_id', session.user.id)
     .single()
 
-  if (error && error.code !== 'PGRST116') { // Not found error
+  if (error && error.code !== 'PGRST116') {
     throw new Error(error.message)
   }
 

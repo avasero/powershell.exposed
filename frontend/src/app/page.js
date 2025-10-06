@@ -27,14 +27,9 @@ export default function Home() {
   const [error, setError] = useState("");
   const [command, setCommand] = useState("");
   const [loading, setLoading] = useState(false);
+  const [cacheHit, setCacheHit] = useState(false);
 
 
-
-
-
-
-
-  // Verificar autenticação - REMOVIDO para permitir acesso de usuários não logados
   // useEffect(() => {
   //   if (!isAuthenticated()) {
   //     router.push('/landing');
@@ -45,7 +40,7 @@ export default function Home() {
 
 
 
-  // Função para validar se o input é um comando PowerShell válido
+ 
   const validatePowerShellCommand = (input) => {
     if (!input || typeof input !== 'string') {
       return { isValid: false, error: "Command cannot be empty." };
@@ -73,7 +68,7 @@ export default function Home() {
     return { isValid: true, error: null };
   };
 
-  // Command analysis - fazer análise diretamente e redirecionar para ID
+
   const handleAnalyze = async (e) => {
     e.preventDefault();
     
@@ -83,16 +78,21 @@ export default function Home() {
       return;
     }
     
-    setError(""); // Clear previous error
-    setLoading(true); // Mostrar loading
+    setError(""); 
+    
+
+    setLoading(true);
+    setCacheHit(false);
+    
+
+    const startTime = performance.now();
     
     try {
-      
-      // Obter ou criar sessão anônima
+   
       const { getOrCreateSession, saveSessionFromBackend } = await import('../utils/session');
       const sessionId = getOrCreateSession();
       
-      // Preparar dados para a API
+     
       const requestData = { 
         command,
         user_id: user?.id || null,
@@ -106,20 +106,84 @@ export default function Home() {
         session_id: sessionId
       };
 
-
-
-      // Chamar a API Python diretamente com autenticação opcional
       const { makeAuthenticatedRequest } = await import('../../lib/api');
       const response = await makeAuthenticatedRequest('/analyze-pcre2', {
         method: 'POST',
-        body: JSON.stringify(requestData)
+        body: JSON.stringify(requestData),
+        headers: {
+          'Cache-Control': 'no-cache',
+          'X-Expect-Cache': 'true'
+        }
       });
 
       const data = await response.json();
       
-      // Verificar se precisa de rate limiting
-      const needsHandling = handleRateLimitResponse(response, data);
+    
+      const responseTime = performance.now() - startTime;
+      const isCacheHit = data.from_cache === true || data.analysis?.cache_info?.cache_hit === true;
       
+      
+      if (isCacheHit) {
+        setCacheHit(true);
+        
+      
+        if (!data.analysis_id || data.analysis_id === "temp-cache-id" || data.analysis_id === "cache-error") {
+          setError("Cache error - please try again");
+          setLoading(false);
+          return;
+        }
+        
+      
+        const parallelActions = [];
+        
+      
+        if (data.session_id && !user?.id) {
+          parallelActions.push(saveSessionFromBackend(data.session_id));
+        }
+        
+       
+        if (!user?.id) {
+          parallelActions.push((async () => {
+            try {
+              const { saveAnonymousAnalysis } = await import('../utils/cookies');
+              saveAnonymousAnalysis({
+                command: command,
+                score: data.analysis.risk_score,
+                severity: data.analysis.is_malicious ? "malicious" : "safe",
+                signatures: data.analysis.signatures_detected || [],
+                cmdlets_detected: data.analysis.cmdlets_detected || [],
+                analysis_id: data.analysis_id
+              });
+            } catch (error) {
+              
+            }
+          })());
+        }
+        
+    
+        parallelActions.push(Promise.resolve(resetRateLimit()));
+        
+       
+        parallelActions.push(Promise.resolve(notifyNewAnalysis()));
+        
+       
+        Promise.allSettled(parallelActions);
+        
+        
+        sessionStorage.setItem('cache_redirect_info', JSON.stringify({
+          is_cache_hit: true,
+          analysis_id: data.analysis_id,
+          redirect_time: Date.now(),
+          phash: data.analysis?.cache_info?.phash,
+          response_time_ms: responseTime
+        }));
+        
+        
+        router.replace(`/analysis/${data.analysis_id}`);
+        return;
+      }
+      
+      const needsHandling = handleRateLimitResponse(response, data);
       if (needsHandling) {
         setLoading(false);
         return;
@@ -133,12 +197,10 @@ export default function Home() {
       
       if (data.success && data.analysis_id) {
         
-        // Salvar session_id se necessário
         if (data.session_id && !user?.id) {
           saveSessionFromBackend(data.session_id);
         }
         
-        // Salvar análise anônima em cookies se não estiver logado
         if (!user?.id) {
           try {
             const { saveAnonymousAnalysis } = await import('../utils/cookies');
@@ -151,16 +213,13 @@ export default function Home() {
               analysis_id: data.analysis_id
             });
           } catch (error) {
-            // Ignorar erro ao salvar análise anônima
+           
           }
         }
         
-        resetRateLimit(); // Limpar estado do rate limit
-        
-        // Notificar que uma nova análise foi feita
+        resetRateLimit();
         notifyNewAnalysis();
         
-        // Redirecionar imediatamente para evitar stutter
         router.push(`/analysis/${data.analysis_id}`);
       } else {
         setError(data.error || 'Analysis failed');
@@ -173,18 +232,18 @@ export default function Home() {
     }
   };
 
-  // Validação em tempo real quando o usuário digita
+ 
   const handleCommandChange = (e) => {
     const newCommand = e.target.value;
     setCommand(newCommand);
     
-    // Clear error if field is empty
+  
     if (!newCommand.trim()) {
       setError("");
       return;
     }
     
-    // Basic real-time validation (only for obvious errors)
+   
     if (newCommand.trim().length > 5) {
       const validation = validatePowerShellCommand(newCommand);
       if (!validation.isValid && (
@@ -206,7 +265,6 @@ export default function Home() {
         <AnalysisChat />
       </div>
       
-    
       <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden relative z-10">
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <form onSubmit={handleAnalyze}>
@@ -258,6 +316,8 @@ export default function Home() {
               </ThemedButton>
             </div>
           </div>
+          
+         
           
           <ErrorMessage message={error} />
           

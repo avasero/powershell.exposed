@@ -35,15 +35,8 @@ async def analyze_command_endpoint(
     current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
 ) -> AnalyzeCommandResponse:
     """
-    Analyze PowerShell Command
-    
-    Analyzes a PowerShell command using signatures from the database and returns:
-    - Risk score and severity level
-    - Detected malicious signatures
-    - MITRE ATT&CK tactics and techniques
-    - Detailed pattern matches
-    
-    Works for both authenticated and anonymous users.
+    ⚡ SUPER FAST PowerShell Command Analysis
+    Optimized for instant cache responses
     """
     try:
         # VERIFICAR RATE LIMIT GLOBAL PRIMEIRO
@@ -135,40 +128,35 @@ async def analyze_command_endpoint(
                 status_code=400
             )
         
-        # STEP 1: Generate phash for the command
+        # ⚡ IMMEDIATE CACHE CHECK: Priority #1 for speed
         phash = generate_phash(command)
-        print(f"🔍 Generated phash for command: {phash}")
+        print(f"🔍 [BACKEND] ⚡ INSTANT phash generation: {phash}")
         
-        # STEP 2: Check cache DB for existing results
+        # ⚡ PRIORITY CACHE CHECK: Check cache IMMEDIATELY
+        cache_check_start = time.time()
         cached_result = await check_cache(phash)
+        cache_check_time = (time.time() - cache_check_start) * 1000  # Convert to ms
         
         if cached_result:
-            print(f"🎯 CACHE HIT: Analysis retrieved from cache for phash: {phash}")
-            cache_created = cached_result.get("created_at")
-            print(f"📅 Cache entry created: {cache_created}")
+            print(f"🎯 [BACKEND] ⚡ LIGHTNING CACHE HIT ⚡ in {cache_check_time:.1f}ms for phash: {phash}")
             
-            # Use cached results - extract from results_blob
+            # ⚡ INSTANT CACHE RESPONSE: Minimal processing
             results_blob = cached_result.get("results_blob", {})
             
-            # Backwards compatibility: handle both old and new cache formats
-            analysis_result_for_save = results_blob.copy()
+            # Quick backwards compatibility check
+            if "total_score" not in results_blob:
+                results_blob["total_score"] = results_blob.get("risk_score", 0.0)
+            if "detected_signatures" not in results_blob:
+                results_blob["detected_signatures"] = results_blob.get("signatures_detected", [])
             
-            # Ensure 'total_score' field exists (old cache entries only had 'risk_score')
-            if "total_score" not in analysis_result_for_save:
-                analysis_result_for_save["total_score"] = results_blob.get("risk_score", 0.0)
+            risk_score = results_blob.get('total_score', 0)
+            detected_count = len(results_blob.get('detected_signatures', []))
             
-            # Ensure 'detected_signatures' field exists (old cache entries only had 'signatures_detected')
-            if "detected_signatures" not in analysis_result_for_save:
-                analysis_result_for_save["detected_signatures"] = results_blob.get("signatures_detected", [])
-            
-            risk_score = analysis_result_for_save.get('total_score', 0)
-            detected_count = len(analysis_result_for_save.get('detected_signatures', []))
-            print(f"⚡ INSTANT RESPONSE: Risk Score: {risk_score}, Signatures: {detected_count} (FROM CACHE)")
-            
-            # Save to powershell_analyses table with cached results (marked as cache)
+            # ⚡ FAST DATABASE SAVE: Wait for completion to get real analysis_id
+            print(f"💾 [BACKEND] CACHE HIT: Saving to database for analysis_id...")
             db_result = await save_analysis_to_db(
                 command=command,
-                analysis_result=analysis_result_for_save,
+                analysis_result=results_blob,
                 user_id=user_id,
                 session_id=session_id,
                 ip_address=ip_address,
@@ -181,9 +169,15 @@ async def analyze_command_endpoint(
                 is_cache=True
             )
             
+            # Get real analysis_id from database save
+            analysis_id = db_result.get("short_id") if db_result.get("success") else "cache-error"
+            
+            print(f"⚡ [BACKEND] INSTANT CACHE RESPONSE: Risk {risk_score}, Signatures {detected_count}, ID: {analysis_id}")
+            
+            # ⚡ MINIMAL RESPONSE: Only essential data for speed
             return JSONResponse({
                 "success": True,
-                "from_cache": True,  # FLAG CLARA PARA O FRONTEND
+                "from_cache": True,  # 🚀 CRITICAL FLAG
                 "analysis": {
                     "command": command,
                     "is_malicious": results_blob.get("is_malicious", False),
@@ -196,18 +190,18 @@ async def analyze_command_endpoint(
                     "detected_count": results_blob.get("detected_count", 0),
                     "cache_info": {
                         "cached": True,
-                        "cache_hit": True,
+                        "cache_hit": True,  # 🚀 CRITICAL FLAG
                         "phash": phash,
                         "cache_created_at": cached_result.get("created_at"),
-                        "instant_response": True
+                        "instant_response": True,
+                        "cache_check_ms": round(cache_check_time, 1)
                     }
                 },
-                "analysis_id": db_result.get("short_id") if db_result.get("success") else None,
+                "analysis_id": analysis_id,  # 🚀 REAL ANALYSIS ID
                 "session_id": session_id
             })
         
-        print(f"🔍 CACHE MISS for phash: {phash} - No cached analysis found")
-        print(f"🧪 FRESH ANALYSIS starting - Running full pattern analysis (this will take a moment)")
+        print(f"🔍 [BACKEND] Cache miss in {cache_check_time:.1f}ms for phash: {phash} - Running fresh analysis")
         
         # STEP 3: Cache miss - run full analysis via /analyse-pcre2 logic
         signatures = await load_signatures_from_db()
@@ -290,7 +284,7 @@ async def analyze_command_endpoint(
         })
         
     except Exception as error:
-        print(f"Erro na análise: {error}")
+        print(f"❌ [BACKEND] Analysis error: {error}")
         return JSONResponse(
             {"error": f"Internal error: {str(error)}"},
             status_code=500
@@ -361,10 +355,12 @@ async def get_user_analyses_endpoint(
     """
     Busca análises do usuário logado ou sessão anônima
     Suporta parâmetro limit para limitar quantidade de resultados
+    Se limit não for especificado, retorna TODOS os registros
     """
     try:
         # Obter parâmetros da query
-        limit = int(request.query_params.get("limit", 20))
+        limit_param = request.query_params.get("limit")
+        limit = int(limit_param) if limit_param else None  # None = sem limite
         user_id_from_query = request.query_params.get("user_id")
         
         # Use authenticated user ID if available
@@ -384,19 +380,27 @@ async def get_user_analyses_endpoint(
         
         # Buscar análises por user_id (usuários logados) ou session_id (anônimos)
         if user_id:
-            response = supabase.table('powershell_analyses') \
+            query = supabase.table('powershell_analyses') \
                 .select('*') \
                 .eq('user_id', user_id) \
-                .order('created_at', desc=True) \
-                .limit(limit) \
-                .execute()
+                .order('created_at', desc=True)
+            
+            # Aplicar limite apenas se especificado
+            if limit:
+                query = query.limit(limit)
+                
+            response = query.execute()
         else:
-            response = supabase.table('powershell_analyses') \
+            query = supabase.table('powershell_analyses') \
                 .select('*') \
                 .eq('session_id', session_id) \
-                .order('created_at', desc=True) \
-                .limit(limit) \
-                .execute()
+                .order('created_at', desc=True)
+            
+            # Aplicar limite apenas se especificado
+            if limit:
+                query = query.limit(limit)
+                
+            response = query.execute()
         
         if response.data:
             # Processar dados para compatibilidade com frontend
@@ -448,13 +452,15 @@ async def get_user_analyses_endpoint(
                     "severity": analysis.get("severity"),
                     "signatures_detected": signatures_detected,
                     "cmdlets_detected": cmdlets_detected,
-                    "analysis_result": analysis_result,
+                    "analysis_result": analysis.get("analysis_result"),
                     "tactics": tactics,
                     "techniques": techniques,
                     "created_at": analysis.get("created_at"),
                     "is_malicious": analysis.get("is_malicious", False),
                     "is_anonymous": False  # Marcar como não anônimo para usuários logados
                 })
+            
+            print(f"📊 [API] Returned {len(analyses)} analyses (limit: {limit or 'unlimited'})")
             
             return JSONResponse({
                 "success": True,
@@ -603,6 +609,15 @@ async def root_endpoint():
         "message": "Fast api working",
         "status": "success"
     })
+
+
+async def health_check_endpoint():
+    """Endpoint de health check"""
+    return JSONResponse({
+        "status": "healthy",
+        "message": "Fast api working"
+    })
+    
 
 
 async def health_check_endpoint():

@@ -51,7 +51,7 @@ export default function ApiKeyManager() {
       });
 
       if (response.success) {
-        // Store complete key temporarily for modal
+       
         setNewApiKey(response.api_key.api_key);
         setShowRevealModal(true);
         setApiKey(response.api_key);
@@ -80,7 +80,7 @@ export default function ApiKeyManager() {
       });
 
       if (response.success) {
-        // Store complete key temporarily for modal
+       
         console.log('🔄 API Key regenerated, showing modal...', response.api_key.api_key);
         setNewApiKey(response.api_key.api_key);
         setShowRevealModal(true);
@@ -128,7 +128,7 @@ export default function ApiKeyManager() {
 
   const maskApiKey = (key) => {
     if (!key) return '';
-    // Mostra os primeiros 8 caracteres e os últimos 4, mascarando o meio
+  
     if (key.length <= 12) return key;
     const start = key.substring(0, 8);
     const end = key.substring(key.length - 4);
@@ -142,7 +142,7 @@ export default function ApiKeyManager() {
   };
 
   const handleModalCopy = () => {
-    // Additional feedback when copied from modal
+  
     console.log('API Key copied from modal');
   };
 

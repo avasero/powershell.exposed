@@ -33,10 +33,7 @@ export default function DashboardPage() {
       
       // Para usuários logados, usar user_id diretamente
       if (isAuthenticated() && user?.id) {
-        console.log('👤 [DASHBOARD PAGE] Usuário logado - usando user_id:', user.id);
-        
-        // Carregar análises diretamente do backend Python
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        // Carregar apenas 10 análises mais recentes para o dashboard
         const { makeAuthenticatedRequest } = await import('../../lib/api');
         const response = await makeAuthenticatedRequest(`/user-analyses?limit=10&user_id=${user.id}`, {
           method: 'GET'
@@ -47,7 +44,6 @@ export default function DashboardPage() {
         }
 
         const result = await response.json();
-        console.log('📊 [DASHBOARD PAGE] Loaded dashboard data from backend:', result);
         
         // Processar dados do backend
         const analyses = result.analyses || result || [];
@@ -66,22 +62,15 @@ export default function DashboardPage() {
       }
       
       // Para usuários anônimos, usar session_id do localStorage
-      console.log('👤 [DASHBOARD PAGE] Usuário anônimo - usando session_id');
-      
-      // Obter session_id do localStorage
       const { getCurrentSessionId } = await import('../../utils/session');
       const sessionId = getCurrentSessionId();
       
       if (!sessionId) {
-        console.log('⚠️ [DASHBOARD PAGE] Nenhum session_id encontrado, não é possível carregar análises');
         setAnalyses([]);
         return;
       }
       
-      console.log('🔍 [DASHBOARD PAGE] Carregando análises com session_id:', sessionId);
-      
-      // Carregar análises diretamente do backend Python
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      // Carregar apenas 10 análises mais recentes para o dashboard
       const { makeAuthenticatedRequest } = await import('../../lib/api');
       const response = await makeAuthenticatedRequest(`/user-analyses?limit=10`, {
         method: 'GET',
@@ -95,7 +84,6 @@ export default function DashboardPage() {
       }
 
       const result = await response.json();
-      console.log('📊 [DASHBOARD PAGE] Loaded dashboard data from backend:', result);
       
       // Processar dados do backend
       const analyses = result.analyses || result || [];

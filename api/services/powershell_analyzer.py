@@ -198,8 +198,11 @@ async def save_analysis_to_db(
     user_agent: str = "FastAPI-Client",
     is_cache: bool = False
 ) -> dict:
-    """Salva análise no banco de dados"""
+    """Salva análise no banco de dados - otimizado para cache hits"""
     try:
+        # ⚡ PERFORMANCE: Start timing for cache operations
+        start_time = time.time()
+        
         supabase = get_supabase_client()
         short_id = generate_short_id()
         
@@ -231,6 +234,11 @@ async def save_analysis_to_db(
             insert_data["session_id"] = session_id
         
         db_response = supabase.table('powershell_analyses').insert(insert_data).execute()
+        
+        # ⚡ PERFORMANCE: Log save time for cache operations
+        save_time = (time.time() - start_time) * 1000
+        cache_type = "CACHE HIT" if is_cache else "FRESH"
+        print(f"💾 [DB] {cache_type} save completed in {save_time:.1f}ms - ID: {short_id}")
         
         if db_response.data:
             return {

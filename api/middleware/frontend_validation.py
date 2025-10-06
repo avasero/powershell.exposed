@@ -85,7 +85,7 @@ async def validate_anonymous_access(request: Request, call_next):
     EXECUTADO ANTES do auth_middleware para interceptar requisições anônimas
     """
     try:
-        print(f"🔍 Middleware Frontend Validation - Path: {request.url.path}")
+      
         
         # Pular validação para rotas de documentação, health check, etc.
         skip_paths = [
@@ -95,12 +95,12 @@ async def validate_anonymous_access(request: Request, call_next):
         
         # Verificar se é rota raiz exata
         if request.url.path == "/":
-            print(f"📄 Pulando validação para rota raiz")
+           
             response = await call_next(request)
             return response
         
         if any(request.url.path.startswith(path) for path in skip_paths):
-            print(f"📄 Pulando validação para: {request.url.path}")
+        
             response = await call_next(request)
             return response
         
@@ -108,7 +108,7 @@ async def validate_anonymous_access(request: Request, call_next):
         restricted_endpoints = ["/analyze-pcre2", "/generate-captcha", "/verify-captcha", "/create-user-session"]
         
         if request.url.path in restricted_endpoints:
-            print(f"🔒 Validando endpoint restrito: {request.url.path}")
+        
             
             # Verificar se há token de autenticação
             authorization = request.headers.get("Authorization", "")
@@ -124,14 +124,14 @@ async def validate_anonymous_access(request: Request, call_next):
                 
                 # Se é uma API Key (começa com pse_)
                 if token.startswith("pse_"):
-                    print(f"🔑 API Key detectada - validando...")
+                   
                     try:
                         api_key_data = await validate_api_key(token)
                         if api_key_data:
                             print(f"✅ API Key VÁLIDA - usuário: {api_key_data['user_id']}")
                             # API Key válida - deixar passar para auth_middleware
                         else:
-                            print(f"❌ API Key INVÁLIDA - bloqueando acesso")
+                        
                             return JSONResponse(
                                 status_code=status.HTTP_401_UNAUTHORIZED,
                                 content={
@@ -142,7 +142,7 @@ async def validate_anonymous_access(request: Request, call_next):
                                 }
                             )
                     except Exception as e:
-                        print(f"❌ Erro ao validar API Key: {e}")
+                        
                         return JSONResponse(
                             status_code=status.HTTP_401_UNAUTHORIZED,
                             content={

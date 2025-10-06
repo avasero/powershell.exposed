@@ -85,17 +85,17 @@ app.add_middleware(
 try:
     from middleware.frontend_validation import validate_anonymous_access
     app.middleware("http")(validate_anonymous_access)
-    print("✅ Frontend validation middleware carregado")
+    print("✅ Frontend validation middleware loaded")
 except ImportError as e:
-    print(f"⚠️ Frontend validation middleware não disponível: {e}")
+    print(f"⚠️ Frontend validation middleware not available: {e}")
 
 # 2. Middleware de autenticação (executado SEGUNDO) 
 try:
     from middleware.auth_middleware import auth_middleware
     app.middleware("http")(auth_middleware)
-    print("✅ Auth middleware carregado")
+    print("✅ Auth middleware loaded")
 except ImportError as e:
-    print(f"⚠️ Auth middleware não disponível: {e}")
+    print(f"⚠️ Auth middleware not available: {e}")
 
 # Carregar rotas básicas
 try:
@@ -120,10 +120,10 @@ try:
     app.get("/analysis/{analysis_id}", tags=["Command Analysis"], summary="Get Analysis by ID")(get_analysis_by_id_endpoint)
     app.post("/create-user-session", tags=["Session Management"], summary="Create User Session")(create_user_session_endpoint)
     
-    print("✅ Rotas básicas carregadas")
+   
     
 except ImportError as e:
-    print(f"⚠️ Rotas básicas não disponíveis: {e}")
+    print(f"⚠️ Basic routes not available: {e}")
     
     # Fallback routes
     @app.get("/")
@@ -159,7 +159,7 @@ try:
     app.delete("/user/api-key", include_in_schema=False)(revoke_user_api_key_endpoint)
     app.put("/user/api-key", include_in_schema=False)(regenerate_user_api_key_endpoint)
     
-    print("✅ API Key endpoints carregados")
+    print("✅ API Key routes loaded")
     
 except ImportError as e:
     print(f"⚠️ API Key endpoints não disponíveis: {e}")
@@ -181,9 +181,9 @@ except ImportError as e:
 try:
     from routes.protected_routes import get_user_command_evaluations_endpoint
     app.get("/user/command-evaluations", tags=["User Data"], summary="Get User Command Evaluations")(get_user_command_evaluations_endpoint)
-    print("✅ Rotas protegidas carregadas")
+    print("✅ Protected routes loaded")
 except ImportError as e:
-    print(f"⚠️ Rotas protegidas não disponíveis: {e}")
+    print(f"⚠️ Protected routes not available: {e}")
 
 if __name__ == "__main__":
     import uvicorn

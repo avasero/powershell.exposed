@@ -44,8 +44,7 @@ export default function HistoryPage() {
       
       // Para usuários logados, usar user_id diretamente
       if (isAuthenticated() && user?.id) {
-        // Carregar análises diretamente do backend Python
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        // Carregar TODAS as análises do backend Python (sem limite)
         const { makeAuthenticatedRequest } = await import('../../lib/api');
         const response = await makeAuthenticatedRequest(`/user-analyses?user_id=${user.id}`, {
           method: 'GET'
@@ -56,7 +55,6 @@ export default function HistoryPage() {
         }
 
         const result = await response.json();
-        // Log removido para melhorar performance
         
         // Processar dados do backend
         const analyses = result.analyses || result || [];
@@ -65,9 +63,6 @@ export default function HistoryPage() {
       }
       
       // Para usuários anônimos, usar session_id do localStorage
-      // Para usuários anônimos, usar session_id do localStorage
-      
-      // Obter session_id do localStorage
       const { getCurrentSessionId } = await import('../../utils/session');
       const sessionId = getCurrentSessionId();
       
@@ -76,8 +71,7 @@ export default function HistoryPage() {
         return;
       }
       
-      // Carregar análises diretamente do backend Python
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      // Carregar TODAS as análises do backend Python (sem limite)
       const { makeAuthenticatedRequest } = await import('../../lib/api');
       const response = await makeAuthenticatedRequest(`/user-analyses`, {
         method: 'GET',
@@ -91,7 +85,6 @@ export default function HistoryPage() {
       }
 
       const result = await response.json();
-      console.log('📊 [HISTORY PAGE] Loaded user analyses from backend:', result);
       
       // Processar dados do backend
       const analyses = result.analyses || result || [];
@@ -430,3 +423,4 @@ export default function HistoryPage() {
     </div>
   );
 }
+

@@ -15,20 +15,20 @@ export const useAuth = () => {
   return context;
 };
 
-// Função para criar nova sessão para usuário logado
+
 const createUserSession = async (userId) => {
   try {
   
     
-    // Limpar sessão anterior do storage primeiro
+   
     clearSessionFromStorage();
     
-    // Obter informações do usuário para criar sessão
+  
     let ipAddress = null;
     let userAgent = 'Unknown';
     
     try {
-      // Tentar obter IP do usuário
+   
       const ipResponse = await fetch('https://ipapi.co/json/');
       if (ipResponse.ok) {
         const ipData = await ipResponse.json();
