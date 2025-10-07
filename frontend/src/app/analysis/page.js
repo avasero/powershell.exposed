@@ -392,6 +392,11 @@ export default function AnalysisPage() {
                 <div className="font-mono text-xs text-blue-300/70">
                   This command was previously analyzed - showing cached results instantly
                 </div>
+                {result.cacheInfo && (
+                  <div className="font-mono text-xs text-blue-300/50 mt-1">
+                    Debug: phash={result.cacheInfo.phash || 'N/A'}
+                  </div>
+                )}
               </div>
             </div>
           )}

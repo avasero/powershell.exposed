@@ -81,12 +81,10 @@ export default function ApiKeyManager() {
 
       if (response.success) {
        
-        console.log('🔄 API Key regenerated, showing modal...', response.api_key.api_key);
         setNewApiKey(response.api_key.api_key);
         setShowRevealModal(true);
         setApiKey(response.api_key);
         setSuccess(response.message);
-        console.log('📊 Modal state set:', { newApiKey: response.api_key.api_key, showRevealModal: true });
       }
     } catch (err) {
       setError(err.message);

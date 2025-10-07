@@ -85,7 +85,7 @@ app.add_middleware(
 try:
     from middleware.frontend_validation import validate_anonymous_access
     app.middleware("http")(validate_anonymous_access)
-    print("✅ Frontend validation middleware loaded")
+   
 except ImportError as e:
     print(f"⚠️ Frontend validation middleware not available: {e}")
 

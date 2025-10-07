@@ -130,30 +130,20 @@ async def analyze_command_endpoint(
         
         # ⚡ IMMEDIATE CACHE CHECK: Priority #1 for speed
         phash = generate_phash(command)
-        print(f"🔍 [BACKEND] ⚡ INSTANT phash generation: {phash}")
         
         # ⚡ PRIORITY CACHE CHECK: Check cache IMMEDIATELY
-        cache_check_start = time.time()
         cached_result = await check_cache(phash)
-        cache_check_time = (time.time() - cache_check_start) * 1000  # Convert to ms
         
         if cached_result:
-            print(f"🎯 [BACKEND] ⚡ LIGHTNING CACHE HIT ⚡ in {cache_check_time:.1f}ms for phash: {phash}")
-            
             # ⚡ INSTANT CACHE RESPONSE: Minimal processing
             results_blob = cached_result.get("results_blob", {})
             
-            # Quick backwards compatibility check
             if "total_score" not in results_blob:
                 results_blob["total_score"] = results_blob.get("risk_score", 0.0)
             if "detected_signatures" not in results_blob:
                 results_blob["detected_signatures"] = results_blob.get("signatures_detected", [])
             
-            risk_score = results_blob.get('total_score', 0)
-            detected_count = len(results_blob.get('detected_signatures', []))
-            
             # ⚡ FAST DATABASE SAVE: Wait for completion to get real analysis_id
-            print(f"💾 [BACKEND] CACHE HIT: Saving to database for analysis_id...")
             db_result = await save_analysis_to_db(
                 command=command,
                 analysis_result=results_blob,
@@ -169,15 +159,12 @@ async def analyze_command_endpoint(
                 is_cache=True
             )
             
-            # Get real analysis_id from database save
             analysis_id = db_result.get("short_id") if db_result.get("success") else "cache-error"
-            
-            print(f"⚡ [BACKEND] INSTANT CACHE RESPONSE: Risk {risk_score}, Signatures {detected_count}, ID: {analysis_id}")
             
             # ⚡ MINIMAL RESPONSE: Only essential data for speed
             return JSONResponse({
                 "success": True,
-                "from_cache": True,  # 🚀 CRITICAL FLAG
+                "from_cache": True,
                 "analysis": {
                     "command": command,
                     "is_malicious": results_blob.get("is_malicious", False),
@@ -190,18 +177,14 @@ async def analyze_command_endpoint(
                     "detected_count": results_blob.get("detected_count", 0),
                     "cache_info": {
                         "cached": True,
-                        "cache_hit": True,  # 🚀 CRITICAL FLAG
+                        "cache_hit": True,
                         "phash": phash,
-                        "cache_created_at": cached_result.get("created_at"),
-                        "instant_response": True,
-                        "cache_check_ms": round(cache_check_time, 1)
+                        "instant_response": True
                     }
                 },
-                "analysis_id": analysis_id,  # 🚀 REAL ANALYSIS ID
+                "analysis_id": analysis_id,
                 "session_id": session_id
             })
-        
-        print(f"🔍 [BACKEND] Cache miss in {cache_check_time:.1f}ms for phash: {phash} - Running fresh analysis")
         
         # STEP 3: Cache miss - run full analysis via /analyse-pcre2 logic
         signatures = await load_signatures_from_db()
@@ -230,7 +213,6 @@ async def analyze_command_endpoint(
         # STEP 3.1: Check if we should cache this result (only if indicators matched)
         cache_saved = False
         if should_cache_result(analysis_result):
-            print(f"💾 Saving to cache - indicators detected: {len(analysis_result['detected_signatures'])}")
             
             # Prepare cache data
             indicators_matched = extract_indicators_matched(analysis_result)
@@ -238,11 +220,9 @@ async def analyze_command_endpoint(
             
             # Save to cache
             cache_saved = await save_to_cache(phash, indicators_matched, cache_compatible_result)
-        else:
-            print(f"⏭️  Skipping cache - no indicators detected")
         
-        # STEP 4: Save to powershell_analyses table (fresh analysis)
-        print(f"💾 FRESH ANALYSIS: Saving to database (is_cache=False)")
+        
+      
         db_result = await save_analysis_to_db(
             command=command,
             analysis_result=analysis_result,
@@ -284,7 +264,7 @@ async def analyze_command_endpoint(
         })
         
     except Exception as error:
-        print(f"❌ [BACKEND] Analysis error: {error}")
+       
         return JSONResponse(
             {"error": f"Internal error: {str(error)}"},
             status_code=500
@@ -341,7 +321,7 @@ async def create_user_session_endpoint(request_data: CreateUserSessionRequest) -
             )
             
     except Exception as error:
-        print(f"Error creating user session: {error}")
+      
         return JSONResponse(
             {"error": f"Internal error: {str(error)}"},
             status_code=500
@@ -460,7 +440,6 @@ async def get_user_analyses_endpoint(
                     "is_anonymous": False  # Marcar como não anônimo para usuários logados
                 })
             
-            print(f"📊 [API] Returned {len(analyses)} analyses (limit: {limit or 'unlimited'})")
             
             return JSONResponse({
                 "success": True,
@@ -468,7 +447,6 @@ async def get_user_analyses_endpoint(
                 "total": len(analyses)
             })
         else:
-            print(f"⚠️ Nenhuma análise encontrada para sessão {session_id}")
             return JSONResponse({
                 "success": True,
                 "analyses": [],
@@ -476,7 +454,6 @@ async def get_user_analyses_endpoint(
             })
             
     except Exception as error:
-        print(f"❌ Erro ao buscar análises do usuário: {error}")
         return JSONResponse(
             {"error": f"Failed to fetch user analyses: {str(error)}"},
             status_code=500
@@ -489,20 +466,18 @@ async def get_analysis_by_id_endpoint(analysis_id: str):
     Permite acesso público para análises compartilháveis
     """
     try:
-        print(f"🔍 Buscando análise com ID: {analysis_id}")
+        
         
         supabase = get_supabase_client()
         
         # Primeiro, tentar buscar por short_id (8 caracteres alfanuméricos)
         if len(analysis_id) == 8 and analysis_id.isalnum():
-            print(f"🔍 Buscando análise por short_id: {analysis_id}")
+            
             response = supabase.table('powershell_analyses').select('*').eq('short_id', analysis_id).single().execute()
             
             if response.data:
                 analysis_data = response.data
-                print(f"✅ Análise encontrada por short_id: {analysis_data.get('id')}")
             else:
-                print(f"❌ Short ID não encontrado: {analysis_id}")
                 return JSONResponse(
                     {"error": "Analysis not found"},
                     status_code=404
@@ -515,18 +490,17 @@ async def get_analysis_by_id_endpoint(analysis_id: str):
             
             if is_uuid:
                 # Buscar análise diretamente pelo UUID no banco
-                print(f"🔍 Buscando análise por UUID no banco: {analysis_id}")
+               
                 response = supabase.table('powershell_analyses').select('*').eq('uuid', analysis_id).single().execute()
                 
                 if not response.data:
-                    print(f"❌ UUID não encontrado no banco: {analysis_id}")
+                   
                     return JSONResponse(
                         {"error": "Analysis not found"},
                         status_code=404
                     )
                 
                 analysis_data = response.data
-                print(f"✅ Análise encontrada por UUID: {analysis_data.get('id')}")
             else:
                 # Assumir que é um ID do banco (compatibilidade com análises antigas)
                 try:
@@ -545,7 +519,7 @@ async def get_analysis_by_id_endpoint(analysis_id: str):
                     analysis_data = response.data
                    
                 except ValueError:
-                    print(f"❌ ID inválido: {analysis_id}")
+               
                     return JSONResponse(
                         {"error": "Invalid analysis ID"},
                         status_code=400
@@ -571,7 +545,7 @@ async def get_analysis_by_id_endpoint(analysis_id: str):
         })
         
     except Exception as error:
-        print(f"❌ Erro ao buscar análise: {error}")
+       
         return JSONResponse(
             {"error": f"Failed to fetch analysis: {str(error)}"},
             status_code=500

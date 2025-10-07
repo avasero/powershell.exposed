@@ -91,7 +91,6 @@ export const getRecentUserAnalysesForChat = async (limit = 5) => {
       throw new Error('Usuário não autenticado');
     }
 
-    console.log('🔍 Fetching recent analyses for user:', user.id);
 
     const { data, error } = await supabase
       .from('powershell_analyses')

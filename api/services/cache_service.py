@@ -29,18 +29,10 @@ async def check_cache(phash: int) -> Optional[Dict[str, Any]]:
     """
     ⚡ LIGHTNING FAST cache check
     Optimized for minimum latency
-    
-    Args:
-        phash (int): The CRC32 hash of the command
-        
-    Returns:
-        Optional[Dict]: Cached results if found, None otherwise
     """
     try:
-        # ⚡ OPTIMIZED QUERY: Select only essential fields for speed
         supabase = get_supabase_client()
         
-        # Use minimal select to reduce data transfer
         response = supabase.table('cache_results') \
             .select('phash, created_at, results_blob') \
             .eq('phash', phash) \
@@ -48,19 +40,16 @@ async def check_cache(phash: int) -> Optional[Dict[str, Any]]:
             .execute()
         
         if response.data and len(response.data) > 0:
-            cache_entry = response.data[0]
-            print(f"⚡ [CACHE] INSTANT HIT for phash {phash}")
             return {
-                "phash": cache_entry.get("phash"),
-                "created_at": cache_entry.get("created_at"),
-                "results_blob": cache_entry.get("results_blob")
+                "phash": response.data[0].get("phash"),
+                "created_at": response.data[0].get("created_at"),
+                "results_blob": response.data[0].get("results_blob")
             }
         
-        print(f"❌ [CACHE] Miss for phash {phash}")
         return None
         
     except Exception as error:
-        print(f"❌ [CACHE] Error checking cache: {error}")
+        
         return None
 
 
@@ -86,11 +75,10 @@ async def save_to_cache(phash: int, indicators_matched: Any, results_blob: Dict[
             .execute()
         
         current_count = count_response.count if count_response.count else 0
-        print(f"📊 Current cache entries: {current_count}")
+       
         
         # 🗑️ STEP 2: If we have 5+ entries, remove the oldest ones to keep only 4
         if current_count >= 5:
-            print(f"🧹 Cache limit reached ({current_count} entries). Removing oldest entries...")
             
             # Get oldest entries to remove (keep only the 4 most recent)
             oldest_entries = supabase.table('cache_results') \
@@ -101,7 +89,6 @@ async def save_to_cache(phash: int, indicators_matched: Any, results_blob: Dict[
             
             if oldest_entries.data:
                 phashes_to_delete = [entry['phash'] for entry in oldest_entries.data]
-                print(f"🗑️  Removing {len(phashes_to_delete)} oldest entries: {phashes_to_delete}")
                 
                 # Delete oldest entries
                 for old_phash in phashes_to_delete:
@@ -110,10 +97,7 @@ async def save_to_cache(phash: int, indicators_matched: Any, results_blob: Dict[
                         .eq('phash', old_phash) \
                         .execute()
                     
-                    if delete_response.data:
-                        print(f"✅ Removed old cache entry: {old_phash}")
-                    else:
-                        print(f"⚠️  Failed to remove old cache entry: {old_phash}")
+                   
         
         # 💾 STEP 3: Add the new cache entry
         cache_data = {
@@ -134,14 +118,11 @@ async def save_to_cache(phash: int, indicators_matched: Any, results_blob: Dict[
                 .execute()
             new_count = new_count_response.count if new_count_response.count else 0
             
-            print(f"✅ Analysis cached with phash: {phash} (Cache size: {new_count}/5)")
             return True
         else:
-            print(f"❌ Failed to cache analysis for phash: {phash}")
             return False
             
     except Exception as error:
-        print(f"❌ Error saving to cache: {error}")
         return False
 
 
@@ -230,15 +211,9 @@ async def clear_cache_by_phash(phash: int) -> bool:
             .eq('phash', phash) \
             .execute()
         
-        if response.data:
-            print(f"🗑️ Cleared cache entry for phash: {phash}")
-            return True
-        else:
-            print(f"⚠️ No cache entry found for phash: {phash}")
-            return False
+        
             
     except Exception as error:
-        print(f"❌ Error clearing cache for phash {phash}: {error}")
         return False
 
 
@@ -257,11 +232,9 @@ async def clear_all_cache() -> bool:
             .neq('phash', 0) \
             .execute()  # Delete all entries where phash != 0 (which is all entries)
         
-        print(f"🗑️ Cleared all cache entries")
         return True
         
     except Exception as error:
-        print(f"❌ Error clearing all cache: {error}")
         return False
 
 
@@ -307,7 +280,6 @@ async def get_cache_status() -> Dict[str, Any]:
             }
             
     except Exception as error:
-        print(f"❌ Error getting cache status: {error}")
         return {
             "total_entries": 0,
             "max_entries": 5,

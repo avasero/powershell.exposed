@@ -79,20 +79,15 @@ export default function Home() {
     }
     
     setError(""); 
-    
-
     setLoading(true);
     setCacheHit(false);
     
-
     const startTime = performance.now();
     
     try {
-   
       const { getOrCreateSession, saveSessionFromBackend } = await import('../utils/session');
       const sessionId = getOrCreateSession();
       
-     
       const requestData = { 
         command,
         user_id: user?.id || null,
@@ -117,33 +112,25 @@ export default function Home() {
       });
 
       const data = await response.json();
-      
-    
       const responseTime = performance.now() - startTime;
       const isCacheHit = data.from_cache === true || data.analysis?.cache_info?.cache_hit === true;
       
       
-      if (isCacheHit) {
-        setCacheHit(true);
-        
-      
-        if (!data.analysis_id || data.analysis_id === "temp-cache-id" || data.analysis_id === "cache-error") {
-          setError("Cache error - please try again");
-          setLoading(false);
-          return;
-        }
-        
-      
-        const parallelActions = [];
-        
-      
-        if (data.session_id && !user?.id) {
-          parallelActions.push(saveSessionFromBackend(data.session_id));
-        }
-        
+      if (isCacheHit && data.analysis_id) {
        
-        if (!user?.id) {
-          parallelActions.push((async () => {
+       
+        sessionStorage.setItem('cache_redirect_info', JSON.stringify({
+          is_cache_hit: true,
+          analysis_id: data.analysis_id,
+          redirect_time: Date.now(),
+          phash: data.analysis?.cache_info?.phash,
+          response_time_ms: responseTime
+        }));
+        
+        // ⚡ IMMEDIATE ACTIONS (non-blocking)
+        Promise.allSettled([
+          data.session_id && !user?.id ? saveSessionFromBackend(data.session_id) : Promise.resolve(),
+          !user?.id ? (async () => {
             try {
               const { saveAnonymousAnalysis } = await import('../utils/cookies');
               saveAnonymousAnalysis({
@@ -155,34 +142,19 @@ export default function Home() {
                 analysis_id: data.analysis_id
               });
             } catch (error) {
-              
+              console.error('Error saving anonymous analysis:', error);
             }
-          })());
-        }
+          })() : Promise.resolve(),
+          Promise.resolve(resetRateLimit()),
+          Promise.resolve(notifyNewAnalysis())
+        ]);
         
-    
-        parallelActions.push(Promise.resolve(resetRateLimit()));
-        
-       
-        parallelActions.push(Promise.resolve(notifyNewAnalysis()));
-        
-       
-        Promise.allSettled(parallelActions);
-        
-        
-        sessionStorage.setItem('cache_redirect_info', JSON.stringify({
-          is_cache_hit: true,
-          analysis_id: data.analysis_id,
-          redirect_time: Date.now(),
-          phash: data.analysis?.cache_info?.phash,
-          response_time_ms: responseTime
-        }));
-        
-        
+        // ⚡ INSTANT REDIRECT - Don't wait for anything
         router.replace(`/analysis/${data.analysis_id}`);
         return;
       }
       
+      // Handle rate limit
       const needsHandling = handleRateLimitResponse(response, data);
       if (needsHandling) {
         setLoading(false);
@@ -195,8 +167,8 @@ export default function Home() {
         return;
       }
       
+      // Fresh analysis - normal flow
       if (data.success && data.analysis_id) {
-        
         if (data.session_id && !user?.id) {
           saveSessionFromBackend(data.session_id);
         }
@@ -213,7 +185,7 @@ export default function Home() {
               analysis_id: data.analysis_id
             });
           } catch (error) {
-           
+            console.error('Error saving anonymous analysis:', error);
           }
         }
         

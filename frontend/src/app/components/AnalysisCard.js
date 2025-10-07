@@ -54,7 +54,6 @@ export default function AnalysisCard({
   className = "" 
 }) {
   // Debug: log the link prop
-  console.log(`AnalysisCard for "${title}": link =`, link);
   const variantStyles = {
     default: {
       backgroundColor: 'var(--card-bg)',

@@ -57,7 +57,6 @@ async def load_signatures_from_db() -> list:
             signatures_cache = converted_signatures
             cache_timestamp = now
             
-            print(f"✅ Carregadas {len(converted_signatures)} assinaturas do banco")
             return converted_signatures
         else:
             print("No signatures found in database")
@@ -234,12 +233,12 @@ async def save_analysis_to_db(
             insert_data["session_id"] = session_id
         
         db_response = supabase.table('powershell_analyses').insert(insert_data).execute()
-        
-        # ⚡ PERFORMANCE: Log save time for cache operations
-        save_time = (time.time() - start_time) * 1000
-        cache_type = "CACHE HIT" if is_cache else "FRESH"
-        print(f"💾 [DB] {cache_type} save completed in {save_time:.1f}ms - ID: {short_id}")
-        
+
+        if is_cache:
+            cache_type = "CACHE HIT"
+        else:
+            cache_type = "FRESH"
+
         if db_response.data:
             return {
                 "success": True,

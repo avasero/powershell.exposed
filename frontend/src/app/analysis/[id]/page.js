@@ -410,6 +410,24 @@ export default function AnalysisDetailsPage() {
      
       {result && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+          {/* Cache redirect indicator */}
+          {isCacheRedirect && cacheRedirectInfo && (
+            <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center gap-3">
+              <span className="text-2xl">⚡</span>
+              <div className="flex-1">
+                <div className="font-mono font-bold text-blue-400 text-sm">
+                  INSTANT RESULT FROM CACHE
+                </div>
+                <div className="font-mono text-xs text-blue-300/70">
+                  This command was previously analyzed - showing cached results instantly
+                </div>
+                <div className="font-mono text-xs text-blue-300/50 mt-1">
+                  Debug: phash={cacheRedirectInfo.phash || 'N/A'} | response_time={Math.round(cacheRedirectInfo.response_time_ms)}ms
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div 
             className="p-4 sm:p-6 rounded-lg border-2 border-green-400 text-center relative bg-black/80 border-green-500/30"
           >
@@ -592,8 +610,6 @@ export default function AnalysisDetailsPage() {
           </div>
         </div>
       )}
-
-     
 
       <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
         <ThemedButton onClick={() => router.push('/')}>

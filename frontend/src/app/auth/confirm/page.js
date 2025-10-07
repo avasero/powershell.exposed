@@ -24,7 +24,6 @@ export default function ConfirmPage() {
         const type = searchParams.get('type');
         const next = searchParams.get('next') || '/';
 
-        console.log('🔐 Processando confirmação de auth:', { token_hash, type, next });
 
         if (!token_hash || !type) {
           throw new Error('Missing required parameters in URL');
@@ -45,7 +44,6 @@ export default function ConfirmPage() {
         }
 
         if (data.user) {
-          console.log('✅ Usuário autenticado com sucesso:', data.user.email);
           setSuccess(true);
           
           // Redirecionar mais rapidamente para melhor UX
