@@ -15,7 +15,8 @@ interface YamlIndicator {
   technique: string | string[]
   reference: string | string[]
   max_match?: number | string
-  link?: string  // ✅ NOVO: Campo link adicionado
+  link?: string
+  file_path?: string  // ✅ NOVO: Campo file_path adicionado como identificador único
 }
 
 interface DatabaseIndicator {
@@ -29,13 +30,21 @@ interface DatabaseIndicator {
   reference: string[]
   max_match: number
   is_active: boolean
-  link?: string  // ✅ NOVO: Campo link adicionado
+  link?: string
+  file_path: string  // ✅ NOVO: Campo file_path obrigatório como identificador único
 }
 
 function parseYamlIndicator(yamlData: any): DatabaseIndicator | null {
   try {
     const name = yamlData.name || ''
     const description = yamlData.description || ''
+    const file_path = yamlData.file_path || ''
+    
+    // ✅ VALIDAÇÃO: file_path é obrigatório
+    if (!file_path) {
+      console.log(`❌ file_path é obrigatório para o indicador: ${name}`)
+      return null
+    }
     
     // Processar regex/patterns - CORRIGIDO para pegar apenas os padrões regex
     let patterns: string[] = []
@@ -58,7 +67,7 @@ function parseYamlIndicator(yamlData: any): DatabaseIndicator | null {
       patterns = ['.*'] // Padrão que captura tudo
     }
     
-    console.log(`🔍 Padrões extraídos para ${name}:`, patterns)
+    console.log(`🔍 Padrões extraídos para ${name} (${file_path}):`, patterns)
     
     // Processar basescore
     let basescore = 5.0
@@ -138,7 +147,7 @@ function parseYamlIndicator(yamlData: any): DatabaseIndicator | null {
     
     console.log(`🎯 Max_match configurado para ${name}: ${maxMatch}`)
     
-    // ✅ NOVO: Processar link
+    // Processar link
     let link: string | undefined = undefined
     if (yamlData.link && typeof yamlData.link === 'string') {
       link = yamlData.link
@@ -155,10 +164,11 @@ function parseYamlIndicator(yamlData: any): DatabaseIndicator | null {
       techniques,
       reference,
       max_match: maxMatch,
-      is_active: true
+      is_active: true,
+      file_path  // ✅ NOVO: file_path como identificador único
     }
     
-    // ✅ NOVO: Adicionar link apenas se estiver presente
+    // Adicionar link apenas se estiver presente
     if (link) {
       indicator.link = link
     }
@@ -176,11 +186,11 @@ async function updateSupabaseDatabase(supabase: any, indicators: DatabaseIndicat
   
   for (const indicator of indicators) {
     try {
-      // Verificar se o indicador já existe pelo nome
+      // ✅ ALTERADO: Verificar se o indicador já existe pelo file_path em vez do nome
       const { data: existing, error: selectError } = await supabase
         .from('powershell_signatures')
-        .select('id')
-        .eq('name', indicator.name)
+        .select('id, name')
+        .eq('file_path', indicator.file_path)
         .single()
       
       if (selectError && selectError.code !== 'PGRST116') { // PGRST116 = no rows found
@@ -188,8 +198,9 @@ async function updateSupabaseDatabase(supabase: any, indicators: DatabaseIndicat
       }
       
       if (existing) {
-        // ✅ ATUALIZADO: Atualizar indicador existente com link
+        // ✅ ATUALIZADO: Atualizar indicador existente (incluindo nome que pode ter mudado)
         const updateData: any = {
+          name: indicator.name,  // ✅ NOVO: Permitir atualização do nome
           description: indicator.description,
           patterns: indicator.patterns,
           basescore: indicator.basescore,
@@ -213,10 +224,12 @@ async function updateSupabaseDatabase(supabase: any, indicators: DatabaseIndicat
         
         if (updateError) throw updateError
         
-        console.log(`✅ Atualizado indicador: ${indicator.name}`)
+        // ✅ MELHOR LOG: Mostrar se o nome mudou
+        const nameChanged = existing.name !== indicator.name
+        console.log(`✅ Atualizado indicador: ${indicator.name} (${indicator.file_path})${nameChanged ? ` [nome alterado de "${existing.name}"]` : ''}`)
         successCount++
       } else {
-        // ✅ ATUALIZADO: Inserir novo indicador com link
+        // ✅ ATUALIZADO: Inserir novo indicador com file_path
         const insertData: any = {
           name: indicator.name,
           description: indicator.description,
@@ -227,6 +240,7 @@ async function updateSupabaseDatabase(supabase: any, indicators: DatabaseIndicat
           techniques: indicator.techniques,
           reference: indicator.reference,
           max_match: indicator.max_match,
+          file_path: indicator.file_path,  // ✅ NOVO: Incluir file_path na inserção
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           is_active: true
@@ -243,11 +257,11 @@ async function updateSupabaseDatabase(supabase: any, indicators: DatabaseIndicat
         
         if (insertError) throw insertError
         
-        console.log(`✅ Inserido novo indicador: ${indicator.name}`)
+        console.log(`✅ Inserido novo indicador: ${indicator.name} (${indicator.file_path})`)
         successCount++
       }
     } catch (e) {
-      const errorMsg = `Erro ao processar ${indicator.name}: ${e.message}`
+      const errorMsg = `Erro ao processar ${indicator.name} (${indicator.file_path}): ${e.message}`
       errors.push(errorMsg)
       console.log(`❌ ${errorMsg}`)
     }
