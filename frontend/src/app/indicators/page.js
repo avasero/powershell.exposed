@@ -13,6 +13,7 @@ export default function IndicatorsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({});
+  const [pageSize, setPageSize] = useState(20); // Default to 20 results per page
   const [sortField, setSortField] = useState(""); // Campo atual de ordenação
   const [sortOrder, setSortOrder] = useState("asc"); // asc ou desc
   const router = useRouter();
@@ -33,7 +34,7 @@ export default function IndicatorsPage() {
       const cleanup = debounceSearch(searchTerm, currentPage);
       return cleanup;
     }
-  }, [currentPage, searchTerm, debounceSearch]);
+  }, [currentPage, searchTerm, pageSize, debounceSearch]);
 
   const loadIndicators = async (search = searchTerm, page = currentPage) => {
     try {
@@ -46,7 +47,7 @@ export default function IndicatorsPage() {
       
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: "10"
+        limit: pageSize === "All" ? "1000" : pageSize.toString()
       });
       
       if (search && search.trim()) {
@@ -186,7 +187,7 @@ export default function IndicatorsPage() {
             Browse and search detection indicators
           </p>
           
-          {/* Search Bar */}
+          {/* Search Bar and Page Size Selector */}
           <div className="flex gap-2 mb-4">
             <div className="flex-1 relative">
               <input
@@ -210,6 +211,36 @@ export default function IndicatorsPage() {
                 </div>
               )}
             </div>
+            
+            {/* Page Size Selector */}
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(e.target.value === "All" ? "All" : parseInt(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="appearance-none px-4 py-3 pr-10 rounded border font-mono text-sm min-w-[120px] cursor-pointer hover:bg-opacity-80 transition-all"
+                  style={{
+                    backgroundColor: 'var(--card-bg)',
+                    borderColor: 'var(--border-color)',
+                    color: 'var(--foreground)'
+                  }}
+                >
+                  <option value={20}>20 per page</option>
+                  <option value={50}>50 per page</option>
+                  <option value="All">Show All</option>
+                </select>
+                {/* Custom dropdown arrow */}
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{color: 'var(--muted-foreground)'}}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
             {searchTerm && (
               <ThemedButton
                 variant="outline"
@@ -227,8 +258,14 @@ export default function IndicatorsPage() {
           {pagination.total > 0 && (
             <div className="flex flex-wrap gap-4 text-sm font-mono mb-4" style={{color: 'var(--muted-foreground)'}}>
               <span>Total: <strong style={{color: 'var(--accent)'}}>{pagination.total}</strong> indicators</span>
-              <span>Showing: <strong style={{color: 'var(--accent)'}}>{((pagination.page - 1) * 10) + 1}</strong> - <strong style={{color: 'var(--accent)'}}>{Math.min(pagination.page * 10, pagination.total)}</strong></span>
-              <span>Page: <strong style={{color: 'var(--accent)'}}>{pagination.page}</strong> of <strong style={{color: 'var(--accent)'}}>{pagination.totalPages}</strong></span>
+              {pageSize !== "All" ? (
+                <>
+                  <span>Showing: <strong style={{color: 'var(--accent)'}}>{((pagination.page - 1) * pageSize) + 1}</strong> - <strong style={{color: 'var(--accent)'}}>{Math.min(pagination.page * pageSize, pagination.total)}</strong></span>
+                  <span>Page: <strong style={{color: 'var(--accent)'}}>{pagination.page}</strong> of <strong style={{color: 'var(--accent)'}}>{pagination.totalPages}</strong></span>
+                </>
+              ) : (
+                <span>Showing: <strong style={{color: 'var(--accent)'}}>All {pagination.total}</strong> indicators</span>
+              )}
             </div>
           )}
         </div>
@@ -336,7 +373,7 @@ export default function IndicatorsPage() {
             </div>
 
             {/* Pagination */}
-            {pagination.totalPages > 1 && (
+            {pagination.totalPages > 1 && pageSize !== "All" && (
               <div className="flex justify-center items-center gap-4 mt-6">
                 <ThemedButton
                   variant="ghost"
