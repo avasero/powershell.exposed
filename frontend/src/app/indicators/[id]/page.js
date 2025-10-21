@@ -52,6 +52,32 @@ export default function IndicatorDetailPage() {
     }
   };
 
+  const truncateUrl = (url, maxLength = 60) => {
+    if (!url) return '';
+    if (url.length <= maxLength) return url;
+    
+    // Try to keep the domain visible and truncate the path
+    try {
+      const urlObj = new URL(url);
+      const domain = urlObj.hostname;
+      const path = urlObj.pathname + urlObj.search + urlObj.hash;
+      
+      if (domain.length >= maxLength - 3) {
+        return domain.substring(0, maxLength - 3) + '...';
+      }
+      
+      const availableLength = maxLength - domain.length - 3; // 3 for "..."
+      if (path.length > availableLength) {
+        return domain + path.substring(0, availableLength) + '...';
+      }
+      
+      return url;
+    } catch {
+      // If URL parsing fails, just truncate normally
+      return url.substring(0, maxLength - 3) + '...';
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -211,10 +237,13 @@ export default function IndicatorDetailPage() {
                       href={ref}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-3 py-2 rounded text-sm font-mono bg-green-900/30 text-green-400 border border-green-800 hover:bg-green-900/50 transition-colors"
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded text-sm font-mono bg-green-900/30 text-green-400 border border-green-800 hover:bg-green-900/50 transition-colors group"
+                      title={ref} // Show full URL on hover
                     >
-                      🔗 Reference {index + 1}
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <span className="flex items-center gap-2">
+                        🔗 {truncateUrl(ref)}
+                      </span>
+                      <svg className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                       </svg>
                     </a>
@@ -237,10 +266,13 @@ export default function IndicatorDetailPage() {
                 href={indicator.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-3 py-2 rounded text-sm font-mono bg-indigo-900/30 text-indigo-400 border border-indigo-800 hover:bg-indigo-900/50 transition-colors"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded text-sm font-mono bg-indigo-900/30 text-indigo-400 border border-indigo-800 hover:bg-indigo-900/50 transition-colors group"
+                title={indicator.link} // Show full URL on hover
               >
-                🔗 View Details
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="flex items-center gap-2">
+                  🔗 {truncateUrl(indicator.link)}
+                </span>
+                <svg className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
               </a>
