@@ -16,6 +16,8 @@ interface YamlIndicator {
   reference: string | string[]
   max_match?: number | string
   link?: string  // ✅ NOVO: Campo link adicionado
+  last_modified_by?: string  // ✅ NOVO: GitHub username
+  last_modified_by_avatar?: string  // ✅ NOVO: GitHub avatar URL
 }
 
 interface DatabaseIndicator {
@@ -30,6 +32,8 @@ interface DatabaseIndicator {
   max_match: number
   is_active: boolean
   link?: string  // ✅ NOVO: Campo link adicionado
+  last_modified_by?: string  // ✅ NOVO: GitHub username
+  last_modified_by_avatar?: string  // ✅ NOVO: GitHub avatar URL
 }
 
 function parseYamlIndicator(yamlData: any): DatabaseIndicator | null {
@@ -145,6 +149,20 @@ function parseYamlIndicator(yamlData: any): DatabaseIndicator | null {
       console.log(`🔗 Link configurado para ${name}: ${link}`)
     }
     
+    // ✅ NOVO: Processar GitHub user info
+    let lastModifiedBy: string | undefined = undefined
+    let lastModifiedByAvatar: string | undefined = undefined
+    
+    if (yamlData.last_modified_by && typeof yamlData.last_modified_by === 'string') {
+      lastModifiedBy = yamlData.last_modified_by
+      console.log(`👤 Última modificação por: ${lastModifiedBy}`)
+    }
+    
+    if (yamlData.last_modified_by_avatar && typeof yamlData.last_modified_by_avatar === 'string') {
+      lastModifiedByAvatar = yamlData.last_modified_by_avatar
+      console.log(`🖼️  Avatar: ${lastModifiedByAvatar}`)
+    }
+    
     const indicator: DatabaseIndicator = {
       name,
       description,
@@ -158,9 +176,17 @@ function parseYamlIndicator(yamlData: any): DatabaseIndicator | null {
       is_active: true
     }
     
-    // ✅ NOVO: Adicionar link apenas se estiver presente
+    // ✅ NOVO: Adicionar campos opcionais
     if (link) {
       indicator.link = link
+    }
+    
+    if (lastModifiedBy) {
+      indicator.last_modified_by = lastModifiedBy
+    }
+    
+    if (lastModifiedByAvatar) {
+      indicator.last_modified_by_avatar = lastModifiedByAvatar
     }
     
     return indicator
@@ -188,7 +214,7 @@ async function updateSupabaseDatabase(supabase: any, indicators: DatabaseIndicat
       }
       
       if (existing) {
-        // ✅ ATUALIZADO: Atualizar indicador existente com link
+        // ✅ ATUALIZADO: Atualizar indicador existente com todos os novos campos
         const updateData: any = {
           description: indicator.description,
           patterns: indicator.patterns,
@@ -201,9 +227,17 @@ async function updateSupabaseDatabase(supabase: any, indicators: DatabaseIndicat
           updated_at: new Date().toISOString()
         }
         
-        // Adicionar link apenas se estiver presente
+        // Adicionar campos opcionais apenas se estiverem presentes
         if (indicator.link) {
           updateData.link = indicator.link
+        }
+        
+        if (indicator.last_modified_by) {
+          updateData.last_modified_by = indicator.last_modified_by
+        }
+        
+        if (indicator.last_modified_by_avatar) {
+          updateData.last_modified_by_avatar = indicator.last_modified_by_avatar
         }
         
         const { error: updateError } = await supabase
@@ -216,7 +250,7 @@ async function updateSupabaseDatabase(supabase: any, indicators: DatabaseIndicat
         console.log(`✅ Atualizado indicador: ${indicator.name}`)
         successCount++
       } else {
-        // ✅ ATUALIZADO: Inserir novo indicador com link
+        // ✅ ATUALIZADO: Inserir novo indicador com todos os novos campos
         const insertData: any = {
           name: indicator.name,
           description: indicator.description,
@@ -232,9 +266,17 @@ async function updateSupabaseDatabase(supabase: any, indicators: DatabaseIndicat
           is_active: true
         }
         
-        // Adicionar link apenas se estiver presente
+        // Adicionar campos opcionais apenas se estiverem presentes
         if (indicator.link) {
           insertData.link = indicator.link
+        }
+        
+        if (indicator.last_modified_by) {
+          insertData.last_modified_by = indicator.last_modified_by
+        }
+        
+        if (indicator.last_modified_by_avatar) {
+          insertData.last_modified_by_avatar = indicator.last_modified_by_avatar
         }
         
         const { error: insertError } = await supabase
