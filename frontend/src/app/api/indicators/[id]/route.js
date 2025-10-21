@@ -4,13 +4,6 @@ export async function GET(request, { params }) {
   try {
     const { id } = params
     
-    if (!id) {
-      return Response.json({ 
-        error: 'Indicator ID is required' 
-      }, { status: 400 })
-    }
-    
-    // Buscar indicador específico
     const { data: indicator, error } = await supabase
       .from('powershell_signatures')
       .select(`
@@ -26,34 +19,30 @@ export async function GET(request, { params }) {
         updated_at,
         is_active,
         max_match,
-        link
+        link,
+        last_modified_by,
+        last_modified_by_avatar
       `)
       .eq('id', id)
-      .eq('is_active', true)
       .single()
     
     if (error) {
-      if (error.code === 'PGRST116') {
-        return Response.json({ 
-          error: 'Indicator not found' 
-        }, { status: 404 })
-      }
-      
-      console.error('Error fetching indicator:', error)
+      console.error('Erro ao buscar indicador:', error)
       return Response.json({ 
-        error: 'Failed to fetch indicator',
+        error: 'Indicator not found',
         details: error.message 
-      }, { status: 500 })
+      }, { status: 404 })
     }
     
     return Response.json({
-      indicator: indicator || null
+      success: true,
+      indicator
     })
     
   } catch (error) {
-    console.error('Internal error:', error)
+    console.error('Erro interno:', error)
     return Response.json({ 
-      error: 'Internal server error',
+      error: 'Erro interno do servidor',
       details: error.message 
     }, { status: 500 })
   }

@@ -10,7 +10,7 @@ export async function GET(request) {
     
     const offset = (page - 1) * limit
     
-    // Construir query base
+    // Construir query base - ADICIONAR last_modified_by e last_modified_by_avatar
     let query = supabase
       .from('powershell_signatures')
       .select(`
@@ -26,7 +26,9 @@ export async function GET(request) {
         updated_at,
         is_active,
         max_match,
-        link
+        link,
+        last_modified_by,
+        last_modified_by_avatar
       `)
       .eq('is_active', true)
       .order('created_at', { ascending: false })

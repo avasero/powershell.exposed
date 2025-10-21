@@ -61,6 +61,12 @@ export default function IndicatorsPage() {
       }
       
       const data = await response.json();
+      
+      // Debug: Check if last_modified_by data is present
+      if (data.indicators && data.indicators.length > 0) {
+        console.log('First indicator data:', data.indicators[0]);
+      }
+      
       setIndicators(data.indicators || []);
       setPagination(data.pagination || {});
       
@@ -106,8 +112,12 @@ export default function IndicatorsPage() {
           bValue = (b.description || "").toLowerCase();
           break;
         case "last_modification":
-          aValue = a.last_modification ? new Date(a.last_modification).getTime() : 0;
-          bValue = b.last_modification ? new Date(b.last_modification).getTime() : 0;
+          aValue = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+          bValue = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+          break;
+        case "last_modified_by":
+          aValue = (a.last_modified_by || "").toLowerCase();
+          bValue = (b.last_modified_by || "").toLowerCase();
           break;
         default:
           return 0;
@@ -322,11 +332,18 @@ export default function IndicatorsPage() {
                       Description <SortIcon field="description" />
                     </th>
                     <th 
+                      onClick={() => sortIndicators("last_modified_by")}
+                      className="px-4 py-3 text-left font-mono text-sm font-bold cursor-pointer hover:bg-green-500/10 transition-colors" 
+                      style={{color: 'var(--accent)'}}
+                    >
+                      Last Modified By <SortIcon field="last_modified_by" />
+                    </th>
+                    <th 
                       onClick={() => sortIndicators("last_modification")}
                       className="px-4 py-3 text-left font-mono text-sm font-bold cursor-pointer hover:bg-green-500/10 transition-colors" 
                       style={{color: 'var(--accent)'}}
                     >
-                      Last Modified <SortIcon field="last_modification" />
+                      Updated At <SortIcon field="last_modification" />
                     </th>
                   </tr>
                 </thead>
@@ -359,8 +376,38 @@ export default function IndicatorsPage() {
                       <td className="px-4 py-3 font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
                         {truncateText(indicator.description, 60)}
                       </td>
+                      <td className="px-4 py-3">
+                        {indicator.last_modified_by ? (
+                          <div className="flex items-center gap-2">
+                            {indicator.last_modified_by_avatar ? (
+                              <img 
+                                src={indicator.last_modified_by_avatar} 
+                                alt={indicator.last_modified_by}
+                                className="w-6 h-6 rounded-full border border-green-500/30"
+                                onError={(e) => {
+                                  // Fallback if image fails to load
+                                  e.target.style.display = 'none';
+                                  e.target.nextElementSibling.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            {!indicator.last_modified_by_avatar && (
+                              <div className="w-6 h-6 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
+                                <span className="text-xs font-bold" style={{color: 'var(--accent)'}}>
+                                  {indicator.last_modified_by.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                            <span className="font-mono text-sm" style={{color: 'var(--foreground)'}}>
+                              {truncateText(indicator.last_modified_by, 20)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>-</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>
-                        {indicator.last_modification ? new Date(indicator.last_modification).toLocaleDateString('en-US', {
+                        {indicator.updated_at ? new Date(indicator.updated_at).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'short',
                           day: 'numeric'

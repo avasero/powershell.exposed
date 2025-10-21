@@ -306,6 +306,29 @@ export default function IndicatorDetailPage() {
                   minute: '2-digit'
                 })}
               </div>
+              {indicator.last_modified_by && (
+                <div className="md:col-span-2">
+                  <span className="font-semibold block mb-2">Last Modified By:</span>
+                  <div className="flex items-center gap-3">
+                    {indicator.last_modified_by_avatar ? (
+                      <img 
+                        src={indicator.last_modified_by_avatar} 
+                        alt={indicator.last_modified_by}
+                        className="w-10 h-10 rounded-full border-2 border-green-500/30"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-green-500/20 border-2 border-green-500/30 flex items-center justify-center">
+                        <span className="text-lg font-bold" style={{color: 'var(--accent)'}}>
+                          {indicator.last_modified_by.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <span className="font-mono text-base" style={{color: 'var(--foreground)'}}>
+                      {indicator.last_modified_by}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
