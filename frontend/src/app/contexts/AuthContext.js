@@ -202,8 +202,20 @@ export const AuthProvider = ({ children }) => {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Pages that don't need authentication
-  const publicRoutes = useMemo(() => ['/login', '/register', '/signatures', '/landing', '/analysis', '/auth/confirm', '/history', '/terms', '/indicators', '/'], []);
+  // Pages that don't need authentication - ADICIONAR /evaluate AQUI
+  const publicRoutes = useMemo(() => [
+    '/login', 
+    '/register', 
+    '/signatures', 
+    '/landing', 
+    '/analysis', 
+    '/auth/confirm', 
+    '/history', 
+    '/terms', 
+    '/indicators', 
+    '/',
+    '/evaluate'  // ← ADICIONAR ESTA LINHA
+  ], []);
 
   useEffect(() => {
    
@@ -286,25 +298,19 @@ export const AuthProvider = ({ children }) => {
 
   // Redirect logic
   useEffect(() => {
-    
-   
-    
     if (!loading) {
       // Verificar rotas públicas incluindo rotas dinâmicas
-      const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/analysis/') || pathname.startsWith('/auth/') || pathname.startsWith('/indicators/');
+      const isPublicRoute = publicRoutes.includes(pathname) || 
+                           pathname.startsWith('/analysis/') || 
+                           pathname.startsWith('/auth/') || 
+                           pathname.startsWith('/indicators/') ||
+                           pathname.startsWith('/evaluate'); // ← ADICIONAR ESTA LINHA
       const userIsAuthenticated = user !== null;
 
-      
-
       if (!userIsAuthenticated && !isPublicRoute) {
-        
         // User is not authenticated and trying to access protected route
-        router.push('/landing');
-      } else {
-       
+        router.push('/');  // Redirecionar para landing (/) ao invés de /landing
       }
-    } else {
-     
     }
   }, [user, loading, pathname, router, publicRoutes]);
 
@@ -398,7 +404,11 @@ export const AuthProvider = ({ children }) => {
   }
 
   // If not authenticated and not on a public route, don't render anything (already redirected)
-  const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/analysis/') || pathname.startsWith('/auth/') || pathname.startsWith('/indicators');
+  const isPublicRoute = publicRoutes.includes(pathname) || 
+                       pathname.startsWith('/analysis/') || 
+                       pathname.startsWith('/auth/') || 
+                       pathname.startsWith('/indicators/') ||
+                       pathname.startsWith('/evaluate'); // ← ADICIONAR ESTA LINHA
   if (!isAuthenticated() && !isPublicRoute) {
     return null;
   }

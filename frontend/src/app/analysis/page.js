@@ -58,16 +58,6 @@ export default function AnalysisPage() {
   const analysisExecutedRef = useRef(false);
 
 
-
-  // Remover verificação de autenticação - permitir análises anônimas
-  // useEffect(() => {
-  //   if (!isAuthenticated()) {
-  //     router.push('/landing');
-  //   }
-  // }, [isAuthenticated, router]);
-
-
-
   const performAnalysis = useCallback(
     async (command, providedIpAddress, providedIpLocation) => {
       const finalIpAddress = providedIpAddress || ipAddress;

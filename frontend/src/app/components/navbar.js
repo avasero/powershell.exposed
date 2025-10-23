@@ -51,7 +51,7 @@ export default function Navbar() {
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-4">
           <ThemedButton
-            onClick={() => window.location.href = '/indicators'}
+            onClick={() => window.location.href = '/'}
             size="sm"
             variant="ghost"
           >
@@ -87,7 +87,7 @@ export default function Navbar() {
                 Evaluate Command
               </ThemedButton>
               <ThemedButton
-                onClick={() => window.location.href = '/login'}
+                onClick={() => window.location.href = '/'}
                 size="sm"
               >
                 Login
