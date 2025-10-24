@@ -116,9 +116,9 @@ try:
                  400: {"model": ErrorResponse},
                  429: {"model": RateLimitResponse}
              })(analyze_command_endpoint)
-    app.get("/user-analyses", tags=["User Data"], summary="Get User Analyses")(get_user_analyses_endpoint)
-    app.get("/analysis/{analysis_id}", tags=["Command Analysis"], summary="Get Analysis by ID")(get_analysis_by_id_endpoint)
-    app.post("/create-user-session", tags=["Session Management"], summary="Create User Session")(create_user_session_endpoint)
+    app.get("/user-analyses", tags=["User Data"], summary="Get User Analyses", include_in_schema=False)(get_user_analyses_endpoint)
+    app.get("/analysis/{analysis_id}", tags=["Command Analysis"], summary="Get Analysis by ID", include_in_schema=False)(get_analysis_by_id_endpoint)
+    app.post("/create-user-session", tags=["Session Management"], summary="Create User Session", include_in_schema=False)(create_user_session_endpoint)
     
    
     
