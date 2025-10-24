@@ -39,6 +39,18 @@ async def analyze_command_endpoint(
     Optimized for instant cache responses
     """
     try:
+        # ✅ VALIDAÇÃO: Verificar limite de 5000 caracteres no comando
+        command = request_data.command
+        
+        if not command or len(command) > 5000:
+            return JSONResponse(
+                {
+                    "error": "Command validation failed",
+                    "details": f"Command must be between 1 and 5000 characters. Provided: {len(command) if command else 0} characters"
+                },
+                status_code=400
+            )
+        
         # VERIFICAR RATE LIMIT GLOBAL PRIMEIRO
         global_rate_limit_info = check_global_rate_limit()
         
@@ -53,7 +65,6 @@ async def analyze_command_endpoint(
             )
         
         # Extrair dados do schema com fallbacks seguros
-        command = request_data.command
         user_id = current_user["id"] if current_user else request_data.user_id
         ip_address = request_data.ip_address or "127.0.0.1"
         country = request_data.country
@@ -121,12 +132,6 @@ async def analyze_command_endpoint(
                 city = location_data.get("city") or city
                 region = location_data.get("region") or region
                 timezone = location_data.get("timezone") or timezone
-        
-        if not command or not isinstance(command, str):
-            return JSONResponse(
-                {"error": "Command is required and must be a string"},
-                status_code=400
-            )
         
         # ⚡ IMMEDIATE CACHE CHECK: Priority #1 for speed
         phash = generate_phash(command)

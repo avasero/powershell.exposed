@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ThemedButton from "../components/ThemedButton";
 import { ErrorMessage } from "../components/Messages";
+import { getSeverityColor as getColorObject } from "../../constants/severityColors";
 
 export default function IndicatorsPage() {
   const [indicators, setIndicators] = useState([]);
@@ -134,13 +135,8 @@ export default function IndicatorsPage() {
   };
 
   const getSeverityColor = (severity) => {
-    switch (severity?.toUpperCase()) {
-      case 'CRITICAL': return 'text-red-400';
-      case 'HIGH': return 'text-orange-400';
-      case 'MEDIUM': return 'text-yellow-400';
-      case 'LOW': return 'text-green-400';
-      default: return 'text-gray-400';
-    }
+    const colorObj = getColorObject(severity);
+    return colorObj.text;
   };
 
   const handleIndicatorClick = (indicatorId) => {
@@ -367,7 +363,7 @@ export default function IndicatorsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span className={`font-mono text-sm font-bold ${getSeverityColor(indicator.severity)}`}>
-                          {indicator.severity || 'N/A'}
+                          {indicator.severity ? indicator.severity.charAt(0).toUpperCase() + indicator.severity.slice(1).toLowerCase() : 'N/A'}
                         </span>
                       </td>
                       <td className="px-4 py-3 font-mono text-sm" style={{color: 'var(--foreground)'}}>
