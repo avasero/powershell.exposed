@@ -76,25 +76,27 @@ export default function AnalysisChat() {
   };
 
   useEffect(() => {
+    console.log('🔄 [ANALYSIS CHAT] Main useEffect triggered - user:', user?.id, 'isAuth:', isAuthenticated());
+    
     const hiddenSet = loadHiddenAnalyses();
     
     if (isAuthenticated() && user) {
+      console.log('👤 [ANALYSIS CHAT] Setting up for authenticated user');
       setIsAnonymous(false);
       loadRecentAnalyses(hiddenSet);
     } else if (!isAuthenticated()) {
+      console.log('🍪 [ANALYSIS CHAT] Setting up for anonymous user');
       setIsAnonymous(true);
-      loadAnonymousAnalyses(hiddenSet);
+      loadRecentAnalyses(hiddenSet); // Usar loadRecentAnalyses que já tem lógica correta
     }
   }, [user?.id]);
 
   useEffect(() => {
     if (analysisCount > 0) {
+      console.log('📊 [ANALYSIS CHAT] Analysis count changed:', analysisCount);
       const currentHiddenSet = loadHiddenAnalyses();
-      if (isAuthenticated() && !isAnonymous) {
-        loadRecentAnalyses(currentHiddenSet);
-      } else {
-        loadAnonymousAnalyses(currentHiddenSet);
-      }
+      // Sempre usar loadRecentAnalyses que já tem a lógica correta
+      loadRecentAnalyses(currentHiddenSet);
     }
   }, [analysisCount]);
 
@@ -107,11 +109,13 @@ export default function AnalysisChat() {
   }, []);
 
   const loadRecentAnalyses = async (hiddenSet = hiddenAnalyses) => {
-    
     try {
       setLoading(true);
       
+      // ✅ USUÁRIOS AUTENTICADOS - usar backend
       if (isAuthenticated() && user?.id) {
+        console.log('📥 [ANALYSIS CHAT] Loading analyses for authenticated user:', user.id);
+        
         const { makeAuthenticatedRequest } = await import('../../lib/api');
         const response = await makeAuthenticatedRequest(`/user-analyses?limit=20&user_id=${user.id}`, {
           method: 'GET'
@@ -137,45 +141,32 @@ export default function AnalysisChat() {
           })
           .slice(0, 5);
         
+        console.log('✅ [ANALYSIS CHAT] Loaded authenticated analyses:', filteredAnalyses.length);
         setAnalyses(filteredAnalyses);
         return;
       }
       
-      const { getCurrentSessionId } = await import('../../utils/session');
-      const sessionId = getCurrentSessionId();
+      // 🍪 USUÁRIOS ANÔNIMOS - usar APENAS cookies (não backend)
+      console.log('🍪 [ANALYSIS CHAT] Loading analyses from cookies for anonymous user');
       
-      if (!sessionId) {
-        setAnalyses([]);
-        return;
-      }
+      // Para usuários anônimos, carregar APENAS dos cookies
+      // Não tentar buscar do backend devido às políticas RLS restritivas
+      const cookieAnalyses = getAnonymousAnalyses();
+      console.log('🍪 [ANALYSIS CHAT] Found cookie analyses:', cookieAnalyses.length);
       
-      const { makeAuthenticatedRequest } = await import('../../lib/api');
-      const response = await makeAuthenticatedRequest(`/user-analyses?limit=20`, {
-        method: 'GET',
-        headers: {
-          'X-Session-ID': sessionId,
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      const allAnalyses = result.analyses || result || [];
-      
-      const filteredAnalyses = allAnalyses
+      const filteredAnalyses = cookieAnalyses
         .filter(analysis => {
-          const analysisId = analysis.short_id || analysis.uuid || analysis.id;
+          const analysisId = analysis.id;
           const isHidden = hiddenSet.has(analysisId);
           return !isHidden;
         })
         .slice(0, 5);
       
+      console.log('✅ [ANALYSIS CHAT] Loaded anonymous analyses from cookies:', filteredAnalyses.length);
       setAnalyses(filteredAnalyses);
-     
+      
     } catch (err) {
+      console.error('❌ [ANALYSIS CHAT] Error loading analyses:', err);
       setAnalyses([]);
     } finally {
       setLoading(false);
@@ -183,26 +174,10 @@ export default function AnalysisChat() {
   };
 
   const loadAnonymousAnalyses = (hiddenSet = hiddenAnalyses) => {
-    try {
-      setLoading(true);
-      
-      const data = getAnonymousAnalyses();
-      
-      const filteredData = data
-        .filter(analysis => {
-          const analysisId = analysis.id;
-          return !hiddenSet.has(analysisId);
-        })
-        .slice(0, 5);
-      
-      setAnalyses(filteredData);
-      
-    } catch (err) {
-      console.error('❌ [ANALYSIS CHAT] Error loading anonymous analyses:', err);
-      setAnalyses([]);
-    } finally {
-      setLoading(false);
-    }
+    console.log('🍪 [ANALYSIS CHAT] loadAnonymousAnalyses called - redirecting to loadRecentAnalyses');
+    // Esta função agora é apenas um wrapper que chama loadRecentAnalyses
+    // que já tem a lógica correta para usuários anônimos
+    loadRecentAnalyses(hiddenSet);
   };
 
   const handleAnalysisClick = (command, analysisId = null) => {

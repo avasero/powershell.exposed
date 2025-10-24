@@ -113,7 +113,7 @@ export default function EvaluatePage() {
           data.session_id && !user?.id ? saveSessionFromBackend(data.session_id) : Promise.resolve(),
           !user?.id ? (async () => {
             try {
-              const { saveAnonymousAnalysis } = await import('../utils/cookies');
+              const { saveAnonymousAnalysis } = await import('../../utils/cookies');
               saveAnonymousAnalysis({
                 command: command,
                 score: data.analysis.risk_score,
@@ -153,7 +153,7 @@ export default function EvaluatePage() {
         
         if (!user?.id) {
           try {
-            const { saveAnonymousAnalysis } = await import('../utils/cookies');
+            const { saveAnonymousAnalysis } = await import('../../utils/cookies');
             saveAnonymousAnalysis({
               command: command,
               score: data.analysis.risk_score,
