@@ -87,7 +87,7 @@ export default function EvaluatePage() {
       };
 
       const { makeAuthenticatedRequest } = await import('../../lib/api');
-      const response = await makeAuthenticatedRequest('/analyze-pcre2', {
+      const response = await makeAuthenticatedRequest('/evaluate', {
         method: 'POST',
         body: JSON.stringify(requestData),
         headers: {

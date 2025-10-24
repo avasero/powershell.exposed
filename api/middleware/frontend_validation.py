@@ -105,7 +105,7 @@ async def validate_anonymous_access(request: Request, call_next):
             return response
         
         # Para endpoints que exigem validação de origem para acesso anônimo
-        restricted_endpoints = ["/analyze-pcre2", "/generate-captcha", "/verify-captcha", "/create-user-session"]
+        restricted_endpoints = ["/evaluate", "/generate-captcha", "/verify-captcha", "/create-user-session"]
         
         if request.url.path in restricted_endpoints:
         

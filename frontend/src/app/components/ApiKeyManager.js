@@ -275,7 +275,7 @@ export default function ApiKeyManager() {
           <p><strong>3. Available endpoints:</strong></p>
           <ul className="ml-4 space-y-1">
             <li>• <code>GET /user/command-evaluations</code> - Get your analyses</li>
-            <li>• <code>POST /analyze-pcre2</code> - Analyze PowerShell commands</li>
+            <li>• <code>POST /evaluate</code> - Analyze PowerShell commands</li>
           </ul>
         </div>
       </div>

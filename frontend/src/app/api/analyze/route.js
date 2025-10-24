@@ -32,7 +32,7 @@ export async function POST(request) {
 
 
 
-    const response = await fetch('https://powershell-fastapi.vercel.app/analyze-pcre2', {
+    const response = await fetch('https://powershell-fastapi.vercel.app/evaluate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -51,7 +51,7 @@ For direct API access (Postman, cURL, scripts):
 ### Getting Started:
 1. **Web App**: Visit the frontend to analyze commands anonymously
 2. **API Access**: Get an API Key from your profile for external tools
-3. **Endpoint**: `POST /analyze-pcre2` with proper authentication
+3. **Endpoint**: `POST /evaluate` with proper authentication
 """
 API_VERSION = "1.0.0"
 
@@ -108,7 +108,7 @@ try:
     # Substituir rotas básicas por versões completas
     app.get("/", include_in_schema=False)(root_endpoint)
     app.get("/health", include_in_schema=False)(health_check_endpoint)
-    app.post("/analyze-pcre2", 
+    app.post("/evaluate", 
              tags=["Command Analysis"],
              summary="Analyze PowerShell Command",
              responses={
@@ -141,7 +141,7 @@ except ImportError as e:
             "message": "API working with limited functionality"
         })
     
-    @app.post("/analyze-pcre2")
+    @app.post("/evaluate")
     async def analyze_fallback(request: Request):
         return JSONResponse({
             "error": "Analysis service temporarily unavailable"
