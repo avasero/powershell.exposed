@@ -22,6 +22,10 @@ CACHE_DURATION = 10 * 60 * 1000  # 10 minutos em milissegundos
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "https://powershell-exposed.vercel.app",
+    "https://powershell.exposed",
+    "https://www.powershell.exposed",
+    "https://www.ps.exposed",
+    "https://ps.exposed"
 ]
 
 # Configurações do Supabase
