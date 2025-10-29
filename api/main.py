@@ -69,8 +69,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "https://powershell-exposed.vercel.app", 
-        
+        "https://powershell-exposed.vercel.app",
+        "https://powershell.exposed",
+        "https://www.powershell.exposed",
+        "https://www.ps.exposed",
+        "https://ps.exposed"
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
