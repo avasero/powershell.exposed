@@ -76,6 +76,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     
     for signature in signatures:
         all_signature_matches = []
+        matched_pattern = None  # Armazenar apenas o primeiro pattern que fez match
         
         # Primeiro, coletar TODOS os matches de TODOS os patterns
         for pattern in signature["patterns"]:
@@ -85,6 +86,10 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                 pattern_matches = list(regex.finditer(command))
                 
                 if pattern_matches:
+                    # Guardar o primeiro pattern que fez match
+                    if matched_pattern is None:
+                        matched_pattern = pattern
+                    
                     for match in pattern_matches:
                         matched_text = match.group(0)
                         match_start = match.start()
@@ -92,7 +97,6 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                         
                         # Adicionar à lista geral de matches
                         all_signature_matches.append({
-                            "pattern": pattern,
                             "matched_text": matched_text,
                             "position": {
                                 "start": match_start,
@@ -117,24 +121,11 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         matches_found = min(len(unique_matches), signature["max_match"])
         final_matches = unique_matches[:matches_found]
         
-        # Preparar lista final de matches
-        signature_matches = []
-        for i, match_info in enumerate(final_matches):
-            signature_matches.append({
-                "pattern": match_info["pattern"],
-                "matched_text": match_info["matched_text"],
-                "position": match_info["position"],
-                "match_number": i + 1
-            })
-        
         # Se encontrou matches para esta signature
         if matches_found > 0:
             
             # Calcular score total para esta signature (score base × quantidade de matches)
             signature_total_score = signature["score"] * matches_found
-            
-            # Determinar qual pattern deu match (usar o primeiro pattern que encontrou matches)
-            matched_pattern = signature_matches[0]["pattern"] if signature_matches else "Unknown pattern"
             
             detected_signature = {
                 "name": signature["name"],
@@ -144,8 +135,15 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                 "matches_found": matches_found,
                 "total_score": signature_total_score,
                 "max_match_allowed": signature["max_match"],
-                "matches_details": signature_matches,
-                "pattern": matched_pattern,
+                "pattern": matched_pattern or signature["patterns"][0] if signature["patterns"] else "Unknown pattern",  # Fallback seguro
+                "matches_details": [
+                    {
+                        "matched_text": match_info["matched_text"],
+                        "position": match_info["position"],
+                        "match_number": i + 1
+                    }
+                    for i, match_info in enumerate(final_matches)
+                ],
                 "tactics": signature["tactics"],
                 "techniques": signature["techniques"],
                 "reference": signature.get("reference", []),
@@ -197,24 +195,22 @@ async def save_analysis_to_db(
     user_agent: str = "FastAPI-Client",
     is_cache: bool = False
 ) -> dict:
-    """Salva análise no banco de dados - otimizado para cache hits"""
+    """Salva análise no banco - dados normalizados sem duplicação"""
     try:
-        # ⚡ PERFORMANCE: Start timing for cache operations
-        start_time = time.time()
-        
         supabase = get_supabase_client()
         short_id = generate_short_id()
         
-        # Preparar dados para inserção no banco
+        # Dados normalizados - SEM analysis_result JSONB duplicado
         insert_data = {
             "command": command,
-            "is_malicious": analysis_result["is_malicious"],
+            "decoded_command": analysis_result.get("decoded_command"),
             "risk_score": round(analysis_result["total_score"], 1),
+            "is_malicious": analysis_result["is_malicious"],
             "severity": analysis_result["severity"],
             "signatures_detected": analysis_result["detected_signatures"],
             "tactics": analysis_result["tactics"],
             "techniques": analysis_result["techniques"],
-            "analysis_result": analysis_result,
+            "cmdlets_detected": analysis_result.get("cmdlets_detected", []),
             "ip_address": ip_address,
             "ip_country": country,
             "ip_city": city,
@@ -226,18 +222,16 @@ async def save_analysis_to_db(
             "is_cache": is_cache
         }
         
+        # Adicionar user_id ou session_id
         if user_id:
             insert_data["user_id"] = user_id
-        
         if session_id:
             insert_data["session_id"] = session_id
         
+        # Remove valores None
+        insert_data = {k: v for k, v in insert_data.items() if v is not None}
+        
         db_response = supabase.table('powershell_analyses').insert(insert_data).execute()
-
-        if is_cache:
-            cache_type = "CACHE HIT"
-        else:
-            cache_type = "FRESH"
 
         if db_response.data:
             return {
@@ -259,3 +253,9 @@ def clear_signatures_cache():
     global signatures_cache, cache_timestamp
     signatures_cache = None
     cache_timestamp = 0
+def clear_signatures_cache():
+    """Limpa o cache de assinaturas"""
+    global signatures_cache, cache_timestamp
+    signatures_cache = None
+    cache_timestamp = 0
+

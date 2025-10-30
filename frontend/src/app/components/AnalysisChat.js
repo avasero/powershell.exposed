@@ -117,7 +117,7 @@ export default function AnalysisChat() {
         console.log('📥 [ANALYSIS CHAT] Loading analyses for authenticated user:', user.id);
         
         const { makeAuthenticatedRequest } = await import('../../lib/api');
-        const response = await makeAuthenticatedRequest(`/user-analyses?limit=20&user_id=${user.id}`, {
+        const response = await makeAuthenticatedRequest(`/user-analyses?limit=5`, {
           method: 'GET'
         });
 
@@ -125,42 +125,29 @@ export default function AnalysisChat() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        let result;
-        try {
-          result = await response.json();
-        } catch (jsonError) {
-          throw new Error('Invalid JSON response');
-        }
-        const allAnalyses = result.analyses || result || [];
+        const result = await response.json();
+        const allAnalyses = result.analyses || [];
         
-        const filteredAnalyses = allAnalyses
-          .filter(analysis => {
-            const analysisId = analysis.short_id || analysis.uuid || analysis.id;
-            const isHidden = hiddenSet.has(analysisId);
-            return !isHidden;
-          })
-          .slice(0, 5);
+        const filteredAnalyses = allAnalyses.filter(analysis => {
+          const analysisId = analysis.short_id || analysis.uuid || analysis.id;
+          return !hiddenSet.has(analysisId);
+        });
         
         console.log('✅ [ANALYSIS CHAT] Loaded authenticated analyses:', filteredAnalyses.length);
         setAnalyses(filteredAnalyses);
         return;
       }
       
-      // 🍪 USUÁRIOS ANÔNIMOS - usar APENAS cookies (não backend)
+      // 🍪 USUÁRIOS ANÔNIMOS - usar APENAS cookies
       console.log('🍪 [ANALYSIS CHAT] Loading analyses from cookies for anonymous user');
       
-      // Para usuários anônimos, carregar APENAS dos cookies
-      // Não tentar buscar do backend devido às políticas RLS restritivas
       const cookieAnalyses = getAnonymousAnalyses();
       console.log('🍪 [ANALYSIS CHAT] Found cookie analyses:', cookieAnalyses.length);
       
-      const filteredAnalyses = cookieAnalyses
-        .filter(analysis => {
-          const analysisId = analysis.id;
-          const isHidden = hiddenSet.has(analysisId);
-          return !isHidden;
-        })
-        .slice(0, 5);
+      const filteredAnalyses = cookieAnalyses.filter(analysis => {
+        const analysisId = analysis.id;
+        return !hiddenSet.has(analysisId);
+      }).slice(0, 5);
       
       console.log('✅ [ANALYSIS CHAT] Loaded anonymous analyses from cookies:', filteredAnalyses.length);
       setAnalyses(filteredAnalyses);

@@ -213,14 +213,14 @@ export default function AnalysisCard({
             </div>
             <div className="text-sm font-mono p-3 rounded" style={{backgroundColor: 'var(--muted)', color: 'var(--foreground)'}}>
               {(() => {
-                const uniquePatterns = new Map();
-                matchesInfo.matchesDetails.forEach((match, idx) => {
-                  const pattern = match.pattern || 'Unknown pattern';
-                  if (!uniquePatterns.has(pattern)) {
-                    uniquePatterns.set(pattern, []);
-                  }
-                  uniquePatterns.get(pattern).push({...match, originalIndex: idx});
-                });
+                // ✅ FIX: Use o pattern que está no nível da signature (props)
+                const signaturePattern = pattern || 'Unknown pattern';
+                
+                // Como agora há apenas UM pattern por signature, agrupar todos os matches
+                const allMatches = matchesInfo.matchesDetails.map((match, idx) => ({
+                  ...match,
+                  originalIndex: idx
+                }));
 
                 // Função para compactar o padrão entre os matches
                 const compactPatternWithMatches = (pattern, matches) => {
@@ -248,7 +248,6 @@ export default function AnalysisCard({
                     if (matchStart > lastEnd) {
                       const beforeText = pattern.substring(lastEnd, matchStart);
                       
-                      // Para o primeiro match, mostrar mais contexto (até 50 caracteres)
                       if (idx === 0) {
                         if (beforeText.length > 50) {
                           result += '(...)' + beforeText.substring(beforeText.length - 50);
@@ -256,7 +255,6 @@ export default function AnalysisCard({
                           result += beforeText;
                         }
                       } else {
-                        // Para matches subsequentes, compactar mais (20 caracteres)
                         if (beforeText.length > 20) {
                           result += '(...)';
                         } else {
@@ -265,13 +263,11 @@ export default function AnalysisCard({
                       }
                     }
                     
-                    // Adicionar o match destacado
                     result += `<mark>${match.matched_text}</mark>`;
-                    
                     lastEnd = matchEnd;
                   });
                   
-                  // Adicionar texto após o último match - mostrar mais contexto (até 50 caracteres)
+                  // Adicionar texto após o último match
                   if (lastEnd < pattern.length) {
                     const afterText = pattern.substring(lastEnd);
                     if (afterText.length > 50) {
@@ -284,11 +280,11 @@ export default function AnalysisCard({
                   return result;
                 };
 
-                return Array.from(uniquePatterns.entries()).map(([pattern, matches], patternIdx) => (
-                  <div key={patternIdx} className="mb-3 last:mb-0">
+                return (
+                  <div className="mb-3 last:mb-0">
                     <div className="flex justify-between items-start mb-2">
                       <div className="text-xs text-white">
-                        Pattern {patternIdx + 1} ({matches.length} match{matches.length !== 1 ? 'es' : ''})
+                        Pattern ({allMatches.length} match{allMatches.length !== 1 ? 'es' : ''})
                       </div>
                       {link && (
                         <a 
@@ -306,12 +302,12 @@ export default function AnalysisCard({
                     
                     <div className="font-bold break-all mb-2 p-2 rounded" style={{backgroundColor: 'var(--background)', fontSize: '11px', border: '1px solid var(--border-color)'}}>
                       {(() => {
-                        const compactPattern = compactPatternWithMatches(pattern, matches);
+                        const compactPattern = compactPatternWithMatches(signaturePattern, allMatches);
                         
                         const parts = compactPattern.split(/(<mark>.*?<\/mark>)/g);
                         return parts.map((part, index) => {
                           if (part.startsWith('<mark>') && part.endsWith('</mark>')) {
-                            const content = part.slice(6, -7); // Remove <mark> e </mark>
+                            const content = part.slice(6, -7);
                             return (
                               <span key={index} className="bg-yellow-400 text-black px-1 rounded font-bold">
                                 {content}
@@ -324,7 +320,7 @@ export default function AnalysisCard({
                     </div>
                     
                     <div className="flex flex-wrap gap-2">
-                      {matches.map((match, matchIdx) => (
+                      {allMatches.map((match, matchIdx) => (
                         <div key={matchIdx} className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs max-w-full"
                           style={{backgroundColor: 'var(--accent)', color: 'var(--background)'}}>
                           <span className="font-bold break-all" title={match.matched_text}>
@@ -339,7 +335,7 @@ export default function AnalysisCard({
                       ))}
                     </div>
                   </div>
-                ));
+                );
               })()}
             </div>
           </div>

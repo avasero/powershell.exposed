@@ -348,11 +348,10 @@ async def get_user_analyses_endpoint(
         limit = int(limit_param) if limit_param else None  # None = sem limite
         user_id_from_query = request.query_params.get("user_id")
         
-        # Use authenticated user ID if available
-        user_id = current_user["id"] if current_user else (request.headers.get("X-User-ID") or user_id_from_query)
+        # ✅ FIX: Priorizar user_id do current_user (autenticado)
+        user_id = current_user["id"] if current_user else user_id_from_query
         session_id = request.cookies.get("session_id")
         if not session_id:
-            # Tentar obter do header Authorization ou X-Session-ID
             session_id = request.headers.get("X-Session-ID")
         
         if not user_id and not session_id:
@@ -370,7 +369,6 @@ async def get_user_analyses_endpoint(
                 .eq('user_id', user_id) \
                 .order('created_at', desc=True)
             
-            # Aplicar limite apenas se especificado
             if limit:
                 query = query.limit(limit)
                 
@@ -381,70 +379,31 @@ async def get_user_analyses_endpoint(
                 .eq('session_id', session_id) \
                 .order('created_at', desc=True)
             
-            # Aplicar limite apenas se especificado
             if limit:
                 query = query.limit(limit)
                 
             response = query.execute()
         
         if response.data:
-            # Processar dados para compatibilidade com frontend
+            # ✅ FIX: Processar TODOS os campos corretamente
             analyses = []
             for analysis in response.data:
-                # Processar campos que podem vir como string JSON
-                signatures_detected = analysis.get("signatures_detected", [])
-                cmdlets_detected = analysis.get("cmdlets_detected", [])
-                analysis_result = analysis.get("analysis_result", {})
-                tactics = analysis.get("tactics", [])
-                techniques = analysis.get("techniques", [])
-                
-                # Se vieram como string JSON, fazer parse
-                if isinstance(signatures_detected, str):
-                    try:
-                        signatures_detected = json.loads(signatures_detected)
-                    except (json.JSONDecodeError, TypeError):
-                        signatures_detected = []
-                
-                if isinstance(cmdlets_detected, str):
-                    try:
-                        cmdlets_detected = json.loads(cmdlets_detected)
-                    except (json.JSONDecodeError, TypeError):
-                        cmdlets_detected = []
-                
-                if isinstance(analysis_result, str):
-                    try:
-                        analysis_result = json.loads(analysis_result)
-                    except (json.JSONDecodeError, TypeError):
-                        analysis_result = {}
-                
-                if isinstance(tactics, str):
-                    try:
-                        tactics = json.loads(tactics)
-                    except (json.JSONDecodeError, TypeError):
-                        tactics = []
-                
-                if isinstance(techniques, str):
-                    try:
-                        techniques = json.loads(techniques)
-                    except (json.JSONDecodeError, TypeError):
-                        techniques = []
-                
                 analyses.append({
                     "id": analysis.get("id"),
                     "uuid": analysis.get("uuid"),
+                    "short_id": analysis.get("short_id"),
                     "command": analysis.get("command"),
                     "risk_score": float(analysis.get("risk_score", 0)) if analysis.get("risk_score") is not None else 0,
-                    "severity": analysis.get("severity"),
-                    "signatures_detected": signatures_detected,
-                    "cmdlets_detected": cmdlets_detected,
-                    "analysis_result": analysis.get("analysis_result"),
-                    "tactics": tactics,
-                    "techniques": techniques,
-                    "created_at": analysis.get("created_at"),
                     "is_malicious": analysis.get("is_malicious", False),
-                    "is_anonymous": False  # Marcar como não anônimo para usuários logados
+                    "severity": analysis.get("severity"),
+                    "signatures_detected": analysis.get("signatures_detected", []),
+                    "cmdlets_detected": analysis.get("cmdlets_detected", []),
+                    "tactics": analysis.get("tactics", []),
+                    "techniques": analysis.get("techniques", []),
+                    "created_at": analysis.get("created_at"),
+                    "is_cache": analysis.get("is_cache", False),
+                    "decoded_command": analysis.get("decoded_command")
                 })
-            
             
             return JSONResponse({
                 "success": True,
@@ -459,6 +418,7 @@ async def get_user_analyses_endpoint(
             })
             
     except Exception as error:
+        print(f"❌ Error fetching user analyses: {error}")
         return JSONResponse(
             {"error": f"Failed to fetch user analyses: {str(error)}"},
             status_code=500
@@ -571,6 +531,32 @@ async def get_global_rate_limit_status_endpoint():
         }
     })
 
+
+async def clear_cache_endpoint():
+    """Limpa o cache de assinaturas"""
+    clear_signatures_cache()
+    
+    return JSONResponse({
+        "success": True,
+        "message": "Cache cleared, next request will reload from database"
+    })
+
+
+async def root_endpoint():
+    """Endpoint raiz da API"""
+    return JSONResponse({
+        "message": "Fast api working",
+        "status": "success"
+    })
+
+
+async def health_check_endpoint():
+    """Endpoint de health check"""
+    return JSONResponse({
+        "status": "healthy",
+        "message": "Fast api working"
+    })
+    
 
 async def clear_cache_endpoint():
     """Limpa o cache de assinaturas"""

@@ -42,11 +42,12 @@ export default function HistoryPage() {
       setLoading(true);
       setError("");
       
-      // Para usuários logados, usar user_id diretamente
+      // ✅ FIX: Separar lógica para autenticados vs anônimos
       if (isAuthenticated() && user?.id) {
-        // Carregar TODAS as análises do backend Python (sem limite)
+        // ✅ USUÁRIOS AUTENTICADOS: Buscar do backend
         const { makeAuthenticatedRequest } = await import('../../lib/api');
-        const response = await makeAuthenticatedRequest(`/user-analyses?user_id=${user.id}`, {
+        
+        const response = await makeAuthenticatedRequest(`/user-analyses`, {
           method: 'GET'
         });
 
@@ -55,41 +56,16 @@ export default function HistoryPage() {
         }
 
         const result = await response.json();
-        
-        // Processar dados do backend
-        const analyses = result.analyses || result || [];
+        const analyses = result.analyses || [];
         setAnalyses(analyses);
-        return;
+      } else {
+        // 🍪 USUÁRIOS ANÔNIMOS: Usar APENAS cookies (não backend)
+        const cookieAnalyses = getAnonymousAnalyses();
+        setAnalyses(cookieAnalyses || []);
       }
       
-      // Para usuários anônimos, usar session_id do localStorage
-      const { getCurrentSessionId } = await import('../../utils/session');
-      const sessionId = getCurrentSessionId();
-      
-      if (!sessionId) {
-        setAnalyses([]);
-        return;
-      }
-      
-      // Carregar TODAS as análises do backend Python (sem limite)
-      const { makeAuthenticatedRequest } = await import('../../lib/api');
-      const response = await makeAuthenticatedRequest(`/user-analyses`, {
-        method: 'GET',
-        headers: {
-          'X-Session-ID': sessionId, // Enviar session_id no header
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      // Processar dados do backend
-      const analyses = result.analyses || result || [];
-      setAnalyses(analyses);
     } catch (err) {
+      console.error('❌ Error loading analyses:', err);
       setError("Error loading analysis history: " + err.message);
       setAnalyses([]);
     } finally {
@@ -423,4 +399,5 @@ export default function HistoryPage() {
     </div>
   );
 }
+           
 

@@ -145,20 +145,42 @@ def should_cache_result(analysis_result: Dict[str, Any]) -> bool:
 def create_cache_compatible_result(analysis_result: Dict[str, Any]) -> Dict[str, Any]:
     """
     Create a cache-compatible version of analysis results
-    
-    Args:
-        analysis_result (Dict): Original analysis result
-        
-    Returns:
-        Dict: Cache-compatible result structure
+    Ensures pattern appears only once per signature
     """
+    # Clean detected_signatures to remove pattern duplication
+    cleaned_signatures = []
+    for sig in analysis_result.get("detected_signatures", []):
+        cleaned_sig = {
+            "name": sig.get("name"),
+            "description": sig.get("description"),
+            "severity": sig.get("severity"),
+            "base_score": sig.get("base_score"),
+            "matches_found": sig.get("matches_found"),
+            "total_score": sig.get("total_score"),
+            "max_match_allowed": sig.get("max_match_allowed"),
+            "pattern": sig.get("pattern"),  # Pattern appears once here
+            "matches_details": [
+                {
+                    "matched_text": md.get("matched_text"),
+                    "position": md.get("position"),
+                    "match_number": md.get("match_number")
+                }
+                for md in sig.get("matches_details", [])
+            ],
+            "tactics": sig.get("tactics", []),
+            "techniques": sig.get("techniques", []),
+            "reference": sig.get("reference", []),
+            "link": sig.get("link")
+        }
+        cleaned_signatures.append(cleaned_sig)
+    
     return {
         "is_malicious": analysis_result.get("is_malicious", False),
-        "total_score": analysis_result.get("total_score", 0.0),  # Keep the same field name for consistency
-        "risk_score": analysis_result.get("total_score", 0.0),   # Also store as risk_score for response compatibility
+        "total_score": analysis_result.get("total_score", 0.0),
+        "risk_score": analysis_result.get("total_score", 0.0),
         "severity": analysis_result.get("severity", "very_low"),
-        "detected_signatures": analysis_result.get("detected_signatures", []),
-        "signatures_detected": analysis_result.get("detected_signatures", []),  # Alias for response compatibility
+        "detected_signatures": cleaned_signatures,
+        "signatures_detected": cleaned_signatures,  # Alias for compatibility
         "tactics": analysis_result.get("tactics", []),
         "techniques": analysis_result.get("techniques", []),
         "total_signatures_checked": analysis_result.get("total_signatures_checked", 0),
