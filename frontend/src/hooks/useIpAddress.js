@@ -42,80 +42,58 @@ export function useIpAddress() {
       try {
         setLoading(true);
         
-        
-        // Tentar múltiplos serviços para capturar o IP
+        // ✅ FIX: Usar apenas serviços confiáveis e simples
         const ipServices = [
-          'https://api.ipify.org?format=json',
-          'https://ipapi.co/json/',
-          'https://api.myip.com',
-          'https://httpbin.org/ip'
+          { url: 'https://api.ipify.org?format=json', key: 'ip' },
+          { url: 'https://api.my-ip.io/v2/ip.json', key: 'ip' },
+          { url: 'https://api64.ipify.org?format=json', key: 'ip' },
+          { url: 'https://ipapi.co/json/', key: 'ip' }
         ];
 
         let ip = null;
         
         for (const service of ipServices) {
           try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
             
-            const response = await fetch(service, {
+            const response = await fetch(service.url, {
               method: 'GET',
-              headers: {
-                'Accept': 'application/json',
-              },
+              headers: { 'Accept': 'application/json' },
+              signal: controller.signal
             });
+            
+            clearTimeout(timeoutId);
             
             if (response.ok) {
               const data = await response.json();
+              ip = data[service.key];
               
-              
-              // Extrair IP baseado no formato de resposta de cada serviço
-              if (service.includes('ipify')) {
-                ip = data.ip;
-              } else if (service.includes('ipapi')) {
-                ip = data.ip;
-              } else if (service.includes('myip')) {
-                ip = data.ip;
-              } else if (service.includes('httpbin')) {
-                ip = data.origin;
-              }
-              
-              if (ip) {
-                
+              if (ip && ip !== 'Unknown') {
+                console.log(`✅ IP captured: ${ip} from ${service.url}`);
                 break;
               }
-            } else {
-             
             }
           } catch (err) {
-           
+            console.warn(`⚠️ Service ${service.url} failed:`, err.message);
             continue;
           }
         }
 
-        if (ip) {
-          
+        if (ip && ip !== 'Unknown') {
           setIpAddress(ip);
           
-          // Agora buscar informações de localização
-
+          // Buscar localização
           const locationResult = await fetchIpLocation(ip);
-        
           
-          let finalLocation;
-          if (locationResult && locationResult.country) {
-           
-            finalLocation = locationResult;
-            setIpLocation(locationResult);
-          } else {
-           
-            finalLocation = {
-              country: 'Unknown',
-              city: 'Unknown',
-              region: 'Unknown',
-              timezone: 'UTC',
-              isp: 'Unknown'
-            };
-            setIpLocation(finalLocation);
-          }
+          const finalLocation = locationResult || {
+            country: 'Unknown',
+            city: 'Unknown',
+            region: 'Unknown',
+            timezone: 'UTC'
+          };
+          
+          setIpLocation(finalLocation);
 
           // Salvar no cache
           ipCache = {
@@ -124,114 +102,103 @@ export function useIpAddress() {
             timestamp: Date.now(),
             error: null
           };
-         
+          
+          console.log('✅ IP and location cached:', { ip, location: finalLocation });
         } else {
           throw new Error('Failed to capture IP address from all services');
         }
         
       } catch (err) {
-       
-        const errorMessage = err.message;
-        setError(errorMessage);
+        console.error('❌ Error fetching IP:', err);
+        setError(err.message);
         
-        // Fallback: usar IP localhost para desenvolvimento
-        
-        const fallbackIp = '127.0.0.1';
-        const fallbackLocation = {
-          country: 'Local',
-          city: 'Development',
-          region: 'Localhost',
-          timezone: 'UTC',
-          isp: 'Local Development'
-        };
-        
-        setIpAddress(fallbackIp);
-        setIpLocation(fallbackLocation);
+        // ⚠️ NÃO usar fallback localhost - melhor enviar null
+        setIpAddress(null);
+        setIpLocation(null);
 
-        // Salvar fallback no cache também (mas com erro)
         ipCache = {
-          ipAddress: fallbackIp,
-          ipLocation: fallbackLocation,
+          ipAddress: null,
+          ipLocation: null,
           timestamp: Date.now(),
-          error: errorMessage
+          error: err.message
         };
       } finally {
         setLoading(false);
-       
       }
     };
 
     const fetchIpLocation = async (ip) => {
       try {
-       
-        
-        // Tentar múltiplos serviços de IP como fallback
         const services = [
+          {
+            name: 'IP-API',
+            url: `http://ip-api.com/json/${ip}?fields=status,country,countryCode,region,regionName,city,timezone,isp`,
+            transform: (data) => ({
+              country: data.country || 'Unknown',
+              city: data.city || 'Unknown',
+              region: data.regionName || data.region || 'Unknown',
+              timezone: data.timezone || 'UTC'
+            })
+          },
           {
             name: 'IPAPI',
             url: `https://ipapi.co/${ip}/json/`,
             transform: (data) => ({
-              country: data.country_name || data.country,
-              city: data.city,
-              region: data.region || data.region_name,
-              timezone: data.timezone,
-              isp: data.org || data.isp,
-              latitude: data.latitude,
-              longitude: data.longitude,
-              postal: data.postal,
-              asn: data.asn
+              country: data.country_name || data.country || 'Unknown',
+              city: data.city || 'Unknown',
+              region: data.region || data.region_name || 'Unknown',
+              timezone: data.timezone || 'UTC'
             })
           },
           {
             name: 'IPInfo',
             url: `https://ipinfo.io/${ip}/json`,
             transform: (data) => ({
-              country: data.country,
-              city: data.city,
-              region: data.region,
-              timezone: data.timezone,
-              isp: data.org,
-              latitude: data.loc?.split(',')[0],
-              longitude: data.loc?.split(',')[1],
-              postal: data.postal,
-              asn: data.asn
+              country: data.country || 'Unknown',
+              city: data.city || 'Unknown',
+              region: data.region || 'Unknown',
+              timezone: data.timezone || 'UTC'
+            })
+          },
+          {
+            name: 'IPGeolocation',
+            url: `https://api.ipgeolocation.io/ipgeo?apiKey=free&ip=${ip}`,
+            transform: (data) => ({
+              country: data.country_name || 'Unknown',
+              city: data.city || 'Unknown',
+              region: data.state_prov || 'Unknown',
+              timezone: data.time_zone?.name || 'UTC'
             })
           }
         ];
 
         for (const service of services) {
           try {
-           
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // Aumentado para 8s
             
             const response = await fetch(service.url, {
               method: 'GET',
-              headers: {
-                'Accept': 'application/json',
-              },
-              // Adicionar timeout para evitar travamentos
-              signal: AbortSignal.timeout(5000)
+              headers: { 'Accept': 'application/json' },
+              signal: controller.signal
             });
+            
+            clearTimeout(timeoutId);
             
             if (response.ok) {
               const data = await response.json();
-             
-              
               const location = service.transform(data);
               
-              if (location.country) {
-               
+              if (location.country && location.country !== 'Unknown') {
+                console.log(`✅ Location captured from ${service.name}:`, location);
                 return location;
               } else {
-               
-                continue; // Tentar próximo serviço
+                console.warn(`⚠️ ${service.name} returned empty data`);
               }
-            } else {
-              console.warn(`❌ ${service.name} returned status: ${response.status}`);
-              continue; // Tentar próximo serviço
             }
           } catch (serviceErr) {
             console.warn(`⚠️ ${service.name} failed:`, serviceErr.message);
-            continue; // Tentar próximo serviço
+            continue;
           }
         }
         
