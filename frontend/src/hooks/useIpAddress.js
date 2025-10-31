@@ -29,7 +29,6 @@ export function useIpAddress() {
 
   useEffect(() => {
     const fetchIpAddress = async () => {
-      // Verificar cache primeiro
       const now = Date.now();
       if (ipCache.timestamp && (now - ipCache.timestamp) < CACHE_DURATION && ipCache.ipAddress) {
         setIpAddress(ipCache.ipAddress);

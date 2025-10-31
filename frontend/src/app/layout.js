@@ -22,6 +22,9 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "Community-driven PowerShell Detection Indicators",
   description: "Advanced PowerShell command analysis for malware detection",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({ children }) {
