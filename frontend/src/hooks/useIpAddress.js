@@ -131,7 +131,7 @@ export function useIpAddress() {
         const services = [
           {
             name: 'IP-API',
-            url: `http://ip-api.com/json/${ip}?fields=status,country,countryCode,region,regionName,city,timezone,isp`,
+            url: `https://ip-api.com/json/${ip}?fields=status,country,countryCode,region,regionName,city,timezone,isp`,
             transform: (data) => ({
               country: data.country || 'Unknown',
               city: data.city || 'Unknown',
@@ -157,16 +157,6 @@ export function useIpAddress() {
               city: data.city || 'Unknown',
               region: data.region || 'Unknown',
               timezone: data.timezone || 'UTC'
-            })
-          },
-          {
-            name: 'IPGeolocation',
-            url: `https://api.ipgeolocation.io/ipgeo?apiKey=free&ip=${ip}`,
-            transform: (data) => ({
-              country: data.country_name || 'Unknown',
-              city: data.city || 'Unknown',
-              region: data.state_prov || 'Unknown',
-              timezone: data.time_zone?.name || 'UTC'
             })
           }
         ];
