@@ -124,9 +124,6 @@ async def analyze_command_endpoint(
             location_data = await get_ip_location(ip_address)
             if location_data:
                 country = location_data.get("country") or country
-                city = location_data.get("city") or city
-                region = location_data.get("region") or region
-                timezone = location_data.get("timezone") or timezone
         
         # ⚡ IMMEDIATE CACHE CHECK: Priority #1 for speed
         phash = generate_phash(command)

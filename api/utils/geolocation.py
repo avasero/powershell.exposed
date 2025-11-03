@@ -19,10 +19,7 @@ async def get_ip_location(ip_address: str) -> dict:
                     data = await response.json()
                     
                     return {
-                        "country": data.get("country_name"),
-                        "city": data.get("city"),
-                        "region": data.get("region"),
-                        "timezone": data.get("timezone")
+                        "country": data.get("country_name")
                     }
                 else:
                     return {}
@@ -42,13 +39,6 @@ def get_client_ip_from_request(request) -> str:
     return client_ip
 
 
-def format_location_string(country: str = None, region: str = None, city: str = None) -> str:
-    """Formata uma string de localização a partir dos componentes"""
-    location_parts = []
-    if country:
-        location_parts.append(country)
-    if region:
-        location_parts.append(region)
-    if city:
-        location_parts.append(city)
-    return ", ".join(location_parts) if location_parts else None
+def format_location_string(country: str = None) -> str:
+    """Formata uma string de localização a partir do país"""
+    return country if country else None

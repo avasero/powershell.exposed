@@ -11,9 +11,7 @@ async def get_or_create_session(
     user_id: str = None, 
     ip_address: str = None, 
     user_agent: str = None, 
-    country: str = None, 
-    city: str = None, 
-    region: str = None
+    country: str = None
 ) -> str:
     """
     Cria ou obtém uma sessão existente baseada no IP e user agent
@@ -23,8 +21,8 @@ async def get_or_create_session(
         if not ip_address:
             return None
         
-        # Criar string de localização
-        location = format_location_string(country, region, city)
+        # Criar string de localização apenas com país
+        location = country
         
         # Tentar encontrar sessão existente (últimas 24 horas)
         yesterday = datetime.utcnow() - timedelta(hours=24)

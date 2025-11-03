@@ -213,9 +213,7 @@ export default function AnalysisPage() {
     const command = params.get("cmd") || "";
     const ipAddress = params.get("ip") || null;
     const country = params.get("country") || null;
-    const city = params.get("city") || null;
-    const region = params.get("region") || null;
-    const timezone = params.get("timezone") || null;
+    
     
     setCmd(command);
     setNewCommand(command);
