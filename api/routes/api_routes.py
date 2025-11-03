@@ -31,6 +31,7 @@ from utils.geolocation import get_ip_location, get_client_ip_from_request
 
 
 async def analyze_command_endpoint(
+    request: Request,
     request_data: AnalyzeCommandRequest,
     current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
 ) -> AnalyzeCommandResponse:
@@ -66,7 +67,12 @@ async def analyze_command_endpoint(
         
         # Extrair dados do schema com fallbacks seguros
         user_id = current_user["id"] if current_user else request_data.user_id
-        ip_address = request_data.ip_address or "127.0.0.1"
+        
+        # ✅ FIX: Capturar IP real do request se não foi fornecido
+        ip_address = request_data.ip_address
+        if not ip_address:
+            ip_address = get_client_ip_from_request(request)
+        
         country = request_data.country
         user_agent = request_data.user_agent or "FastAPI-Client"
         
@@ -97,7 +103,6 @@ async def analyze_command_endpoint(
                 country=country
             )
         
-    
         # Check rate limit for session
         if session_id:
             rate_limit_info = check_rate_limit(session_id)
@@ -120,10 +125,14 @@ async def analyze_command_endpoint(
         # ADICIONAR REQUISIÇÃO AO CONTADOR GLOBAL
         add_global_request()
         
-        if ip_address and not country and search_type == "API":
+        # ✅ BUSCAR GEOLOCALIZAÇÃO SE NECESSÁRIO
+        # Se não tem país E (é API request OU não tem search_type definido)
+        if not country and ip_address:
+            print(f"🌍 Buscando geolocalização para IP: {ip_address}")
             location_data = await get_ip_location(ip_address)
             if location_data:
-                country = location_data.get("country") or country
+                country = location_data.get("country")
+                print(f"✅ País encontrado: {country}")
         
         # ⚡ IMMEDIATE CACHE CHECK: Priority #1 for speed
         phash = generate_phash(command)
@@ -265,7 +274,10 @@ async def analyze_command_endpoint(
 
 
 
-async def create_user_session_endpoint(request_data: CreateUserSessionRequest) -> Dict[str, Any]:
+async def create_user_session_endpoint(
+    request: Request,
+    request_data: CreateUserSessionRequest
+) -> Dict[str, Any]:
     """
     Create User Session
     
@@ -274,7 +286,12 @@ async def create_user_session_endpoint(request_data: CreateUserSessionRequest) -
     """
     try:
         user_id = request_data.user_id
-        ip_address = request_data.ip_address or "127.0.0.1"
+        
+        # ✅ FIX: Capturar IP real do request se não foi fornecido
+        ip_address = request_data.ip_address
+        if not ip_address:
+            ip_address = get_client_ip_from_request(request)
+        
         user_agent = request_data.user_agent or "Unknown"
         country = request_data.country
         
@@ -283,6 +300,14 @@ async def create_user_session_endpoint(request_data: CreateUserSessionRequest) -
                 {"error": "user_id is required"},
                 status_code=400
             )
+        
+        # ✅ BUSCAR GEOLOCALIZAÇÃO SE NECESSÁRIO
+        if not country and ip_address:
+            print(f"🌍 Buscando geolocalização para IP: {ip_address}")
+            location_data = await get_ip_location(ip_address)
+            if location_data:
+                country = location_data.get("country")
+                print(f"✅ País encontrado: {country}")
         
         supabase = get_supabase_client()
         

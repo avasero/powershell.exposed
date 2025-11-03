@@ -39,8 +39,6 @@ class CreateUserSessionRequest(BaseModel):
     ip_address: Optional[str] = Field(None, description="Client IP address")
     user_agent: Optional[str] = Field(None, description="User agent string")
     country: Optional[str] = Field(None, description="Country name")
-    city: Optional[str] = Field(None, description="City name")
-    region: Optional[str] = Field(None, description="Region/state name")
 
 
 
