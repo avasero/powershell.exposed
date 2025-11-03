@@ -4,10 +4,7 @@ export async function POST(request) {
       command, 
       user_id, 
       ip_address, 
-      country, 
-      city, 
-      region, 
-      timezone, 
+      country,
       user_agent,
       session_id
     } = await request.json();
@@ -22,15 +19,10 @@ export async function POST(request) {
       user_id,
       ip_address,
       country,
-      city,
-      region,
-      timezone,
       user_agent,
       search_type: "WEB",  
       session_id
     };
-
-
 
     const response = await fetch('https://powershell-fastapi.vercel.app/evaluate', {
       method: 'POST',

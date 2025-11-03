@@ -43,7 +43,7 @@ export function getCacheStats() {
 }
 
 
-export async function analyzeCommand(command, ipAddress = null, ipLocation = null) {
+export async function analyzeCommand(command, ipAddress = null, ipCountry = null) {
 
   cleanExpiredCache()
   
@@ -65,10 +65,7 @@ export async function analyzeCommand(command, ipAddress = null, ipLocation = nul
   const requestBody = { 
     command,
     ip_address: ipAddress,
-    country: ipLocation?.country || null,
-    city: ipLocation?.city || null,
-    region: ipLocation?.region || null,
-    timezone: ipLocation?.timezone || null
+    country: ipCountry || null
   };
   
 

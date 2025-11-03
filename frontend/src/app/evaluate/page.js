@@ -15,7 +15,7 @@ export default function EvaluatePage() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const { notifyNewAnalysis } = useAnalysisEvent();
-  const { ipAddress, ipLocation, loading: ipLoading, error: ipError } = useIpAddress();
+  const { ipAddress, ipCountry, loading: ipLoading, error: ipError } = useIpAddress();
   const { 
     rateLimitInfo, 
     handleRateLimitResponse, 
@@ -77,10 +77,7 @@ export default function EvaluatePage() {
         command,
         user_id: user?.id || null,
         ip_address: ipAddress,
-        country: ipLocation?.country,
-        city: ipLocation?.city,
-        region: ipLocation?.region,
-        timezone: ipLocation?.timezone,
+        country: ipCountry,
         user_agent: navigator.userAgent,
         search_type: "WEB",
         session_id: sessionId

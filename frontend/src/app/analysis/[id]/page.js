@@ -40,7 +40,7 @@ export default function AnalysisDetailsPage() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const { notifyNewAnalysis } = useAnalysisEvent();
-  const { ipAddress, ipLocation, loading: ipLoading, error: ipError } = useIpAddress();
+  const { ipAddress, ipCountry, loading: ipLoading, error: ipError } = useIpAddress();
   const { 
     rateLimitInfo, 
     handleRateLimitResponse, 
@@ -140,10 +140,10 @@ export default function AnalysisDetailsPage() {
   }, [params.id, loadAnalysis]);
 
 
-  const performAnalysis = async (command, providedIpAddress, providedIpLocation) => {
+  const performAnalysis = async (command, providedIpAddress, providedIpCountry) => {
  
     const finalIpAddress = providedIpAddress || ipAddress;
-    const finalIpLocation = providedIpLocation || ipLocation;
+    const finalIpCountry = providedIpCountry || ipCountry;
     try {
       setNewAnalysisLoading(true);
       setError("");
@@ -159,10 +159,7 @@ export default function AnalysisDetailsPage() {
         command,
         user_id: user?.id || null,
         ip_address: finalIpAddress,
-        country: finalIpLocation?.country,
-        city: finalIpLocation?.city,
-        region: finalIpLocation?.region,
-        timezone: finalIpLocation?.timezone,
+        country: finalIpCountry,
         user_agent: navigator.userAgent,
         search_type: "WEB",
         session_id: sessionId

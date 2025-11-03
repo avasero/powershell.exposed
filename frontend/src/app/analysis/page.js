@@ -40,7 +40,7 @@ export default function AnalysisPage() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const { notifyNewAnalysis } = useAnalysisEvent();
-  const { ipAddress, ipLocation, loading: ipLoading, error: ipError } = useIpAddress();
+  const { ipAddress, ipCountry, loading: ipLoading, error: ipError } = useIpAddress();
   const { 
     rateLimitInfo, 
     handleRateLimitResponse, 
@@ -59,9 +59,9 @@ export default function AnalysisPage() {
 
 
   const performAnalysis = useCallback(
-    async (command, providedIpAddress, providedIpLocation) => {
+    async (command, providedIpAddress, providedIpCountry) => {
       const finalIpAddress = providedIpAddress || ipAddress;
-      const finalIpLocation = providedIpLocation || ipLocation;
+      const finalIpCountry = providedIpCountry || ipCountry;
       try {
         setError("");
         const timeoutPromise = new Promise((_, reject) =>
@@ -73,10 +73,7 @@ export default function AnalysisPage() {
           command,
           user_id: user?.id || null, 
           ip_address: finalIpAddress,
-          country: finalIpLocation?.country,
-          city: finalIpLocation?.city,
-          region: finalIpLocation?.region,
-          timezone: finalIpLocation?.timezone,
+          country: finalIpCountry,
           user_agent: navigator.userAgent,
           search_type: "WEB",  
           session_id: sessionId
@@ -198,7 +195,7 @@ export default function AnalysisPage() {
     },
     [
       ipAddress,
-      ipLocation,
+      ipCountry,
       user,
       notifyNewAnalysis,
       router,

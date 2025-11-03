@@ -188,19 +188,19 @@ async def save_analysis_to_db(
     session_id: str = None,
     ip_address: str = None,
     country: str = None,
-    city: str = None,
-    region: str = None,
-    timezone: str = None,
     search_type: str = "API",
     user_agent: str = "FastAPI-Client",
     is_cache: bool = False
 ) -> dict:
-    """Salva análise no banco - dados normalizados sem duplicação"""
+    """Salva análise no banco - dados normalizados"""
     try:
         supabase = get_supabase_client()
         short_id = generate_short_id()
         
-        # Dados normalizados - SEM analysis_result JSONB duplicado
+        # Validar country
+        ip_country = country if country and country != 'Unknown' else None
+        
+        # Dados normalizados
         insert_data = {
             "command": command,
             "decoded_command": analysis_result.get("decoded_command"),
@@ -212,23 +212,18 @@ async def save_analysis_to_db(
             "techniques": analysis_result["techniques"],
             "cmdlets_detected": analysis_result.get("cmdlets_detected", []),
             "ip_address": ip_address,
-            "ip_country": country,
-            "ip_city": city,
-            "ip_region": region,
-            "ip_timezone": timezone,
+            "ip_country": ip_country,
             "search_type": search_type,
             "user_agent": user_agent,
             "short_id": short_id,
             "is_cache": is_cache
         }
         
-        # Adicionar user_id ou session_id
         if user_id:
             insert_data["user_id"] = user_id
         if session_id:
             insert_data["session_id"] = session_id
         
-        # Remove valores None
         insert_data = {k: v for k, v in insert_data.items() if v is not None}
         
         db_response = supabase.table('powershell_analyses').insert(insert_data).execute()
@@ -248,11 +243,6 @@ async def save_analysis_to_db(
         return {"success": False, "error": str(db_error)}
 
 
-def clear_signatures_cache():
-    """Limpa o cache de assinaturas"""
-    global signatures_cache, cache_timestamp
-    signatures_cache = None
-    cache_timestamp = 0
 def clear_signatures_cache():
     """Limpa o cache de assinaturas"""
     global signatures_cache, cache_timestamp
