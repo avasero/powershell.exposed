@@ -13,7 +13,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   
   const { signInWithMagicLink } = useAuth();
@@ -24,6 +23,18 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     setMessage('');
+
+    // Rate limiting: Check if last login attempt was less than 3 minutes ago
+    const lastLoginAttempt = localStorage.getItem('lastLoginAttempt');
+    const now = Date.now();
+    const threeMinutes = 3 * 60 * 1000; // 3 minutes in milliseconds
+
+    if (lastLoginAttempt && (now - parseInt(lastLoginAttempt)) < threeMinutes) {
+      const remainingTime = Math.ceil((threeMinutes - (now - parseInt(lastLoginAttempt))) / 1000 / 60);
+      setError(`Please wait ${remainingTime} minute(s) before trying to login again.`);
+      setLoading(false);
+      return;
+    }
 
     try {
       const { data, error } = await signInWithMagicLink(email);
@@ -42,6 +53,9 @@ export default function LoginPage() {
         setMagicLinkSent(true);
         setMessage('Login link sent! Check your email to complete the login.');
       }
+
+      // Store the timestamp of this login attempt
+      localStorage.setItem('lastLoginAttempt', now.toString());
     } catch (err) {
       setError('Unexpected error during login');
       console.error('Login error:', err);
