@@ -68,9 +68,6 @@ async def analyze_command_endpoint(
         user_id = current_user["id"] if current_user else request_data.user_id
         ip_address = request_data.ip_address or "127.0.0.1"
         country = request_data.country
-        city = request_data.city
-        region = request_data.region
-        timezone = request_data.timezone
         user_agent = request_data.user_agent or "FastAPI-Client"
         
         # Determinar search_type baseado no tipo de autenticação
@@ -97,9 +94,7 @@ async def analyze_command_endpoint(
                 user_id=user_id,
                 ip_address=ip_address,
                 user_agent=user_agent,
-                country=country,
-                city=city,
-                region=region
+                country=country
             )
         
     
@@ -156,9 +151,6 @@ async def analyze_command_endpoint(
                 session_id=session_id,
                 ip_address=ip_address,
                 country=country,
-                city=city,
-                region=region,
-                timezone=timezone,
                 search_type=search_type,
                 user_agent=user_agent,
                 is_cache=True
@@ -235,9 +227,6 @@ async def analyze_command_endpoint(
             session_id=session_id,
             ip_address=ip_address,
             country=country,
-            city=city,
-            region=region,
-            timezone=timezone,
             search_type=search_type,
             user_agent=user_agent,
             is_cache=False
@@ -291,8 +280,6 @@ async def create_user_session_endpoint(request_data: CreateUserSessionRequest) -
         ip_address = request_data.ip_address or "127.0.0.1"
         user_agent = request_data.user_agent or "Unknown"
         country = request_data.country
-        city = request_data.city
-        region = request_data.region
         
         if not user_id:
             return JSONResponse(
@@ -308,9 +295,7 @@ async def create_user_session_endpoint(request_data: CreateUserSessionRequest) -
             user_id=user_id,
             ip_address=ip_address,
             user_agent=user_agent,
-            country=country,
-            city=city,
-            region=region
+            country=country
         )
         
         if session_id:
