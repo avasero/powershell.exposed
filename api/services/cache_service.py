@@ -158,7 +158,7 @@ def create_cache_compatible_result(analysis_result: Dict[str, Any]) -> Dict[str,
             "matches_found": sig.get("matches_found"),
             "total_score": sig.get("total_score"),
             "max_match_allowed": sig.get("max_match_allowed"),
-            "pattern": sig.get("pattern"),  # Pattern appears once here
+            "pattern": sig.get("pattern"),
             "matches_details": [
                 {
                     "matched_text": md.get("matched_text"),
@@ -175,12 +175,11 @@ def create_cache_compatible_result(analysis_result: Dict[str, Any]) -> Dict[str,
         cleaned_signatures.append(cleaned_sig)
     
     return {
-        "is_malicious": analysis_result.get("is_malicious", False),
         "total_score": analysis_result.get("total_score", 0.0),
         "risk_score": analysis_result.get("total_score", 0.0),
         "severity": analysis_result.get("severity", "very_low"),
         "detected_signatures": cleaned_signatures,
-        "signatures_detected": cleaned_signatures,  # Alias for compatibility
+        "signatures_detected": cleaned_signatures,
         "tactics": analysis_result.get("tactics", []),
         "techniques": analysis_result.get("techniques", []),
         "total_signatures_checked": analysis_result.get("total_signatures_checked", 0),

@@ -86,7 +86,6 @@ class CacheInfo(BaseModel):
 class AnalysisResult(BaseModel):
     """Schema for analysis result"""
     command: str
-    is_malicious: bool
     risk_score: float
     severity: str
     signatures_detected: List[DetectedSignature]
@@ -110,7 +109,6 @@ class AnalyzeCommandResponse(BaseModel):
                 "success": True,
                 "analysis": {
                     "command": "dump password reflection",
-                    "is_malicious": True,
                     "risk_score": 12.0,
                     "severity": "critical",
                     "signatures_detected": [

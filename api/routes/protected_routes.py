@@ -279,7 +279,6 @@ async def get_user_command_evaluations_endpoint(
                     "command": analysis.get("command"),
                     "risk_score": float(analysis.get("risk_score", 0)) if analysis.get("risk_score") is not None else 0,
                     "severity": analysis.get("severity"),
-                    "is_malicious": analysis.get("is_malicious", False),
                     "signatures_detected": signatures_detected,
                     "cmdlets_detected": cmdlets_detected,
                     "tactics": tactics,

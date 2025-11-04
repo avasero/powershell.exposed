@@ -164,8 +164,8 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     }
 
 
-def calculate_severity_and_risk(total_score: float) -> tuple:
-    """Calcula severidade e risco baseado no score total"""
+def calculate_severity_and_risk(total_score: float) -> str:
+    """Calcula severidade baseado no score total"""
     severity = "very_low"
     if total_score >= 8.1:
         severity = "critical"
@@ -176,9 +176,7 @@ def calculate_severity_and_risk(total_score: float) -> tuple:
     elif total_score >= 2.1:
         severity = "low"
     
-    is_malicious = total_score >= 5.0
-    
-    return severity, is_malicious
+    return severity
 
 
 async def save_analysis_to_db(
@@ -205,7 +203,6 @@ async def save_analysis_to_db(
             "command": command,
             "decoded_command": analysis_result.get("decoded_command"),
             "risk_score": round(analysis_result["total_score"], 1),
-            "is_malicious": analysis_result["is_malicious"],
             "severity": analysis_result["severity"],
             "signatures_detected": analysis_result["detected_signatures"],
             "tactics": analysis_result["tactics"],

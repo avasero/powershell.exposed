@@ -170,7 +170,6 @@ async def analyze_command_endpoint(
                 "from_cache": True,
                 "analysis": {
                     "command": command,
-                    "is_malicious": results_blob.get("is_malicious", False),
                     "risk_score": results_blob.get("risk_score", 0.0),
                     "severity": results_blob.get("severity", "very_low"),
                     "signatures_detected": results_blob.get("signatures_detected", []),
@@ -200,12 +199,11 @@ async def analyze_command_endpoint(
         
         # Analisar comando
         analysis_result = analyze_command_patterns(command, signatures)
-        severity, is_malicious = calculate_severity_and_risk(analysis_result["total_score"])
+        severity = calculate_severity_and_risk(analysis_result["total_score"])
         
         # Adicionar informações calculadas ao resultado
         analysis_result.update({
             "severity": severity,
-            "is_malicious": is_malicious,
             "total_signatures_checked": len(signatures),
             "detected_count": len(analysis_result["detected_signatures"])
         })
@@ -240,10 +238,9 @@ async def analyze_command_endpoint(
         
         return JSONResponse({
             "success": True,
-            "from_cache": False,  # FLAG CLARA PARA O FRONTEND
+            "from_cache": False,
             "analysis": {
                 "command": command,
-                "is_malicious": is_malicious,
                 "risk_score": round(analysis_result["total_score"], 1),
                 "severity": severity,
                 "signatures_detected": analysis_result["detected_signatures"],

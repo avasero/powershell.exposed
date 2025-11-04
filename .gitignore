@@ -32,6 +32,8 @@ Thumbs.db
 # Arquivos de ambiente
 .env
 .env.*
+.env.local
+.local
 
 # Outros
 *.bak
