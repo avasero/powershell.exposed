@@ -135,10 +135,8 @@ async def validate_anonymous_access(request: Request, call_next):
                             return JSONResponse(
                                 status_code=status.HTTP_401_UNAUTHORIZED,
                                 content={
-                                    "error": "Invalid API Key",
-                                    "detail": "The provided API Key is not valid or has been revoked",
-                                    "error_code": "INVALID_API_KEY",
-                                    "documentation": "/docs"
+                                    "error": "Unauthorized",
+                                    "message": "Authentication required or invalid credentials.",                                   
                                 }
                             )
                     except Exception as e:
@@ -146,9 +144,9 @@ async def validate_anonymous_access(request: Request, call_next):
                         return JSONResponse(
                             status_code=status.HTTP_401_UNAUTHORIZED,
                             content={
-                                "error": "API Key validation failed",
-                                "detail": "Unable to validate the provided API Key",
-                                "error_code": "API_KEY_VALIDATION_ERROR"
+                                "error": "Unauthorized",
+                                "message": "Authentication required or invalid credentials.",
+                                
                             }
                         )
                 else:
@@ -167,11 +165,8 @@ async def validate_anonymous_access(request: Request, call_next):
                         return JSONResponse(
                             status_code=status.HTTP_401_UNAUTHORIZED,
                             content={
-                                "error": "Invalid authentication method for external access",
-                                "detail": "For external tools (Postman, cURL), only valid API Keys are allowed. Create an API Key in your profile on the web application.",
-                                "error_code": "EXTERNAL_ACCESS_REQUIRES_API_KEY",
-                                "documentation": "/docs",
-                                "web_app_url": "https://powershell-exposed.vercel.app"
+                                "error": "Unauthorized",
+                                "message": "Authentication required or invalid credentials.",
                             }
                         )
             else:
@@ -189,17 +184,10 @@ async def validate_anonymous_access(request: Request, call_next):
                     return JSONResponse(
                         status_code=status.HTTP_403_FORBIDDEN,
                         content={
-                            "error": "Anonymous access is only allowed from the official web application. Use an API Key (pse_...) for direct API access.",
-                            "detail": "Access denied",
-                            "error_code": "FRONTEND_ONLY_ANONYMOUS",
-                            "required_auth": "API-Key for direct access",
-                            "documentation": "/docs"
+                            "error": "Forbidden",
+                            "message": "You do not have permission to access this resource.",
+                            
                         },
-                        headers={
-                            "X-Error-Code": "FRONTEND_ONLY_ANONYMOUS",
-                            "X-Required-Auth": "API-Key for direct access",
-                            "X-Documentation": "/docs"
-                        }
                     )
                 else:
                     # Log acesso anônimo autorizado (do frontend)
