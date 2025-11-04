@@ -8,7 +8,21 @@ import secrets
 import string
 from services.session_manager import get_supabase_client
 from config.settings import CACHE_DURATION
-import pyminusone
+
+# Try to import pyminusone for deobfuscation
+try:
+    import pyminusone
+    PYMINUSONE_AVAILABLE = True
+    print("✅ pyminusone loaded successfully")
+except ImportError:
+    try:
+        from services.deobfuscator import deobfuscate_powershell as pyminusone_deobfuscate
+        pyminusone = type('obj', (object,), {'deobfuscate_powershell': pyminusone_deobfuscate})()
+        PYMINUSONE_AVAILABLE = True
+        print("⚠️ Using fallback deobfuscator")
+    except ImportError:
+        PYMINUSONE_AVAILABLE = False
+        print("⚠️ pyminusone not available - deobfuscation will be skipped")
 
 # Cache de assinaturas
 signatures_cache = None
