@@ -103,8 +103,8 @@ class AnalyzeCommandResponse(BaseModel):
     analysis_id: Optional[str] = None
     session_id: Optional[str] = None
     
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "success": True,
                 "analysis": {
@@ -148,6 +148,7 @@ class AnalyzeCommandResponse(BaseModel):
                 "session_id": "ac86218b-d91d-4396-85e0-50d42550d832"
             }
         }
+    }
 
 
 class ApiKeyData(BaseModel):
@@ -191,12 +192,13 @@ class ErrorResponse(BaseModel):
     detail: Optional[str] = None
     status_code: Optional[int] = None
     
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "error": "Command is required and must be a string"
             }
         }
+    }
 
 
 class RateLimitResponse(BaseModel):
@@ -206,8 +208,8 @@ class RateLimitResponse(BaseModel):
     session_id: str
     message: str
     
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "error": "Rate limit exceeded",
                 "rate_limit_info": {
@@ -220,3 +222,4 @@ class RateLimitResponse(BaseModel):
                 "message": "You have made 6 searches. Please wait 45 seconds before trying again."
             }
         }
+    }
