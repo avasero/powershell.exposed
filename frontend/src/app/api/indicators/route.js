@@ -10,7 +10,22 @@ export async function GET(request) {
     
     const offset = (page - 1) * limit
     
-    // Construir query base - ADICIONAR last_modified_by e last_modified_by_avatar
+    // Get user authentication status
+    const { data: { session } } = await supabase.auth.getSession()
+    let isPremiumUser = false
+    
+    if (session?.user?.id) {
+      // Check if user is premium
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_premium_user')
+        .eq('id', session.user.id)
+        .single()
+      
+      isPremiumUser = profile?.is_premium_user || false
+    }
+    
+    // Build query base
     let query = supabase
       .from('powershell_signatures')
       .select(`
@@ -28,12 +43,17 @@ export async function GET(request) {
         max_match,
         link,
         last_modified_by,
-        last_modified_by_avatar
+        last_modified_by_avatar,
+        is_premium_indicator
       `)
       .eq('is_active', true)
-      .order('created_at', { ascending: false })
     
-    // Aplicar filtros
+    // Filter premium indicators based on user status
+    if (!isPremiumUser) {
+      query = query.eq('is_premium_indicator', false)
+    }
+    
+    // Apply other filters
     if (severity) {
       query = query.eq('severity', severity)
     }
@@ -42,10 +62,10 @@ export async function GET(request) {
       query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`)
     }
     
-    // Aplicar paginação
+    // Apply pagination
     query = query.range(offset, offset + limit - 1)
     
-    const { data: indicators, error, count } = await query
+    const { data: indicators, error, count } = await query.order('created_at', { ascending: false })
     
     if (error) {
       console.error('Erro ao buscar indicadores:', error)
@@ -55,11 +75,25 @@ export async function GET(request) {
       }, { status: 500 })
     }
     
-    // Buscar contagem total para paginação
-    const { count: totalCount, error: countError } = await supabase
+    // Get total count for pagination
+    let countQuery = supabase
       .from('powershell_signatures')
       .select('*', { count: 'exact', head: true })
       .eq('is_active', true)
+    
+    if (!isPremiumUser) {
+      countQuery = countQuery.eq('is_premium_indicator', false)
+    }
+    
+    if (severity) {
+      countQuery = countQuery.eq('severity', severity)
+    }
+    
+    if (search) {
+      countQuery = countQuery.or(`name.ilike.%${search}%,description.ilike.%${search}%`)
+    }
+    
+    const { count: totalCount, error: countError } = await countQuery
     
     if (countError) {
       console.error('Erro ao contar indicadores:', countError)
@@ -72,6 +106,10 @@ export async function GET(request) {
         limit,
         total: totalCount || 0,
         totalPages: Math.ceil((totalCount || 0) / limit)
+      },
+      user: {
+        isAuthenticated: !!session,
+        isPremium: isPremiumUser
       }
     })
     

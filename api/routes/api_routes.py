@@ -189,7 +189,7 @@ async def analyze_command_endpoint(
             })
         
         # STEP 3: Cache miss - run full analysis via /analyse-pcre2 logic
-        signatures = await load_signatures_from_db()
+        signatures = await load_signatures_from_db(user_id=user_id)
         
         if not signatures:
             return JSONResponse(

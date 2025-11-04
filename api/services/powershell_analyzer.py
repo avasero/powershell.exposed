@@ -20,23 +20,37 @@ def generate_short_id(length: int = 8) -> str:
     return ''.join(secrets.choice(characters) for _ in range(length))
 
 
-async def load_signatures_from_db() -> list:
-    """Carrega assinaturas do banco de dados com cache"""
+async def load_signatures_from_db(user_id: str = None) -> list:
+    """Carrega assinaturas do banco de dados com cache e filtro de premium"""
     global signatures_cache, cache_timestamp
     
     try:
         now = int(time.time() * 1000)
         
-        if signatures_cache and (now - cache_timestamp) < CACHE_DURATION:
-            return signatures_cache
+        # Check if user is premium (only if user_id provided)
+        is_premium_user = False
+        if user_id:
+            supabase = get_supabase_client()
+            profile_response = supabase.table('profiles').select('is_premium_user').eq('id', user_id).single().execute()
+            if profile_response.data:
+                is_premium_user = profile_response.data.get('is_premium_user', False)
+        
+        # Create cache key based on premium status
+        cache_key = f"signatures_{'premium' if is_premium_user else 'free'}"
+        
+        if signatures_cache and cache_timestamp and cache_key in signatures_cache and (now - cache_timestamp) < CACHE_DURATION:
+            return signatures_cache[cache_key]
         
         supabase = get_supabase_client()
         
-        response = supabase.table('powershell_signatures') \
-            .select('*') \
-            .eq('is_active', True) \
-            .order('basescore', desc=True) \
-            .execute()
+        # Build query based on premium status
+        query = supabase.table('powershell_signatures').select('*').eq('is_active', True)
+        
+        if not is_premium_user:
+            # Non-premium users only see non-premium indicators
+            query = query.eq('is_premium_indicator', False)
+        
+        response = query.order('basescore', desc=True).execute()
         
         if response.data:
             converted_signatures = []
@@ -51,10 +65,15 @@ async def load_signatures_from_db() -> list:
                     "description": sig.get("description", "No description available"),
                     "reference": sig.get("reference", []) if isinstance(sig.get("reference"), list) else [],
                     "max_match": int(sig.get("max_match", 1)),
-                    "link": sig.get("link") if sig.get("link") else None
+                    "link": sig.get("link") if sig.get("link") else None,
+                    "is_premium_indicator": sig.get("is_premium_indicator", False)
                 })
             
-            signatures_cache = converted_signatures
+            # Initialize cache if needed
+            if not signatures_cache:
+                signatures_cache = {}
+            
+            signatures_cache[cache_key] = converted_signatures
             cache_timestamp = now
             
             return converted_signatures
@@ -175,7 +194,6 @@ def calculate_severity_and_risk(total_score: float) -> str:
         severity = "medium"
     elif total_score >= 2.1:
         severity = "low"
-    
     return severity
 
 
@@ -216,21 +234,22 @@ async def save_analysis_to_db(
             "is_cache": is_cache
         }
         
+        # Adicionar user_id e session_id se disponíveis
         if user_id:
             insert_data["user_id"] = user_id
         if session_id:
             insert_data["session_id"] = session_id
         
+        # Remover chaves com valores None
         insert_data = {k: v for k, v in insert_data.items() if v is not None}
         
         db_response = supabase.table('powershell_analyses').insert(insert_data).execute()
-
         if db_response.data:
             return {
                 "success": True,
                 "db_id": db_response.data[0].get('id'),
                 "uuid": db_response.data[0].get('uuid'),
-                "short_id": short_id
+                "short_id": short_id,
             }
         else:
             return {"success": False, "error": "Failed to save analysis"}
