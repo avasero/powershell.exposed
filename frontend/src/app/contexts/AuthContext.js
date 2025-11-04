@@ -370,18 +370,21 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = async () => {
     try {
-      // Immediately set user to null for faster UI update
-      setUser(null);
-      
-      // Redirect to home page instead of /landing
-      router.push('/');
-      
-      // Then handle Supabase signout in background
+      // First, sign out from Supabase (this will trigger onAuthStateChange)
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Supabase signOut error:', error);
-        // Don't throw error here since user is already redirected
+        throw error;
       }
+      
+      // Clear local state
+      setUser(null);
+      
+      // Clear any local storage data
+      clearSessionFromStorage();
+      
+      // Redirect to home page
+      router.push('/');
       
       return { error: null };
     } catch (error) {
