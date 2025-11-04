@@ -373,13 +373,13 @@ export const AuthProvider = ({ children }) => {
       // Immediately set user to null for faster UI update
       setUser(null);
       
-      // Redirect immediately
-      router.push('/landing');
+      // Redirect to home page instead of /landing
+      router.push('/');
       
       // Then handle Supabase signout in background
       const { error } = await supabase.auth.signOut();
       if (error) {
-        
+        console.error('Supabase signOut error:', error);
         // Don't throw error here since user is already redirected
       }
       
