@@ -9,7 +9,7 @@ import string
 from services.session_manager import get_supabase_client
 from config.settings import CACHE_DURATION
 
-# Try to import pyminusone for deobfuscation
+
 try:
     import pyminusone
     PYMINUSONE_AVAILABLE = True
@@ -24,25 +24,25 @@ except ImportError:
         PYMINUSONE_AVAILABLE = False
         print("⚠️ pyminusone not available - deobfuscation will be skipped")
 
-# Cache de assinaturas
+
 signatures_cache = None
 cache_timestamp = 0
 
 
 def generate_short_id(length: int = 8) -> str:
-    """Gera um ID curto usando caracteres alfanuméricos"""
+   
     characters = string.ascii_lowercase + string.digits
     return ''.join(secrets.choice(characters) for _ in range(length))
 
 
 async def load_signatures_from_db(user_id: str = None) -> list:
-    """Carrega assinaturas do banco de dados com cache e filtro de premium"""
+    
     global signatures_cache, cache_timestamp
     
     try:
         now = int(time.time() * 1000)
         
-        # Check if user is premium (only if user_id provided)
+       
         is_premium_user = False
         if user_id:
             supabase = get_supabase_client()
@@ -50,7 +50,7 @@ async def load_signatures_from_db(user_id: str = None) -> list:
             if profile_response.data:
                 is_premium_user = profile_response.data.get('is_premium_user', False)
         
-        # Create cache key based on premium status
+       
         cache_key = f"signatures_{'premium' if is_premium_user else 'free'}"
         
         if signatures_cache and cache_timestamp and cache_key in signatures_cache and (now - cache_timestamp) < CACHE_DURATION:
@@ -58,11 +58,11 @@ async def load_signatures_from_db(user_id: str = None) -> list:
         
         supabase = get_supabase_client()
         
-        # Build query based on premium status
+        
         query = supabase.table('powershell_signatures').select('*').eq('is_active', True)
         
         if not is_premium_user:
-            # Non-premium users only see non-premium indicators
+            
             query = query.eq('is_premium_indicator', False)
         
         response = query.order('basescore', desc=True).execute()
@@ -84,7 +84,7 @@ async def load_signatures_from_db(user_id: str = None) -> list:
                     "is_premium_indicator": sig.get("is_premium_indicator", False)
                 })
             
-            # Initialize cache if needed
+            
             if not signatures_cache:
                 signatures_cache = {}
             
@@ -103,17 +103,14 @@ async def load_signatures_from_db(user_id: str = None) -> list:
 
 def fix_brace_spacing(s: str) -> str:
     """
-    Remove espaços indevidos **dentro** de chaves {} usadas em format-strings ou placeholders.
-    Exemplos:
       "{ 1 }"  -> "{1}"
       "{ 1, -10 }" -> "{1,-10}"
       "}{ " -> "}{"
-    Não remove espaços fora das chaves.
     """
-    # 1) Normaliza espaços entre chaves e conteúdo: "{   ...   }" -> "{...}"
+    # "{   ...   }" -> "{...}"
     s = re.sub(r'\{\s*([^}]*?)\s*\}', lambda m: "{" + re.sub(r'\s+', '', m.group(1)) + "}", s)
 
-    # 2) Remove espaços que podem ter sido inseridos entre chaves adjacentes: "}{ " -> "}{"
+    # "}{ " -> "}{"
     s = s.replace('} {', '}{')
 
     return s
@@ -124,18 +121,17 @@ def normalize_powershell_command(command: str) -> str:
     Normaliza caracteres especiais em comandos PowerShell.
     Substitui aspas "curly" e primes por aspas ASCII.
     """
-    # Aspas simples/diferentes
+
     command = command.replace('\u2018', "'")  # left single quote
     command = command.replace('\u2019', "'")  # right single quote
-    # Aspas duplas "curly"
+  
     command = command.replace('\u201c', '"')  # left double quote
     command = command.replace('\u201d', '"')  # right double quote
 
-    # Prime symbols
     command = command.replace('′', "'")  # U+2032 Prime
     command = command.replace('″', '"')  # U+2033 Double prime
 
-    # Zero-width / invisíveis
+  
     invisible_chars = [
         '\u200b', '\u200c', '\u200d', '\ufeff', '\u2060'
     ]
@@ -146,17 +142,10 @@ def normalize_powershell_command(command: str) -> str:
 
 
 def clean_pyminusone_output(deobfuscated: str) -> str:
-    """
-    Limpa o output do pyminusone removendo espaços inválidos
-    Corrige padrões como '{ 1 }' para '{1}' e similar
-    """
-    # Remover espaços dentro de chaves: { 1 } -> {1}
+   
+    #  { 1 } -> {1}
     cleaned = re.sub(r'\{\s+(\d+)\s+\}', r'{\1}', deobfuscated)
-    
-    # Remover espaços extras entre aspas e operadores
     cleaned = re.sub(r'"\s+-f\s+', '" -f ', cleaned)
-    
-    # Remover espaços dentro de parênteses quando há apenas operadores
     cleaned = re.sub(r'\(\s+\{', '({', cleaned)
     cleaned = re.sub(r'\}\s+\)', '})', cleaned)
     
@@ -164,41 +153,36 @@ def clean_pyminusone_output(deobfuscated: str) -> str:
 
 
 def deobfuscate_powershell(command: str) -> str:
-    """
-    Desobfusca comandos PowerShell usando pyminusone com limpeza de espaços
-    Retorna o comando desobfuscado ou o comando original se falhar
-    """
+    
     normalized_command = normalize_powershell_command(command)
     
     if normalized_command != command:
         print("✨ Command normalized (special characters fixed)")
 
-    # 🔧 PRÉ-PROCESSAMENTO: Detectar e remover & do início
+   
     has_leading_ampersand = normalized_command.strip().startswith('&')
     command_to_process = normalized_command.strip()
     
     if has_leading_ampersand:
         print("🔧 Detected leading & operator - removing temporarily")
-        # Remover o & do início
         command_to_process = command_to_process[1:].strip()
         print(f"   Without &: {command_to_process[:80]}...")
 
-    # Tenta pyminusone se disponível
     if PYMINUSONE_AVAILABLE:
         try:
             print("🔍 Attempting pyminusone deobfuscation...")
             deobf = pyminusone.deobfuscate_powershell(command_to_process)
 
             if deobf and deobf != command_to_process:
-                # Aplicar limpeza de espaços nas chaves
+               
                 cleaned = fix_brace_spacing(deobf)
 
-                # Se o cleaned difere do original, considerar como sucesso
+               
                 if cleaned != command_to_process and '{ ' not in cleaned and ' }' not in cleaned:
                     print("✅ pyminusone deobfuscation successful (post-cleaned)!")
                     print(f"   Cleaned: {cleaned[:100]}...")
                     
-                    # 🔄 PROCESSAMENTO RECURSIVO: Se ainda há padrões -f
+                
                     max_iterations = 3
                     current = cleaned
                     
@@ -211,7 +195,7 @@ def deobfuscate_powershell(command: str) -> str:
                             recursive_result = pyminusone.deobfuscate_powershell(current)
                             recursive_cleaned = fix_brace_spacing(recursive_result)
                             
-                            # Se melhorou (ficou menor ou diferente), continuar
+                            
                             if len(recursive_cleaned) < len(current) and recursive_cleaned != current:
                                 print(f"✅ Iteration {iteration + 1}: Improved! {len(current)} -> {len(recursive_cleaned)} chars")
                                 current = recursive_cleaned
@@ -222,10 +206,10 @@ def deobfuscate_powershell(command: str) -> str:
                             print(f"⚠️ Iteration {iteration + 1} failed: {e}")
                             break
                     
-                    # 🔧 PÓS-PROCESSAMENTO: Adicionar & de volta se necessário
+                    
                     final_result = current
                     if has_leading_ampersand:
-                        # Verificar se já não tem & no início
+                        
                         if not final_result.strip().startswith('&'):
                             final_result = f"& {final_result}"
                             print("🔧 Re-added leading & operator")
@@ -237,7 +221,7 @@ def deobfuscate_powershell(command: str) -> str:
         except Exception as e:
             print(f"❌ pyminusone error: {e}")
 
-    # Fallback manual
+ 
     try:
         print("🔧 Attempting manual deobfuscation fallback...")
         from services.deobfuscator import manual_deobfuscate_format_strings
@@ -246,7 +230,7 @@ def deobfuscate_powershell(command: str) -> str:
         if manual_result and manual_result != command_to_process:
             cleaned_manual = fix_brace_spacing(manual_result)
             
-            # Adicionar & de volta se necessário
+           
             if has_leading_ampersand and not cleaned_manual.strip().startswith('&'):
                 cleaned_manual = f"& {cleaned_manual}"
             
@@ -267,11 +251,11 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     tactics = set()
     techniques = set()
     
-    # 🔓 STEP 1: Deobfuscate command first
+  
     decoded_command = deobfuscate_powershell(command)
     has_deobfuscation = decoded_command != command
     
-    # 🔍 STEP 2: Analyze BOTH original and deobfuscated commands
+  
     commands_to_analyze = [command]
     if has_deobfuscation:
         commands_to_analyze.append(decoded_command)
@@ -282,7 +266,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         matched_pattern = None
         matched_in_decoded = False
         
-        # Test signature against all command versions
+
         for cmd_to_test in commands_to_analyze:
             is_decoded_version = (cmd_to_test == decoded_command and has_deobfuscation)
             
@@ -314,8 +298,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                             
                 except re.error:
                     continue
-        
-        # Remove duplicates
+
         unique_matches = []
         seen_positions = set()
         
@@ -402,15 +385,14 @@ async def save_analysis_to_db(
     user_agent: str = "FastAPI-Client",
     is_cache: bool = False
 ) -> dict:
-    """Salva análise no banco - dados normalizados"""
+   
     try:
         supabase = get_supabase_client()
         short_id = generate_short_id()
         
-        # Validar country
+   
         ip_country = country if country and country != 'Unknown' else None
-        
-        # Dados normalizados
+ 
         insert_data = {
             "command": command,
             "decoded_command": analysis_result.get("decoded_command"),
@@ -428,13 +410,13 @@ async def save_analysis_to_db(
             "is_cache": is_cache
         }
         
-        # Adicionar user_id e session_id se disponíveis
+
         if user_id:
             insert_data["user_id"] = user_id
         if session_id:
             insert_data["session_id"] = session_id
         
-        # Remover chaves com valores None
+        
         insert_data = {k: v for k, v in insert_data.items() if v is not None}
         
         db_response = supabase.table('powershell_analyses').insert(insert_data).execute()
