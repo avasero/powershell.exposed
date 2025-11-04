@@ -129,7 +129,8 @@ async def save_to_cache(phash: int, indicators_matched: Any, results_blob: Dict[
 def should_cache_result(analysis_result: Dict[str, Any]) -> bool:
     """
     Determine if analysis result should be cached
-    Only cache results that have indicator matches
+    Only cache results that have indicator matches AND no premium indicators
+    Premium indicators should never be cached
     
     Args:
         analysis_result (Dict): The analysis result
@@ -139,7 +140,19 @@ def should_cache_result(analysis_result: Dict[str, Any]) -> bool:
     """
     # Check if there are any detected signatures/indicators
     detected_signatures = analysis_result.get("detected_signatures", [])
-    return len(detected_signatures) > 0
+    
+    if len(detected_signatures) == 0:
+        return False
+    
+    # Check if any detected signature is a premium indicator
+    for sig in detected_signatures:
+        # If any signature has is_premium_indicator flag set to True, do not cache
+        if sig.get("is_premium_indicator", False):
+            print(f"🚫 Not caching result - premium indicator detected: {sig.get('name')}")
+            return False
+    
+    # Only cache if there are indicators and none of them are premium
+    return True
 
 
 def create_cache_compatible_result(analysis_result: Dict[str, Any]) -> Dict[str, Any]:

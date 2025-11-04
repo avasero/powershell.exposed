@@ -154,7 +154,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                 "matches_found": matches_found,
                 "total_score": signature_total_score,
                 "max_match_allowed": signature["max_match"],
-                "pattern": matched_pattern or signature["patterns"][0] if signature["patterns"] else "Unknown pattern",  # Fallback seguro
+                "pattern": matched_pattern or signature["patterns"][0] if signature["patterns"] else "Unknown pattern",
                 "matches_details": [
                     {
                         "matched_text": match_info["matched_text"],
@@ -166,7 +166,8 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                 "tactics": signature["tactics"],
                 "techniques": signature["techniques"],
                 "reference": signature.get("reference", []),
-                "link": signature.get("link")
+                "link": signature.get("link"),
+                "is_premium_indicator": signature.get("is_premium_indicator", False)  # Add premium flag
             }
             
             detected_signatures.append(detected_signature)
