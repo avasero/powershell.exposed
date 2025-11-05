@@ -330,7 +330,8 @@ export const AuthProvider = ({ children }) => {
             username: username,
             full_name: username
           },
-          shouldCreateUser: true
+          shouldCreateUser: true,
+          emailRedirectTo: `${window.location.origin}/auth/confirm`
         }
       });
 
@@ -346,7 +347,8 @@ export const AuthProvider = ({ children }) => {
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          shouldCreateUser: false  // ← Login apenas para usuários existentes
+          shouldCreateUser: false,
+          emailRedirectTo: `${window.location.origin}/auth/confirm`
         }
       });
 

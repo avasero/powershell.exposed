@@ -81,13 +81,13 @@ export default function Navbar() {
           ) : (
             <>
               <ThemedButton
-                onClick={() => window.location.href = '/'}
+                onClick={() => window.location.href = '/evaluate'}
                 size="sm"
               >
                 Evaluate Command
               </ThemedButton>
               <ThemedButton
-                onClick={() => window.location.href = '/'}
+                onClick={() => window.location.href = '/login'}
                 size="sm"
               >
                 Login
@@ -115,7 +115,7 @@ export default function Navbar() {
           {/* Botão Try Analysis para usuários não logados no mobile */}
           {!isAuthenticated() && (
             <ThemedButton
-              onClick={() => window.location.href = '/'}
+              onClick={() => window.location.href = '/evaluate'}
               size="sm"
               className="px-3 py-2 text-xs"
             >

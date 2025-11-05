@@ -26,26 +26,22 @@ export default function RegisterPage() {
     setMessage('');
 
     try {
-      // Tentar registrar diretamente - se email já existir, Supabase retornará erro específico
-      const { data, error } = await signUpWithMagicLink(email, username);
+      // Usar signInWithOtp ao invés de signUpWithMagicLink para evitar template issues
+      const { data, error } = await signInWithMagicLink(email);
       
       if (error) {
         if (error.message.includes('Invalid email')) {
           setError('Please enter a valid email address.');
-        } else if (error.message.includes('User already registered') || 
-                   error.message.includes('already registered') ||
-                   error.message.includes('already exists')) {
-          // Email já existe - mostrar mensagem de sucesso sem revelar que existe
-          // Por razões de segurança, não enviamos nenhum email
-          console.log('Email already exists, showing success message without sending any email');
-          setMagicLinkSent(false);
-          setMessage('Registration link sent! Check your email to complete the registration.');
+        } else if (error.message.includes('rate limit')) {
+          setError('Too many requests. Please wait a moment before trying again.');
         } else {
-          setError(error.message);
+          // Mostrar mensagem genérica
+          setMagicLinkSent(true);
+          setMessage('If your email is not registered, a signup link will be sent. Check your email!');
         }
       } else {
         setMagicLinkSent(true);
-        setMessage('Registration link sent! Check your email to complete the registration.');
+        setMessage('If your email is not registered, a signup link will be sent. Check your email!');
       }
     } catch (err) {
       setError('Unexpected error during registration');
