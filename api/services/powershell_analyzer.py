@@ -121,17 +121,18 @@ def normalize_powershell_command(command: str) -> str:
     Normaliza caracteres especiais em comandos PowerShell.
     Substitui aspas "curly" e primes por aspas ASCII.
     """
-
+    # ✅ NOVO: Remover escapes duplicados que vêm do frontend
+    # \"\" -> " (duplo escape)
+    # \\\" -> " (triplo escape comum em JSON-in-JSON)
+    command = command.replace('\\\\"', '"').replace('\\\"', '"').replace("\\'", "'")
+    
     command = command.replace('\u2018', "'")  # left single quote
     command = command.replace('\u2019', "'")  # right single quote
-  
     command = command.replace('\u201c', '"')  # left double quote
     command = command.replace('\u201d', '"')  # right double quote
-
     command = command.replace('′', "'")  # U+2032 Prime
     command = command.replace('″', '"')  # U+2033 Double prime
 
-  
     invisible_chars = [
         '\u200b', '\u200c', '\u200d', '\ufeff', '\u2060'
     ]
@@ -153,10 +154,16 @@ def clean_pyminusone_output(deobfuscated: str) -> str:
 
 
 def deobfuscate_powershell(command: str) -> str:
+    """
+    Deofusca comandos PowerShell usando pyminusone ou fallback manual
+    """
+    # ✅ LOG: Mostrar comando ANTES da normalização
+    print(f"📥 [DEOBFUSCATOR] Raw input: {command[:80]}...")
     
     normalized_command = normalize_powershell_command(command)
     
     if normalized_command != command:
+        print(f"✨ [DEOBFUSCATOR] After normalization: {normalized_command[:80]}...")
         print("✨ Command normalized (special characters fixed)")
 
    
@@ -402,12 +409,11 @@ async def save_analysis_to_db(
     user_agent: str = "FastAPI-Client",
     is_cache: bool = False
 ) -> dict:
-   
+    """Salva análise no banco de dados"""
     try:
         supabase = get_supabase_client()
         short_id = generate_short_id()
         
-   
         ip_country = country if country and country != 'Unknown' else None
  
         insert_data = {
@@ -427,12 +433,10 @@ async def save_analysis_to_db(
             "is_cache": is_cache
         }
         
-
         if user_id:
             insert_data["user_id"] = user_id
         if session_id:
             insert_data["session_id"] = session_id
-        
         
         insert_data = {k: v for k, v in insert_data.items() if v is not None}
         

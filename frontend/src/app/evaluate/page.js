@@ -70,6 +70,11 @@ export default function EvaluatePage() {
     // ✅ LOG: Comando original antes de enviar
     console.log("🔍 [FRONTEND] Sending command:", command.substring(0, 100) + "...");
     
+    // ✅ LOG: Verificar comando ANTES de enviar
+    console.log("📤 [FRONTEND] Raw command:", command);
+    console.log("📤 [FRONTEND] Command length:", command.length);
+    console.log("📤 [FRONTEND] Has backslashes:", command.includes('\\'));
+    
     const startTime = performance.now();
     
     try {
@@ -77,7 +82,7 @@ export default function EvaluatePage() {
       const sessionId = getOrCreateSession();
       
       const requestData = { 
-        command,
+        command, // ⚠️ NÃO fazer JSON.stringify aqui (já é feito no fetch)
         user_id: user?.id || null,
         ip_address: ipAddress,
         country: ipCountry,
