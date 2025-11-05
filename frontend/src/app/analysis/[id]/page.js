@@ -141,18 +141,17 @@ export default function AnalysisDetailsPage() {
 
 
   const performAnalysis = async (command, providedIpAddress, providedIpCountry) => {
- 
     const finalIpAddress = providedIpAddress || ipAddress;
     const finalIpCountry = providedIpCountry || ipCountry;
     try {
       setNewAnalysisLoading(true);
       setError("");
-      setCacheHit(false); 
+      setCacheHit(false);
       
-     
+      // ✅ LOG: Comando original
+      console.log("🔍 [ANALYSIS_PAGE] Analyzing command:", command.substring(0, 100) + "...");
+      
       const startTime = performance.now();
-      
-     
       const sessionId = getOrCreateSession();
       
       const requestData = { 
@@ -165,7 +164,9 @@ export default function AnalysisDetailsPage() {
         session_id: sessionId
       };
       
-    
+      // ✅ LOG: Tipo de requisição
+      console.log("🌐 [ANALYSIS_PAGE] Request type:", user?.id ? "Authenticated WEB" : "Anonymous WEB");
+      
       const { makeAuthenticatedRequest } = await import('../../../lib/api');
       
       const response = await makeAuthenticatedRequest('/evaluate', {
@@ -569,27 +570,7 @@ export default function AnalysisDetailsPage() {
         </div>
       )}
 
-      {result && result.decoded && (
-        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-4 bg-black/80 border-green-500/30">
-          <h2 className="text-lg font-mono font-bold mb-3" style={{color: 'var(--foreground)'}}>
-            Decoded Content
-          </h2>
-          <div className="font-mono text-sm break-all p-3 rounded bg-black/80 border border-green-500/30 hover:border-green-500/50 transition-all" style={{color: 'var(--foreground)'}}>
-            {result.decoded}
-          </div>
-        </div>
-      )}
-      
-      {error && (
-        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 border rounded-lg p-4 border-red-500 bg-black/80 border-green-500/30">
-          <h2 className="text-lg font-mono font-bold mb-3 text-red-500">
-            Error
-          </h2>
-          <div className="font-mono text-sm text-red-400">
-            {error}
-          </div>
-        </div>
-      )}
+    
 
       <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
         <ThemedButton onClick={() => router.push('/')}>

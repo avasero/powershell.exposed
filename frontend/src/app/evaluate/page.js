@@ -67,6 +67,9 @@ export default function EvaluatePage() {
     setLoading(true);
     setCacheHit(false);
     
+    // ✅ LOG: Comando original antes de enviar
+    console.log("🔍 [FRONTEND] Sending command:", command.substring(0, 100) + "...");
+    
     const startTime = performance.now();
     
     try {
@@ -82,6 +85,9 @@ export default function EvaluatePage() {
         search_type: "WEB",
         session_id: sessionId
       };
+      
+      // ✅ LOG: Tipo de requisição
+      console.log("🌐 [FRONTEND] Request type:", user?.id ? "Authenticated WEB" : "Anonymous WEB");
 
       const { makeAuthenticatedRequest } = await import('../../lib/api');
       const response = await makeAuthenticatedRequest('/evaluate', {

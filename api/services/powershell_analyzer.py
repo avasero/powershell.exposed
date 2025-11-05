@@ -251,15 +251,32 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     tactics = set()
     techniques = set()
     
-  
-    decoded_command = deobfuscate_powershell(command)
-    has_deobfuscation = decoded_command != command
+    # ✅ CRITICAL: Sempre normalizar E deofuscar ANTES de analisar
+    print(f"🔍 [ANALYZER] Original command: {command[:100]}...")
     
-  
-    commands_to_analyze = [command]
+    # Passo 1: Normalizar caracteres especiais
+    normalized_command = normalize_powershell_command(command)
+    if normalized_command != command:
+        print(f"✨ [ANALYZER] Command normalized")
+    
+    # Passo 2: SEMPRE tentar deofuscar (não importa a origem)
+    decoded_command = deobfuscate_powershell(normalized_command)
+    has_deobfuscation = decoded_command != normalized_command
+    
+    if has_deobfuscation:
+        print(f"✅ [ANALYZER] Deobfuscation successful!")
+        print(f"   Original:      {normalized_command[:80]}...")
+        print(f"   Deobfuscated:  {decoded_command[:80]}...")
+    else:
+        print(f"ℹ️ [ANALYZER] No deobfuscation applied (command unchanged)")
+    
+    # Passo 3: Analisar AMBAS as versões
+    commands_to_analyze = [normalized_command]
     if has_deobfuscation:
         commands_to_analyze.append(decoded_command)
-        print(f"📊 Analyzing both original and deobfuscated commands")
+        print(f"📊 [ANALYZER] Analyzing BOTH original and deobfuscated versions")
+    else:
+        print(f"📊 [ANALYZER] Analyzing ONLY normalized version")
     
     for signature in signatures:
         all_signature_matches = []

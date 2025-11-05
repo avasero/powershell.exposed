@@ -108,7 +108,9 @@ async def validate_anonymous_access(request: Request, call_next):
         restricted_endpoints = ["/evaluate", "/generate-captcha", "/verify-captcha", "/create-user-session"]
         
         if request.url.path in restricted_endpoints:
-        
+            # ✅ LOG: Identificar tipo de requisição
+            request_type = "WEB" if is_request_from_frontend(request) else "API/External"
+            print(f"🔍 [VALIDATION] Request type: {request_type} to {request.url.path}")
             
             # Verificar se há token de autenticação
             authorization = request.headers.get("Authorization", "")
@@ -124,6 +126,7 @@ async def validate_anonymous_access(request: Request, call_next):
                 
                 # Se é uma API Key (começa com pse_)
                 if token.startswith("pse_"):
+                    print(f"🔑 [VALIDATION] API Key detected - search_type will be: API")
                    
                     try:
                         api_key_data = await validate_api_key(token)
@@ -155,6 +158,7 @@ async def validate_anonymous_access(request: Request, call_next):
                     
                     # Se vem do frontend, permitir JWT tokens (será validado no auth_middleware)
                     if is_request_from_frontend(request):
+                        print(f"🌐 [VALIDATION] JWT from frontend - search_type will be: WEB")
                         print(f"✅ Token JWT do frontend - permitindo validação pelo auth_middleware")
                         # Deixar passar para o auth_middleware validar o JWT
                     else:
@@ -171,6 +175,7 @@ async def validate_anonymous_access(request: Request, call_next):
                         )
             else:
                 # NÃO há token de autenticação (acesso anônimo)
+                print(f"👤 [VALIDATION] Anonymous access - search_type will be: WEB")
                 print(f"👤 Acesso anônimo detectado - verificando origem...")
                 
                 if not is_request_from_frontend(request):
