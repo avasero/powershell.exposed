@@ -28,9 +28,6 @@ export default function EvaluatePage() {
   const [command, setCommand] = useState("");
   const [loading, setLoading] = useState(false);
   const [cacheHit, setCacheHit] = useState(false);
-
-  // NÃO ADICIONE NENHUM useEffect QUE REDIRECIONE BASEADO EM AUTENTICAÇÃO
-
   const validatePowerShellCommand = (input) => {
     if (!input || typeof input !== 'string') {
       return { isValid: false, error: "Command cannot be empty." };
@@ -67,13 +64,7 @@ export default function EvaluatePage() {
     setLoading(true);
     setCacheHit(false);
     
-    // ✅ LOG: Comando original antes de enviar
-    console.log("🔍 [FRONTEND] Sending command:", command.substring(0, 100) + "...");
     
-    // ✅ LOG: Verificar comando ANTES de enviar
-    console.log("📤 [FRONTEND] Raw command:", command);
-    console.log("📤 [FRONTEND] Command length:", command.length);
-    console.log("📤 [FRONTEND] Has backslashes:", command.includes('\\'));
     
     const startTime = performance.now();
     
@@ -82,7 +73,7 @@ export default function EvaluatePage() {
       const sessionId = getOrCreateSession();
       
       const requestData = { 
-        command, // ⚠️ NÃO fazer JSON.stringify aqui (já é feito no fetch)
+        command, 
         user_id: user?.id || null,
         ip_address: ipAddress,
         country: ipCountry,
@@ -91,9 +82,7 @@ export default function EvaluatePage() {
         session_id: sessionId
       };
       
-      // ✅ LOG: Tipo de requisição
-      console.log("🌐 [FRONTEND] Request type:", user?.id ? "Authenticated WEB" : "Anonymous WEB");
-
+    
       const { makeAuthenticatedRequest } = await import('../../lib/api');
       const response = await makeAuthenticatedRequest('/evaluate', {
         method: 'POST',

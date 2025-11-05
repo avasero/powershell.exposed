@@ -157,27 +157,12 @@ def deobfuscate_powershell(command: str) -> str:
     """
     Deofusca comandos PowerShell usando pyminusone ou fallback manual
     """
-    # ✅ LOG: Mostrar comando ANTES da normalização
-    print(f"📥 [DEOBFUSCATOR] Raw input: {command[:80]}...")
-    
     normalized_command = normalize_powershell_command(command)
-    
-    if normalized_command != command:
-        print(f"✨ [DEOBFUSCATOR] After normalization: {normalized_command[:80]}...")
-        print("✨ Command normalized (special characters fixed)")
-
-   
     has_leading_ampersand = normalized_command.strip().startswith('&')
     command_to_process = normalized_command.strip()
-    
-    if has_leading_ampersand:
-        print("🔧 Detected leading & operator - removing temporarily")
-        command_to_process = command_to_process[1:].strip()
-        print(f"   Without &: {command_to_process[:80]}...")
 
     if PYMINUSONE_AVAILABLE:
         try:
-            print("🔍 Attempting pyminusone deobfuscation...")
             deobf = pyminusone.deobfuscate_powershell(command_to_process)
 
             if deobf and deobf != command_to_process:
@@ -252,38 +237,20 @@ def deobfuscate_powershell(command: str) -> str:
 
 
 def analyze_command_patterns(command: str, signatures: list) -> dict:
-    """Analisa um comando PowerShell contra as assinaturas"""
     detected_signatures = []
     total_score = 0
     tactics = set()
     techniques = set()
     
-    # ✅ CRITICAL: Sempre normalizar E deofuscar ANTES de analisar
-    print(f"🔍 [ANALYZER] Original command: {command[:100]}...")
-    
-    # Passo 1: Normalizar caracteres especiais
     normalized_command = normalize_powershell_command(command)
-    if normalized_command != command:
-        print(f"✨ [ANALYZER] Command normalized")
-    
-    # Passo 2: SEMPRE tentar deofuscar (não importa a origem)
+   
     decoded_command = deobfuscate_powershell(normalized_command)
     has_deobfuscation = decoded_command != normalized_command
     
-    if has_deobfuscation:
-        print(f"✅ [ANALYZER] Deobfuscation successful!")
-        print(f"   Original:      {normalized_command[:80]}...")
-        print(f"   Deobfuscated:  {decoded_command[:80]}...")
-    else:
-        print(f"ℹ️ [ANALYZER] No deobfuscation applied (command unchanged)")
     
-    # Passo 3: Analisar AMBAS as versões
     commands_to_analyze = [normalized_command]
     if has_deobfuscation:
         commands_to_analyze.append(decoded_command)
-        print(f"📊 [ANALYZER] Analyzing BOTH original and deobfuscated versions")
-    else:
-        print(f"📊 [ANALYZER] Analyzing ONLY normalized version")
     
     for signature in signatures:
         all_signature_matches = []
