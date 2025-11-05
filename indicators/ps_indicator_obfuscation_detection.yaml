@@ -1,0 +1,22 @@
+name: "Obfuscation Detected"
+description: "Detects if the command has been obfuscated by comparing hashes of original and deobfuscated versions"
+
+# Este é um indicador especial - não usa regex
+# Funciona verificando se o comando muda após deobfuscação
+pattern: "__OBFUSCATION_CHECK__"
+
+basescore: 6.5
+severity: medium
+
+tactic:
+  - Defense Evasion
+
+technique:
+  - T1027
+  - T1027.001
+
+reference:
+  - https://attack.mitre.org/techniques/T1027/
+
+# Nota: Este indicador é processado especialmente no analyzer
+# Não é baseado em pattern matching, mas em detecção de mudanças

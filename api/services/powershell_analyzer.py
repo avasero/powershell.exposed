@@ -6,6 +6,7 @@ import time
 import json
 import secrets
 import string
+import hashlib
 from services.session_manager import get_supabase_client
 from config.settings import CACHE_DURATION
 
@@ -236,6 +237,22 @@ def deobfuscate_powershell(command: str) -> str:
     return normalized_command
 
 
+def calculate_command_hash(command: str) -> str:
+    """Calcula hash SHA256 de um comando"""
+    return hashlib.sha256(command.encode()).hexdigest()
+
+
+def detect_obfuscation(original_command: str, deobfuscated_command: str) -> bool:
+    """
+    Detecta se o comando foi obfuscado comparando hashes
+    """
+    original_hash = calculate_command_hash(original_command)
+    deobfuscated_hash = calculate_command_hash(deobfuscated_command)
+    
+    # Se os hashes são diferentes, o comando foi modificado (deofuscado)
+    return original_hash != deobfuscated_hash
+
+
 def analyze_command_patterns(command: str, signatures: list) -> dict:
     detected_signatures = []
     total_score = 0
@@ -247,12 +264,54 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     decoded_command = deobfuscate_powershell(normalized_command)
     has_deobfuscation = decoded_command != normalized_command
     
+    # ✅ NOVO: Detectar obfuscação
+    is_obfuscated = detect_obfuscation(normalized_command, decoded_command)
+    
+    # Adicionar indicador de obfuscação se detectado
+    if is_obfuscated:
+        # Encontrar a signature de obfuscação
+        obfuscation_sig = next((sig for sig in signatures if sig.get("name") == "Obfuscation Detected"), None)
+        
+        if obfuscation_sig:
+            obfuscation_detected = {
+                "name": "Obfuscation Detected",
+                "description": "Command has been obfuscated - deobfuscation applied",
+                "severity": obfuscation_sig["severity"],
+                "base_score": obfuscation_sig["score"],
+                "matches_found": 1,
+                "total_score": obfuscation_sig["score"],
+                "max_match_allowed": 1,
+                "pattern": "__OBFUSCATION_CHECK__",
+                "matches_details": [
+                    {
+                        "matched_text": "Obfuscation detected",
+                        "position": {"start": 0, "end": len(normalized_command)},
+                        "match_number": 1,
+                        "matched_in": "original"
+                    }
+                ],
+                "tactics": obfuscation_sig.get("tactics", ["Defense Evasion"]),
+                "techniques": obfuscation_sig.get("techniques", ["T1027", "T1027.001"]),
+                "reference": obfuscation_sig.get("reference", []),
+                "link": obfuscation_sig.get("link"),
+                "is_premium_indicator": False,
+                "found_in_deobfuscated": False
+            }
+            
+            detected_signatures.append(obfuscation_detected)
+            tactics.update(obfuscation_sig.get("tactics", ["Defense Evasion"]))
+            techniques.update(obfuscation_sig.get("techniques", ["T1027", "T1027.001"]))
+            total_score += obfuscation_sig["score"]
     
     commands_to_analyze = [normalized_command]
     if has_deobfuscation:
         commands_to_analyze.append(decoded_command)
     
     for signature in signatures:
+        # ✅ PULAR: Se é o indicador de obfuscação, já foi processado acima
+        if signature.get("name") == "Obfuscation Detected":
+            continue
+            
         all_signature_matches = []
         matched_pattern = None
         matched_in_decoded = False
@@ -347,7 +406,8 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         "total_score": total_score,
         "tactics": list(tactics),
         "techniques": list(techniques),
-        "decoded_command": decoded_command if has_deobfuscation else None
+        "decoded_command": decoded_command if has_deobfuscation else None,
+        "is_obfuscated": is_obfuscated
     }
 
 
