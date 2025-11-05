@@ -172,7 +172,7 @@ export default function AnalysisCard({
                 <span className="text-yellow-400">{matchesInfo.baseScore || 'N/A'}</span>
               </div>
               <div className="mb-2">
-                <span className="font-bold">Score Total: </span>
+                <span className="font-bold">Score Subtotal: </span>
                 <span className="text-red-400 font-bold">{matchesInfo.totalScore || 'N/A'}</span>
                 <span className="text-gray-400"> ({matchesInfo.baseScore || 'N/A'} × {matchesInfo.matchesFound || 'N/A'})</span>
               </div>
