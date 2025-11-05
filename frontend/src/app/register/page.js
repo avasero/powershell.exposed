@@ -26,22 +26,24 @@ export default function RegisterPage() {
     setMessage('');
 
     try {
-      // Usar signInWithOtp ao invés de signUpWithMagicLink para evitar template issues
-      const { data, error } = await signInWithMagicLink(email);
+      // Usar signUpWithMagicLink corretamente para novo usuário
+      const { data, error } = await signUpWithMagicLink(email, username);
       
       if (error) {
         if (error.message.includes('Invalid email')) {
           setError('Please enter a valid email address.');
         } else if (error.message.includes('rate limit')) {
           setError('Too many requests. Please wait a moment before trying again.');
+        } else if (error.message.includes('Signups not allowed')) {
+          setError('Signups are currently disabled. Please try again later.');
         } else {
-          // Mostrar mensagem genérica
+          // Mostrar mensagem genérica por segurança
           setMagicLinkSent(true);
-          setMessage('If your email is not registered, a signup link will be sent. Check your email!');
+          setMessage('Registration link sent! Check your email to complete the sign up.');
         }
       } else {
         setMagicLinkSent(true);
-        setMessage('If your email is not registered, a signup link will be sent. Check your email!');
+        setMessage('Registration link sent! Check your email to complete the sign up.');
       }
     } catch (err) {
       setError('Unexpected error during registration');
