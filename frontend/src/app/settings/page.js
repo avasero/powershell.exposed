@@ -58,7 +58,7 @@ export default function SettingsPage() {
           
           <div className="text-center">
             <h1 className="text-3xl font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
-              ⚙️ Settings
+              Settings
             </h1>
             <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
               Manage your account settings and preferences
@@ -70,7 +70,7 @@ export default function SettingsPage() {
         <div className="mb-8">
           <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
             <h2 className="text-xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
-              👤 Account Information
+              Account Information
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -112,7 +112,7 @@ export default function SettingsPage() {
           {/* Preferences Section */}
           <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
             <h2 className="text-xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
-              🎨 Preferences
+              Preferences
             </h2>
             <div className="space-y-4">
               <div>
@@ -145,7 +145,7 @@ export default function SettingsPage() {
           {/* Security Section */}
           <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
             <h2 className="text-xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
-              🔒 Security
+              Security
             </h2>
             <div className="space-y-4">
               <div>
@@ -180,7 +180,7 @@ export default function SettingsPage() {
         <div className="mt-8">
           <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
             <h2 className="text-xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
-              📊 Usage Information
+              Usage Information
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center p-4 rounded border" style={{
@@ -200,7 +200,7 @@ export default function SettingsPage() {
                 backgroundColor: 'var(--muted)',
                 borderColor: 'var(--border-color)'
               }}>
-                <div className="text-2xl mb-2" style={{color: 'var(--accent)'}}>🔑</div>
+                <div className="text-2xl mb-2" style={{color: 'var(--accent)'}}>◆</div>
                 <div className="font-mono text-sm" style={{color: 'var(--foreground)'}}>
                   API Access
                 </div>
@@ -213,7 +213,7 @@ export default function SettingsPage() {
                 backgroundColor: 'var(--muted)',
                 borderColor: 'var(--border-color)'
               }}>
-                <div className="text-2xl mb-2" style={{color: 'var(--accent)'}}>💾</div>
+                <div className="text-2xl mb-2" style={{color: 'var(--accent)'}}>✓</div>
                 <div className="font-mono text-sm" style={{color: 'var(--foreground)'}}>
                   History Saved
                 </div>
