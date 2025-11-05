@@ -98,7 +98,7 @@ async def load_signatures_from_db(user_id: str = None) -> list:
             return []
             
     except Exception as error:
-        print(f"Error loading signatures from database: {error}")
+        print(f"Error loading signatures from database!: {error}")
         return []
 
 
