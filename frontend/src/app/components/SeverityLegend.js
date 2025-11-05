@@ -62,10 +62,10 @@ export default function SeverityLegend({ className = "" }) {
           {/* Tier Information */}
           <div className="mb-4 p-3 rounded" style={{backgroundColor: 'var(--muted)', borderColor: 'var(--border-color)', border: '1px solid var(--border-color)'}}>
             <div className="text-xs font-mono mb-2" style={{color: 'var(--foreground)'}}>
-              The "Basic" Tier matches against a limited set of indicators, mostly pattern/regex based and only enables simple, aggregated score.
+              The &quot;Basic&quot; Tier matches against a limited set of indicators, mostly pattern/regex based and only enables simple, aggregated score.
             </div>
             <div className="text-xs font-mono" style={{color: 'var(--foreground)'}}>
-              In the "Premium" tier, besides testing payloads against a wider range of indicators (regex plus behavioral/anomaly), the scoring is based on a weighted model which also outputs a severity label.
+              In the &quot;Premium&quot; tier, besides testing payloads against a wider range of indicators (regex plus behavioral/anomaly), the scoring is based on a weighted model which also outputs a severity label.
             </div>
           </div>
           
@@ -76,7 +76,7 @@ export default function SeverityLegend({ className = "" }) {
             </div>
             <div className="space-y-1 text-xs font-mono" style={{color: 'var(--foreground)', opacity: 0.9}}>
               <div>• Each regex/pattern indicator has a base score.</div>
-              <div>• A few indicators are subject to multi-matching (refer to "maxmatch" parameter in the YAML).</div>
+              <div>• A few indicators are subject to multi-matching (refer to &quot;maxmatch&quot; parameter in the YAML).</div>
               <div>• Individual indicator scores are summed up to form the aggregated, total score.</div>
               <div>• Higher scores are NOT necessarily tied to a suspicious payload but larger indicator footprint.</div>
             </div>
