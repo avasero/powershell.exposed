@@ -21,7 +21,7 @@ export default function SeverityBadge({ score, className = "" }) {
 
   return (
     <span className={`font-mono text-xs px-1 sm:px-2 py-1 rounded border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ${getScoreColor(score)} ${className}`}>
-      {score.toFixed(1)}
+      Score: {score.toFixed(1)}
     </span>
   );
 }
