@@ -162,6 +162,34 @@ def clean_pyminusone_output(deobfuscated: str) -> str:
     return cleaned
 
 
+def decode_base64_utf16(encoded_str: str) -> str:
+    """
+    Decodifica Base64 UTF-16LE (padrão PowerShell)
+    Usado para -EncodedCommand e payloads similares
+    """
+    try:
+        # Remover espaços e quebras de linha
+        encoded_str = encoded_str.replace(' ', '').replace('\n', '').replace('\r', '')
+        
+        # Adicionar padding se necessário
+        padding = 4 - (len(encoded_str) % 4)
+        if padding != 4:
+            encoded_str += '=' * padding
+        
+        # Decodificar Base64
+        decoded_bytes = base64.b64decode(encoded_str)
+        
+        # Tentar UTF-16LE primeiro (padrão PowerShell)
+        try:
+            return decoded_bytes.decode('utf-16-le', errors='ignore')
+        except:
+            # Fallback para UTF-8
+            return decoded_bytes.decode('utf-8', errors='ignore')
+    except Exception as e:
+        print(f"⚠️ Error decoding Base64: {e}")
+        return ""
+
+
 def deobfuscate_powershell(command: str) -> str:
     """
     Deofusca comandos PowerShell usando pyminusone ou fallback manual
@@ -170,6 +198,34 @@ def deobfuscate_powershell(command: str) -> str:
     has_leading_ampersand = normalized_command.strip().startswith('&')
     command_to_process = normalized_command.strip()
 
+    # ✅ NOVO: Primeiro, tentar decodificar -EncodedCommand
+    encoded_match = re.search(r'-(?:EncodedCommand|enc)\s+([A-Za-z0-9+/=\s]+?)(?:\s|$)', command_to_process, re.IGNORECASE)
+    if encoded_match:
+        payload_b64 = encoded_match.group(1)
+        decoded_payload = decode_base64_utf16(payload_b64)
+        
+        if decoded_payload and len(decoded_payload) > 5:
+            print(f"✅ Decoded -EncodedCommand: {decoded_payload[:100]}...")
+            
+            # Se o payload decodificado ainda contém -EncodedCommand, processar recursivamente
+            if re.search(r'-(?:EncodedCommand|enc)\s+', decoded_payload, re.IGNORECASE):
+                print(f"🔄 Found nested -EncodedCommand, processing recursively...")
+                return deobfuscate_powershell(decoded_payload)
+            
+            # Se o payload decodificado contém FromBase64String, tentar decodificar também
+            if re.search(r'\[Convert\]::FromBase64String|FromBase64String', decoded_payload, re.IGNORECASE):
+                print(f"🔄 Found FromBase64String in decoded payload, attempting further deobfuscation...")
+                # Tentar extrair Base64 string dentro de FromBase64String
+                base64_in_decoded = re.search(r"FromBase64String\(['\"]([A-Za-z0-9+/=]+)['\"]", decoded_payload, re.IGNORECASE)
+                if base64_in_decoded:
+                    nested_payload = decode_base64_utf16(base64_in_decoded.group(1))
+                    if nested_payload and len(nested_payload) > 5:
+                        print(f"✅ Decoded nested Base64: {nested_payload[:100]}...")
+                        return nested_payload
+            
+            return decoded_payload
+
+    # Se não tinha -EncodedCommand, tentar pyminusone para outras obfuscações
     if PYMINUSONE_AVAILABLE:
         try:
             deobf = pyminusone.deobfuscate_powershell(command_to_process)
@@ -418,6 +474,15 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     decoded_command = deobfuscate_powershell(normalized_command)
     has_deobfuscation = decoded_command != normalized_command
     
+    # ✅ LOG: Verificar deobfuscação
+    if has_deobfuscation:
+        print(f"✅ [ANALYZER] Deobfuscation detected!")
+        print(f"   Original length: {len(normalized_command)}")
+        print(f"   Decoded length: {len(decoded_command)}")
+        print(f"   Decoded preview: {decoded_command[:150]}...")
+    else:
+        print(f"ℹ️ [ANALYZER] No deobfuscation needed")
+
     # ✅ NOVO: Detectar obfuscação
     is_obfuscated = detect_obfuscation(normalized_command, decoded_command)
     

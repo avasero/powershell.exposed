@@ -372,10 +372,7 @@ export default function AnalysisPage() {
      
       {result && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-          
-          <div 
-            className="p-4 sm:p-6 rounded-lg border-2 border-green-400 text-center relative bg-black/80 border-green-500/30"
-          >
+          <div className="p-4 sm:p-6 rounded-lg border-2 border-green-400 text-center relative bg-black/80 border-green-500/30">
             <div className="absolute top-4 right-4">
               <SeverityLegend />
             </div>
@@ -413,6 +410,23 @@ export default function AnalysisPage() {
           </div>
         </div>
       )}
+
+      {result && result.decoded && (
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+          <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
+            <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
+              🔓 Decodified Command
+            </div>
+            <div className="bg-black rounded p-3 border border-blue-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
+              <code>{result.decoded}</code>
+            </div>
+            <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
+              This is the decoded/deobfuscated version of the command
+            </div>
+          </div>
+        </div>
+      )}
+
        {result && result.signatures && result.signatures.length > 0 && (
          <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           {(() => {
