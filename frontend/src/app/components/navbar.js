@@ -50,6 +50,12 @@ export default function Navbar() {
         
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-4">
+          {isAuthenticated() && (
+            <span className="font-mono text-sm" style={{color: 'var(--foreground)'}}>
+              {user?.user_metadata?.username || user?.email}
+            </span>
+          )}
+          
           <ThemedButton
             onClick={() => window.location.href = '/indicators'}
             size="sm"
@@ -60,10 +66,6 @@ export default function Navbar() {
           
           {isAuthenticated() ? (
             <>
-              <span className="font-mono text-sm" style={{color: 'var(--foreground)'}}>
-                {user?.user_metadata?.username || user?.email}
-              </span>
-              
               <ThemedButton
                 onClick={handleLogout}
                 size="sm"
