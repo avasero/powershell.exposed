@@ -190,40 +190,51 @@ def decode_base64_utf16(encoded_str: str) -> str:
         return ""
 
 
-def deobfuscate_powershell(command: str) -> str:
+def deobfuscate_powershell(command: str) -> tuple:
     """
     Deofusca comandos PowerShell usando pyminusone ou fallback manual
+    Retorna: (decoded_command, iteration_count)
     """
     normalized_command = normalize_powershell_command(command)
     has_leading_ampersand = normalized_command.strip().startswith('&')
     command_to_process = normalized_command.strip()
 
-    # ✅ NOVO: Primeiro, tentar decodificar -EncodedCommand
-    encoded_match = re.search(r'-(?:EncodedCommand|enc)\s+([A-Za-z0-9+/=\s]+?)(?:\s|$)', command_to_process, re.IGNORECASE)
-    if encoded_match:
-        payload_b64 = encoded_match.group(1)
-        decoded_payload = decode_base64_utf16(payload_b64)
+    # ✅ NOVO: Loop para decodificar TODOS os níveis de -EncodedCommand
+    max_decode_iterations = 5
+    iteration = 0
+    
+    while iteration < max_decode_iterations:
+        encoded_match = re.search(r'-(?:EncodedCommand|enc)\s+([A-Za-z0-9+/=\s]+?)(?:\s|$)', command_to_process, re.IGNORECASE)
         
-        if decoded_payload and len(decoded_payload) > 5:
-            print(f"✅ Decoded -EncodedCommand: {decoded_payload[:100]}...")
+        if encoded_match:
+            iteration += 1
+            payload_b64 = encoded_match.group(1)
+            decoded_payload = decode_base64_utf16(payload_b64)
             
-            # Se o payload decodificado ainda contém -EncodedCommand, processar recursivamente
-            if re.search(r'-(?:EncodedCommand|enc)\s+', decoded_payload, re.IGNORECASE):
-                print(f"🔄 Found nested -EncodedCommand, processing recursively...")
-                return deobfuscate_powershell(decoded_payload)
-            
-            # Se o payload decodificado contém FromBase64String, tentar decodificar também
-            if re.search(r'\[Convert\]::FromBase64String|FromBase64String', decoded_payload, re.IGNORECASE):
-                print(f"🔄 Found FromBase64String in decoded payload, attempting further deobfuscation...")
-                # Tentar extrair Base64 string dentro de FromBase64String
-                base64_in_decoded = re.search(r"FromBase64String\(['\"]([A-Za-z0-9+/=]+)['\"]", decoded_payload, re.IGNORECASE)
-                if base64_in_decoded:
-                    nested_payload = decode_base64_utf16(base64_in_decoded.group(1))
-                    if nested_payload and len(nested_payload) > 5:
-                        print(f"✅ Decoded nested Base64: {nested_payload[:100]}...")
-                        return nested_payload
-            
-            return decoded_payload
+            if decoded_payload and len(decoded_payload) > 5:
+                print(f"✅ [Iteration {iteration}] Decoded -EncodedCommand: {decoded_payload[:100]}...")
+                command_to_process = decoded_payload
+                
+                # Se NÃO houver mais -EncodedCommand, sair do loop
+                if not re.search(r'-(?:EncodedCommand|enc)\s+', decoded_payload, re.IGNORECASE):
+                    print(f"✅ [FINAL] Reached end of nested encoding after {iteration} iterations")
+                    print(f"   Final decoded: {command_to_process[:150]}...")
+                    return command_to_process, iteration
+            else:
+                print(f"⚠️ Failed to decode at iteration {iteration}")
+                break
+        else:
+            # Nenhum -EncodedCommand encontrado
+            if iteration > 0:
+                print(f"✅ [FINAL] No more -EncodedCommand found after {iteration} iterations")
+                print(f"   Final result: {command_to_process[:150]}...")
+                return command_to_process, iteration
+            break
+    
+    # Se chegou ao máximo de iterações
+    if iteration >= max_decode_iterations:
+        print(f"⚠️ Reached max decode iterations ({max_decode_iterations})")
+        return command_to_process, iteration
 
     # Se não tinha -EncodedCommand, tentar pyminusone para outras obfuscações
     if PYMINUSONE_AVAILABLE:
@@ -272,7 +283,7 @@ def deobfuscate_powershell(command: str) -> str:
                             print("🔧 Re-added leading & operator")
                     
                     print(f"   Final result: {final_result[:100]}...")
-                    return final_result
+                    return final_result, iteration
                 else:
                     print("⚠️ pyminusone result still looks malformed after cleaning")
         except Exception as e:
@@ -293,12 +304,12 @@ def deobfuscate_powershell(command: str) -> str:
             
             print("✅ Manual deobfuscation successful!")
             print(f"   Deobfuscated: {cleaned_manual[:100]}...")
-            return cleaned_manual
+            return cleaned_manual, iteration
     except Exception as e:
         print(f"❌ Manual deobfuscation error: {e}")
 
     print("ℹ️ No deobfuscation applied - returning normalized command")
-    return normalized_command
+    return normalized_command, 0
 
 
 def calculate_command_hash(command: str) -> str:
@@ -404,13 +415,23 @@ def detect_encoded_command(command: str) -> dict:
         }
 
 
-def detect_double_encoded_command(command: str, decoded_command: str) -> dict:
+def detect_double_encoded_command(command: str, decoded_command: str, decode_iterations: int = 0) -> dict:
     """
     Detecta se o comando foi codificado múltiplas vezes (dupla ou múltipla codificação)
+    Agora também considera o número de iterações necessárias para decodificar
     """
     try:
         normalized_original = normalize_powershell_command(command)
         normalized_decoded = normalize_powershell_command(decoded_command)
+        
+        # ✅ NOVO: Se precisou de 2+ iterações para decodificar, é duplo codificado!
+        if decode_iterations >= 2:
+            print(f"✅ [DOUBLE ENCODING] Detected {decode_iterations} decoding iterations")
+            return {
+                "is_double_encoded": True,
+                "encoding_layers": decode_iterations,
+                "indicator": f"Detected {decode_iterations} layers of -EncodedCommand nesting (double/multiple encoding)"
+            }
         
         # Contar quantas vezes FromBase64String aparece
         frombase64_count_original = len(re.findall(r'\[Convert\]::FromBase64String', normalized_original, re.IGNORECASE))
@@ -471,13 +492,15 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     
     normalized_command = normalize_powershell_command(command)
    
-    decoded_command = deobfuscate_powershell(normalized_command)
+    # ✅ ALTERADO: Agora retorna tuple (decoded_command, iterations)
+    decoded_command, decode_iterations = deobfuscate_powershell(normalized_command)
     has_deobfuscation = decoded_command != normalized_command
     
     # ✅ DEBUG LOG
     print(f"\n[ANALYZE] Command Analysis:")
     print(f"  Original: {normalized_command[:80]}...")
     print(f"  Decoded: {decoded_command[:80]}...")
+    print(f"  Decode iterations: {decode_iterations}")
     print(f"  Has deobfuscation: {has_deobfuscation}")
     print(f"  Decoded command is None: {decoded_command is None}")
     print(f"  Decoded command length: {len(decoded_command) if decoded_command else 0}")
@@ -564,7 +587,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             total_score += encoded_sig["score"]
     
     # ✅ NOVO: Detectar dupla codificação
-    double_encoding_detection = detect_double_encoded_command(normalized_command, decoded_command)
+    double_encoding_detection = detect_double_encoded_command(normalized_command, decoded_command, decode_iterations)
     if double_encoding_detection["is_double_encoded"]:
         double_encoded_sig = next((sig for sig in signatures if sig.get("name") == "Double Encoded Command Detected"), None)
         
