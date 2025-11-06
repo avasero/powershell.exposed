@@ -6,9 +6,16 @@ import time
 import json
 import secrets
 import string
-import hashlib
 from services.session_manager import get_supabase_client
 from config.settings import CACHE_DURATION
+
+try:
+    import ppdeep
+    PPDEEP_AVAILABLE = True
+    print("✅ ppdeep loaded successfully")
+except ImportError:
+    PPDEEP_AVAILABLE = False
+    print("⚠️ ppdeep not available - fuzzy hashing will be skipped")
 
 
 try:
@@ -238,19 +245,39 @@ def deobfuscate_powershell(command: str) -> str:
 
 
 def calculate_command_hash(command: str) -> str:
-    """Calcula hash SHA256 de um comando"""
-    return hashlib.sha256(command.encode()).hexdigest()
+    """Calcula fuzzy hash de um comando usando ppdeep"""
+    if PPDEEP_AVAILABLE:
+        try:
+            return ppdeep.hash(command)
+        except Exception as e:
+            print(f"⚠️ ppdeep hashing failed: {e}")
+            return ""
+    return ""
 
 
 def detect_obfuscation(original_command: str, deobfuscated_command: str) -> bool:
     """
-    Detecta se o comando foi obfuscado comparando hashes
+    Detecta se o comando foi obfuscado comparando fuzzy hashes com ppdeep
     """
-    original_hash = calculate_command_hash(original_command)
-    deobfuscated_hash = calculate_command_hash(deobfuscated_command)
+    if not PPDEEP_AVAILABLE:
+        return False
     
-    # Se os hashes são diferentes, o comando foi modificado (deofuscado)
-    return original_hash != deobfuscated_hash
+    try:
+        original_hash = calculate_command_hash(original_command)
+        deobfuscated_hash = calculate_command_hash(deobfuscated_command)
+        
+        if not original_hash or not deobfuscated_hash:
+            return False
+        
+        # Comparar hashes fuzzy - valores > 0 indicam similaridade
+        similarity = ppdeep.compare(original_hash, deobfuscated_hash)
+        
+        # Se similarity < 100, os comandos são diferentes (obfuscação detectada)
+        # Se similarity == 100, são idênticos (sem obfuscação)
+        return similarity < 100
+    except Exception as e:
+        print(f"⚠️ Fuzzy hash comparison failed: {e}")
+        return False
 
 
 def analyze_command_patterns(command: str, signatures: list) -> dict:
