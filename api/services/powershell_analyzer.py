@@ -462,9 +462,15 @@ def detect_double_encoded_command(command: str, decoded_command: str, decode_ite
         normalized_original = normalize_powershell_command(command)
         normalized_decoded = normalize_powershell_command(decoded_command)
         
+        # ✅ DEBUG: Log detalhado
+        print(f"\n[DOUBLE ENCODING CHECK]")
+        print(f"  Decode iterations: {decode_iterations}")
+        print(f"  Original command: {normalized_original[:100]}...")
+        print(f"  Decoded command: {normalized_decoded[:100]}...")
+        
         # ✅ NOVO: Se precisou de 2+ iterações para decodificar, é duplo codificado!
         if decode_iterations >= 2:
-            print(f"✅ [DOUBLE ENCODING] Detected {decode_iterations} decoding iterations")
+            print(f"✅ [DOUBLE ENCODING] Detected {decode_iterations} decoding iterations - THIS IS DOUBLE ENCODED!")
             return {
                 "is_double_encoded": True,
                 "encoding_layers": decode_iterations,
@@ -508,6 +514,7 @@ def detect_double_encoded_command(command: str, decoded_command: str, decode_ite
             except Exception as e:
                 print(f"⚠️ Error in double encoding detection recursive check: {e}")
         
+        print(f"  Result: No double encoding detected (iterations < 2)")
         return {
             "is_double_encoded": False,
             "encoding_layers": total_frombase64,
@@ -552,10 +559,11 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     else:
         print(f"ℹ️ [ANALYZER] No deobfuscation needed")
 
-    # ✅ NOVO: Detectar obfuscação
+    # ════════════════════════════════════════════════════════════════
+    # 1️⃣  DEOBFUSCATION DETECTION
+    # ════════════════════════════════════════════════════════════════
     is_obfuscated = detect_obfuscation(normalized_command, decoded_command)
     
-    # ✅ ALTERADO: Buscar signature do banco ao invés de mockar
     if is_obfuscated:
         obfuscation_sig = next((sig for sig in signatures if sig.get("name") == "Obfuscation Detected"), None)
         
@@ -593,8 +601,10 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             print(f"✅ [OBFUSCATION] Added to detected_signatures")
         else:
             print(f"⚠️ [OBFUSCATION] Signature not found in database")
-    
-    # ✅ NOVO: Detectar comando codificado
+
+    # ════════════════════════════════════════════════════════════════
+    # 2️⃣  ENCODED COMMAND DETECTION
+    # ════════════════════════════════════════════════════════════════
     encoding_detection = detect_encoded_command(normalized_command)
     if encoding_detection["is_encoded"]:
         encoded_sig = next((sig for sig in signatures if sig.get("name") == "Encoded Command Detected"), None)
@@ -626,8 +636,12 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             tactics.update(encoded_sig.get("tactics", ["Defense Evasion"]))
             techniques.update(encoded_sig.get("techniques", ["T1027", "T1027.001", "T1140"]))
             total_score += encoded_sig["score"]
-    
-    # ✅ NOVO: Detectar dupla codificação
+            
+            print(f"✅ [ENCODED] Added to detected_signatures")
+
+    # ════════════════════════════════════════════════════════════════
+    # 3️⃣  DOUBLE/MULTIPLE ENCODING DETECTION
+    # ════════════════════════════════════════════════════════════════
     double_encoding_detection = detect_double_encoded_command(normalized_command, decoded_command, decode_iterations)
     if double_encoding_detection["is_double_encoded"]:
         double_encoded_sig = next((sig for sig in signatures if sig.get("name") == "Double Encoded Command Detected"), None)
@@ -659,13 +673,18 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             tactics.update(double_encoded_sig.get("tactics", ["Defense Evasion"]))
             techniques.update(double_encoded_sig.get("techniques", ["T1027.001", "T1140"]))
             total_score += double_encoded_sig["score"]
-    
+            
+            print(f"✅ [DOUBLE ENCODED] Added to detected_signatures")
+
+    # ════════════════════════════════════════════════════════════════
+    # 4️⃣  PATTERN MATCHING (Regular signatures)
+    # ════════════════════════════════════════════════════════════════
     commands_to_analyze = [normalized_command]
     if has_deobfuscation:
         commands_to_analyze.append(decoded_command)
     
     for signature in signatures:
-        # ✅ PULAR: Se é indicador já processado, continue
+        # Skip special indicators already processed
         if signature.get("name") in ["Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected"]:
             continue
         
@@ -673,7 +692,6 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         matched_pattern = None
         matched_in_decoded = False
         
-
         for cmd_to_test in commands_to_analyze:
             is_decoded_version = (cmd_to_test == decoded_command and has_deobfuscation)
             
