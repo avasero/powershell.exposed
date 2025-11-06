@@ -123,6 +123,15 @@ export default function AnalysisDetailsPage() {
         analysisId: params.id 
       };
       
+      // ✅ DEBUG LOG
+      console.log("🔍 [DETAILS PAGE] Processed Result:", {
+        hasDecoded: !!processedResult.decoded,
+        decodedValue: processedResult.decoded,
+        decodedLength: processedResult.decoded ? processedResult.decoded.length : 0,
+        analysisData: analysis,
+        analysisResultData: analysisResult
+      });
+      
       setResult(processedResult);
       
     } catch (err) {

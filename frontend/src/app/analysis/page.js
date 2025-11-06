@@ -180,6 +180,14 @@ export default function AnalysisPage() {
             cacheInfo: response.analysis?.cache_info
           };
           
+          // ✅ DEBUG LOG
+          console.log("🔍 [FRONTEND] Analysis Result:", {
+            hasDecoded: !!analysisData.decoded_command,
+            decodedValue: analysisData.decoded_command,
+            decodedLength: analysisData.decoded_command ? analysisData.decoded_command.length : 0,
+            analysisDataKeys: Object.keys(analysisData)
+          });
+          
           setResult(analysisResult);
         } else {
           throw new Error(response.error || 'Analysis failed');

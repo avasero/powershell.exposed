@@ -474,6 +474,14 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     decoded_command = deobfuscate_powershell(normalized_command)
     has_deobfuscation = decoded_command != normalized_command
     
+    # ✅ DEBUG LOG
+    print(f"\n[ANALYZE] Command Analysis:")
+    print(f"  Original: {normalized_command[:80]}...")
+    print(f"  Decoded: {decoded_command[:80]}...")
+    print(f"  Has deobfuscation: {has_deobfuscation}")
+    print(f"  Decoded command is None: {decoded_command is None}")
+    print(f"  Decoded command length: {len(decoded_command) if decoded_command else 0}")
+
     # ✅ LOG: Verificar deobfuscação
     if has_deobfuscation:
         print(f"✅ [ANALYZER] Deobfuscation detected!")
