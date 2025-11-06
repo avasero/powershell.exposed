@@ -326,10 +326,48 @@ def calculate_command_hash(command: str) -> str:
 def detect_obfuscation(original_command: str, deobfuscated_command: str) -> bool:
     """
     Detecta se o comando foi obfuscado comparando fuzzy hashes com ppdeep
+    Fallback: compara tamanho e conteúdo quando ppdeep não está disponível
     """
+    # ✅ NOVO: Fallback quando ppdeep não está disponível
     if not PPDEEP_AVAILABLE:
+        # Se o comando deobfuscado é diferente do original, houve obfuscação
+        if deobfuscated_command and deobfuscated_command != original_command:
+            # Verificar se é realmente uma mudança significativa
+            original_len = len(original_command)
+            deobfuscated_len = len(deobfuscated_command)
+            
+            # Se deobfuscado é consideravelmente menor, é obfuscação (formato strings, etc)
+            # Ou se tem padrões típicos de obfuscação
+            if deobfuscated_len < original_len * 0.8:  # 20%+ de redução
+                print(f"✅ [OBFUSCATION DETECTED - FALLBACK] Size reduction: {original_len} -> {deobfuscated_len}")
+                return True
+            
+            # Verificar por padrões típicos de obfuscação (format strings, aspas, etc)
+            obfuscation_patterns = [
+                r'\{[0-9]+\}',  # Format string indices {0}, {1}, etc
+                r'"\s*-f\s*',   # -f format operator
+                r"'\s*,\s*'",   # Concatenated strings with comma
+                r'\(\s*"[^"]{1,3}"\s*\)',  # Small quoted strings in parens
+            ]
+            
+            original_obfuscation_count = sum(
+                len(re.findall(pattern, original_command, re.IGNORECASE))
+                for pattern in obfuscation_patterns
+            )
+            
+            deobfuscated_obfuscation_count = sum(
+                len(re.findall(pattern, deobfuscated_command, re.IGNORECASE))
+                for pattern in obfuscation_patterns
+            )
+            
+            # Se o original tem significativamente mais padrões de obfuscação
+            if original_obfuscation_count > deobfuscated_obfuscation_count * 2:
+                print(f"✅ [OBFUSCATION DETECTED - FALLBACK] Pattern reduction: {original_obfuscation_count} -> {deobfuscated_obfuscation_count}")
+                return True
+        
         return False
     
+    # ✅ ORIGINAL: Com ppdeep disponível
     try:
         original_hash = calculate_command_hash(original_command)
         deobfuscated_hash = calculate_command_hash(deobfuscated_command)
@@ -517,20 +555,19 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     # ✅ NOVO: Detectar obfuscação
     is_obfuscated = detect_obfuscation(normalized_command, decoded_command)
     
-    # Adicionar indicador de obfuscação se detectado
+    # ✅ ALTERADO: Buscar signature do banco ao invés de mockar
     if is_obfuscated:
-        # Encontrar a signature de obfuscação
         obfuscation_sig = next((sig for sig in signatures if sig.get("name") == "Obfuscation Detected"), None)
         
         if obfuscation_sig:
             obfuscation_detected = {
-                "name": "Obfuscation Detected",
-                "description": "Command has been obfuscated - deobfuscation applied",
+                "name": obfuscation_sig["name"],
+                "description": obfuscation_sig["description"],
                 "severity": obfuscation_sig["severity"],
                 "base_score": obfuscation_sig["score"],
                 "matches_found": 1,
                 "total_score": obfuscation_sig["score"],
-                "max_match_allowed": 1,
+                "max_match_allowed": obfuscation_sig["max_match"],
                 "pattern": "__OBFUSCATION_CHECK__",
                 "matches_details": [
                     {
@@ -540,18 +577,22 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                         "matched_in": "original"
                     }
                 ],
-                "tactics": obfuscation_sig.get("tactics", ["Defense Evasion"]),
-                "techniques": obfuscation_sig.get("techniques", ["T1027", "T1027.001"]),
+                "tactics": obfuscation_sig.get("tactics", []),
+                "techniques": obfuscation_sig.get("techniques", []),
                 "reference": obfuscation_sig.get("reference", []),
                 "link": obfuscation_sig.get("link"),
-                "is_premium_indicator": False,
+                "is_premium_indicator": obfuscation_sig.get("is_premium_indicator", False),
                 "found_in_deobfuscated": False
             }
             
             detected_signatures.append(obfuscation_detected)
-            tactics.update(obfuscation_sig.get("tactics", ["Defense Evasion"]))
-            techniques.update(obfuscation_sig.get("techniques", ["T1027", "T1027.001"]))
+            tactics.update(obfuscation_sig.get("tactics", []))
+            techniques.update(obfuscation_sig.get("techniques", []))
             total_score += obfuscation_sig["score"]
+            
+            print(f"✅ [OBFUSCATION] Added to detected_signatures")
+        else:
+            print(f"⚠️ [OBFUSCATION] Signature not found in database")
     
     # ✅ NOVO: Detectar comando codificado
     encoding_detection = detect_encoded_command(normalized_command)
