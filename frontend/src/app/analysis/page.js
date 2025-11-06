@@ -134,10 +134,8 @@ export default function AnalysisPage() {
         if (response.success) {
           const isFromCache = response.from_cache === true;
           
-         
           const analysisData = response.analysis;
           
- 
           if (response.session_id && !user?.id) {
             saveSessionFromBackend(response.session_id);
           }
@@ -170,7 +168,7 @@ export default function AnalysisPage() {
             score: analysisData.risk_score,
             severity: analysisData.is_malicious ? "malicious" : "safe",
             signatures: (analysisData.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
-            decoded: analysisData.decoded_command,
+            decoded: analysisData.decoded_command || null,
             indicators: analysisData.analysis_details?.indicators || [],
             details: analysisData.analysis_details?.recommendations?.join(", ") || "",
             tactics: analysisData.tactics || [],

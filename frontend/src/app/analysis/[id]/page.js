@@ -104,7 +104,6 @@ export default function AnalysisDetailsPage() {
 
       const loadTime = performance.now() - loadStartTime;
       
-  
       const analysis = analysisData.analysis || analysisData;
       const analysisResult = analysis.analysis_result || analysis;
       
@@ -115,7 +114,7 @@ export default function AnalysisDetailsPage() {
         score: analysis.risk_score || analysisResult.risk_score || 0,
         severity: (analysis.risk_score || analysisResult.risk_score || 0) > 5 ? "malicious" : "safe",
         signatures: (analysis.signatures_detected || analysisResult.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
-        decoded: analysis.decoded_command || analysisResult.decoded_command,
+        decoded: analysis.decoded_command || analysisResult.decoded_command || null,
         indicators: analysisResult.analysis_details?.indicators || [],
         details: analysisResult.analysis_details?.recommendations?.join(", ") || "",
         tactics: analysis.tactics || analysisResult.tactics || [],
@@ -128,6 +127,7 @@ export default function AnalysisDetailsPage() {
         hasDecoded: !!processedResult.decoded,
         decodedValue: processedResult.decoded,
         decodedLength: processedResult.decoded ? processedResult.decoded.length : 0,
+        rawAnalysisDecoded: analysis.decoded_command,
         analysisData: analysis,
         analysisResultData: analysisResult
       });
