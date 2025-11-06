@@ -6,6 +6,7 @@ import time
 import json
 import secrets
 import string
+import base64
 from services.session_manager import get_supabase_client
 from config.settings import CACHE_DURATION
 
@@ -268,16 +269,142 @@ def detect_obfuscation(original_command: str, deobfuscated_command: str) -> bool
         
         if not original_hash or not deobfuscated_hash:
             return False
-        
         # Comparar hashes fuzzy - valores > 0 indicam similaridade
-        similarity = ppdeep.compare(original_hash, deobfuscated_hash)
-        
+        similarity = ppdeep.compare(original_hash, deobfuscated_hash) 
         # Se similarity < 100, os comandos são diferentes (obfuscação detectada)
         # Se similarity == 100, são idênticos (sem obfuscação)
         return similarity < 100
     except Exception as e:
         print(f"⚠️ Fuzzy hash comparison failed: {e}")
         return False
+
+
+def detect_encoded_command(command: str) -> dict:
+    """
+    Detecta se o comando está codificado em Base64 ou usa -EncodedCommand
+    """
+    try:
+        normalized = normalize_powershell_command(command)
+        
+        # Padrões de indicadores de comando codificado
+        encoded_indicators = [
+            r'-EncodedCommand\s+',
+            r'-enc\s+',
+            r'powershell.*-enc\s+',
+            r'pwsh.*-enc\s+'
+        ]
+        
+        for pattern in encoded_indicators:
+            if re.search(pattern, normalized, re.IGNORECASE):
+                return {
+                    "is_encoded": True,
+                    "type": "explicit_encoded_command",
+                    "indicator": "Found -EncodedCommand or -enc parameter"
+                }
+        
+        # Procurar por FromBase64String
+        if re.search(r'\[Convert\]::FromBase64String\s*\(', normalized, re.IGNORECASE):
+            return {
+                "is_encoded": True,
+                "type": "base64_decode_call",
+                "indicator": "Found FromBase64String call"
+            }
+        
+        # Procurar por padrões de Base64 suspeitos
+        # Base64 é tipicamente: caracteres alfanuméricos + /+= com comprimento múltiplo de 4
+        base64_pattern = r'(?:[A-Za-z0-9+/]{20,}={0,2})'
+        base64_matches = re.findall(base64_pattern, normalized)
+        
+        if base64_matches:
+            # Tentar decodificar para validar se é realmente Base64
+            for match in base64_matches:
+                try:
+                    # Adicionar padding se necessário
+                    padded = match + '=' * (4 - len(match) % 4)
+                    decoded = base64.b64decode(padded, validate=True).decode('utf-8', errors='ignore')
+                    
+                    # Se conseguiu decodificar e o resultado não é vazio
+                    if decoded and len(decoded) > 5:
+                        return {
+                            "is_encoded": True,
+                            "type": "base64_string",
+                            "indicator": f"Found potential Base64 encoded string: {match[:50]}...",
+                            "decoded_preview": decoded[:100]
+                        }
+                except:
+                    continue
+        
+        return {
+            "is_encoded": False,
+            "type": None,
+            "indicator": None
+        }
+    except Exception as e:
+        print(f"⚠️ Error detecting encoded command: {e}")
+        return {
+            "is_encoded": False,
+            "type": None,
+            "indicator": None
+        }
+
+
+def detect_double_encoded_command(command: str, decoded_command: str) -> dict:
+    """
+    Detecta se o comando foi codificado múltiplas vezes (dupla ou múltipla codificação)
+    """
+    try:
+        normalized_original = normalize_powershell_command(command)
+        normalized_decoded = normalize_powershell_command(decoded_command)
+        
+        # Contar quantas vezes FromBase64String aparece
+        frombase64_count_original = len(re.findall(r'\[Convert\]::FromBase64String', normalized_original, re.IGNORECASE))
+        frombase64_count_decoded = len(re.findall(r'\[Convert\]::FromBase64String', normalized_decoded, re.IGNORECASE))
+        
+        total_frombase64 = frombase64_count_original + frombase64_count_decoded
+        
+        if total_frombase64 >= 2:
+            return {
+                "is_double_encoded": True,
+                "encoding_layers": total_frombase64,
+                "indicator": f"Detected {total_frombase64} layers of Base64 encoding (double/multiple encoding)"
+            }
+        
+        # Tentar decodificar o comando decodificado - se conseguir, é duplo
+        if decoded_command and decoded_command != normalized_original:
+            try:
+                # Procurar por Base64 no comando já decodificado
+                base64_pattern = r'(?:[A-Za-z0-9+/]{20,}={0,2})'
+                base64_matches = re.findall(base64_pattern, normalized_decoded)
+                
+                if base64_matches:
+                    for match in base64_matches:
+                        try:
+                            padded = match + '=' * (4 - len(match) % 4)
+                            decoded_again = base64.b64decode(padded, validate=True).decode('utf-8', errors='ignore')
+                            
+                            if decoded_again and len(decoded_again) > 5:
+                                return {
+                                    "is_double_encoded": True,
+                                    "encoding_layers": 2,
+                                    "indicator": "Detected double Base64 encoding - command can be decoded multiple times"
+                                }
+                        except:
+                            continue
+            except Exception as e:
+                print(f"⚠️ Error in double encoding detection recursive check: {e}")
+        
+        return {
+            "is_double_encoded": False,
+            "encoding_layers": total_frombase64,
+            "indicator": None
+        }
+    except Exception as e:
+        print(f"⚠️ Error detecting double encoded command: {e}")
+        return {
+            "is_double_encoded": False,
+            "encoding_layers": 0,
+            "indicator": None
+        }
 
 
 def analyze_command_patterns(command: str, signatures: list) -> dict:
@@ -330,15 +457,81 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             techniques.update(obfuscation_sig.get("techniques", ["T1027", "T1027.001"]))
             total_score += obfuscation_sig["score"]
     
+    # ✅ NOVO: Detectar comando codificado
+    encoding_detection = detect_encoded_command(normalized_command)
+    if encoding_detection["is_encoded"]:
+        encoded_sig = next((sig for sig in signatures if sig.get("name") == "Encoded Command Detected"), None)
+        
+        if encoded_sig:
+            detected_signatures.append({
+                "name": "Encoded Command Detected",
+                "description": f"Command encoding detected: {encoding_detection['indicator']}",
+                "severity": encoded_sig["severity"],
+                "base_score": encoded_sig["score"],
+                "matches_found": 1,
+                "total_score": encoded_sig["score"],
+                "max_match_allowed": 1,
+                "pattern": encoding_detection["type"],
+                "matches_details": [{
+                    "matched_text": encoding_detection["indicator"],
+                    "position": {"start": 0, "end": len(normalized_command)},
+                    "match_number": 1,
+                    "matched_in": "original"
+                }],
+                "tactics": encoded_sig.get("tactics", ["Defense Evasion"]),
+                "techniques": encoded_sig.get("techniques", ["T1027", "T1027.001", "T1140"]),
+                "reference": encoded_sig.get("reference", []),
+                "link": encoded_sig.get("link"),
+                "is_premium_indicator": False,
+                "found_in_deobfuscated": False
+            })
+            
+            tactics.update(encoded_sig.get("tactics", ["Defense Evasion"]))
+            techniques.update(encoded_sig.get("techniques", ["T1027", "T1027.001", "T1140"]))
+            total_score += encoded_sig["score"]
+    
+    # ✅ NOVO: Detectar dupla codificação
+    double_encoding_detection = detect_double_encoded_command(normalized_command, decoded_command)
+    if double_encoding_detection["is_double_encoded"]:
+        double_encoded_sig = next((sig for sig in signatures if sig.get("name") == "Double Encoded Command Detected"), None)
+        
+        if double_encoded_sig:
+            detected_signatures.append({
+                "name": "Double Encoded Command Detected",
+                "description": f"Double/multiple encoding detected: {double_encoding_detection['indicator']}",
+                "severity": double_encoded_sig["severity"],
+                "base_score": double_encoded_sig["score"],
+                "matches_found": 1,
+                "total_score": double_encoded_sig["score"],
+                "max_match_allowed": 1,
+                "pattern": "Double Base64 Encoding",
+                "matches_details": [{
+                    "matched_text": double_encoding_detection["indicator"],
+                    "position": {"start": 0, "end": len(normalized_command)},
+                    "match_number": 1,
+                    "matched_in": "original"
+                }],
+                "tactics": double_encoded_sig.get("tactics", ["Defense Evasion"]),
+                "techniques": double_encoded_sig.get("techniques", ["T1027.001", "T1140"]),
+                "reference": double_encoded_sig.get("reference", []),
+                "link": double_encoded_sig.get("link"),
+                "is_premium_indicator": False,
+                "found_in_deobfuscated": False
+            })
+            
+            tactics.update(double_encoded_sig.get("tactics", ["Defense Evasion"]))
+            techniques.update(double_encoded_sig.get("techniques", ["T1027.001", "T1140"]))
+            total_score += double_encoded_sig["score"]
+    
     commands_to_analyze = [normalized_command]
     if has_deobfuscation:
         commands_to_analyze.append(decoded_command)
     
     for signature in signatures:
-        # ✅ PULAR: Se é o indicador de obfuscação, já foi processado acima
-        if signature.get("name") == "Obfuscation Detected":
+        # ✅ PULAR: Se é indicador já processado, continue
+        if signature.get("name") in ["Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected"]:
             continue
-            
+        
         all_signature_matches = []
         matched_pattern = None
         matched_in_decoded = False

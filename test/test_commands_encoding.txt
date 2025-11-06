@@ -1,0 +1,48 @@
+=== ENCODED COMMAND TEST SAMPLES ===
+
+1. Simple Encoded Command (-EncodedCommand)
+powershell.exe -EncodedCommand JABjAG8AbQBtAGEAbgBkACAAPQAgACcAYwBhAGwAYwAnAA==
+
+2. Short form (-enc)
+powershell -enc JABjAG8AbQBtAGEAbgBkACAAPQAgACcAYwBhAGwAYwAnAA==
+
+3. With hidden window
+powershell -w hidden -enc JABjAG8AbQBtAGEAbgBkACAAPQAgACcAYwBhAGwAYwAnAA==
+
+4. Base64 FromBase64String
+[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('V3JpdGUtSG9zdCAiSGVsbG8gV29ybGQi'))
+
+5. IEX with Base64
+IEX([System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('R2V0LVByb2Nlc3M=')))
+
+6. Complex Encoded Payload
+powershell -Command "[System.Convert]::FromBase64String('VwByAGkAdABlAC0ASABvAHMAdAAgACIAUABvAHcAZQByAFMAaABlAGwAbAAgAEUAbgBjAG8AZABlAGQAIgA=') | % {[System.Text.Encoding]::UTF8.GetString($_)}"
+
+7. Double Encoded - First level
+[Convert]::FromBase64String([Convert]::FromBase64String('VgBSAEgAVgBWAFMASABRAFIASwBCAFIAVwA='))
+
+8. Double Encoded - Complex
+powershell -enc $([System.Convert]::FromBase64String('JABkAGQAIAA9ACAKAA=='))
+
+9. URL Encoded Base64
+powershell -enc "VwByAGkAdABlAC0ASABvAHMAdAAgACIAVABlAHMAdABpAG4AZwAi"
+
+10. Plain Command (Should NOT detect)
+Get-Process | Where-Object {$_.Name -eq 'calc.exe'}
+
+11. Obfuscated but NOT encoded (Should NOT detect encoding)
+$pS = 'Pow' + 'erSh' + 'ell'; & $pS -Command "Get-Process"
+
+12. Chain of Encoding
+powershell -enc [Convert]::FromBase64String('VwByAGkAdABlAC0ASABvAHMAdAAgACIAVABlAHMAdABpAG4AZwAi') -enc 'Additional payload'
+
+=== EXPECTED RESULTS ===
+
+Tests 1-9: Should be detected as ENCODED
+Test 10: Should NOT be detected as encoded
+Test 11: Should NOT be detected as encoded (but may be obfuscated)
+Test 12: Should be detected as encoded
+
+Double Encoding Detection:
+- Tests 7-8 should trigger "Double Encoded Command Detected"
+- Tests 1-6 should only trigger "Encoded Command Detected"
