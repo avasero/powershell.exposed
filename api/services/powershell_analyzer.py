@@ -10,6 +10,10 @@ import base64
 from services.session_manager import get_supabase_client
 from config.settings import CACHE_DURATION
 
+from services.detectors.encoded_command_detector import detect_encoded_command
+from services.detectors.double_encoded_detector import detect_double_encoded_command
+from services.detectors.obfuscation_detector import detect_obfuscation
+
 try:
     import ppdeep
     PPDEEP_AVAILABLE = True
@@ -39,7 +43,6 @@ cache_timestamp = 0
 
 
 def generate_short_id(length: int = 8) -> str:
-   
     characters = string.ascii_lowercase + string.digits
     return ''.join(secrets.choice(characters) for _ in range(length))
 
@@ -312,223 +315,6 @@ def deobfuscate_powershell(command: str) -> tuple:
     return normalized_command, 0
 
 
-def calculate_command_hash(command: str) -> str:
-    """Calcula fuzzy hash de um comando usando ppdeep"""
-    if PPDEEP_AVAILABLE:
-        try:
-            return ppdeep.hash(command)
-        except Exception as e:
-            print(f"⚠️ ppdeep hashing failed: {e}")
-            return ""
-    return ""
-
-
-def detect_obfuscation(original_command: str, deobfuscated_command: str) -> bool:
-    """
-    Detecta se o comando foi obfuscado comparando fuzzy hashes com ppdeep
-    Fallback: compara tamanho e conteúdo quando ppdeep não está disponível
-    """
-    # ✅ NOVO: Fallback quando ppdeep não está disponível
-    if not PPDEEP_AVAILABLE:
-        # Se o comando deobfuscado é diferente do original, houve obfuscação
-        if deobfuscated_command and deobfuscated_command != original_command:
-            # Verificar se é realmente uma mudança significativa
-            original_len = len(original_command)
-            deobfuscated_len = len(deobfuscated_command)
-            
-            # Se deobfuscado é consideravelmente menor, é obfuscação (formato strings, etc)
-            # Ou se tem padrões típicos de obfuscação
-            if deobfuscated_len < original_len * 0.8:  # 20%+ de redução
-                print(f"✅ [OBFUSCATION DETECTED - FALLBACK] Size reduction: {original_len} -> {deobfuscated_len}")
-                return True
-            
-            # Verificar por padrões típicos de obfuscação (format strings, aspas, etc)
-            obfuscation_patterns = [
-                r'\{[0-9]+\}',  # Format string indices {0}, {1}, etc
-                r'"\s*-f\s*',   # -f format operator
-                r"'\s*,\s*'",   # Concatenated strings with comma
-                r'\(\s*"[^"]{1,3}"\s*\)',  # Small quoted strings in parens
-            ]
-            
-            original_obfuscation_count = sum(
-                len(re.findall(pattern, original_command, re.IGNORECASE))
-                for pattern in obfuscation_patterns
-            )
-            
-            deobfuscated_obfuscation_count = sum(
-                len(re.findall(pattern, deobfuscated_command, re.IGNORECASE))
-                for pattern in obfuscation_patterns
-            )
-            
-            # Se o original tem significativamente mais padrões de obfuscação
-            if original_obfuscation_count > deobfuscated_obfuscation_count * 2:
-                print(f"✅ [OBFUSCATION DETECTED - FALLBACK] Pattern reduction: {original_obfuscation_count} -> {deobfuscated_obfuscation_count}")
-                return True
-        
-        return False
-    
-    # ✅ ORIGINAL: Com ppdeep disponível
-    try:
-        original_hash = calculate_command_hash(original_command)
-        deobfuscated_hash = calculate_command_hash(deobfuscated_command)
-        
-        if not original_hash or not deobfuscated_hash:
-            return False
-        # Comparar hashes fuzzy - valores > 0 indicam similaridade
-        similarity = ppdeep.compare(original_hash, deobfuscated_hash) 
-        # Se similarity < 100, os comandos são diferentes (obfuscação detectada)
-        # Se similarity == 100, são idênticos (sem obfuscação)
-        return similarity < 100
-    except Exception as e:
-        print(f"⚠️ Fuzzy hash comparison failed: {e}")
-        return False
-
-
-def detect_encoded_command(command: str) -> dict:
-    """
-    Detecta se o comando está codificado em Base64 ou usa -EncodedCommand
-    """
-    try:
-        normalized = normalize_powershell_command(command)
-        
-        # Padrões de indicadores de comando codificado
-        encoded_indicators = [
-            r'-EncodedCommand\s+',
-            r'-enc\s+',
-            r'powershell.*-enc\s+',
-            r'pwsh.*-enc\s+'
-        ]
-        
-        for pattern in encoded_indicators:
-            if re.search(pattern, normalized, re.IGNORECASE):
-                return {
-                    "is_encoded": True,
-                    "type": "explicit_encoded_command",
-                    "indicator": "Found -EncodedCommand or -enc parameter"
-                }
-        
-        # Procurar por FromBase64String
-        if re.search(r'\[Convert\]::FromBase64String\s*\(', normalized, re.IGNORECASE):
-            return {
-                "is_encoded": True,
-                "type": "base64_decode_call",
-                "indicator": "Found FromBase64String call"
-            }
-        
-        # Procurar por padrões de Base64 suspeitos
-        # Base64 é tipicamente: caracteres alfanuméricos + /+= com comprimento múltiplo de 4
-        base64_pattern = r'(?:[A-Za-z0-9+/]{20,}={0,2})'
-        base64_matches = re.findall(base64_pattern, normalized)
-        
-        if base64_matches:
-            # Tentar decodificar para validar se é realmente Base64
-            for match in base64_matches:
-                try:
-                    # Adicionar padding se necessário
-                    padded = match + '=' * (4 - len(match) % 4)
-                    decoded = base64.b64decode(padded, validate=True).decode('utf-8', errors='ignore')
-                    
-                    # Se conseguiu decodificar e o resultado não é vazio
-                    if decoded and len(decoded) > 5:
-                        return {
-                            "is_encoded": True,
-                            "type": "base64_string",
-                            "indicator": f"Found potential Base64 encoded string: {match[:50]}...",
-                            "decoded_preview": decoded[:100]
-                        }
-                except:
-                    continue
-        
-        return {
-            "is_encoded": False,
-            "type": None,
-            "indicator": None
-        }
-    except Exception as e:
-        print(f"⚠️ Error detecting encoded command: {e}")
-        return {
-            "is_encoded": False,
-            "type": None,
-            "indicator": None
-        }
-
-
-def detect_double_encoded_command(command: str, decoded_command: str, decode_iterations: int = 0) -> dict:
-    """
-    Detecta se o comando foi codificado múltiplas vezes (dupla ou múltipla codificação)
-    Agora também considera o número de iterações necessárias para decodificar
-    """
-    try:
-        normalized_original = normalize_powershell_command(command)
-        normalized_decoded = normalize_powershell_command(decoded_command)
-        
-        # ✅ DEBUG: Log detalhado
-        print(f"\n[DOUBLE ENCODING CHECK]")
-        print(f"  Decode iterations: {decode_iterations}")
-        print(f"  Original command: {normalized_original[:100]}...")
-        print(f"  Decoded command: {normalized_decoded[:100]}...")
-        
-        # ✅ NOVO: Se precisou de 2+ iterações para decodificar, é duplo codificado!
-        if decode_iterations >= 2:
-            print(f"✅ [DOUBLE ENCODING] Detected {decode_iterations} decoding iterations - THIS IS DOUBLE ENCODED!")
-            return {
-                "is_double_encoded": True,
-                "encoding_layers": decode_iterations,
-                "indicator": f"Detected {decode_iterations} layers of -EncodedCommand nesting (double/multiple encoding)"
-            }
-        
-        # Contar quantas vezes FromBase64String aparece
-        frombase64_count_original = len(re.findall(r'\[Convert\]::FromBase64String', normalized_original, re.IGNORECASE))
-        frombase64_count_decoded = len(re.findall(r'\[Convert\]::FromBase64String', normalized_decoded, re.IGNORECASE))
-        
-        total_frombase64 = frombase64_count_original + frombase64_count_decoded
-        
-        if total_frombase64 >= 2:
-            return {
-                "is_double_encoded": True,
-                "encoding_layers": total_frombase64,
-                "indicator": f"Detected {total_frombase64} layers of Base64 encoding (double/multiple encoding)"
-            }
-        
-        # Tentar decodificar o comando decodificado - se conseguir, é duplo
-        if decoded_command and decoded_command != normalized_original:
-            try:
-                # Procurar por Base64 no comando já decodificado
-                base64_pattern = r'(?:[A-Za-z0-9+/]{20,}={0,2})'
-                base64_matches = re.findall(base64_pattern, normalized_decoded)
-                
-                if base64_matches:
-                    for match in base64_matches:
-                        try:
-                            padded = match + '=' * (4 - len(match) % 4)
-                            decoded_again = base64.b64decode(padded, validate=True).decode('utf-8', errors='ignore')
-                            
-                            if decoded_again and len(decoded_again) > 5:
-                                return {
-                                    "is_double_encoded": True,
-                                    "encoding_layers": 2,
-                                    "indicator": "Detected double Base64 encoding - command can be decoded multiple times"
-                                }
-                        except:
-                            continue
-            except Exception as e:
-                print(f"⚠️ Error in double encoding detection recursive check: {e}")
-        
-        print(f"  Result: No double encoding detected (iterations < 2)")
-        return {
-            "is_double_encoded": False,
-            "encoding_layers": total_frombase64,
-            "indicator": None
-        }
-    except Exception as e:
-        print(f"⚠️ Error detecting double encoded command: {e}")
-        return {
-            "is_double_encoded": False,
-            "encoding_layers": 0,
-            "indicator": None
-        }
-
-
 def analyze_command_patterns(command: str, signatures: list) -> dict:
     detected_signatures = []
     total_score = 0
@@ -536,19 +322,13 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     techniques = set()
     
     normalized_command = normalize_powershell_command(command)
-   
-    # ✅ ALTERADO: Agora retorna tuple (decoded_command, iterations)
     decoded_command, decode_iterations = deobfuscate_powershell(normalized_command)
     has_deobfuscation = decoded_command != normalized_command
     
-    # ✅ DEBUG LOG
     print(f"\n[ANALYZE] Command Analysis:")
     print(f"  Original: {normalized_command[:80]}...")
     print(f"  Decoded: {decoded_command[:80]}...")
-    print(f"  Decode iterations: {decode_iterations}")
-    print(f"  Has deobfuscation: {has_deobfuscation}")
-    print(f"  Decoded command is None: {decoded_command is None}")
-    print(f"  Decoded command length: {len(decoded_command) if decoded_command else 0}")
+    print(f"  Iterations: {decode_iterations}")
 
     # ✅ LOG: Verificar deobfuscação
     if has_deobfuscation:
