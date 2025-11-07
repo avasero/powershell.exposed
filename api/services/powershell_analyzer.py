@@ -195,41 +195,49 @@ def decode_base64_utf16(encoded_str: str) -> str:
 
 def deobfuscate_powershell(command: str) -> tuple:
     """
-    Deofusca comandos PowerShell usando pyminusone ou fallback manual
+    Deofusca comandos PowerShell usando regex robusta e pyminusone
     Retorna: (decoded_command, iteration_count)
     """
     normalized_command = normalize_powershell_command(command)
     has_leading_ampersand = normalized_command.strip().startswith('&')
     command_to_process = normalized_command.strip()
 
-    # ✅ NOVO: Loop para decodificar TODOS os níveis de -EncodedCommand
+    # ✅ NOVO: Usar regex robusta do detector de encoded command
+    # Padrão: - (traço com variações unicode) + ec/enco/encod/etc + base64
+    encoded_pattern = r'[^0-9a-z][\u002D\u2013\u2014\u2015](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']*\s*([a-z0-9+/]{20,}={0,2})'
+    
     max_decode_iterations = 5
     iteration = 0
     
+    # ════════════════════════════════════════════════════════════════
+    # LOOP: Decodificar TODOS os níveis de -EncodedCommand (variações)
+    # ════════════════════════════════════════════════════════════════
     while iteration < max_decode_iterations:
-        encoded_match = re.search(r'-(?:EncodedCommand|enc)\s+([A-Za-z0-9+/=\s]+?)(?:\s|$)', command_to_process, re.IGNORECASE)
+        encoded_match = re.search(encoded_pattern, command_to_process, re.IGNORECASE)
         
         if encoded_match:
             iteration += 1
             payload_b64 = encoded_match.group(1)
+            print(f"🔍 [Iteration {iteration}] Found Base64 payload: {payload_b64[:50]}...")
+            
             decoded_payload = decode_base64_utf16(payload_b64)
             
-            if decoded_payload and len(decoded_payload) > 5:
-                print(f"✅ [Iteration {iteration}] Decoded -EncodedCommand: {decoded_payload[:100]}...")
+            if decoded_payload and len(decoded_payload) > 3:
+                print(f"✅ [Iteration {iteration}] Successfully decoded: {decoded_payload[:100]}...")
                 command_to_process = decoded_payload
                 
                 # Se NÃO houver mais -EncodedCommand, sair do loop
-                if not re.search(r'-(?:EncodedCommand|enc)\s+', decoded_payload, re.IGNORECASE):
+                if not re.search(encoded_pattern, decoded_payload, re.IGNORECASE):
                     print(f"✅ [FINAL] Reached end of nested encoding after {iteration} iterations")
                     print(f"   Final decoded: {command_to_process[:150]}...")
                     return command_to_process, iteration
             else:
-                print(f"⚠️ Failed to decode at iteration {iteration}")
+                print(f"⚠️ [Iteration {iteration}] Failed to decode Base64")
                 break
         else:
             # Nenhum -EncodedCommand encontrado
             if iteration > 0:
-                print(f"✅ [FINAL] No more -EncodedCommand found after {iteration} iterations")
+                print(f"✅ [FINAL] No more encoded commands found after {iteration} iterations")
                 print(f"   Final result: {command_to_process[:150]}...")
                 return command_to_process, iteration
             break
@@ -245,15 +253,12 @@ def deobfuscate_powershell(command: str) -> tuple:
             deobf = pyminusone.deobfuscate_powershell(command_to_process)
 
             if deobf and deobf != command_to_process:
-               
                 cleaned = fix_brace_spacing(deobf)
 
-               
                 if cleaned != command_to_process and '{ ' not in cleaned and ' }' not in cleaned:
                     print("✅ pyminusone deobfuscation successful (post-cleaned)!")
                     print(f"   Cleaned: {cleaned[:100]}...")
                     
-                
                     max_iterations = 3
                     current = cleaned
                     
@@ -266,7 +271,6 @@ def deobfuscate_powershell(command: str) -> tuple:
                             recursive_result = pyminusone.deobfuscate_powershell(current)
                             recursive_cleaned = fix_brace_spacing(recursive_result)
                             
-                            
                             if len(recursive_cleaned) < len(current) and recursive_cleaned != current:
                                 print(f"✅ Iteration {iteration + 1}: Improved! {len(current)} -> {len(recursive_cleaned)} chars")
                                 current = recursive_cleaned
@@ -277,13 +281,10 @@ def deobfuscate_powershell(command: str) -> tuple:
                             print(f"⚠️ Iteration {iteration + 1} failed: {e}")
                             break
                     
-                    
                     final_result = current
-                    if has_leading_ampersand:
-                        
-                        if not final_result.strip().startswith('&'):
-                            final_result = f"& {final_result}"
-                            print("🔧 Re-added leading & operator")
+                    if has_leading_ampersand and not final_result.strip().startswith('&'):
+                        final_result = f"& {final_result}"
+                        print("🔧 Re-added leading & operator")
                     
                     print(f"   Final result: {final_result[:100]}...")
                     return final_result, iteration
@@ -292,7 +293,7 @@ def deobfuscate_powershell(command: str) -> tuple:
         except Exception as e:
             print(f"❌ pyminusone error: {e}")
 
- 
+    # Fallback: Tentar manual deobfuscation
     try:
         print("🔧 Attempting manual deobfuscation fallback...")
         from services.deobfuscator import manual_deobfuscate_format_strings
@@ -301,7 +302,6 @@ def deobfuscate_powershell(command: str) -> tuple:
         if manual_result and manual_result != command_to_process:
             cleaned_manual = fix_brace_spacing(manual_result)
             
-           
             if has_leading_ampersand and not cleaned_manual.strip().startswith('&'):
                 cleaned_manual = f"& {cleaned_manual}"
             
@@ -392,7 +392,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         if encoded_sig:
             detected_signatures.append({
                 "name": "Encoded Command Detected",
-                "description": f"Command encoding detected: {encoding_detection['indicator']}",
+                "description": f"Command encoding detected: {encoding_detection['indicator']} (confidence: {encoding_detection['confidence']:.0%})",
                 "severity": encoded_sig["severity"],
                 "base_score": encoded_sig["score"],
                 "matches_found": 1,
@@ -400,7 +400,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                 "max_match_allowed": 1,
                 "pattern": encoding_detection["type"],
                 "matches_details": [{
-                    "matched_text": encoding_detection["indicator"],
+                    "matched_text": encoding_detection.get("decoded_preview", "Unable to decode"),
                     "position": {"start": 0, "end": len(normalized_command)},
                     "match_number": 1,
                     "matched_in": "original"
@@ -597,10 +597,15 @@ async def save_analysis_to_db(
         short_id = generate_short_id()
         
         ip_country = country if country and country != 'Unknown' else None
- 
+        
+        # ✅ Garantir que decoded_command seja incluído se houver deobfuscação
+        decoded_cmd = analysis_result.get("decoded_command")
+        if decoded_cmd and decoded_cmd.strip():
+            print(f"✅ [DB] Saving decoded_command: {decoded_cmd[:100]}...")
+        
         insert_data = {
             "command": command,
-            "decoded_command": analysis_result.get("decoded_command"),
+            "decoded_command": decoded_cmd,
             "risk_score": round(analysis_result["total_score"], 1),
             "severity": analysis_result["severity"],
             "signatures_detected": analysis_result["detected_signatures"],
