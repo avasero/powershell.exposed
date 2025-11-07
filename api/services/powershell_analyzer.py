@@ -202,16 +202,12 @@ def deobfuscate_powershell(command: str) -> tuple:
     has_leading_ampersand = normalized_command.strip().startswith('&')
     command_to_process = normalized_command.strip()
 
-    # ✅ NOVO: Usar regex robusta do detector de encoded command
-    # Padrão: - (traço com variações unicode) + ec/enco/encod/etc + base64
+    
     encoded_pattern = r'[^0-9a-z][\u002D\u2013\u2014\u2015](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']*\s*([a-z0-9+/]{20,}={0,2})'
     
     max_decode_iterations = 5
     iteration = 0
     
-    # ════════════════════════════════════════════════════════════════
-    # LOOP: Decodificar TODOS os níveis de -EncodedCommand (variações)
-    # ════════════════════════════════════════════════════════════════
     while iteration < max_decode_iterations:
         encoded_match = re.search(encoded_pattern, command_to_process, re.IGNORECASE)
         
@@ -382,9 +378,6 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         else:
             print(f"⚠️ [OBFUSCATION] Signature not found in database")
 
-    # ════════════════════════════════════════════════════════════════
-    # 2️⃣  ENCODED COMMAND DETECTION
-    # ════════════════════════════════════════════════════════════════
     encoding_detection = detect_encoded_command(normalized_command)
     if encoding_detection["is_encoded"]:
         encoded_sig = next((sig for sig in signatures if sig.get("name") == "Encoded Command Detected"), None)
