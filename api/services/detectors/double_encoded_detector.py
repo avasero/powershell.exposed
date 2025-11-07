@@ -1,7 +1,4 @@
-"""
-Detector para comandos PowerShell com dupla/múltipla codificação Base64
-Identifica quando há múltiplas camadas de encoding
-"""
+
 
 import re
 import base64
@@ -12,29 +9,13 @@ def detect_double_encoded_command(
     decoded_command: str, 
     decode_iterations: int = 0
 ) -> dict:
-    """
-    Detecta se o comando foi codificado múltiplas vezes
-    
-    Args:
-        command: comando original
-        decoded_command: comando após decodificação
-        decode_iterations: número de iterações de decodificação realizadas
-    
-    Returns:
-        dict: {
-            "is_double_encoded": bool,
-            "encoding_layers": int (número de camadas detectadas),
-            "indicator": str (descrição)
-        }
-    """
     try:
         print(f"\n[DOUBLE ENCODING CHECK]")
         print(f"  Decode iterations: {decode_iterations}")
         print(f"  Original command: {command[:80]}...")
         print(f"  Decoded command: {decoded_command[:80]}...")
         
-        # ✅ CRITÉRIO 1: Múltiplas iterações de -EncodedCommand
-        # Se precisou de 2+ iterações, é duplo/múltiplo codificado
+        
         if decode_iterations >= 2:
             print(f"✅ [DOUBLE ENCODING] Detected {decode_iterations} decoding iterations")
             return {
@@ -43,7 +24,7 @@ def detect_double_encoded_command(
                 "indicator": f"Detected {decode_iterations} layers of -EncodedCommand nesting"
             }
         
-        # ✅ CRITÉRIO 2: Múltiplos FromBase64String
+        
         frombase64_count_original = len(
             re.findall(r'\[Convert\]::FromBase64String', command, re.IGNORECASE)
         )
@@ -61,8 +42,7 @@ def detect_double_encoded_command(
                 "indicator": f"Detected {total_frombase64} layers of Base64 encoding"
             }
         
-        # ✅ CRITÉRIO 3: Decodificado é Base64 novamente
-        # Padrão: ^[A-Za-z0-9+/\s]{20,}={0,2}$
+        
         if decoded_command and decoded_command != command:
             utf16le_pattern = r'^[A-Za-z0-9+/\s]{20,}={0,2}$'
             
@@ -85,7 +65,7 @@ def detect_double_encoded_command(
                 except:
                     pass
         
-        # ✅ CRITÉRIO 4: Buscar Base64 dentro do comando decodificado
+        
         if decoded_command and decoded_command != command:
             base64_pattern = r'(?:[A-Za-z0-9+/]{20,}={0,2})'
             base64_matches = re.findall(base64_pattern, decoded_command)

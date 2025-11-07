@@ -74,14 +74,7 @@ def detect_obfuscation_patterns(command: str) -> dict:
 
 
 def detect_obfuscation(original_command: str, deobfuscated_command: str) -> bool:
-    """
-    Detecta se o comando foi obfuscado comparando original vs deobfuscado
-    
-    Usa fuzzy hash com ppdeep quando disponível, fallback para análise de padrões
-    
-    Returns:
-        bool: True se obfuscação foi detectada
-    """
+   
     print(f"\n[OBFUSCATION DETECTION]")
     print(f"  Original: {original_command[:80]}...")
     print(f"  Deobfuscated: {deobfuscated_command[:80]}...")
@@ -91,15 +84,14 @@ def detect_obfuscation(original_command: str, deobfuscated_command: str) -> bool
         print(f"  Result: Commands are identical - no obfuscation")
         return False
     
-    # ✅ NOVO: Se o decodificado é um comando legível simples, não é ofuscação
-    # Padrão: cmdlet simples como "Start-Process", "Get-Item", etc
+    
     simple_cmdlet_pattern = r'^[&\s]*(Get|Set|New|Remove|Start|Stop|Invoke|Write|Add|Find|Import|Export|Test|Copy|Move|Rename|Select|Format|Measure|Group|Sort|Where|ConvertTo|ConvertFrom|Join|Split|Out|Read|Clear|Close|Compress|Expand|Disable|Enable|Suspend|Resume|Restart|Shutdown|Lock|Unlock|Connect|Disconnect|Register|Unregister|Mount|Dismount|Wait|Watch|Trace)-\w+.*$'
     
     if re.match(simple_cmdlet_pattern, deobfuscated_command.strip(), re.IGNORECASE):
         print(f"✅ [SIMPLE CMDLET] Deobfuscated is just a normal cmdlet - NOT obfuscation")
         return False
     
-    # ✅ COM PPDEEP DISPONÍVEL
+   
     if PPDEEP_AVAILABLE:
         try:
             original_hash = calculate_command_hash(original_command)
@@ -109,24 +101,24 @@ def detect_obfuscation(original_command: str, deobfuscated_command: str) -> bool
                 print(f"⚠️ Could not generate hashes")
                 return False
             
-            # ppdeep.compare retorna 0-100 (100 = idêntico, 0 = totalmente diferente)
+            
             similarity = ppdeep.compare(original_hash, deobfuscated_hash)
             print(f"✅ [PPDEEP] Fuzzy hash similarity: {similarity}%")
             
-            # Similarity < 100 significa diferença (obfuscação detectada)
+            
             if similarity < 100:
                 print(f"✅ [OBFUSCATION] Detected via fuzzy hash!")
                 return True
             
         except Exception as e:
             print(f"⚠️ Fuzzy hash comparison failed: {e}")
-            # Continuar com fallback
+            
     
-    # ✅ FALLBACK: Análise de padrões + tamanho
+    
     original_len = len(original_command)
     deobfuscated_len = len(deobfuscated_command)
     
-    # ✅ CRITÉRIO: Padrões de obfuscação no original vs deobfuscado
+    
     obfuscation_patterns = [
         r'\{[0-9]+\}',           # Format string indices {0}, {1}
         r'"\s*-f\s*',            # -f format operator
@@ -149,7 +141,7 @@ def detect_obfuscation(original_command: str, deobfuscated_command: str) -> bool
     print(f"  Original obfuscation patterns: {original_obfuscation_count}")
     print(f"  Deobfuscated obfuscation patterns: {deobfuscated_obfuscation_count}")
     
-    # ✅ MELHORADO: Se ORIGINAL tem 3+ padrões E deobfuscado tem menos
+  
     if original_obfuscation_count >= 3 and original_obfuscation_count > deobfuscated_obfuscation_count:
         print(f"✅ [FALLBACK] Multiple obfuscation patterns detected and removed")
         return True

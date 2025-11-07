@@ -20,10 +20,10 @@ def detect_encoded_command(command: str) -> dict:
         }
     """
     try:
-        # Procurar por -EncodedCommand ou -enc explícitos
+        
         encoded_indicators = [
             r'-EncodedCommand\s+',
-            r'-enc\s+(?!code)',  # negative lookahead para não pegar "encode"
+            r'-enc\s+(?!code)',  
             r'powershell.*-enc\s+',
             r'pwsh.*-enc\s+'
         ]
@@ -38,7 +38,7 @@ def detect_encoded_command(command: str) -> dict:
                     "decoded_preview": None
                 }
         
-        # Procurar por FromBase64String
+        
         if re.search(r'\[Convert\]::FromBase64String\s*\(', command, re.IGNORECASE):
             print(f"✅ [ENCODED] Found FromBase64String call")
             return {
@@ -48,15 +48,14 @@ def detect_encoded_command(command: str) -> dict:
                 "decoded_preview": None
             }
         
-        # Procurar por padrões de Base64 suspeitos
-        # Base64 válido: [A-Za-z0-9+/]{20,}={0,2}
+        
         base64_pattern = r'(?:[A-Za-z0-9+/]{20,}={0,2})'
         base64_matches = re.findall(base64_pattern, command)
         
         if base64_matches:
             for match in base64_matches:
                 try:
-                    # Adicionar padding se necessário
+                    
                     padded = match + '=' * (4 - len(match) % 4)
                     decoded = base64.b64decode(padded, validate=True).decode('utf-8', errors='ignore')
                     
