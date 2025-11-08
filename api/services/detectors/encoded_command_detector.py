@@ -7,6 +7,9 @@ import re
 import base64
 
 
+ENCODED_COMMAND_PATTERN = r'[^0-9a-z][\u002D\u2013\u2014\u2015](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']*\s*([a-z0-9+/]{20,}={0,2})'
+
+
 def decode_base64_utf16(encoded_str: str) -> str:
     """
     Decodifica Base64 UTF-16LE (padrão PowerShell)
@@ -31,19 +34,15 @@ def decode_base64_utf16(encoded_str: str) -> str:
 def detect_encoded_command(command: str) -> dict:
     
     try:
-        encoded_pattern = r'[^0-9a-z][\u002D\u2013\u2014\u2015](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']*\s*([a-z0-9+/]{20,}={0,2})'
-        
-        match = re.search(encoded_pattern, command, re.IGNORECASE)
+        match = re.search(ENCODED_COMMAND_PATTERN, command, re.IGNORECASE)
         
         if match:
             base64_payload = match.group(1)
-            print(f"✅ [ENCODED] Regex match found: {base64_payload[:50]}...")
             
             # Tentar decodificar
             decoded = decode_base64_utf16(base64_payload)
             
             if decoded and len(decoded) > 3:
-                print(f"✅ [ENCODED] Successfully decoded: {decoded[:80]}...")
                 return {
                     "is_encoded": True,
                     "type": "explicit_encoded_command",
@@ -52,7 +51,6 @@ def detect_encoded_command(command: str) -> dict:
                     "confidence": 0.95
                 }
             else:
-                print(f"⚠️ [ENCODED] Regex matched but decode failed")
                 return {
                     "is_encoded": True,
                     "type": "explicit_encoded_command",
@@ -61,7 +59,6 @@ def detect_encoded_command(command: str) -> dict:
                     "confidence": 0.80
                 }
         
-        print(f"ℹ️ [ENCODED] No encoding detected")
         return {
             "is_encoded": False,
             "type": None,
@@ -71,7 +68,6 @@ def detect_encoded_command(command: str) -> dict:
         }
         
     except Exception as e:
-        print(f"❌ [ENCODED] Error detecting encoded command: {e}")
         return {
             "is_encoded": False,
             "type": None,

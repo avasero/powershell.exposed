@@ -128,7 +128,6 @@ async def analyze_command_endpoint(
         # ✅ BUSCAR GEOLOCALIZAÇÃO SE NECESSÁRIO
         # Se não tem país E (é API request OU não tem search_type definido)
         if not country and ip_address:
-            print(f"🌍 Buscando geolocalização para IP: {ip_address}")
             location_data = await get_ip_location(ip_address)
             if location_data:
                 country = location_data.get("country")
@@ -300,7 +299,6 @@ async def create_user_session_endpoint(
         
         # ✅ BUSCAR GEOLOCALIZAÇÃO SE NECESSÁRIO
         if not country and ip_address:
-            print(f"🌍 Buscando geolocalização para IP: {ip_address}")
             location_data = await get_ip_location(ip_address)
             if location_data:
                 country = location_data.get("country")

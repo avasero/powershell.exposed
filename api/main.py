@@ -96,7 +96,6 @@ except ImportError as e:
 try:
     from middleware.auth_middleware import auth_middleware
     app.middleware("http")(auth_middleware)
-    print("✅ Auth middleware loaded")
 except ImportError as e:
     print(f"⚠️ Auth middleware not available: {e}")
 
@@ -162,7 +161,6 @@ try:
     app.delete("/user/api-key", include_in_schema=False)(revoke_user_api_key_endpoint)
     app.put("/user/api-key", include_in_schema=False)(regenerate_user_api_key_endpoint)
     
-    print("✅ API Key routes loaded")
     
 except ImportError as e:
     print(f"⚠️ API Key endpoints não disponíveis: {e}")
@@ -184,7 +182,6 @@ except ImportError as e:
 try:
     from routes.protected_routes import get_user_command_evaluations_endpoint
     app.get("/user/command-evaluations", tags=["User Data"], summary="Get User Command Evaluations")(get_user_command_evaluations_endpoint)
-    print("✅ Protected routes loaded")
 except ImportError as e:
     print(f"⚠️ Protected routes not available: {e}")
 

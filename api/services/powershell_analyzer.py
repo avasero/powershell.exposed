@@ -14,10 +14,12 @@ from services.detectors.encoded_command_detector import detect_encoded_command
 from services.detectors.double_encoded_detector import detect_double_encoded_command
 from services.detectors.obfuscation_detector import detect_obfuscation
 
+# Padrão global para detectar -EncodedCommand e variações
+ENCODED_COMMAND_PATTERN = r'[^0-9a-z][\u002D\u2013\u2014\u2015](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']*\s*([a-z0-9+/]{20,}={0,2})'
+
 try:
     import ppdeep
     PPDEEP_AVAILABLE = True
-    print("✅ ppdeep loaded successfully")
 except ImportError:
     PPDEEP_AVAILABLE = False
     print("⚠️ ppdeep not available - fuzzy hashing will be skipped")
@@ -26,7 +28,6 @@ except ImportError:
 try:
     import pyminusone
     PYMINUSONE_AVAILABLE = True
-    print("✅ pyminusone loaded successfully")
 except ImportError:
     try:
         from services.deobfuscator import deobfuscate_powershell as pyminusone_deobfuscate
@@ -196,51 +197,37 @@ def decode_base64_utf16(encoded_str: str) -> str:
 def deobfuscate_powershell(command: str) -> tuple:
     """
     Deofusca comandos PowerShell usando regex robusta e pyminusone
-    Retorna: (decoded_command, iteration_count)
+    Retorna: (decoded_command, iteration_count, encoded_payload)
     """
     normalized_command = normalize_powershell_command(command)
     has_leading_ampersand = normalized_command.strip().startswith('&')
     command_to_process = normalized_command.strip()
 
-    
-    encoded_pattern = r'[^0-9a-z][\u002D\u2013\u2014\u2015](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']*\s*([a-z0-9+/]{20,}={0,2})'
-    
     max_decode_iterations = 5
     iteration = 0
     
     while iteration < max_decode_iterations:
-        encoded_match = re.search(encoded_pattern, command_to_process, re.IGNORECASE)
+        encoded_match = re.search(ENCODED_COMMAND_PATTERN, command_to_process, re.IGNORECASE)
         
         if encoded_match:
             iteration += 1
             payload_b64 = encoded_match.group(1)
-            print(f"🔍 [Iteration {iteration}] Found Base64 payload: {payload_b64[:50]}...")
             
             decoded_payload = decode_base64_utf16(payload_b64)
             
             if decoded_payload and len(decoded_payload) > 3:
-                print(f"✅ [Iteration {iteration}] Successfully decoded: {decoded_payload[:100]}...")
                 command_to_process = decoded_payload
                 
-                # Se NÃO houver mais -EncodedCommand, sair do loop
-                if not re.search(encoded_pattern, decoded_payload, re.IGNORECASE):
-                    print(f"✅ [FINAL] Reached end of nested encoding after {iteration} iterations")
-                    print(f"   Final decoded: {command_to_process[:150]}...")
+                if not re.search(ENCODED_COMMAND_PATTERN, decoded_payload, re.IGNORECASE):
                     return command_to_process, iteration
             else:
-                print(f"⚠️ [Iteration {iteration}] Failed to decode Base64")
                 break
         else:
-            # Nenhum -EncodedCommand encontrado
             if iteration > 0:
-                print(f"✅ [FINAL] No more encoded commands found after {iteration} iterations")
-                print(f"   Final result: {command_to_process[:150]}...")
                 return command_to_process, iteration
             break
     
-    # Se chegou ao máximo de iterações
     if iteration >= max_decode_iterations:
-        print(f"⚠️ Reached max decode iterations ({max_decode_iterations})")
         return command_to_process, iteration
 
     # Se não tinha -EncodedCommand, tentar pyminusone para outras obfuscações
@@ -252,8 +239,6 @@ def deobfuscate_powershell(command: str) -> tuple:
                 cleaned = fix_brace_spacing(deobf)
 
                 if cleaned != command_to_process and '{ ' not in cleaned and ' }' not in cleaned:
-                    print("✅ pyminusone deobfuscation successful (post-cleaned)!")
-                    print(f"   Cleaned: {cleaned[:100]}...")
                     
                     max_iterations = 3
                     current = cleaned
@@ -262,36 +247,27 @@ def deobfuscate_powershell(command: str) -> tuple:
                         if '"-f' not in current and '" -f' not in current:
                             break
                         
-                        print(f"🔄 Iteration {iteration + 1}: Detected remaining format strings")
                         try:
                             recursive_result = pyminusone.deobfuscate_powershell(current)
                             recursive_cleaned = fix_brace_spacing(recursive_result)
                             
                             if len(recursive_cleaned) < len(current) and recursive_cleaned != current:
-                                print(f"✅ Iteration {iteration + 1}: Improved! {len(current)} -> {len(recursive_cleaned)} chars")
                                 current = recursive_cleaned
                             else:
-                                print(f"⚠️ Iteration {iteration + 1}: No improvement, stopping")
                                 break
                         except Exception as e:
-                            print(f"⚠️ Iteration {iteration + 1} failed: {e}")
                             break
                     
                     final_result = current
                     if has_leading_ampersand and not final_result.strip().startswith('&'):
                         final_result = f"& {final_result}"
-                        print("🔧 Re-added leading & operator")
                     
-                    print(f"   Final result: {final_result[:100]}...")
                     return final_result, iteration
-                else:
-                    print("⚠️ pyminusone result still looks malformed after cleaning")
         except Exception as e:
-            print(f"❌ pyminusone error: {e}")
+            pass
 
     # Fallback: Tentar manual deobfuscation
     try:
-        print("🔧 Attempting manual deobfuscation fallback...")
         from services.deobfuscator import manual_deobfuscate_format_strings
         manual_result = manual_deobfuscate_format_strings(command_to_process)
 
@@ -301,13 +277,10 @@ def deobfuscate_powershell(command: str) -> tuple:
             if has_leading_ampersand and not cleaned_manual.strip().startswith('&'):
                 cleaned_manual = f"& {cleaned_manual}"
             
-            print("✅ Manual deobfuscation successful!")
-            print(f"   Deobfuscated: {cleaned_manual[:100]}...")
             return cleaned_manual, iteration
     except Exception as e:
-        print(f"❌ Manual deobfuscation error: {e}")
+        pass
 
-    print("ℹ️ No deobfuscation applied - returning normalized command")
     return normalized_command, 0
 
 
@@ -321,22 +294,25 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     decoded_command, decode_iterations = deobfuscate_powershell(normalized_command)
     has_deobfuscation = decoded_command != normalized_command
     
-    print(f"\n[ANALYZE] Command Analysis:")
-    print(f"  Original: {normalized_command[:80]}...")
-    print(f"  Decoded: {decoded_command[:80]}...")
-    print(f"  Iterations: {decode_iterations}")
-
-    # ✅ LOG: Verificar deobfuscação
+    # ════════════════════════════════════════════════════════════════
+    # 📋 LOGS: Deobfuscação/Decoding
+    # ════════════════════════════════════════════════════════════════
     if has_deobfuscation:
-        print(f"✅ [ANALYZER] Deobfuscation detected!")
-        print(f"   Original length: {len(normalized_command)}")
-        print(f"   Decoded length: {len(decoded_command)}")
-        print(f"   Decoded preview: {decoded_command[:150]}...")
+        if decode_iterations == 1:
+            print(f"\n✅ [DECODED] Single layer decoding detected")
+            print(f"   Original: {normalized_command[:100]}...")
+            print(f"   Decoded:  {decoded_command[:100]}...")
+        elif decode_iterations >= 2:
+            print(f"\n✅ [DOUBLE DECODED] Multiple layer decoding detected ({decode_iterations} iterations)")
+            print(f"   Original: {normalized_command[:100]}...")
+            print(f"   Decoded:  {decoded_command[:100]}...")
     else:
-        print(f"ℹ️ [ANALYZER] No deobfuscation needed")
-
+        print(f"\n✅ [DEOBFUSCATED] Command analysis completed (no decoding needed)")
     
-    is_obfuscated = detect_obfuscation(normalized_command, decoded_command)
+    # ⚡ OTIMIZAÇÃO: Detectar obfuscação apenas se houver decodificação
+    is_obfuscated = False
+    if has_deobfuscation:
+        is_obfuscated = detect_obfuscation(normalized_command, decoded_command)
     
     if is_obfuscated:
         obfuscation_sig = next((sig for sig in signatures if sig.get("name") == "Obfuscation Detected"), None)
@@ -371,57 +347,54 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             tactics.update(obfuscation_sig.get("tactics", []))
             techniques.update(obfuscation_sig.get("techniques", []))
             total_score += obfuscation_sig["score"]
-            
-            print(f"✅ [OBFUSCATION] Added to detected_signatures")
-        else:
-            print(f"⚠️ [OBFUSCATION] Signature not found in database")
 
-    encoding_detection = detect_encoded_command(normalized_command)
-    if encoding_detection["is_encoded"]:
-        encoded_sig = next((sig for sig in signatures if sig.get("name") == "Encoded Command Detected"), None)
-        
-        if encoded_sig:
-            detected_signatures.append({
-                "name": "Encoded Command Detected",
-                "description": f"Command encoding detected: {encoding_detection['indicator']} (confidence: {encoding_detection['confidence']:.0%})",
-                "severity": encoded_sig["severity"],
-                "base_score": encoded_sig["score"],
-                "matches_found": 1,
-                "total_score": encoded_sig["score"],
-                "max_match_allowed": 1,
-                "pattern": encoding_detection["type"],
-                "matches_details": [{
-                    "matched_text": encoding_detection.get("decoded_preview", "Unable to decode"),
-                    "position": {"start": 0, "end": len(normalized_command)},
-                    "match_number": 1,
-                    "matched_in": "original"
-                }],
-                "tactics": encoded_sig.get("tactics", ["Defense Evasion"]),
-                "techniques": encoded_sig.get("techniques", ["T1027", "T1027.001", "T1140"]),
-                "reference": encoded_sig.get("reference", []),
-                "link": encoded_sig.get("link"),
-                "is_premium_indicator": False,
-                "found_in_deobfuscated": False
-            })
+    # ⚡ OTIMIZAÇÃO: Se já foi decoded ou double_decoded, pule encoding detection
+    encoding_detection = None
+    if decode_iterations == 0:
+        encoding_detection = detect_encoded_command(normalized_command)
+        if encoding_detection["is_encoded"]:
+            encoded_sig = next((sig for sig in signatures if sig.get("name") == "Encoded Command Detected"), None)
             
-            tactics.update(encoded_sig.get("tactics", ["Defense Evasion"]))
-            techniques.update(encoded_sig.get("techniques", ["T1027", "T1027.001", "T1140"]))
-            total_score += encoded_sig["score"]
-            
-            print(f"✅ [ENCODED] Added to detected_signatures")
+            if encoded_sig:
+                detected_signatures.append({
+                    "name": "Encoded Command Detected",
+                    "description": f"Command encoding detected: {encoding_detection['indicator']} (confidence: {encoding_detection['confidence']:.0%})",
+                    "severity": encoded_sig["severity"],
+                    "base_score": encoded_sig["score"],
+                    "matches_found": 1,
+                    "total_score": encoded_sig["score"],
+                    "max_match_allowed": 1,
+                    "pattern": encoding_detection["type"],
+                    "matches_details": [{
+                        "matched_text": encoding_detection.get("decoded_preview", "Unable to decode"),
+                        "position": {"start": 0, "end": len(normalized_command)},
+                        "match_number": 1,
+                        "matched_in": "original"
+                    }],
+                    "tactics": encoded_sig.get("tactics", ["Defense Evasion"]),
+                    "techniques": encoded_sig.get("techniques", ["T1027", "T1027.001", "T1140"]),
+                    "reference": encoded_sig.get("reference", []),
+                    "link": encoded_sig.get("link"),
+                    "is_premium_indicator": False,
+                    "found_in_deobfuscated": False
+                })
+                
+                tactics.update(encoded_sig.get("tactics", ["Defense Evasion"]))
+                techniques.update(encoded_sig.get("techniques", ["T1027", "T1027.001", "T1140"]))
+                total_score += encoded_sig["score"]
 
     # ════════════════════════════════════════════════════════════════
     # 3️⃣  DOUBLE/MULTIPLE ENCODING DETECTION
     # ════════════════════════════════════════════════════════════════
-    try:
-        double_encoding_detection = detect_double_encoded_command(normalized_command, decoded_command, decode_iterations)
-        if double_encoding_detection and double_encoding_detection.get("is_double_encoded"):
+    # ⚡ OTIMIZAÇÃO: Pule se já sabemos que não é double encoded
+    if decode_iterations >= 2:
+        try:
             double_encoded_sig = next((sig for sig in signatures if sig.get("name") == "Double Encoded Command Detected"), None)
             
             if double_encoded_sig:
                 detected_signatures.append({
                     "name": "Double Encoded Command Detected",
-                    "description": f"Double/multiple encoding detected: {double_encoding_detection.get('indicator', 'Multiple encoding levels detected')}",
+                    "description": f"Double/multiple encoding detected: Detected {decode_iterations} layers of -EncodedCommand nesting",
                     "severity": double_encoded_sig["severity"],
                     "base_score": double_encoded_sig["score"],
                     "matches_found": 1,
@@ -429,7 +402,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                     "max_match_allowed": 1,
                     "pattern": "Double Base64 Encoding",
                     "matches_details": [{
-                        "matched_text": double_encoding_detection.get("second_level_decoded", "Unable to decode second level"),
+                        "matched_text": decoded_command[:150],
                         "position": {"start": 0, "end": len(normalized_command)},
                         "match_number": 1,
                         "matched_in": "original"
@@ -445,10 +418,8 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                 tactics.update(double_encoded_sig.get("tactics", ["Defense Evasion"]))
                 techniques.update(double_encoded_sig.get("techniques", ["T1027.001", "T1140"]))
                 total_score += double_encoded_sig["score"]
-                
-                print(f"✅ [DOUBLE ENCODED] Added to detected_signatures")
-    except Exception as e:
-        print(f"⚠️ [DOUBLE ENCODED] Error detecting double encoding: {e}")
+        except Exception as e:
+            pass
 
     # ════════════════════════════════════════════════════════════════
     # 4️⃣  PATTERN MATCHING (Regular signatures)
@@ -555,7 +526,8 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         "total_score": total_score,
         "tactics": list(tactics),
         "techniques": list(techniques),
-        "decoded_command": decoded_command if has_deobfuscation else None,
+        "decoded_command": decoded_command if has_deobfuscation and decode_iterations == 1 else None,
+        "double_decoded_command": decoded_command if has_deobfuscation and decode_iterations >= 2 else None,
         "is_obfuscated": is_obfuscated
     }
 
@@ -592,14 +564,20 @@ async def save_analysis_to_db(
         
         ip_country = country if country and country != 'Unknown' else None
         
-        # ✅ Garantir que decoded_command seja incluído se houver deobfuscação
+        # ✅ Log apenas se houver decoding
         decoded_cmd = analysis_result.get("decoded_command")
+        double_decoded_cmd = analysis_result.get("double_decoded_command")
+        
         if decoded_cmd and decoded_cmd.strip():
-            print(f"✅ [DB] Saving decoded_command: {decoded_cmd[:100]}...")
+            print(f"✅ [DB SAVE] decoded_command: {decoded_cmd[:80]}...")
+        
+        if double_decoded_cmd and double_decoded_cmd.strip():
+            print(f"✅ [DB SAVE] double_decoded_command: {double_decoded_cmd[:80]}...")
         
         insert_data = {
             "command": command,
             "decoded_command": decoded_cmd,
+            "double_decoded_command": double_decoded_cmd,
             "risk_score": round(analysis_result["total_score"], 1),
             "severity": analysis_result["severity"],
             "signatures_detected": analysis_result["detected_signatures"],
@@ -633,13 +611,12 @@ async def save_analysis_to_db(
             return {"success": False, "error": "Failed to save analysis"}
             
     except Exception as db_error:
-        print(f"❌ Erro ao salvar no banco: {db_error}")
+        print(f"❌ Database error: {db_error}")
         return {"success": False, "error": str(db_error)}
 
 
 def clear_signatures_cache():
     """Limpa o cache de assinaturas"""
-    global signatures_cache, cache_timestamp
-    signatures_cache = None
+
     cache_timestamp = 0
 
