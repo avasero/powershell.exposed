@@ -335,9 +335,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     else:
         print(f"ℹ️ [ANALYZER] No deobfuscation needed")
 
-    # ════════════════════════════════════════════════════════════════
-    # 1️⃣  DEOBFUSCATION DETECTION
-    # ════════════════════════════════════════════════════════════════
+    
     is_obfuscated = detect_obfuscation(normalized_command, decoded_command)
     
     if is_obfuscated:
@@ -415,39 +413,42 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     # ════════════════════════════════════════════════════════════════
     # 3️⃣  DOUBLE/MULTIPLE ENCODING DETECTION
     # ════════════════════════════════════════════════════════════════
-    double_encoding_detection = detect_double_encoded_command(normalized_command, decoded_command, decode_iterations)
-    if double_encoding_detection["is_double_encoded"]:
-        double_encoded_sig = next((sig for sig in signatures if sig.get("name") == "Double Encoded Command Detected"), None)
-        
-        if double_encoded_sig:
-            detected_signatures.append({
-                "name": "Double Encoded Command Detected",
-                "description": f"Double/multiple encoding detected: {double_encoding_detection['indicator']}",
-                "severity": double_encoded_sig["severity"],
-                "base_score": double_encoded_sig["score"],
-                "matches_found": 1,
-                "total_score": double_encoded_sig["score"],
-                "max_match_allowed": 1,
-                "pattern": "Double Base64 Encoding",
-                "matches_details": [{
-                    "matched_text": double_encoding_detection["indicator"],
-                    "position": {"start": 0, "end": len(normalized_command)},
-                    "match_number": 1,
-                    "matched_in": "original"
-                }],
-                "tactics": double_encoded_sig.get("tactics", ["Defense Evasion"]),
-                "techniques": double_encoded_sig.get("techniques", ["T1027.001", "T1140"]),
-                "reference": double_encoded_sig.get("reference", []),
-                "link": double_encoded_sig.get("link"),
-                "is_premium_indicator": False,
-                "found_in_deobfuscated": False
-            })
+    try:
+        double_encoding_detection = detect_double_encoded_command(normalized_command, decoded_command, decode_iterations)
+        if double_encoding_detection and double_encoding_detection.get("is_double_encoded"):
+            double_encoded_sig = next((sig for sig in signatures if sig.get("name") == "Double Encoded Command Detected"), None)
             
-            tactics.update(double_encoded_sig.get("tactics", ["Defense Evasion"]))
-            techniques.update(double_encoded_sig.get("techniques", ["T1027.001", "T1140"]))
-            total_score += double_encoded_sig["score"]
-            
-            print(f"✅ [DOUBLE ENCODED] Added to detected_signatures")
+            if double_encoded_sig:
+                detected_signatures.append({
+                    "name": "Double Encoded Command Detected",
+                    "description": f"Double/multiple encoding detected: {double_encoding_detection.get('indicator', 'Multiple encoding levels detected')}",
+                    "severity": double_encoded_sig["severity"],
+                    "base_score": double_encoded_sig["score"],
+                    "matches_found": 1,
+                    "total_score": double_encoded_sig["score"],
+                    "max_match_allowed": 1,
+                    "pattern": "Double Base64 Encoding",
+                    "matches_details": [{
+                        "matched_text": double_encoding_detection.get("second_level_decoded", "Unable to decode second level"),
+                        "position": {"start": 0, "end": len(normalized_command)},
+                        "match_number": 1,
+                        "matched_in": "original"
+                    }],
+                    "tactics": double_encoded_sig.get("tactics", ["Defense Evasion"]),
+                    "techniques": double_encoded_sig.get("techniques", ["T1027.001", "T1140"]),
+                    "reference": double_encoded_sig.get("reference", []),
+                    "link": double_encoded_sig.get("link"),
+                    "is_premium_indicator": False,
+                    "found_in_deobfuscated": False
+                })
+                
+                tactics.update(double_encoded_sig.get("tactics", ["Defense Evasion"]))
+                techniques.update(double_encoded_sig.get("techniques", ["T1027.001", "T1140"]))
+                total_score += double_encoded_sig["score"]
+                
+                print(f"✅ [DOUBLE ENCODED] Added to detected_signatures")
+    except Exception as e:
+        print(f"⚠️ [DOUBLE ENCODED] Error detecting double encoding: {e}")
 
     # ════════════════════════════════════════════════════════════════
     # 4️⃣  PATTERN MATCHING (Regular signatures)

@@ -1,7 +1,22 @@
-
+"""
+Detector para comandos PowerShell com double/múltipla codificação
+Identifica -EncodedCommand aninhado ou múltiplas camadas de Base64
+"""
 
 import re
 import base64
+
+
+def decode_base64_utf16(encoded_str: str) -> str:
+    try:
+        decoded_bytes = base64.b64decode(encoded_str, validate=True)
+        try:
+            return decoded_bytes.decode('utf-16-le', errors='ignore')
+        except:
+            return decoded_bytes.decode('utf-8', errors='ignore')
+    except Exception as e:
+        print(f"⚠️ [DECODE] Error decoding Base64: {e}")
+        return ""
 
 
 def detect_double_encoded_command(
@@ -17,80 +32,41 @@ def detect_double_encoded_command(
         
         
         if decode_iterations >= 2:
-            print(f"✅ [DOUBLE ENCODING] Detected {decode_iterations} decoding iterations")
+            print(f"[DOUBLE ENCODING] Detected {decode_iterations} decoding iterations")
             return {
                 "is_double_encoded": True,
                 "encoding_layers": decode_iterations,
-                "indicator": f"Detected {decode_iterations} layers of -EncodedCommand nesting"
+                "indicator": f"Detected {decode_iterations} layers of -EncodedCommand nesting",
+                "second_level_decoded": None
             }
+        encoded_pattern = r'[^0-9a-z][\u002D\u2013\u2014\u2015](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']*\s*([a-z0-9+/]{20,}={0,2})'
         
+        match = re.search(encoded_pattern, decoded_command, re.IGNORECASE)
         
-        frombase64_count_original = len(
-            re.findall(r'\[Convert\]::FromBase64String', command, re.IGNORECASE)
-        )
-        frombase64_count_decoded = len(
-            re.findall(r'\[Convert\]::FromBase64String', decoded_command, re.IGNORECASE)
-        )
-        
-        total_frombase64 = frombase64_count_original + frombase64_count_decoded
-        
-        if total_frombase64 >= 2:
-            print(f"✅ [DOUBLE ENCODING] Found {total_frombase64} FromBase64String calls")
-            return {
-                "is_double_encoded": True,
-                "encoding_layers": total_frombase64,
-                "indicator": f"Detected {total_frombase64} layers of Base64 encoding"
-            }
-        
-        
-        if decoded_command and decoded_command != command:
-            utf16le_pattern = r'^[A-Za-z0-9+/\s]{20,}={0,2}$'
+        if match:
+            base64_payload = match.group(1)
+            second_level_decoded = decode_base64_utf16(base64_payload)
             
-            if re.match(utf16le_pattern, decoded_command.strip()):
-                print(f"✅ [DOUBLE ENCODING] Decoded result looks like Base64 again")
-                print(f"   Pattern matched: {utf16le_pattern}")
-                
-                # Tentar decodificar novamente para confirmar
-                try:
-                    padded = decoded_command.strip() + '=' * (4 - len(decoded_command.strip()) % 4)
-                    test_decoded = base64.b64decode(padded, validate=True).decode('utf-16-le', errors='ignore')
+            if second_level_decoded and len(second_level_decoded) > 3:
+                print(f"✅ [DOUBLE ENCODING] Successfully decoded second level: {second_level_decoded[:80]}...")
+                return {
+                    "is_double_encoded": True,
+                    "encoding_layers": 2,
                     
-                    if test_decoded and len(test_decoded) > 5:
-                        print(f"✅ [DOUBLE ENCODING] CONFIRMED: Second decode = {test_decoded[:80]}...")
-                        return {
-                            "is_double_encoded": True,
-                            "encoding_layers": 2,
-                            "indicator": "Detected double Base64 UTF-16LE encoding - cascaded encoding"
-                        }
-                except:
-                    pass
-        
-        
-        if decoded_command and decoded_command != command:
-            base64_pattern = r'(?:[A-Za-z0-9+/]{20,}={0,2})'
-            base64_matches = re.findall(base64_pattern, decoded_command)
-            
-            if base64_matches:
-                for match in base64_matches:
-                    try:
-                        padded = match + '=' * (4 - len(match) % 4)
-                        decoded_again = base64.b64decode(padded, validate=True).decode('utf-8', errors='ignore')
-                        
-                        if decoded_again and len(decoded_again) > 5:
-                            print(f"✅ [DOUBLE ENCODING] Found Base64 in decoded result")
-                            return {
-                                "is_double_encoded": True,
-                                "encoding_layers": 2,
-                                "indicator": "Detected double Base64 encoding - Base64 found in decoded payload"
-                            }
-                    except:
-                        continue
-        
+                }
+            else:
+                print(f"⚠️ [DOUBLE ENCODING] Found -EncodedCommand but decode failed")
+                return {
+                    "is_double_encoded": True,
+                    "encoding_layers": 2,
+                    
+                }
         print(f"  Result: No double encoding detected")
         return {
             "is_double_encoded": False,
-            "encoding_layers": total_frombase64 if total_frombase64 > 0 else 1,
-            "indicator": None
+            "encoding_layers": 1,
+            "indicator": None,
+            "second_level_decoded": None
         }
         
     except Exception as e:
@@ -98,5 +74,6 @@ def detect_double_encoded_command(
         return {
             "is_double_encoded": False,
             "encoding_layers": 0,
-            "indicator": None
+            "indicator": None,
+            "second_level_decoded": None
         }
