@@ -118,9 +118,6 @@ export default function ScoringInfoPage() {
               ))}
             </div>
           </div>
-
-    
-          
         </div>
 
         <div className="mt-8 text-center">
