@@ -111,7 +111,7 @@ export default function CommandInput({
       
       {value.includes('\n') && (
         <div className="mt-1 text-xs font-mono opacity-60" style={{color: 'var(--muted-foreground)'}}>
-          💡 Multi-line command detected. Press Shift+Enter for new lines, Enter to analyze.
+           Multi-line command detected. Press Shift+Enter for new lines, Enter to analyze.
         </div>
       )}
     </div>

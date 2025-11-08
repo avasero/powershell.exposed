@@ -115,7 +115,6 @@ export default function ConfirmPage() {
               <p className="font-mono text-sm mb-6" style={{color: 'var(--muted-foreground)'}}>
                 Authentication successful! You are now logged in and can access all features.
               </p>
-              <InfoMessage message="Login successful! Redirecting you automatically..." />
             </>
           ) : (
             <>

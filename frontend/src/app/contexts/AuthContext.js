@@ -214,7 +214,8 @@ export const AuthProvider = ({ children }) => {
     '/terms', 
     '/indicators', 
     '/',
-    '/evaluate'  // ← ADICIONAR ESTA LINHA
+    '/evaluate',
+    '/info/scoring'
   ], []);
 
   useEffect(() => {
@@ -304,12 +305,12 @@ export const AuthProvider = ({ children }) => {
                            pathname.startsWith('/analysis/') || 
                            pathname.startsWith('/auth/') || 
                            pathname.startsWith('/indicators/') ||
-                           pathname.startsWith('/evaluate'); // ← ADICIONAR ESTA LINHA
+                           pathname.startsWith('/info/');
       const userIsAuthenticated = user !== null;
 
       if (!userIsAuthenticated && !isPublicRoute) {
         // User is not authenticated and trying to access protected route
-        router.push('/');  // Redirecionar para landing (/) ao invés de /landing
+        router.push('/');
       }
     }
   }, [user, loading, pathname, router, publicRoutes]);
@@ -411,7 +412,7 @@ export const AuthProvider = ({ children }) => {
                        pathname.startsWith('/analysis/') || 
                        pathname.startsWith('/auth/') || 
                        pathname.startsWith('/indicators/') ||
-                       pathname.startsWith('/evaluate'); // ← ADICIONAR ESTA LINHA
+                       pathname.startsWith('/info/');
   if (!isAuthenticated() && !isPublicRoute) {
     return null;
   }

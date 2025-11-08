@@ -192,7 +192,7 @@ export default function ApiKeyManager() {
                     </code>
                   </div>
                   <p className="text-xs font-mono mt-1" style={{color: 'var(--muted-foreground)'}}>
-                    💡 The complete key is only shown once during creation for security
+                     The complete key is only shown once during creation for security
                   </p>
                 </div>
 

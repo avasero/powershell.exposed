@@ -106,7 +106,7 @@ export default function LoginPage() {
             </form>
           ) : (
             <div className="space-y-4 text-center">
-              <div className="text-6xl mb-4">📧</div>
+              
               <h2 className="text-xl font-mono font-bold" style={{color: 'var(--accent)'}}>
                 Login Link Sent!
               </h2>

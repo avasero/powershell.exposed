@@ -107,7 +107,6 @@ export default function RegisterPage() {
             </form>
           ) : (
             <div className="space-y-4 text-center">
-              <div className="text-6xl mb-4">📧</div>
               <h2 className="text-xl font-mono font-bold" style={{color: 'var(--accent)'}}>
                 Registration Link Sent!
               </h2>
@@ -120,8 +119,6 @@ export default function RegisterPage() {
               <p className="text-sm font-mono" style={{color: 'var(--accent)'}}>
                 If you&apos;ve not received a registration link, please try again
               </p>
-              
-              {message && <InfoMessage message={message} />}
               
               <div className="pt-4">
                 <ThemedButton
