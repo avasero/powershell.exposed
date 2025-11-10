@@ -87,7 +87,7 @@ export default function ScoringInfoPage() {
               </li>
               <li className="font-mono text-sm flex gap-3" style={{color: 'var(--muted-foreground)'}}>
                 <span style={{color: 'var(--accent)'}}>•</span>
-                <span>A few indicators are subject to multi-matching (refer to "maxmatch" parameter in the YAML).</span>
+                <span>A few indicators are subject to multi-matching (refer to maxmatch parameter in the YAML).</span>
               </li>
               <li className="font-mono text-sm flex gap-3" style={{color: 'var(--muted-foreground)'}}>
                 <span style={{color: 'var(--accent)'}}>•</span>
@@ -118,6 +118,8 @@ export default function ScoringInfoPage() {
               ))}
             </div>
           </div>
+
+          
         </div>
 
         <div className="mt-8 text-center">

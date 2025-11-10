@@ -266,7 +266,6 @@ def deobfuscate_powershell(command: str) -> tuple:
         except Exception as e:
             pass
 
-    # Fallback: Tentar manual deobfuscation
     try:
         from services.deobfuscator import manual_deobfuscate_format_strings
         manual_result = manual_deobfuscate_format_strings(command_to_process)
