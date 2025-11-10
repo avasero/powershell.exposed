@@ -15,7 +15,7 @@ def calculate_command_hash(command: str) -> str:
         try:
             return ppdeep.hash(command)
         except Exception as e:
-            print(f"⚠️ ppdeep hashing failed: {e}")
+            print(f"[WARNING] ppdeep hashing failed: {e}")
             return ""
     return ""
 
