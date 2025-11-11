@@ -7,19 +7,43 @@ import re
 import base64
 
 
-ENCODED_COMMAND_PATTERN = r'[^0-9a-z][\u002D\u2013\u2014\u2015](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']*\s*([a-z0-9+/]{20,}={0,2})'
+ENCODED_COMMAND_PATTERN = r'-(?:ec|enco?d(?:ed)?c(?:omm)?a(?:nd)?)?\s+["\']*\s*([a-zA-Z0-9+/=]+)'
 
 
 def decode_base64_utf16(encoded_str: str) -> str:
+    """
+    Decodifica Base64 UTF-16LE (padrão PowerShell)
+    SEMPRE usa UTF-16LE, NUNCA UTF-8
+    Trata TUDO após o primeiro Base64 válido como bytes UTF-16LE também
+    """
     try:
-        decoded_bytes = base64.b64decode(encoded_str, validate=True)
+        # Remove espaços/quebras
+        encoded_str = encoded_str.replace(' ', '').replace('\n', '').replace('\r', '')
+        
+        if not encoded_str:
+            return ""
+        
+        # Tentar decodificar TUDO como Base64 (mesmo que inválido no final)
+        # Remover padding
+        base64_clean = encoded_str.rstrip('=')
+        
+        # Adicionar padding correto
+        while len(base64_clean) % 4 != 0:
+            base64_clean += '='
+        
+        # Decodificar SEM validação - pega o máximo possível
         try:
-            return decoded_bytes.decode('utf-16-le', errors='ignore')
-        except:
-            return decoded_bytes.decode('utf-8', errors='ignore')
+            decoded_bytes = base64.b64decode(base64_clean, validate=False)
+        except Exception:
+            return encoded_str
+        
+        # Decodificar como UTF-16LE (errors='ignore' pega tudo que conseguir)
+        decoded_text = decoded_bytes.decode('utf-16-le', errors='ignore')
+        
+        return decoded_text
+        
     except Exception as e:
-        print(f"⚠️ [DECODE] Error decoding Base64: {e}")
-        return ""
+        return encoded_str
 
 
 def detect_double_encoded_command(

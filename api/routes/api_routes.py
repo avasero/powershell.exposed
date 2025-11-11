@@ -43,7 +43,7 @@ async def analyze_command_endpoint(
         # ✅ VALIDAÇÃO: Verificar limite de 5000 caracteres no comando
         command = request_data.command
         
-        if not command or len(command) > 5000:
+        if not command or len(command) > 10000:
             return JSONResponse(
                 {
                     "error": "Command validation failed",

@@ -14,8 +14,8 @@ from services.detectors.encoded_command_detector import detect_encoded_command
 from services.detectors.double_encoded_detector import detect_double_encoded_command
 from services.detectors.obfuscation_detector import detect_obfuscation
 
-# Padrão global para detectar -EncodedCommand e variações
-ENCODED_COMMAND_PATTERN = r'[^0-9a-z][\u002D\u2013\u2014\u2015](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']*\s*([a-z0-9+/]{20,}={0,2})'
+
+ENCODED_COMMAND_PATTERN = r'[^0-9a-z][\u002D\u2013\u2014\u2015](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']*\s*([a-z0-9+/]{8,}={0,2})'
 
 try:
     import ppdeep
@@ -133,12 +133,12 @@ def normalize_powershell_command(command: str) -> str:
     """
     Normaliza caracteres especiais em comandos PowerShell.
     Substitui aspas "curly" e primes por aspas ASCII.
+    Preserva espaçamento intencional.
     """
     # ✅ NOVO: Remover escapes duplicados que vêm do frontend
-    # \"\" -> " (duplo escape)
-    # \\\" -> " (triplo escape comum em JSON-in-JSON)
     command = command.replace('\\\\"', '"').replace('\\\"', '"').replace("\\'", "'")
     
+    # Substituir caracteres Unicode por ASCII
     command = command.replace('\u2018', "'")  # left single quote
     command = command.replace('\u2019', "'")  # right single quote
     command = command.replace('\u201c', '"')  # left double quote
@@ -146,6 +146,7 @@ def normalize_powershell_command(command: str) -> str:
     command = command.replace('′', "'")  # U+2032 Prime
     command = command.replace('″', '"')  # U+2033 Double prime
 
+    # Remover apenas caracteres invisíveis, não espaçamento
     invisible_chars = [
         '\u200b', '\u200c', '\u200d', '\ufeff', '\u2060'
     ]
@@ -169,34 +170,43 @@ def clean_pyminusone_output(deobfuscated: str) -> str:
 def decode_base64_utf16(encoded_str: str) -> str:
     """
     Decodifica Base64 UTF-16LE (padrão PowerShell)
-    Usado para -EncodedCommand e payloads similares
+    Trata TUDO após o primeiro Base64 válido como bytes UTF-16LE também
+    SEMPRE usa UTF-16LE, NUNCA UTF-8
     """
     try:
-        # Remover espaços e quebras de linha
+        # Remove espaços/quebras
         encoded_str = encoded_str.replace(' ', '').replace('\n', '').replace('\r', '')
         
-        # Adicionar padding se necessário
-        padding = 4 - (len(encoded_str) % 4)
-        if padding != 4:
-            encoded_str += '=' * padding
+        if not encoded_str:
+            return encoded_str
         
-        # Decodificar Base64
-        decoded_bytes = base64.b64decode(encoded_str)
+        # Tentar decodificar TUDO como Base64 (mesmo que inválido no final)
+        # Remover padding existente
+        base64_clean = encoded_str.rstrip('=')
         
-        # Tentar UTF-16LE primeiro (padrão PowerShell)
+        # Adicionar padding correto
+        while len(base64_clean) % 4 != 0:
+            base64_clean += '='
+        
+        # Decodificar SEM validação - pega o máximo possível
         try:
-            return decoded_bytes.decode('utf-16-le', errors='ignore')
-        except:
-            # Fallback para UTF-8
-            return decoded_bytes.decode('utf-8', errors='ignore')
+            decoded_bytes = base64.b64decode(base64_clean, validate=False)
+        except Exception:
+            return encoded_str
+        
+        # Decodificar como UTF-16LE (errors='ignore' pega tudo que conseguir)
+        decoded_text = decoded_bytes.decode('utf-16-le', errors='ignore')
+        
+        return decoded_text
+        
     except Exception as e:
-        print(f"⚠️ Error decoding Base64: {e}")
-        return ""
+        return encoded_str
 
 
 def deobfuscate_powershell(command: str) -> tuple:
     """
     Deofusca comandos PowerShell usando regex robusta e pyminusone
+    Preserva espaçamento intencional na entrada.
     Detecta DOIS tipos diferentes:
     1. -EncodedCommand (Base64 UTF-16LE) → DECODING
     2. Format strings ("{1}{0}" -f 'x','y') → DEOBFUSCATION
@@ -205,8 +215,8 @@ def deobfuscate_powershell(command: str) -> tuple:
     obfuscation_type: "base64_decoded" | "format_deobfuscated" | "none"
     """
     normalized_command = normalize_powershell_command(command)
-    has_leading_ampersand = normalized_command.strip().startswith('&')
-    command_to_process = normalized_command.strip()
+    has_leading_ampersand = normalized_command.lstrip().startswith('&')
+    command_to_process = normalized_command.lstrip() if has_leading_ampersand else normalized_command
 
     max_decode_iterations = 5
     iteration = 0
@@ -216,7 +226,12 @@ def deobfuscate_powershell(command: str) -> tuple:
     # 1️⃣ BASE64 DECODING (-EncodedCommand)
     # ════════════════════════════════════════════════════════════════
     while iteration < max_decode_iterations:
-        encoded_match = re.search(ENCODED_COMMAND_PATTERN, command_to_process, re.IGNORECASE)
+        # ✅ SIMPLES: Capturar TUDO após -EncodedCommand
+        encoded_match = re.search(
+            r'-(?:ec|enco?d(?:ed)?c(?:omm)?a(?:nd)?)?\s+["\']*\s*([a-zA-Z0-9+/=]+)',
+            command_to_process,
+            re.IGNORECASE
+        )
         
         if encoded_match:
             iteration += 1
@@ -228,7 +243,12 @@ def deobfuscate_powershell(command: str) -> tuple:
             if decoded_payload and len(decoded_payload) > 3:
                 command_to_process = decoded_payload
                 
-                if not re.search(ENCODED_COMMAND_PATTERN, decoded_payload, re.IGNORECASE):
+                # Verificar se há mais -EncodedCommand
+                if not re.search(
+                    r'-(?:ec|enco?d(?:ed)?c(?:omm)?a(?:nd)?)?\\s+',
+                    decoded_payload,
+                    re.IGNORECASE
+                ):
                     return command_to_process, iteration, obfuscation_type
             else:
                 break
@@ -242,7 +262,10 @@ def deobfuscate_powershell(command: str) -> tuple:
 
     # ════════════════════════════════════════════════════════════════
     # 2️⃣ FORMAT STRING DEOBFUSCATION
+    # ═════════════════════════════════
     # ════════════════════════════════════════════════════════════════
+    # 2️⃣ FORMAT STRING DEOBFUSCATION
+    # ═════════════════════════════════
     if PYMINUSONE_AVAILABLE:
         try:
             deobf = pyminusone.deobfuscate_powershell(command_to_process)

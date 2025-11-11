@@ -8,7 +8,7 @@ from datetime import datetime
 
 class AnalyzeCommandRequest(BaseModel):
     """Schema for PowerShell command analysis request"""
-    command: str = Field(..., description="PowerShell command to analyze", max_length=5000, example="Get-Process")
+    command: str = Field(..., description="PowerShell command to analyze", max_length=10000, example="Get-Process")
     
     # Optional fields from frontend
     user_id: Optional[str] = Field(None, description="User ID (if authenticated)")
@@ -26,7 +26,7 @@ class AnalyzeCommandRequest(BaseModel):
     def validate_command_length(cls, v):
         if not v or not isinstance(v, str):
             raise ValueError("Command is required and must be a string")
-        if len(v) > 5000:
+        if len(v) > 10000:
             raise ValueError(f"Command exceeds maximum length of 5000 characters. Provided: {len(v)} characters")
         if len(v) == 0:
             raise ValueError("Command cannot be empty")

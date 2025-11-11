@@ -12,7 +12,7 @@ export default function CommandInput({
   const textareaRef = useRef(null);
   const [showCharacterWarning, setShowCharacterWarning] = useState(false);
   
-  const CHARACTER_LIMIT = 5000;
+  const CHARACTER_LIMIT = 10000;
   const MAX_ROWS = 10;
   const MIN_HEIGHT = 50;
   const LINE_HEIGHT = 24; 
@@ -59,7 +59,7 @@ export default function CommandInput({
   const handleChange = (e) => {
     const newValue = e.target.value;
     
-    // Enforce character limit
+    // Enforce character limit (no trimming - preserve whitespace)
     if (newValue.length <= CHARACTER_LIMIT) {
       onChange(e);
     }

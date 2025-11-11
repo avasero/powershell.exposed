@@ -33,12 +33,12 @@ export default function EvaluatePage() {
       return { isValid: false, error: "Command cannot be empty." };
     }
 
-    const trimmedInput = input.trim();
-    if (trimmedInput.length === 0) {
+    // Check if only whitespace (not trim for display, just check content)
+    if (input.length === 0) {
       return { isValid: false, error: "Command cannot be empty." };
     }
 
-    const lines = trimmedInput.split('\n');
+    const lines = input.split('\n');
     const nonCommentLines = lines.filter(line => {
       const cleanLine = line.trim();
       return cleanLine.length > 0 && !cleanLine.startsWith('#');
@@ -183,12 +183,13 @@ export default function EvaluatePage() {
     const newCommand = e.target.value;
     setCommand(newCommand);
     
-    if (!newCommand.trim()) {
+    // Check if command is effectively empty (only whitespace)
+    if (newCommand.replace(/\s/g, '').length === 0) {
       setError("");
       return;
     }
     
-    if (newCommand.trim().length > 5) {
+    if (newCommand.length > 5) {
       const validation = validatePowerShellCommand(newCommand);
       if (!validation.isValid && (
         validation.error.includes("plain text") || 
