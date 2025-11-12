@@ -226,9 +226,9 @@ def deobfuscate_powershell(command: str) -> tuple:
     # 1️⃣ BASE64 DECODING (-EncodedCommand)
     # ════════════════════════════════════════════════════════════════
     while iteration < max_decode_iterations:
-        # ✅ SIMPLES: Capturar TUDO após -EncodedCommand
+        # ✅ Regex mais robusto - captura -e, -ec, -enc, -enco, -encoded, -encodedcommand
         encoded_match = re.search(
-            r'-(?:ec|enco?d(?:ed)?c(?:omm)?a(?:nd)?)?\s+["\']*\s*([a-zA-Z0-9+/=]+)',
+            r'-e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']?\s*([a-zA-Z0-9+/=]+)',
             command_to_process,
             re.IGNORECASE
         )
@@ -238,26 +238,38 @@ def deobfuscate_powershell(command: str) -> tuple:
             obfuscation_type = "base64_decoded"
             payload_b64 = encoded_match.group(1)
             
+            print(f"\n[DEBUG] Iteration {iteration}: Found Base64 payload (length: {len(payload_b64)})")
+            
             decoded_payload = decode_base64_utf16(payload_b64)
             
-            if decoded_payload and len(decoded_payload) > 3:
+            print(f"[DEBUG] Decoded result: {decoded_payload[:100]}...")
+            
+            if decoded_payload and len(decoded_payload) > 3 and decoded_payload != payload_b64:
                 command_to_process = decoded_payload
                 
-                # Verificar se há mais -EncodedCommand
-                if not re.search(
-                    r'-(?:ec|enco?d(?:ed)?c(?:omm)?a(?:nd)?)?\\s+',
+                # Verificar se há mais -EncodedCommand (continua loop)
+                has_more = re.search(
+                    r'-e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)\s+',
                     decoded_payload,
                     re.IGNORECASE
-                ):
+                )
+                
+                if not has_more:
+                    print(f"[DEBUG] No more nested -EncodedCommand found. Stopping at iteration {iteration}")
                     return command_to_process, iteration, obfuscation_type
+                else:
+                    print(f"[DEBUG] Found nested -EncodedCommand! Continuing...")
             else:
+                print(f"[DEBUG] Decode failed or returned same. Stopping.")
                 break
         else:
             if iteration > 0:
+                print(f"[DEBUG] No -EncodedCommand pattern found. Stopping at iteration {iteration}")
                 return command_to_process, iteration, obfuscation_type
             break
     
     if iteration >= max_decode_iterations:
+        print(f"[DEBUG] Max iterations reached ({max_decode_iterations})")
         return command_to_process, iteration, obfuscation_type
 
     # ════════════════════════════════════════════════════════════════
