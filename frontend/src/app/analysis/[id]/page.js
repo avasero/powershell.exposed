@@ -115,6 +115,7 @@ export default function AnalysisDetailsPage() {
         severity: (analysis.risk_score || analysisResult.risk_score || 0) > 5 ? "malicious" : "safe",
         signatures: (analysis.signatures_detected || analysisResult.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
         decoded: analysis.decoded_command || analysisResult.decoded_command || null,
+        doubleDecoded: analysis.double_decoded_command || analysisResult.double_decoded_command || null,
         indicators: analysisResult.analysis_details?.indicators || [],
         details: analysisResult.analysis_details?.recommendations?.join(", ") || "",
         tactics: analysis.tactics || analysisResult.tactics || [],
@@ -125,9 +126,13 @@ export default function AnalysisDetailsPage() {
       // ✅ DEBUG LOG
       console.log("🔍 [DETAILS PAGE] Processed Result:", {
         hasDecoded: !!processedResult.decoded,
+        hasDoubleDecoded: !!processedResult.doubleDecoded,
         decodedValue: processedResult.decoded,
+        doubleDecodedValue: processedResult.doubleDecoded,
         decodedLength: processedResult.decoded ? processedResult.decoded.length : 0,
+        doubleDecodedLength: processedResult.doubleDecoded ? processedResult.doubleDecoded.length : 0,
         rawAnalysisDecoded: analysis.decoded_command,
+        rawAnalysisDoubleDecoded: analysis.double_decoded_command,
         analysisData: analysis,
         analysisResultData: analysisResult
       });
@@ -263,6 +268,7 @@ export default function AnalysisDetailsPage() {
           severity: analysisData.is_malicious ? "malicious" : "safe",
           signatures: (analysisData.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
           decoded: analysisData.decoded_command,
+          doubleDecoded: analysisData.double_decoded_command,
           indicators: analysisData.analysis_details?.indicators || [],
           details: analysisData.analysis_details?.recommendations?.join(", ") || "",
           tactics: analysisData.tactics || [],
@@ -459,13 +465,29 @@ export default function AnalysisDetailsPage() {
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
             <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-              Decodified Command
+              {result.doubleDecoded ? "First Decoded Layer" : "Decodified Command"}
             </div>
             <div className="bg-black rounded p-3 border border-blue-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
               <code>{result.decoded}</code>
             </div>
             <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
-              This is the decoded/deobfuscated version of the command
+              {result.doubleDecoded ? "First layer of decoding from Base64" : "This is the decoded/deobfuscated version of the command"}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {result && result.doubleDecoded && (
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+          <div className="border rounded-lg p-4 bg-black/80 border-yellow-500/30">
+            <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
+               🔓 Second Decoded Layer (Double-Encoded)
+            </div>
+            <div className="bg-black rounded p-3 border border-yellow-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
+              <code>{result.doubleDecoded}</code>
+            </div>
+            <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
+              Second layer of nested -EncodedCommand detected and decoded
             </div>
           </div>
         </div>
@@ -592,13 +614,11 @@ export default function AnalysisDetailsPage() {
         </div>
       )}
 
-    
-
       <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
         <ThemedButton onClick={() => router.push('/')}>
           Evaluate Another Command
-          </ThemedButton>
-          <ThemedButton 
+        </ThemedButton>
+        <ThemedButton
           variant="outline"
           onClick={() => {
             const baseUrl = window.location.origin;
@@ -609,9 +629,8 @@ export default function AnalysisDetailsPage() {
           }}
         >
           Copy sharable link
-          </ThemedButton>
-        </div>
-
+        </ThemedButton>
+      </div>
     </div>
   );
 }

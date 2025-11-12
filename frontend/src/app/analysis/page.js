@@ -169,6 +169,7 @@ export default function AnalysisPage() {
             severity: analysisData.is_malicious ? "malicious" : "safe",
             signatures: (analysisData.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
             decoded: analysisData.decoded_command || null,
+            doubleDecoded: analysisData.double_decoded_command || null,
             indicators: analysisData.analysis_details?.indicators || [],
             details: analysisData.analysis_details?.recommendations?.join(", ") || "",
             tactics: analysisData.tactics || [],
@@ -181,8 +182,11 @@ export default function AnalysisPage() {
           // ✅ DEBUG LOG
           console.log("🔍 [FRONTEND] Analysis Result:", {
             hasDecoded: !!analysisData.decoded_command,
+            hasDoubleDecoded: !!analysisData.double_decoded_command,
             decodedValue: analysisData.decoded_command,
+            doubleDecodedValue: analysisData.double_decoded_command,
             decodedLength: analysisData.decoded_command ? analysisData.decoded_command.length : 0,
+            doubleDecodedLength: analysisData.double_decoded_command ? analysisData.double_decoded_command.length : 0,
             analysisDataKeys: Object.keys(analysisData)
           });
           
@@ -421,19 +425,35 @@ export default function AnalysisPage() {
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
             <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-               Decodified Command
+               {result.doubleDecoded ? "First Decoded Layer" : "Decodified Command"}
             </div>
             <div className="bg-black rounded p-3 border border-blue-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
               <code>{result.decoded}</code>
             </div>
             <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
-              This is the decoded/deobfuscated version of the command
+              {result.doubleDecoded ? "First layer of decoding from Base64" : "This is the decoded/deobfuscated version of the command"}
             </div>
           </div>
         </div>
       )}
 
-       {result && result.signatures && result.signatures.length > 0 && (
+      {result && result.doubleDecoded && (
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+          <div className="border rounded-lg p-4 bg-black/80 border-yellow-500/30">
+            <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
+               🔓 Second Decoded Layer (Double-Encoded)
+            </div>
+            <div className="bg-black rounded p-3 border border-yellow-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
+              <code>{result.doubleDecoded}</code>
+            </div>
+            <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
+              Second layer of nested -EncodedCommand detected and decoded
+            </div>
+          </div>
+        </div>
+      )}
+
+      {result && result.signatures && result.signatures.length > 0 && (
          <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           {(() => {
             const realSignatures = result.signatures.filter(sig => 
@@ -553,10 +573,6 @@ export default function AnalysisPage() {
         </div>
       )}
 
-     
-
-     
-
       <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
         <ThemedButton onClick={() => router.push('/')}>
           Evaluate Another Command
@@ -564,7 +580,6 @@ export default function AnalysisPage() {
         <ThemedButton
           variant="outline"
           onClick={() => {
-          
             const baseUrl = window.location.origin;
             const shareUrl = result?.analysisId 
               ? `${baseUrl}/analysis/${result.analysisId}`
@@ -575,8 +590,6 @@ export default function AnalysisPage() {
           Copy sharable link
         </ThemedButton>
       </div>
-
-
     </div>
   );
 }

@@ -15,7 +15,7 @@ from services.detectors.double_encoded_detector import detect_double_encoded_com
 from services.detectors.obfuscation_detector import detect_obfuscation
 
 
-ENCODED_COMMAND_PATTERN = r'[^0-9a-z][\u002D\u2013\u2014\u2015](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']*\s*([a-z0-9+/]{8,}={0,2})'
+ENCODED_COMMAND_PATTERN = r'[\u002D\u2013\u2014\u2015]e(?:nc?o?d?e?d?c?o?m?m?a?n?d?)?\s+["\']?\s*([a-z0-9+/]{20,}={0,2})'
 
 try:
     import ppdeep
@@ -170,37 +170,32 @@ def clean_pyminusone_output(deobfuscated: str) -> str:
 def decode_base64_utf16(encoded_str: str) -> str:
     """
     Decodifica Base64 UTF-16LE (padrão PowerShell)
-    Trata TUDO após o primeiro Base64 válido como bytes UTF-16LE também
     SEMPRE usa UTF-16LE, NUNCA UTF-8
+    ✅ SEM VALIDAÇÃO - Apenas decodifica e retorna
     """
     try:
         # Remove espaços/quebras
         encoded_str = encoded_str.replace(' ', '').replace('\n', '').replace('\r', '')
         
         if not encoded_str:
-            return encoded_str
+            return ""
         
-        # Tentar decodificar TUDO como Base64 (mesmo que inválido no final)
-        # Remover padding existente
-        base64_clean = encoded_str.rstrip('=')
+        # ✅ SIMPLES: Decodifica Base64 e depois UTF-16LE
+        # Aceita padding incorreto e caracteres inválidos
+        decoded_bytes = base64.b64decode(encoded_str + '===', validate=False)[:len(encoded_str)*3//4]
         
-        # Adicionar padding correto
-        while len(base64_clean) % 4 != 0:
-            base64_clean += '='
-        
-        # Decodificar SEM validação - pega o máximo possível
-        try:
-            decoded_bytes = base64.b64decode(base64_clean, validate=False)
-        except Exception:
-            return encoded_str
-        
-        # Decodificar como UTF-16LE (errors='ignore' pega tudo que conseguir)
+        # Decodifica como UTF-16LE ignorando erros
         decoded_text = decoded_bytes.decode('utf-16-le', errors='ignore')
         
         return decoded_text
         
-    except Exception as e:
-        return encoded_str
+    except Exception:
+        # Se falhar tudo, tenta sem padding
+        try:
+            decoded_bytes = base64.b64decode(encoded_str, validate=False)
+            return decoded_bytes.decode('utf-16-le', errors='ignore')
+        except Exception:
+            return ""
 
 
 def deobfuscate_powershell(command: str) -> tuple:
@@ -221,6 +216,8 @@ def deobfuscate_powershell(command: str) -> tuple:
     max_decode_iterations = 5
     iteration = 0
     obfuscation_type = "none"
+    all_decoded_layers = []  # Track ALL decoded layers
+    successfully_decoded = False  # ✅ Track if decode actually worked
     
     # ════════════════════════════════════════════════════════════════
     # 1️⃣ BASE64 DECODING (-EncodedCommand)
@@ -228,56 +225,74 @@ def deobfuscate_powershell(command: str) -> tuple:
     while iteration < max_decode_iterations:
         # ✅ Regex mais robusto - captura -e, -ec, -enc, -enco, -encoded, -encodedcommand
         encoded_match = re.search(
-            r'-e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']?\s*([a-zA-Z0-9+/=]+)',
+            r'[\u002D\u2013\u2014\u2015]e(?:nc?o?d?e?d?c?o?m?m?a?n?d?)?\s+["\']?\s*([a-z0-9+/]{20,}={0,2})',
             command_to_process,
             re.IGNORECASE
         )
         
         if encoded_match:
             iteration += 1
-            obfuscation_type = "base64_decoded"
             payload_b64 = encoded_match.group(1)
             
             print(f"\n[DEBUG] Iteration {iteration}: Found Base64 payload (length: {len(payload_b64)})")
             
             decoded_payload = decode_base64_utf16(payload_b64)
             
-            print(f"[DEBUG] Decoded result: {decoded_payload[:100]}...")
+            print(f"[DEBUG] Decoded result: {decoded_payload[:100] if len(decoded_payload) > 0 else '(empty)'}...")
+            print(f"[DEBUG] Decoded length: {len(decoded_payload)}, Original B64 length: {len(payload_b64)}")
+            print(f"[DEBUG] Are they different? {decoded_payload != payload_b64}")
             
-            if decoded_payload and len(decoded_payload) > 3 and decoded_payload != payload_b64:
+            # ✅ Verificação MUITO mais permissiva
+            # Aceita QUALQUER coisa que não seja vazia e diferente do Base64
+            is_valid_decode = (
+                len(decoded_payload) > 0 and  # Não vazio
+                decoded_payload != payload_b64  # Diferente do B64 original
+            )
+            
+            print(f"[DEBUG] Is valid decode? {is_valid_decode}")
+            
+            if is_valid_decode:
+                # Store this decoded layer
+                all_decoded_layers.append({
+                    "iteration": iteration,
+                    "decoded": decoded_payload
+                })
+                
                 command_to_process = decoded_payload
+                obfuscation_type = "base64_decoded"
+                successfully_decoded = True
                 
                 # Verificar se há mais -EncodedCommand (continua loop)
                 has_more = re.search(
-                    r'-e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)\s+',
+                    r'[\u002D\u2013\u2014\u2015]e(?:nc?o?d?e?d?c?o?m?m?a?n?d?)?\s+["\']?\s*([a-z0-9+/]{20,}={0,2})',
                     decoded_payload,
                     re.IGNORECASE
                 )
                 
                 if not has_more:
                     print(f"[DEBUG] No more nested -EncodedCommand found. Stopping at iteration {iteration}")
-                    return command_to_process, iteration, obfuscation_type
+                    break
                 else:
                     print(f"[DEBUG] Found nested -EncodedCommand! Continuing...")
             else:
-                print(f"[DEBUG] Decode failed or returned same. Stopping.")
+                print(f"[DEBUG] Decode validation failed. Stopping.")
+                iteration -= 1  # ✅ Não contar iteração falhada
                 break
         else:
             if iteration > 0:
                 print(f"[DEBUG] No -EncodedCommand pattern found. Stopping at iteration {iteration}")
-                return command_to_process, iteration, obfuscation_type
+                break
             break
     
     if iteration >= max_decode_iterations:
         print(f"[DEBUG] Max iterations reached ({max_decode_iterations})")
-        return command_to_process, iteration, obfuscation_type
+
+    # ✅ FIX: Save the base64 iteration count before format deobfuscation
+    base64_iterations = iteration if successfully_decoded else 0
 
     # ════════════════════════════════════════════════════════════════
     # 2️⃣ FORMAT STRING DEOBFUSCATION
-    # ═════════════════════════════════
     # ════════════════════════════════════════════════════════════════
-    # 2️⃣ FORMAT STRING DEOBFUSCATION
-    # ═════════════════════════════════
     if PYMINUSONE_AVAILABLE:
         try:
             deobf = pyminusone.deobfuscate_powershell(command_to_process)
@@ -286,12 +301,14 @@ def deobfuscate_powershell(command: str) -> tuple:
                 cleaned = fix_brace_spacing(deobf)
 
                 if cleaned != command_to_process and '{ ' not in cleaned and ' }' not in cleaned:
-                    obfuscation_type = "format_deobfuscated"
+                    # ✅ Se já teve base64 decode, mantenha o tipo
+                    if obfuscation_type != "base64_decoded":
+                        obfuscation_type = "format_deobfuscated"
                     
                     max_iterations = 3
                     current = cleaned
                     
-                    for iteration in range(max_iterations):
+                    for fmt_iteration in range(max_iterations):
                         if '"-f' not in current and '" -f' not in current:
                             break
                         
@@ -310,7 +327,7 @@ def deobfuscate_powershell(command: str) -> tuple:
                     if has_leading_ampersand and not final_result.strip().startswith('&'):
                         final_result = f"& {final_result}"
                     
-                    return final_result, iteration, obfuscation_type
+                    return final_result, base64_iterations, obfuscation_type
         except Exception as e:
             pass
 
@@ -319,16 +336,23 @@ def deobfuscate_powershell(command: str) -> tuple:
         manual_result = manual_deobfuscate_format_strings(command_to_process)
 
         if manual_result and manual_result != command_to_process:
-            obfuscation_type = "format_deobfuscated"
+            # ✅ Se já teve base64 decode, mantenha o tipo
+            if obfuscation_type != "base64_decoded":
+                obfuscation_type = "format_deobfuscated"
+            
             cleaned_manual = fix_brace_spacing(manual_result)
             
             if has_leading_ampersand and not cleaned_manual.strip().startswith('&'):
                 cleaned_manual = f"& {cleaned_manual}"
             
-            return cleaned_manual, iteration, obfuscation_type
+            return cleaned_manual, base64_iterations, obfuscation_type
     except Exception as e:
         pass
 
+    # ✅ Return the final command with base64_iterations
+    if base64_iterations > 0:
+        return command_to_process, base64_iterations, obfuscation_type
+    
     return normalized_command, 0, "none"
 
 
@@ -354,7 +378,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             elif decode_iterations >= 2:
                 print(f"\n[MULTI-LAYER DECODED] Nested -EncodedCommand detected ({decode_iterations} layers)")
                 print(f"   Original: {normalized_command[:100]}...")
-                print(f"   Decoded:  {deobfuscated_command[:100]}...")
+                print(f"   Final decoded:  {deobfuscated_command[:100]}...")
         
         elif obfuscation_type == "format_deobfuscated":
             print(f"\n[FORMAT STRING DEOBFUSCATED] Obfuscation resolved (1 layer)")
@@ -365,7 +389,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     
     # ⚡ OTIMIZAÇÃO: Detectar obfuscação apenas se houver deobfuscação
     is_obfuscated = False
-    if has_deobfuscation:
+    if has_deobfuscation and obfuscation_type == "format_deobfuscated":
         is_obfuscated = detect_obfuscation(normalized_command, deobfuscated_command)
     
     if is_obfuscated:
@@ -471,8 +495,10 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                 tactics.update(double_encoded_sig.get("tactics", ["Defense Evasion"]))
                 techniques.update(double_encoded_sig.get("techniques", ["T1027.001", "T1140"]))
                 total_score += double_encoded_sig["score"]
+                
+                print(f"✅ [DOUBLE ENCODING] Added signature with score {double_encoded_sig['score']}")
         except Exception as e:
-            pass
+            print(f"❌ [ERROR] Failed to detect double encoding: {e}")
 
     # ════════════════════════════════════════════════════════════════
     # 4️⃣  PATTERN MATCHING (Regular signatures)
@@ -579,8 +605,8 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         "total_score": total_score,
         "tactics": list(tactics),
         "techniques": list(techniques),
-        "decoded_command": deobfuscated_command if has_deobfuscation and decode_iterations == 1 else None,
-        "double_decoded_command": deobfuscated_command if has_deobfuscation and decode_iterations >= 2 else None,
+        "decoded_command": deobfuscated_command if has_deobfuscation and decode_iterations == 1 and obfuscation_type == "base64_decoded" else None,
+        "double_decoded_command": deobfuscated_command if has_deobfuscation and decode_iterations >= 2 and obfuscation_type == "base64_decoded" else None,
         "is_obfuscated": is_obfuscated,
         "obfuscation_type": obfuscation_type
     }
@@ -671,6 +697,7 @@ async def save_analysis_to_db(
 
 def clear_signatures_cache():
     """Limpa o cache de assinaturas"""
-
+    global signatures_cache, cache_timestamp
+    signatures_cache = None
     cache_timestamp = 0
 
