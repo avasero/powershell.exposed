@@ -437,23 +437,6 @@ export default function AnalysisPage() {
         </div>
       )}
 
-      {/* ❌ REMOVER ESTE BLOCO - ESTÁ CAUSANDO DUPLICAÇÃO */}
-      {/* {result && result.decoded && (
-        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-          <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
-            <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-              {result.doubleDecoded ? "First Decoded Layer" : "Decodified Command"}
-            </div>
-            <div className="bg-black rounded p-3 border border-blue-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
-              <code>{result.decoded}</code>
-            </div>
-            <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
-              {result.doubleDecoded ? "First layer of decoding from Base64" : "This is the decoded/deobfuscated version of the command"}
-            </div>
-          </div>
-        </div>
-      )} */}
-
       {/* ✅ BLOCO 1: Se tiver decoded E doubleDecoded, mostra APENAS o primeiro layer */}
       {result && result.decoded && result.doubleDecoded && (() => {
         console.log("🟦 [RENDER] Showing FIRST DECODED LAYER (double-encoded)");
@@ -461,13 +444,13 @@ export default function AnalysisPage() {
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
             <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-              🔓 First Decoded Layer (Iteration 1 of 2+)
+              🔓 First Decoded Layer (Iteration 1)
             </div>
             <div className="bg-black rounded p-3 border border-blue-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
               <code>{result.decoded}</code>
             </div>
             <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
-              First layer of decoding - still contains nested -EncodedCommand (will be decoded again below)
+              First layer of decoding - still contains -EncodedCommand
             </div>
           </div>
         </div>
@@ -501,7 +484,7 @@ export default function AnalysisPage() {
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-yellow-500/30">
             <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-              🔓🔓 Double Decoded Command (Final Layer)
+              🔓🔓 Final Decoded Command (Iteration 2+)
             </div>
             <div className="bg-black rounded p-3 border border-yellow-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
               <code>{result.doubleDecoded}</code>
