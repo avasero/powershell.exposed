@@ -206,8 +206,7 @@ def deobfuscate_powershell(command: str) -> tuple:
     1. -EncodedCommand (Base64 UTF-16LE) → DECODING
     2. Format strings ("{1}{0}" -f 'x','y') → DEOBFUSCATION
     
-    Retorna: (processed_command, iteration_count, obfuscation_type)
-    obfuscation_type: "base64_decoded" | "format_deobfuscated" | "none"
+    Retorna: (processed_command, iteration_count, obfuscation_type, all_layers)
     """
     normalized_command = normalize_powershell_command(command)
     has_leading_ampersand = normalized_command.lstrip().startswith('&')
@@ -216,14 +215,13 @@ def deobfuscate_powershell(command: str) -> tuple:
     max_decode_iterations = 5
     iteration = 0
     obfuscation_type = "none"
-    all_decoded_layers = []  # Track ALL decoded layers
-    successfully_decoded = False  # ✅ Track if decode actually worked
+    all_decoded_layers = []  # ✅ GUARDAR TODOS OS LAYERS
+    successfully_decoded = False
     
     # ════════════════════════════════════════════════════════════════
     # 1️⃣ BASE64 DECODING (-EncodedCommand)
     # ════════════════════════════════════════════════════════════════
     while iteration < max_decode_iterations:
-        # ✅ Regex mais robusto - captura -e, -ec, -enc, -enco, -encoded, -encodedcommand
         encoded_match = re.search(
             r'[\u002D\u2013\u2014\u2015]e(?:nc?o?d?e?d?c?o?m?m?a?n?d?)?\s+["\']?\s*([a-z0-9+/]{20,}={0,2})',
             command_to_process,
@@ -239,30 +237,26 @@ def deobfuscate_powershell(command: str) -> tuple:
             decoded_payload = decode_base64_utf16(payload_b64)
             
             print(f"[DEBUG] Decoded result: {decoded_payload[:100] if len(decoded_payload) > 0 else '(empty)'}...")
-            print(f"[DEBUG] Decoded length: {len(decoded_payload)}, Original B64 length: {len(payload_b64)}")
-            print(f"[DEBUG] Are they different? {decoded_payload != payload_b64}")
             
-            # ✅ Verificação MUITO mais permissiva
-            # Aceita QUALQUER coisa que não seja vazia e diferente do Base64
             is_valid_decode = (
-                len(decoded_payload) > 0 and  # Não vazio
-                decoded_payload != payload_b64  # Diferente do B64 original
+                len(decoded_payload) > 0 and
+                decoded_payload != payload_b64
             )
             
-            print(f"[DEBUG] Is valid decode? {is_valid_decode}")
-            
             if is_valid_decode:
-                # Store this decoded layer
+                # ✅ GUARDAR ESTE LAYER
                 all_decoded_layers.append({
                     "iteration": iteration,
                     "decoded": decoded_payload
                 })
                 
+                print(f"✅ [LAYER {iteration}] Saved: {decoded_payload[:80]}...")
+                
                 command_to_process = decoded_payload
                 obfuscation_type = "base64_decoded"
                 successfully_decoded = True
                 
-                # Verificar se há mais -EncodedCommand (continua loop)
+                # Verificar se há mais -EncodedCommand
                 has_more = re.search(
                     r'[\u002D\u2013\u2014\u2015]e(?:nc?o?d?e?d?c?o?m?m?a?n?d?)?\s+["\']?\s*([a-z0-9+/]{20,}={0,2})',
                     decoded_payload,
@@ -276,7 +270,7 @@ def deobfuscate_powershell(command: str) -> tuple:
                     print(f"[DEBUG] Found nested -EncodedCommand! Continuing...")
             else:
                 print(f"[DEBUG] Decode validation failed. Stopping.")
-                iteration -= 1  # ✅ Não contar iteração falhada
+                iteration -= 1
                 break
         else:
             if iteration > 0:
@@ -284,9 +278,8 @@ def deobfuscate_powershell(command: str) -> tuple:
                 break
             break
     
-    if iteration >= max_decode_iterations:
-        print(f"[DEBUG] Max iterations reached ({max_decode_iterations})")
-
+    base64_iterations = iteration if successfully_decoded else 0
+    
     # ✅ FIX: Save the base64 iteration count before format deobfuscation
     base64_iterations = iteration if successfully_decoded else 0
 
@@ -327,7 +320,7 @@ def deobfuscate_powershell(command: str) -> tuple:
                     if has_leading_ampersand and not final_result.strip().startswith('&'):
                         final_result = f"& {final_result}"
                     
-                    return final_result, base64_iterations, obfuscation_type
+                    return final_result, base64_iterations, obfuscation_type, all_decoded_layers
         except Exception as e:
             pass
 
@@ -345,15 +338,15 @@ def deobfuscate_powershell(command: str) -> tuple:
             if has_leading_ampersand and not cleaned_manual.strip().startswith('&'):
                 cleaned_manual = f"& {cleaned_manual}"
             
-            return cleaned_manual, base64_iterations, obfuscation_type
+            return cleaned_manual, base64_iterations, obfuscation_type, all_decoded_layers
     except Exception as e:
         pass
 
     # ✅ Return the final command with base64_iterations
     if base64_iterations > 0:
-        return command_to_process, base64_iterations, obfuscation_type
+        return command_to_process, base64_iterations, obfuscation_type, all_decoded_layers
     
-    return normalized_command, 0, "none"
+    return normalized_command, 0, "none", []
 
 
 def analyze_command_patterns(command: str, signatures: list) -> dict:
@@ -363,8 +356,23 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     techniques = set()
     
     normalized_command = normalize_powershell_command(command)
-    deobfuscated_command, decode_iterations, obfuscation_type = deobfuscate_powershell(normalized_command)
+    deobfuscated_command, decode_iterations, obfuscation_type, all_decoded_layers = deobfuscate_powershell(normalized_command)
     has_deobfuscation = deobfuscated_command != normalized_command
+    
+    # ✅ EXTRAIR PRIMEIRO E SEGUNDO LAYER
+    first_decoded_layer = None
+    second_decoded_layer = None
+    
+    if all_decoded_layers:
+        if len(all_decoded_layers) >= 1:
+            first_decoded_layer = all_decoded_layers[0]["decoded"]
+        if len(all_decoded_layers) >= 2:
+            second_decoded_layer = all_decoded_layers[1]["decoded"]
+    
+    print(f"🔍 [LAYER EXTRACTION]")
+    print(f"   Total layers: {len(all_decoded_layers)}")
+    print(f"   First layer: {first_decoded_layer[:80] if first_decoded_layer else 'None'}...")
+    print(f"   Second layer: {second_decoded_layer[:80] if second_decoded_layer else 'None'}...")
     
     # ════════════════════════════════════════════════════════════════
     # 📋 LOGS: Distinguir DECODING vs DEOBFUSCATION
@@ -613,8 +621,8 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         "total_score": total_score,
         "tactics": list(tactics),
         "techniques": list(techniques),
-        "decoded_command": deobfuscated_command if (has_deobfuscation and decode_iterations >= 1) else None,
-        "double_decoded_command": deobfuscated_command if (has_deobfuscation and decode_iterations >= 2) else None,
+        "decoded_command": first_decoded_layer if (has_deobfuscation and decode_iterations >= 1) else None,  # ✅ PRIMEIRO LAYER
+        "double_decoded_command": second_decoded_layer if (has_deobfuscation and decode_iterations >= 2) else None,  # ✅ SEGUNDO LAYER
         "is_obfuscated": is_obfuscated,
         "obfuscation_type": obfuscation_type
     }
