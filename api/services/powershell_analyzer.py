@@ -600,13 +600,21 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             techniques.update(signature["techniques"])
             total_score += signature_total_score
     
+    # ✅ DEBUG: Print antes de retornar
+    print(f"📊 [ANALYZE_COMMAND_PATTERNS DEBUG]")
+    print(f"   has_deobfuscation: {has_deobfuscation}")
+    print(f"   decode_iterations: {decode_iterations}")
+    print(f"   deobfuscated_command: {deobfuscated_command[:80] if deobfuscated_command else 'None'}")
+    print(f"   Result decoded_command will be: {deobfuscated_command if (has_deobfuscation and decode_iterations >= 1) else None}")
+    print(f"   Result double_decoded_command will be: {deobfuscated_command if (has_deobfuscation and decode_iterations >= 2) else None}")
+    
     return {
         "detected_signatures": detected_signatures,
         "total_score": total_score,
         "tactics": list(tactics),
         "techniques": list(techniques),
         "decoded_command": deobfuscated_command if (has_deobfuscation and decode_iterations >= 1) else None,
-        "double_decoded_command": deobfuscated_command if (has_deobfuscation and decode_iterations >= 2) else None,  # ✅ CORRIGIDO
+        "double_decoded_command": deobfuscated_command if (has_deobfuscation and decode_iterations >= 2) else None,
         "is_obfuscated": is_obfuscated,
         "obfuscation_type": obfuscation_type
     }

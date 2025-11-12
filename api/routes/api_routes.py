@@ -505,8 +505,8 @@ async def get_analysis_by_id_endpoint(analysis_id: str):
             "tactics": analysis_data.get("tactics"),
             "techniques": analysis_data.get("techniques"),
             "decoded_command": analysis_data.get("decoded_command"),
+            "double_decoded_command": analysis_data.get("double_decoded_command"),
             "created_at": analysis_data.get("created_at"),
-            # Não incluir informações sensíveis como IP, user_id, etc.
         }
         
         return JSONResponse({
