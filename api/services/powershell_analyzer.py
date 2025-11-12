@@ -605,8 +605,8 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         "total_score": total_score,
         "tactics": list(tactics),
         "techniques": list(techniques),
-        "decoded_command": deobfuscated_command if has_deobfuscation and decode_iterations == 1 and obfuscation_type == "base64_decoded" else None,
-        "double_decoded_command": deobfuscated_command if has_deobfuscation and decode_iterations >= 2 and obfuscation_type == "base64_decoded" else None,
+        "decoded_command": deobfuscated_command if has_deobfuscation else None,
+        "double_decoded_command": deobfuscated_command if (deobfuscated_command and decode_iterations >= 2) else None,  # ✅ NOVO
         "is_obfuscated": is_obfuscated,
         "obfuscation_type": obfuscation_type
     }

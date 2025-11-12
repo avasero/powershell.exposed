@@ -169,7 +169,7 @@ export default function AnalysisPage() {
             severity: analysisData.is_malicious ? "malicious" : "safe",
             signatures: (analysisData.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
             decoded: analysisData.decoded_command || null,
-            doubleDecoded: analysisData.double_decoded_command || null,
+            doubleDecoded: analysisData.double_decoded_command || null,  // ✅ MAPEAMENTO CORRETO
             indicators: analysisData.analysis_details?.indicators || [],
             details: analysisData.analysis_details?.recommendations?.join(", ") || "",
             tactics: analysisData.tactics || [],
@@ -196,6 +196,14 @@ export default function AnalysisPage() {
             willShowDoubleDecoded: !!analysisResult.doubleDecoded,
             decoded_is_null: analysisResult.decoded === null,
             doubleDecoded_is_null: analysisResult.doubleDecoded === null
+          });
+          
+          // 📊 DEBUG - Verificar se está chegando
+          console.log("📊 [DOUBLE DECODED MAPPING]", {
+            raw_from_backend: analysisData.double_decoded_command,
+            mapped_to_result: analysisResult.doubleDecoded,
+            is_null: analysisResult.doubleDecoded === null,
+            length: analysisResult.doubleDecoded ? analysisResult.doubleDecoded.length : 0
           });
           
           setResult(analysisResult);

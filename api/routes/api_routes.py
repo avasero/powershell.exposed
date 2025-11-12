@@ -200,6 +200,9 @@ async def analyze_command_endpoint(
         analysis_result = analyze_command_patterns(command, signatures)
         severity = calculate_severity_and_risk(analysis_result["total_score"])
         
+        # ✅ NOVO: Capturar double_decoded se existir
+        double_decoded_command = analysis_result.get("double_decoded_command") or None
+        
         # Adicionar informações calculadas ao resultado
         analysis_result.update({
             "severity": severity,
@@ -221,8 +224,7 @@ async def analyze_command_endpoint(
             # Save to cache
             cache_saved = await save_to_cache(phash, indicators_matched, cache_compatible_result)
         
-        
-      
+        # STEP 3.2: Salvar no banco
         db_result = await save_analysis_to_db(
             command=command,
             analysis_result=analysis_result,
@@ -245,6 +247,8 @@ async def analyze_command_endpoint(
                 "signatures_detected": analysis_result["detected_signatures"],
                 "tactics": analysis_result["tactics"],
                 "techniques": analysis_result["techniques"],
+                "decoded_command": analysis_result.get("decoded_command"),  # ✅ IMPORTANTE
+                "double_decoded_command": double_decoded_command,  # ✅ NOVO
                 "total_signatures_checked": len(signatures),
                 "detected_count": len(analysis_result["detected_signatures"]),
                 "cache_info": {

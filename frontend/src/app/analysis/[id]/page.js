@@ -116,7 +116,7 @@ export default function AnalysisDetailsPage() {
         severity: (analysis.risk_score || analysisResult.risk_score || 0) > 5 ? "malicious" : "safe",
         signatures: (analysis.signatures_detected || analysisResult.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
         decoded: analysis.decoded_command || analysisResult.decoded_command || null,
-        doubleDecoded: analysis.double_decoded_command || analysisResult.double_decoded_command || null,
+        doubleDecoded: analysis.double_decoded_command || analysisResult.double_decoded_command || null,  // ✅ MAPEAMENTO CORRETO
         indicators: analysisResult.analysis_details?.indicators || [],
         details: analysisResult.analysis_details?.recommendations?.join(", ") || "",
         tactics: analysis.tactics || analysisResult.tactics || [],
