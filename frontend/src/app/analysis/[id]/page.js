@@ -493,7 +493,7 @@ export default function AnalysisDetailsPage() {
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
             <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-              🔓 First Decoded Layer (Iteration 1)
+               First Decoded Layer (Iteration 1)
             </div>
             <div className="bg-black rounded p-3 border border-blue-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
               <code>{result.decoded}</code>
@@ -512,7 +512,7 @@ export default function AnalysisDetailsPage() {
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
             <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-              🔓 Decoded Command
+               Decoded Command
             </div>
             <div className="bg-black rounded p-3 border border-blue-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
               <code>{result.decoded}</code>
@@ -532,7 +532,7 @@ export default function AnalysisDetailsPage() {
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-yellow-500/30">
             <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-              🔓🔓 Final Decoded Command (Iteration 2+)
+               Final Decoded Command (Iteration 2)
             </div>
             <div className="bg-black rounded p-3 border border-yellow-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
               <code>{result.doubleDecoded}</code>
