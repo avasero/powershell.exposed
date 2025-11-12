@@ -174,6 +174,8 @@ async def analyze_command_endpoint(
                     "signatures_detected": results_blob.get("signatures_detected", []),
                     "tactics": results_blob.get("tactics", []),
                     "techniques": results_blob.get("techniques", []),
+                    "decoded_command": results_blob.get("decoded_command"),
+                    "double_decoded_command": results_blob.get("double_decoded_command"),
                     "total_signatures_checked": results_blob.get("total_signatures_checked", 0),
                     "detected_count": results_blob.get("detected_count", 0),
                     "cache_info": {
