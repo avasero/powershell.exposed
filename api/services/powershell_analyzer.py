@@ -605,8 +605,8 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         "total_score": total_score,
         "tactics": list(tactics),
         "techniques": list(techniques),
-        "decoded_command": deobfuscated_command if (has_deobfuscation and decode_iterations == 1) else None,  # ✅ APENAS para iteration 1
-        "double_decoded_command": deobfuscated_command if (deobfuscated_command and decode_iterations >= 2) else None,  # ✅ APENAS para iteration 2+
+        "decoded_command": deobfuscated_command if has_deobfuscation else None,
+        "double_decoded_command": deobfuscated_command if (deobfuscated_command and decode_iterations >= 2) else None,  # ✅ NOVO
         "is_obfuscated": is_obfuscated,
         "obfuscation_type": obfuscation_type
     }
@@ -649,15 +649,15 @@ async def save_analysis_to_db(
         double_decoded_cmd = analysis_result.get("double_decoded_command")
         
         if deobfuscated_cmd and deobfuscated_cmd.strip():
-            print(f"✅ [DB SAVE] decoded_command: {deobfuscated_cmd[:80]}...")
+            print(f"✅ [DB SAVE] decoded_command (deobfuscated): {deobfuscated_cmd[:80]}...")
         
         if double_decoded_cmd and double_decoded_cmd.strip():
-            print(f"✅ [DB SAVE] double_decoded_command: {double_decoded_cmd[:80]}...")
+            print(f"✅ [DB SAVE] double_decoded_command (Base64 decoded): {double_decoded_cmd[:80]}...")
         
         insert_data = {
             "command": command,
-            "decoded_command": deobfuscated_cmd,  # ✅ Apenas se iteration == 1
-            "double_decoded_command": double_decoded_cmd,  # ✅ Apenas se iteration >= 2
+            "decoded_command": deobfuscated_cmd,
+            "double_decoded_command": double_decoded_cmd,
             "risk_score": round(analysis_result["total_score"], 1),
             "severity": analysis_result["severity"],
             "signatures_detected": analysis_result["detected_signatures"],

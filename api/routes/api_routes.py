@@ -247,8 +247,8 @@ async def analyze_command_endpoint(
                 "signatures_detected": analysis_result["detected_signatures"],
                 "tactics": analysis_result["tactics"],
                 "techniques": analysis_result["techniques"],
-                "decoded_command": analysis_result.get("decoded_command"),  # ✅ Apenas para iteration 1
-                "double_decoded_command": double_decoded_command,  # ✅ Apenas para iteration 2+
+                "decoded_command": analysis_result.get("decoded_command"),  # ✅ IMPORTANTE
+                "double_decoded_command": double_decoded_command,  # ✅ NOVO
                 "total_signatures_checked": len(signatures),
                 "detected_count": len(analysis_result["detected_signatures"]),
                 "cache_info": {
