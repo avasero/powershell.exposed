@@ -183,7 +183,9 @@ export default function AnalysisCard({
                     String Matches:
                   </div>
                   <div className="space-y-2">
-                    {matchesInfo.matchesDetails.map((match, idx) => (
+                    {matchesInfo.matchesDetails
+                      .filter(match => match && match.matched_text) // ✅ Filtrar antes de renderizar
+                      .map((match, idx) => (
                       <div key={idx} className="text-xs p-2 rounded" style={{backgroundColor: 'var(--background)', border: '1px solid var(--border-color)'}}>
                         <div className="flex justify-between items-center mb-1">
                           <span className="font-bold">Match {match.match_number || idx + 1}:</span>
@@ -221,8 +223,18 @@ export default function AnalysisCard({
                 const compactPatternWithMatches = (pattern, matches) => {
                   if (matches.length === 0) return pattern;
                   
+                  // ✅ Filtrar matches inválidos ANTES de usar
+                  const validMatches = matches.filter(match => 
+                    match && 
+                    match.matched_text && 
+                    typeof match.matched_text === 'string' && 
+                    match.matched_text.length > 0
+                  );
+                  
+                  if (validMatches.length === 0) return pattern;
+                  
                   // Ordenar matches por posição no padrão
-                  const sortedMatches = matches
+                  const sortedMatches = validMatches
                     .map(match => ({
                       ...match,
                       index: pattern.toLowerCase().indexOf(match.matched_text.toLowerCase())
@@ -315,7 +327,9 @@ export default function AnalysisCard({
                     </div>
                     
                     <div className="flex flex-wrap gap-2">
-                      {allMatches.map((match, matchIdx) => (
+                      {allMatches
+                        .filter(match => match && match.matched_text && match.matched_text.length > 0) // ✅ Filtrar matches inválidos
+                        .map((match, matchIdx) => (
                         <div key={matchIdx} className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs max-w-full"
                           style={{backgroundColor: 'var(--accent)', color: 'var(--background)'}}>
                           <span className="font-bold break-all" title={match.matched_text}>

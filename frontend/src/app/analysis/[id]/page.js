@@ -110,6 +110,7 @@ export default function AnalysisDetailsPage() {
       setCmd(analysis.command || analysisResult.command);
       setNewCommand(analysis.command || analysisResult.command);
       
+      // ✅ FIX: Aceitar double_decoded mesmo quando decoded é null
       const processedResult = {
         score: analysis.risk_score || analysisResult.risk_score || 0,
         severity: (analysis.risk_score || analysisResult.risk_score || 0) > 5 ? "malicious" : "safe",
@@ -123,7 +124,7 @@ export default function AnalysisDetailsPage() {
         analysisId: params.id 
       };
       
-      // ✅ DEBUG LOG
+      // ✅ DEBUG LOG EXPANDIDO
       console.log("🔍 [DETAILS PAGE] Processed Result:", {
         hasDecoded: !!processedResult.decoded,
         hasDoubleDecoded: !!processedResult.doubleDecoded,
@@ -135,6 +136,14 @@ export default function AnalysisDetailsPage() {
         rawAnalysisDoubleDecoded: analysis.double_decoded_command,
         analysisData: analysis,
         analysisResultData: analysisResult
+      });
+      
+      // ✅ NOVO: Debug específico para renderização
+      console.log("📊 [RENDER DEBUG] Render conditions:", {
+        willShowDecoded: !!(processedResult.decoded && !processedResult.doubleDecoded),
+        willShowDoubleDecoded: !!processedResult.doubleDecoded,
+        decoded_is_null: processedResult.decoded === null,
+        doubleDecoded_is_null: processedResult.doubleDecoded === null
       });
       
       setResult(processedResult);
@@ -477,21 +486,46 @@ export default function AnalysisDetailsPage() {
         </div>
       )}
 
-      {result && result.doubleDecoded && (
+      {/* ✅ REMOVER BLOCO ANTIGO - NÃO MOSTRAR decoded quando tiver double */}
+      {/* Mostrar decoded APENAS para single-layer (decode_iterations == 1) */}
+      {result && result.decoded && !result.doubleDecoded && (() => {
+        console.log("🟦 [RENDER] Showing DECODED block (single-layer)");
+        return (
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+          <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
+            <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
+              🔓 Decoded Command
+            </div>
+            <div className="bg-black rounded p-3 border border-blue-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
+              <code>{result.decoded}</code>
+            </div>
+            <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
+              This is the decoded version from -EncodedCommand
+            </div>
+          </div>
+        </div>
+        );
+      })()}
+
+      {/* ✅ Mostrar double_decoded APENAS quando existir (decode_iterations >= 2) */}
+      {result && result.doubleDecoded && (() => {
+        console.log("🟨 [RENDER] Showing DOUBLE-DECODED block (multi-layer)");
+        return (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-yellow-500/30">
             <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-               🔓 Second Decoded Layer (Double-Encoded)
+              🔓🔓 Double-Decoded Command (Multi-Layer Encoding)
             </div>
             <div className="bg-black rounded p-3 border border-yellow-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
               <code>{result.doubleDecoded}</code>
             </div>
             <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
-              Second layer of nested -EncodedCommand detected and decoded
+              Final layer decoded from multiple nested -EncodedCommand (2+ layers detected)
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {result && result.signatures && result.signatures.length > 0 && (
          <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">

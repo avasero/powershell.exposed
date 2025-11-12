@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from 'react';
 
 // Cache global para evitar requisições desnecessárias
@@ -44,7 +45,7 @@ export function useIpAddress() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000);
         
-        const response = await fetch('http://ip-api.com/json/?fields=status,country,countryCode,query', {
+        const response = await fetch('https://ip-api.com/json/?fields=status,country,countryCode,query', {
           method: 'GET',
           headers: { 'Accept': 'application/json' },
           signal: controller.signal

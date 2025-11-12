@@ -190,6 +190,14 @@ export default function AnalysisPage() {
             analysisDataKeys: Object.keys(analysisData)
           });
           
+          // ✅ NOVO: Debug específico para renderização
+          console.log("📊 [RENDER DEBUG] Render conditions:", {
+            willShowDecoded: !!(analysisResult.decoded && !analysisResult.doubleDecoded),
+            willShowDoubleDecoded: !!analysisResult.doubleDecoded,
+            decoded_is_null: analysisResult.decoded === null,
+            doubleDecoded_is_null: analysisResult.doubleDecoded === null
+          });
+          
           setResult(analysisResult);
         } else {
           throw new Error(response.error || 'Analysis failed');
@@ -421,37 +429,45 @@ export default function AnalysisPage() {
         </div>
       )}
 
-      {result && result.decoded && (
+      {/* ✅ Mostrar decoded APENAS para single-layer (decode_iterations == 1) */}
+      {result && result.decoded && !result.doubleDecoded && (() => {
+        console.log("🟦 [RENDER] Showing DECODED block (single-layer)");
+        return (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
             <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-               {result.doubleDecoded ? "First Decoded Layer" : "Decodified Command"}
+              🔓 Decoded Command
             </div>
             <div className="bg-black rounded p-3 border border-blue-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
               <code>{result.decoded}</code>
             </div>
             <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
-              {result.doubleDecoded ? "First layer of decoding from Base64" : "This is the decoded/deobfuscated version of the command"}
+              This is the decoded version from -EncodedCommand
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
-      {result && result.doubleDecoded && (
+      {/* ✅ Mostrar double_decoded APENAS quando existir (decode_iterations >= 2) */}
+      {result && result.doubleDecoded && (() => {
+        console.log("🟨 [RENDER] Showing DOUBLE-DECODED block (multi-layer)");
+        return (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-yellow-500/30">
             <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-               🔓 Second Decoded Layer (Double-Encoded)
+              🔓🔓 Double-Decoded Command (Multi-Layer Encoding)
             </div>
             <div className="bg-black rounded p-3 border border-yellow-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
               <code>{result.doubleDecoded}</code>
             </div>
             <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
-              Second layer of nested -EncodedCommand detected and decoded
+              Final layer decoded from multiple nested -EncodedCommand (2+ layers detected)
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {result && result.signatures && result.signatures.length > 0 && (
          <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
