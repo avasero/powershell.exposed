@@ -437,63 +437,66 @@ export default function AnalysisPage() {
         </div>
       )}
 
-      {/* ✅ BLOCO 1: Se tiver decoded E doubleDecoded, mostra APENAS o primeiro layer */}
+      {/* ❌ REMOVER COMPLETAMENTE - NÃO DEIXAR COMENTADO */}
+      {/* NÃO DEIXE NENHUM BLOCO ANTIGO AQUI */}
+
+      {/* ✅ BLOCO 1: Double-encoded (decoded && doubleDecoded) */}
       {result && result.decoded && result.doubleDecoded && (() => {
-        console.log("🟦 [RENDER] Showing FIRST DECODED LAYER (double-encoded)");
+        console.log("🟦 [RENDER] DOUBLE LAYER - First decoded");
         return (
-        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-          <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
-            <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-              🔓 First Decoded Layer (Iteration 1)
-            </div>
-            <div className="bg-black rounded p-3 border border-blue-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
-              <code>{result.decoded}</code>
-            </div>
-            <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
-              First layer of decoding - still contains -EncodedCommand
+          <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+            <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
+              <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
+                🔓 First Decoded Layer (Iteration 1)
+              </div>
+              <div className="bg-black rounded p-3 border border-blue-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
+                <code>{result.decoded}</code>
+              </div>
+              <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
+                First layer of decoding - still contains -EncodedCommand
+              </div>
             </div>
           </div>
-        </div>
         );
       })()}
 
-      {/* ✅ BLOCO 2: Mostrar decoded APENAS para single-layer (decode_iterations == 1) */}
+      {/* ✅ BLOCO 2: Single-encoded (decoded && !doubleDecoded) */}
       {result && result.decoded && !result.doubleDecoded && (() => {
-        console.log("🟦 [RENDER] Showing DECODED block (single-layer)");
+        console.log("🟦 [RENDER] SINGLE LAYER - Full decoded");
         return (
-        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-          <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
-            <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-              🔓 Decoded Command
-            </div>
-            <div className="bg-black rounded p-3 border border-blue-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
-              <code>{result.decoded}</code>
-            </div>
-            <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
-              This is the decoded version from -EncodedCommand
+          <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+            <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
+              <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
+                🔓 Decoded Command
+              </div>
+              <div className="bg-black rounded p-3 border border-blue-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
+                <code>{result.decoded}</code>
+              </div>
+              <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
+                This is the decoded version from -EncodedCommand
+              </div>
             </div>
           </div>
-        </div>
         );
       })()}
 
-      {/* ✅ BLOCO 3: Mostrar double_decoded APENAS quando existir (decode_iterations >= 2) */}
+      {/* ✅ BLOCO 3: Final layer (doubleDecoded exists) */}
       {result && result.doubleDecoded && (() => {
-        console.log("🟨 [RENDER] Showing DOUBLE-DECODED block (multi-layer)");
+        console.log("🟨 [RENDER] DOUBLE LAYER - Final decoded");
         return (
-        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-          <div className="border rounded-lg p-4 bg-black/80 border-yellow-500/30">
-            <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-              🔓🔓 Final Decoded Command (Iteration 2+)
-            </div>
-            <div className="bg-black rounded p-3 border border-yellow-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
-              <code>{result.doubleDecoded}</code>
-            </div>
-            <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
-              Final layer decoded from multiple nested -EncodedCommand (2+ layers detected)
+          <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+            <div className="border rounded-lg p-4 bg-black/80 border-yellow-500/30">
+              <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
+                🔓🔓 Final Decoded Command (Iteration 2+)
+              </div>
+              <div className="bg-black rounded p-3 border border-yellow-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
+                <code>{result.doubleDecoded}</code>
+              </div>
+              <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
+                Final layer decoded from multiple nested -EncodedCommand (2+ layers detected)
+              </div>
             </div>
           </div>
-        </div>
         );
       })()}
 

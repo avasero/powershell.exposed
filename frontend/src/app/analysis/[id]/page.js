@@ -470,7 +470,8 @@ export default function AnalysisDetailsPage() {
             </div>
           </div>
         )}
-       {result && result.decoded && (
+       {/* ❌ REMOVER ESTE BLOCO ANTIGO - ESTÁ DUPLICANDO */}
+      {/* {result && result.decoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
             <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
@@ -484,9 +485,8 @@ export default function AnalysisDetailsPage() {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
-      {/* ✅ BLOCO 1: Se tiver decoded E doubleDecoded, mostra APENAS o primeiro layer */}
       {result && result.decoded && result.doubleDecoded && (() => {
         console.log("🟦 [RENDER] Showing FIRST DECODED LAYER (double-encoded)");
         return (
@@ -506,7 +506,6 @@ export default function AnalysisDetailsPage() {
         );
       })()}
 
-      {/* ✅ BLOCO 2: Mostrar decoded APENAS para single-layer (decode_iterations == 1) */}
       {result && result.decoded && !result.doubleDecoded && (() => {
         console.log("🟦 [RENDER] Showing DECODED block (single-layer)");
         return (
