@@ -11,6 +11,7 @@ import ThemedButton from '../components/ThemedButton';
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -24,6 +25,12 @@ export default function RegisterPage() {
     setLoading(true);
     setError('');
     setMessage('');
+
+    if (!acceptedTerms) {
+      setError('You must accept the Terms & Conditions to create an account.');
+      setLoading(false);
+      return;
+    }
 
     try {
       // Usar signUpWithMagicLink corretamente para novo usuário
@@ -88,6 +95,36 @@ export default function RegisterPage() {
                 placeholder="Your username"
                 required
               />
+
+              <div className="flex items-start space-x-2">
+                <input
+                  type="checkbox"
+                  id="terms"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border cursor-pointer"
+                  style={{
+                    accentColor: 'var(--accent)',
+                    borderColor: 'var(--border-color)'
+                  }}
+                  required
+                />
+                <label 
+                  htmlFor="terms" 
+                  className="text-sm font-mono cursor-pointer"
+                  style={{color: 'var(--muted-foreground)'}}
+                >
+                  I agree to the{' '}
+                  <Link 
+                    href="/terms" 
+                    target="_blank"
+                    className="font-semibold hover:underline" 
+                    style={{color: 'var(--accent)'}}
+                  >
+                    Terms & Conditions
+                  </Link>
+                </label>
+              </div>
 
               {error && <ErrorMessage message={error} />}
               {message && <InfoMessage message={message} />}
