@@ -172,14 +172,14 @@ export default function AnalysisDetailsPage() {
       setError("");
       setCacheHit(false);
       
-      // ✅ LOG: Comando original
       console.log("🔍 [ANALYSIS_PAGE] Analyzing command:", command.substring(0, 100) + "...");
       
       const startTime = performance.now();
       const sessionId = getOrCreateSession();
       
+      // ✅ FIX: Enviar comando sem trim - preservar espaços
       const requestData = { 
-        command,
+        command: command, // ✅ SEM TRIM
         user_id: user?.id || null,
         ip_address: finalIpAddress,
         country: finalIpCountry,
@@ -188,7 +188,6 @@ export default function AnalysisDetailsPage() {
         session_id: sessionId
       };
       
-      // ✅ LOG: Tipo de requisição
       console.log("🌐 [ANALYSIS_PAGE] Request type:", user?.id ? "Authenticated WEB" : "Anonymous WEB");
       
       const { makeAuthenticatedRequest } = await import('../../../lib/api');
@@ -304,30 +303,27 @@ export default function AnalysisDetailsPage() {
       setNewAnalysisLoading(false);
     }
   };
-  
-
-  const totalScore = result ? result.score : 0;
-  
 
   const handleNewAnalysis = async () => {
-    if (newCommand.trim()) {
-     
+    // ✅ FIX: Aceitar comando vazio ou apenas espaços
+    if (newCommand.length > 0) {
       if (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit) {
         setError("Rate limit reached. Please wait for the timer to reset.");
         return;
       }
       
-    
       analysisExecutedRef.current = false;
-      
-     
       setError("");
       
-      await performAnalysis(newCommand.trim());
+      // ✅ FIX: Enviar comando sem trim
+      await performAnalysis(newCommand); // ✅ SEM TRIM
       
       setNewCommand("");
     }
   };
+
+  const totalScore = result ? result.score : 0;
+  
 
   if (loading && !isCacheRedirect) {
     return <AnalysisSkeleton />;

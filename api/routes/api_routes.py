@@ -40,14 +40,25 @@ async def analyze_command_endpoint(
     Optimized for instant cache responses
     """
     try:
-        # ✅ VALIDAÇÃO: Verificar limite de 5000 caracteres no comando
         command = request_data.command
         
-        if not command or len(command) > 10000:
+        # ✅ FIX: Aceitar comando vazio ou apenas espaços
+        # Remover validação de comprimento mínimo e aceitar qualquer string
+        if command is None:
             return JSONResponse(
                 {
                     "error": "Command validation failed",
-                    "details": f"Command must be between 1 and 5000 characters. Provided: {len(command) if command else 0} characters"
+                    "details": "Command cannot be None"
+                },
+                status_code=400
+            )
+        
+        # ✅ Manter apenas validação de comprimento máximo
+        if len(command) > 10000:
+            return JSONResponse(
+                {
+                    "error": "Command validation failed",
+                    "details": f"Command must be less than 10000 characters. Provided: {len(command)} characters"
                 },
                 status_code=400
             )

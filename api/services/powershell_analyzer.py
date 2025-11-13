@@ -133,7 +133,7 @@ def normalize_powershell_command(command: str) -> str:
     """
     Normaliza caracteres especiais em comandos PowerShell.
     Substitui aspas "curly" e primes por aspas ASCII.
-    Preserva espaçamento intencional.
+    ✅ PRESERVA ESPAÇOS EM BRANCO (não faz strip)
     """
     # ✅ NOVO: Remover escapes duplicados que vêm do frontend
     command = command.replace('\\\\"', '"').replace('\\\"', '"').replace("\\'", "'")
@@ -146,13 +146,14 @@ def normalize_powershell_command(command: str) -> str:
     command = command.replace('′', "'")  # U+2032 Prime
     command = command.replace('″', '"')  # U+2033 Double prime
 
-    # Remover apenas caracteres invisíveis, não espaçamento
+    # Remover apenas caracteres invisíveis, NÃO espaços
     invisible_chars = [
         '\u200b', '\u200c', '\u200d', '\ufeff', '\u2060'
     ]
     for ch in invisible_chars:
         command = command.replace(ch, '')
 
+    # ✅ NÃO FAZER STRIP - preservar espaços
     return command
 
 
@@ -355,6 +356,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     tactics = set()
     techniques = set()
     
+    # ✅ Normalizar sem strip - preservar espaços
     normalized_command = normalize_powershell_command(command)
     deobfuscated_command, decode_iterations, obfuscation_type, all_decoded_layers = deobfuscate_powershell(normalized_command)
     has_deobfuscation = deobfuscated_command != normalized_command
@@ -469,8 +471,6 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                 techniques.update(encoded_sig.get("techniques", ["T1027", "T1027.001", "T1140"]))
                 total_score += encoded_sig["score"]
 
-    # ════════════════════════════════════════════════════════════════
-    # 3️⃣  DOUBLE/MULTIPLE ENCODING DETECTION
     # ════════════════════════════════════════════════════════════════
     if decode_iterations >= 2:
         try:

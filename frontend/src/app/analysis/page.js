@@ -66,7 +66,6 @@ export default function AnalysisPage() {
       try {
         setError("");
         
-        // ✅ LOG: Comando original
         console.log("🔍 [ANALYSIS_LEGACY] Analyzing command:", command.substring(0, 100) + "...");
         
         const timeoutPromise = new Promise((_, reject) =>
@@ -74,8 +73,9 @@ export default function AnalysisPage() {
         );
         const sessionId = getOrCreateSession();
         
+        // ✅ FIX: Enviar comando sem trim - preservar espaços
         const requestData = { 
-          command,
+          command: command, // ✅ SEM TRIM
           user_id: user?.id || null, 
           ip_address: finalIpAddress,
           country: finalIpCountry,
@@ -84,7 +84,6 @@ export default function AnalysisPage() {
           session_id: sessionId
         };
         
-        // ✅ LOG: Tipo de requisição
         console.log("🌐 [ANALYSIS_LEGACY] Request type:", user?.id ? "Authenticated WEB" : "Anonymous WEB");
 
         const { makeAuthenticatedRequest } = await import('../../lib/api');
@@ -218,11 +217,9 @@ export default function AnalysisPage() {
           return; 
         }
         
-      
         setError(err.message);
         setResult(null);
       } finally {
-       
         setLoading(false);
         setFreshAnalysisLoading(false);
       }
@@ -240,6 +237,24 @@ export default function AnalysisPage() {
       setLoading
     ]
   );
+
+  const handleNewAnalysis = async () => {
+    // ✅ FIX: Aceitar comando vazio ou apenas espaços
+    if (newCommand.length > 0) {
+      if (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit) {
+        setError("Rate limit reached. Please wait for the timer to reset.");
+        return;
+      }
+      
+      analysisExecutedRef.current = false; 
+      setError("");
+      
+      // ✅ FIX: Enviar comando sem trim
+      await performAnalysis(newCommand); // ✅ SEM TRIM
+      
+      setNewCommand("");
+    }
+  };
 
 
   useEffect(() => {
@@ -280,28 +295,6 @@ export default function AnalysisPage() {
  
   const totalScore = result ? result.score : 0;
   
-
-  const handleNewAnalysis = async () => {
-    if (newCommand.trim()) {
-    
-      if (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit) {
-        setError("Rate limit reached. Please wait for the timer to reset.");
-        return;
-      }
-      
-      analysisExecutedRef.current = false; 
-      
-  
-      setError("");
-      
-   
-      await performAnalysis(newCommand.trim());
-      
-    
-      setNewCommand("");
-    }
-  };
-
 
   if (loading && freshAnalysisLoading) {
     return <AnalysisSkeleton />;

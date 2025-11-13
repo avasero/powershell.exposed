@@ -33,19 +33,10 @@ export default function EvaluatePage() {
       return { isValid: false, error: "Command cannot be empty." };
     }
 
-    // Check if only whitespace (not trim for display, just check content)
+    // ✅ REMOVIDO: Não verificar mais se é apenas whitespace
+    // Aceitar qualquer string, incluindo apenas espaços
     if (input.length === 0) {
       return { isValid: false, error: "Command cannot be empty." };
-    }
-
-    const lines = input.split('\n');
-    const nonCommentLines = lines.filter(line => {
-      const cleanLine = line.trim();
-      return cleanLine.length > 0 && !cleanLine.startsWith('#');
-    });
-    
-    if (nonCommentLines.length === 0) {
-      return { isValid: false, error: "Command cannot contain only comments." };
     }
 
     return { isValid: true, error: null };
@@ -64,16 +55,15 @@ export default function EvaluatePage() {
     setLoading(true);
     setCacheHit(false);
     
-    
-    
     const startTime = performance.now();
     
     try {
       const { getOrCreateSession, saveSessionFromBackend } = await import('../../utils/session');
       const sessionId = getOrCreateSession();
       
+      // ✅ FIX: Enviar comando sem trim - preservar espaços
       const requestData = { 
-        command, 
+        command: command, // ✅ SEM TRIM
         user_id: user?.id || null,
         ip_address: ipAddress,
         country: ipCountry,
@@ -183,24 +173,9 @@ export default function EvaluatePage() {
     const newCommand = e.target.value;
     setCommand(newCommand);
     
-    // Check if command is effectively empty (only whitespace)
-    if (newCommand.replace(/\s/g, '').length === 0) {
-      setError("");
-      return;
-    }
-    
-    if (newCommand.length > 5) {
-      const validation = validatePowerShellCommand(newCommand);
-      if (!validation.isValid && (
-        validation.error.includes("plain text") || 
-        validation.error.includes("description") ||
-        validation.error.includes("only comments")
-      )) {
-        setError(validation.error);
-      } else {
-        setError("");
-      }
-    }
+    // ✅ REMOVIDO: Não validar se é apenas whitespace
+    // Aceitar qualquer string
+    setError("");
   };
 
   return (
