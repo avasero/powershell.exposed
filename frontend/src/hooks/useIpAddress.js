@@ -40,12 +40,14 @@ export function useIpAddress() {
 
       try {
         setLoading(true);
+        setError(null);
         
-        // Use IP-API which returns both IP and country in a single request
+        // ✅ FIX: Usar ipify.org que não tem rate limit 403
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000);
         
-        const response = await fetch('https://ip-api.com/json/?fields=status,country,countryCode,query', {
+        // Primeiro buscar o IP
+        const ipResponse = await fetch('https://api.ipify.org?format=json', {
           method: 'GET',
           headers: { 'Accept': 'application/json' },
           signal: controller.signal
@@ -53,44 +55,61 @@ export function useIpAddress() {
         
         clearTimeout(timeoutId);
         
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        if (!ipResponse.ok) {
+          console.warn(`IP detection failed with status: ${ipResponse.status}`);
+          setIpAddress('Unknown');
+          setIpCountry('Unknown');
+          setLoading(false);
+          return;
         }
         
-        const data = await response.json();
+        const ipData = await ipResponse.json();
+        const ip = ipData.ip || 'Unknown';
         
-        if (data.status === 'success' && data.query) {
-          const ip = data.query;
-          const country = data.country || data.countryCode || null;
+        // ✅ FIX: Buscar país usando ip-api.com (sem rate limit para uso pessoal)
+        let country = 'Unknown';
+        try {
+          const geoController = new AbortController();
+          const geoTimeoutId = setTimeout(() => geoController.abort(), 5000);
           
-          setIpAddress(ip);
-          setIpCountry(country);
+          const geoResponse = await fetch(`https://ip-api.com/json/${ip}?fields=status,country,countryCode`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            signal: geoController.signal
+          });
+          
+          clearTimeout(geoTimeoutId);
+          
+          if (geoResponse.ok) {
+            const geoData = await geoResponse.json();
+            if (geoData.status === 'success') {
+              country = geoData.country || geoData.countryCode || 'Unknown';
+            }
+          }
+        } catch (geoError) {
+          console.warn('Geo detection failed, using Unknown:', geoError.message);
+          // Não propagar erro, apenas usar Unknown
+        }
+        
+        setIpAddress(ip);
+        setIpCountry(country);
 
-          // Salvar no cache
-          ipCache = {
-            ipAddress: ip,
-            ipCountry: country,
-            timestamp: Date.now(),
-            error: null
-          };
-          
-          console.log('✅ IP and country captured from IP-API:', { ip, country });
-        } else {
-          throw new Error('IP-API returned unsuccessful status');
-        }
+        // Salvar no cache
+        ipCache = {
+          ipAddress: ip,
+          ipCountry: country,
+          timestamp: Date.now(),
+          error: null
+        };
+        
+        console.log('✅ IP and country captured:', { ip, country });
         
       } catch (err) {
-        console.error('❌ Error fetching IP and country:', err);
-        setError(err.message);
-        setIpAddress(null);
-        setIpCountry(null);
-
-        ipCache = {
-          ipAddress: null,
-          ipCountry: null,
-          timestamp: Date.now(),
-          error: err.message
-        };
+        // ✅ Não mostrar erro ao usuário, apenas log
+        console.warn('IP detection error:', err.message);
+        setIpAddress('Unknown');
+        setIpCountry('Unknown');
+        setError(null);  // ✅ Não propagar erro
       } finally {
         setLoading(false);
       }

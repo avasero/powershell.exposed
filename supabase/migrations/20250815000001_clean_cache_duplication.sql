@@ -51,6 +51,23 @@ BEGIN
             cleaned_blob->'detected_signatures'
         );
         
+        -- ✅ FIX: Preservar decoded_command e double_decoded_command se existirem
+        IF cache_record.results_blob ? 'decoded_command' THEN
+            cleaned_blob := jsonb_set(
+                cleaned_blob,
+                '{decoded_command}',
+                cache_record.results_blob->'decoded_command'
+            );
+        END IF;
+        
+        IF cache_record.results_blob ? 'double_decoded_command' THEN
+            cleaned_blob := jsonb_set(
+                cleaned_blob,
+                '{double_decoded_command}',
+                cache_record.results_blob->'double_decoded_command'
+            );
+        END IF;
+        
         -- Update the record
         UPDATE cache_results 
         SET results_blob = cleaned_blob
@@ -70,4 +87,4 @@ DROP FUNCTION clean_cache_results_blob();
 
 -- Add comment to document the cleanup
 COMMENT ON TABLE cache_results IS 
-'Cache table cleaned: pattern removed from matches_details to reduce duplication. Pattern appears only once per signature.';
+'Cache table cleaned: pattern removed from matches_details to reduce duplication. Pattern appears only once per signature. Decoded commands preserved.';

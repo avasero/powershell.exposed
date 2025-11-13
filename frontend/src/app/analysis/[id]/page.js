@@ -14,6 +14,7 @@ import LoadingSpinner from "../../components/LoadingSpinner";
 import AnalysisSkeleton from "../../components/AnalysisSkeleton";
 import CommandInput from "../../components/CommandInput";
 import { ErrorMessage, InfoMessage } from "../../components/Messages";
+import IndicatorsSummaryTable from "../../components/IndicatorsSummaryTable";
 
 import { saveAnonymousAnalysis } from "../../../utils/cookies";
 import { getOrCreateSession, saveSessionFromBackend } from "../../../utils/session";
@@ -470,7 +471,6 @@ export default function AnalysisDetailsPage() {
             </div>
           </div>
         )}
-       {/* ❌ REMOVER ESTE BLOCO ANTIGO - ESTÁ DUPLICANDO */}
       {/* {result && result.decoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
@@ -555,34 +555,30 @@ export default function AnalysisDetailsPage() {
               sig.tactics?.length > 1 
             );
             
-            const importantCmdletNames = realSignatures
-              .filter(sig => sig.name.includes('('))
-              .map(sig => {
-                const match = sig.name.match(/\((.*?)\)$/);
-                return match ? match[1] : null;
-              })
-              .filter(Boolean);
-            
             const basicCmdlets = result.signatures.filter(sig => 
               sig.name.includes('(') && 
               sig.score < 4.0 && 
               sig.techniques?.includes('T1059.001') && 
               sig.tactics?.length <= 1
-              
             );
 
             return (
               <>
-                                
+                {/* ✅ NOVO: Tabela de resumo */}
                 {realSignatures.length > 0 && (
-          <div className="mb-6">
-                                         <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{color: 'var(--foreground)'}}>
-                       Indicators Breakdown
-            </h2>
+                  <IndicatorsSummaryTable signatures={realSignatures} />
+                )}
+                
+                {realSignatures.length > 0 && (
+                  <div className="mb-6">
+                    <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{color: 'var(--foreground)'}}>
+                      Indicators Breakdown
+                    </h2>
                     <div className="space-y-4">
                       {realSignatures.map((signature, index) => (
                         <AnalysisCard
                           key={`real-${index}`}
+                          index={index}  // ✅ Passar index
                           title={signature.name || 'Unknown Pattern'}
                           description={signature.description || `Pattern detected: ${signature.pattern || 'No description available'}`}
                           severity={signature.severity || 'unknown'}
@@ -603,38 +599,12 @@ export default function AnalysisDetailsPage() {
                             matchesDetails: signature.matches_details || signature.matchesDetails || []
                           }}
                         />
-              ))}
-            </div>
-          </div>
-        )}
-
-                  {basicCmdlets.length > 0 && (
-          <div className="mb-6">
-                      <h3 className="text-base font-mono font-bold mb-3" style={{color: 'var(--muted-foreground)'}}>
-                        PowerShell Cmdlets ({basicCmdlets.length})
-                      </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {basicCmdlets.map((cmdlet, index) => (
-                        <div 
-                          key={`cmdlet-${index}`}
-                          className="border rounded p-3 text-center bg-black/80 border-green-500/30"
-                        >
-                          <div className="font-mono text-sm font-bold mb-1" style={{color: 'var(--foreground)'}}>
-                            {cmdlet.name}
-                          </div>
-                          <div className="text-xs font-mono" style={{color: 'var(--muted-foreground)'}}>
-                            Score: {cmdlet.total_score || cmdlet.score} • Basic PowerShell
-                          </div>
-                          {cmdlet.matches_found > 1 && (
-                            <div className="text-xs font-mono mt-1" style={{color: 'var(--accent)'}}>
-                              {cmdlet.matches_found} matches • Base: {cmdlet.base_score || cmdlet.score}
-                  </div>
-                          )}
-                </div>
-              ))}
-            </div>
+                      ))}
+                    </div>
                   </div>
                 )}
+
+                {/* ...existing code for basicCmdlets... */}
               </>
             );
           })()}

@@ -187,6 +187,7 @@ def create_cache_compatible_result(analysis_result: Dict[str, Any]) -> Dict[str,
         }
         cleaned_signatures.append(cleaned_sig)
     
+    # ✅ FIX: Incluir decoded_command e double_decoded_command no cache
     return {
         "total_score": analysis_result.get("total_score", 0.0),
         "risk_score": analysis_result.get("total_score", 0.0),
@@ -195,6 +196,8 @@ def create_cache_compatible_result(analysis_result: Dict[str, Any]) -> Dict[str,
         "signatures_detected": cleaned_signatures,
         "tactics": analysis_result.get("tactics", []),
         "techniques": analysis_result.get("techniques", []),
+        "decoded_command": analysis_result.get("decoded_command"),  # ✅ ADICIONAR
+        "double_decoded_command": analysis_result.get("double_decoded_command"),  # ✅ ADICIONAR
         "total_signatures_checked": analysis_result.get("total_signatures_checked", 0),
         "detected_count": analysis_result.get("detected_count", 0),
         "cached": True

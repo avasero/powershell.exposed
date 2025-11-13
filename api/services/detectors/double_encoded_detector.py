@@ -1,21 +1,14 @@
-"""
-Detector para comandos PowerShell com double/múltipla codificação
-Identifica -EncodedCommand aninhado ou múltiplas camadas de Base64
-"""
+
 
 import re
 import base64
 
 
-ENCODED_COMMAND_PATTERN = r'[\u002D\u2013\u2014\u2015]e(?:nc?o?d?e?d?c?o?m?m?a?n?d?)?\s+["\']?\s*([a-z0-9+/]{20,}={0,2})'
+
+ENCODED_COMMAND_PATTERN = r'[\u002D\u2013\u2014\u2015](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']?\s*([a-z0-9+/]{20,}={0,2})'
 
 
 def decode_base64_utf16(encoded_str: str) -> str:
-    """
-    Decodifica Base64 UTF-16LE (padrão PowerShell)
-    SEMPRE usa UTF-16LE, NUNCA UTF-8
-    ✅ SEM VALIDAÇÃO - Apenas decodifica e retorna
-    """
     try:
         encoded_str = encoded_str.replace(' ', '').replace('\n', '').replace('\r', '')
         
@@ -41,7 +34,6 @@ def detect_double_encoded_command(
     decode_iterations: int = 0
 ) -> dict:
     try:
-        # Se detectou 2+ iterações, é double encoded
         if decode_iterations >= 2:
             return {
                 "is_double_encoded": True,
@@ -56,7 +48,7 @@ def detect_double_encoded_command(
             base64_payload = match.group(1)
             second_level_decoded = decode_base64_utf16(base64_payload)
             
-            # ✅ Verificação mais permissiva
+            
             if len(second_level_decoded) > 0:
                 return {
                     "is_double_encoded": True,

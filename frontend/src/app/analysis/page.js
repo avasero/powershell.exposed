@@ -14,6 +14,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import AnalysisSkeleton from "../components/AnalysisSkeleton";
 import CommandInput from "../components/CommandInput";
 import { ErrorMessage, InfoMessage } from "../components/Messages";
+import IndicatorsSummaryTable from "../components/IndicatorsSummaryTable";
 
   import { saveAnonymousAnalysis } from "../../utils/cookies";
 import { getOrCreateSession, saveSessionFromBackend } from "../../utils/session";
@@ -510,33 +511,30 @@ export default function AnalysisPage() {
               sig.tactics?.length > 1 
             );
             
-            const importantCmdletNames = realSignatures
-              .filter(sig => sig.name.includes('('))
-              .map(sig => {
-                const match = sig.name.match(/\((.*?)\)$/);
-                return match ? match[1] : null;
-              })
-              .filter(Boolean);
-            
             const basicCmdlets = result.signatures.filter(sig => 
               sig.name.includes('(') &&
               sig.score < 4.0 && 
               sig.techniques?.includes('T1059.001') && 
               sig.tactics?.length <= 1
-              
             );
 
             return (
               <>
+                {/* ✅ NOVO: Tabela de resumo */}
+                {realSignatures.length > 0 && (
+                  <IndicatorsSummaryTable signatures={realSignatures} />
+                )}
+                
                 {realSignatures.length > 0 && (
                   <div className="mb-6">
-                                         <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{color: 'var(--foreground)'}}>
-                       Indicators Breakdown
-                     </h2>
+                    <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{color: 'var(--foreground)'}}>
+                      Indicators Breakdown
+                    </h2>
                     <div className="space-y-4">
                       {realSignatures.map((signature, index) => (
                         <AnalysisCard
                           key={`real-${index}`}
+                          index={index}  // ✅ Passar index
                           title={signature.name || 'Unknown Pattern'}
                           description={signature.description || `Pattern detected: ${signature.pattern || 'No description available'}`}
                           severity={signature.severity || 'unknown'}
@@ -562,7 +560,7 @@ export default function AnalysisPage() {
                   </div>
                 )}
 
-                  {basicCmdlets.length > 0 && (
+                {basicCmdlets.length > 0 && (
                     <div className="mb-6">
                       <h3 className="text-base font-mono font-bold mb-3" style={{color: 'var(--muted-foreground)'}}>
                         PowerShell Cmdlets ({basicCmdlets.length})

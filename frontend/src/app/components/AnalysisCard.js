@@ -44,14 +44,15 @@ export default function AnalysisCard({
   matched_text,
   matched_command,
   keywords,
-  tactic,
-  technique,
-  reference,
+  tactic = [],
+  technique = [],
+  reference = "",
+  link = null,
   matchesInfo,
-  link,
-  children, 
-  variant = "default",
-  className = "" 
+  index = 0,
+  variant = "default",  // ✅ Adicionar prop variant com valor padrão
+  className = "",  // ✅ Adicionar prop className com valor padrão
+  children  // ✅ Adicionar prop children
 }) {
   // Debug: log the link prop
   const variantStyles = {
@@ -117,7 +118,8 @@ export default function AnalysisCard({
   if (title && (description || severity || score)) {
     return (
       <div 
-        className={`border rounded-lg p-4 sm:p-6 mb-4 sm:mb-6 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ${className}`} 
+        id={`indicator-${index}`}  // ✅ Adicionar ID único
+        className={`border rounded-lg p-4 sm:p-6 mb-4 sm:mb-6 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all`} 
         style={variantStyles[variant]}
       >
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3">

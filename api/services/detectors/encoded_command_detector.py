@@ -1,21 +1,12 @@
-"""
-Detector para comandos PowerShell codificados em Base64
-Identifica -EncodedCommand, -enc, -enco e variações com FromBase64String
-"""
-
 import re
 import base64
 
 
-ENCODED_COMMAND_PATTERN = r'[\u002D\u2013\u2014\u2015]e(?:nc?o?d?e?d?c?o?m?m?a?n?d?)?\s+["\']?\s*([a-z0-9+/]{20,}={0,2})'
+
+ENCODED_COMMAND_PATTERN = r'[\u002D\u2013\u2014\u2015](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']?\s*([a-z0-9+/]{20,}={0,2})'
 
 
 def decode_base64_utf16(encoded_str: str) -> str:
-    """
-    Decodifica Base64 UTF-16LE (padrão PowerShell)
-    SEMPRE usa UTF-16LE, NUNCA UTF-8
-    ✅ SEM VALIDAÇÃO - Apenas decodifica e retorna
-    """
     try:
         encoded_str = encoded_str.replace(' ', '').replace('\n', '').replace('\r', '')
         
@@ -42,11 +33,8 @@ def detect_encoded_command(command: str) -> dict:
         
         if match:
             base64_payload = match.group(1)
-            
-            # Tentar decodificar
             decoded = decode_base64_utf16(base64_payload)
             
-            # ✅ Verificação mais permissiva
             if len(decoded) > 0:
                 return {
                     "is_encoded": True,

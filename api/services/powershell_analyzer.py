@@ -15,7 +15,7 @@ from services.detectors.double_encoded_detector import detect_double_encoded_com
 from services.detectors.obfuscation_detector import detect_obfuscation
 
 
-ENCODED_COMMAND_PATTERN = r'[\u002D\u2013\u2014\u2015]e(?:nc?o?d?e?d?c?o?m?m?a?n?d?)?\s+["\']?\s*([a-z0-9+/]{20,}={0,2})'
+ENCODED_COMMAND_PATTERN = r'[\u002D\u2013\u2014\u2015](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']?\s*([a-z0-9+/]{20,}={0,2})'
 
 try:
     import ppdeep
@@ -223,7 +223,7 @@ def deobfuscate_powershell(command: str) -> tuple:
     # ════════════════════════════════════════════════════════════════
     while iteration < max_decode_iterations:
         encoded_match = re.search(
-            r'[\u002D\u2013\u2014\u2015]e(?:nc?o?d?e?d?c?o?m?m?a?n?d?)?\s+["\']?\s*([a-z0-9+/]{20,}={0,2})',
+            ENCODED_COMMAND_PATTERN,
             command_to_process,
             re.IGNORECASE
         )
@@ -258,7 +258,7 @@ def deobfuscate_powershell(command: str) -> tuple:
                 
                 # Verificar se há mais -EncodedCommand
                 has_more = re.search(
-                    r'[\u002D\u2013\u2014\u2015]e(?:nc?o?d?e?d?c?o?m?m?a?n?d?)?\s+["\']?\s*([a-z0-9+/]{20,}={0,2})',
+                    ENCODED_COMMAND_PATTERN,
                     decoded_payload,
                     re.IGNORECASE
                 )

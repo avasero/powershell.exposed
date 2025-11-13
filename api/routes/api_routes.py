@@ -143,10 +143,17 @@ async def analyze_command_endpoint(
             # ⚡ INSTANT CACHE RESPONSE: Minimal processing
             results_blob = cached_result.get("results_blob", {})
             
+            # ✅ FIX: Garantir que todos os campos necessários existam
             if "total_score" not in results_blob:
                 results_blob["total_score"] = results_blob.get("risk_score", 0.0)
             if "detected_signatures" not in results_blob:
                 results_blob["detected_signatures"] = results_blob.get("signatures_detected", [])
+            
+            # ✅ FIX: Garantir decoded_command e double_decoded_command existem (mesmo que None)
+            if "decoded_command" not in results_blob:
+                results_blob["decoded_command"] = None
+            if "double_decoded_command" not in results_blob:
+                results_blob["double_decoded_command"] = None
             
             # ⚡ FAST DATABASE SAVE: Wait for completion to get real analysis_id
             db_result = await save_analysis_to_db(
@@ -174,8 +181,8 @@ async def analyze_command_endpoint(
                     "signatures_detected": results_blob.get("signatures_detected", []),
                     "tactics": results_blob.get("tactics", []),
                     "techniques": results_blob.get("techniques", []),
-                    "decoded_command": results_blob.get("decoded_command"),
-                    "double_decoded_command": results_blob.get("double_decoded_command"),
+                    "decoded_command": results_blob.get("decoded_command"),  # ✅ INCLUIR
+                    "double_decoded_command": results_blob.get("double_decoded_command"),  # ✅ INCLUIR
                     "total_signatures_checked": results_blob.get("total_signatures_checked", 0),
                     "detected_count": results_blob.get("detected_count", 0),
                     "cache_info": {
