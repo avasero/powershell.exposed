@@ -11,16 +11,17 @@ from services.session_manager import get_supabase_client
 def generate_phash(command: str) -> int:
     """
     Generate a CRC32 hash for the PowerShell command
+    ✅ NÃO NORMALIZAR - usar comando raw para garantir hash único
     
     Args:
-        command (str): The PowerShell command to hash
+        command (str): The PowerShell command to hash (raw, without normalization)
         
     Returns:
         int: CRC32 hash value as integer
     """
-    # Normalize the command by stripping whitespace to ensure consistent hashing
-    normalized_command = command.strip()
-    b = normalized_command.encode('utf-8')
+    # ❌ REMOVIDO: .strip() - NÃO normalizar o comando
+    # Usar comando RAW exatamente como recebido
+    b = command.encode('utf-8')
     v = zlib.crc32(b) & 0xffffffff
     return v
 
@@ -176,18 +177,21 @@ def create_cache_compatible_result(analysis_result: Dict[str, Any]) -> Dict[str,
                 {
                     "matched_text": md.get("matched_text"),
                     "position": md.get("position"),
-                    "match_number": md.get("match_number")
+                    "match_number": md.get("match_number"),
+                    "matched_in": md.get("matched_in")  # ✅ Preservar informação de onde o match ocorreu
                 }
                 for md in sig.get("matches_details", [])
             ],
             "tactics": sig.get("tactics", []),
             "techniques": sig.get("techniques", []),
             "reference": sig.get("reference", []),
-            "link": sig.get("link")
+            "link": sig.get("link"),
+            "is_premium_indicator": sig.get("is_premium_indicator", False),
+            "found_in_deobfuscated": sig.get("found_in_deobfuscated", False)
         }
         cleaned_signatures.append(cleaned_sig)
     
-    # ✅ FIX: Incluir decoded_command e double_decoded_command no cache
+    # ✅ Incluir decoded_command e double_decoded_command no cache
     return {
         "total_score": analysis_result.get("total_score", 0.0),
         "risk_score": analysis_result.get("total_score", 0.0),
@@ -196,8 +200,8 @@ def create_cache_compatible_result(analysis_result: Dict[str, Any]) -> Dict[str,
         "signatures_detected": cleaned_signatures,
         "tactics": analysis_result.get("tactics", []),
         "techniques": analysis_result.get("techniques", []),
-        "decoded_command": analysis_result.get("decoded_command"),  # ✅ ADICIONAR
-        "double_decoded_command": analysis_result.get("double_decoded_command"),  # ✅ ADICIONAR
+        "decoded_command": analysis_result.get("decoded_command"),
+        "double_decoded_command": analysis_result.get("double_decoded_command"),
         "total_signatures_checked": analysis_result.get("total_signatures_checked", 0),
         "detected_count": analysis_result.get("detected_count", 0),
         "cached": True

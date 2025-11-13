@@ -132,10 +132,6 @@ export default function IndicatorsSummaryTable({ signatures }) {
           </table>
         </div>
       </div>
-      
-      <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
-        Click any row to jump to detailed indicator breakdown
-      </div>
     </div>
   );
 }
