@@ -12,9 +12,7 @@ def generate_api_key() -> str:
     """
     Gera uma API Key segura no formato: pse_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     """
-    # Prefixo para identificar como PowerShell Exposed API Key
     prefix = "pse_"
-    # 32 caracteres aleatórios
     key_part = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
     return f"{prefix}{key_part}"
 
@@ -24,13 +22,11 @@ async def create_user_api_key(user_id: str, name: str = "Default API Key", acces
     Cria uma nova API Key para o usuário na tabela profiles
     """
     try:
-        # Usar contexto de usuário para operações em profiles (RLS)
         from services.session_manager import get_supabase_client_with_user_context
         supabase = get_supabase_client_with_user_context(access_token)
         
        
         
-        # Verificar se usuário já tem uma API Key ativa
         existing_response = supabase.table('profiles') \
             .select('*') \
             .eq('id', user_id) \
@@ -50,10 +46,8 @@ async def create_user_api_key(user_id: str, name: str = "Default API Key", acces
                 "is_active": profile["api_key_is_active"]
             }
         
-        # Se não há API Key ativa, limpar qualquer API Key inativa existente
         print(f"🔄 Limpando API Key inativa (se existir) para usuário {user_id}")
         
-        # Primeiro verificar se o usuário existe na tabela profiles
         user_check = supabase.table('profiles') \
             .select('id, username') \
             .eq('id', user_id) \
@@ -77,10 +71,8 @@ async def create_user_api_key(user_id: str, name: str = "Default API Key", acces
             .eq('id', user_id) \
             .execute()
         
-        # Gerar nova API Key
         api_key = generate_api_key()
         
-        # Atualizar perfil com nova API Key
         update_data = {
             "api_key": api_key,
             "api_key_name": name,
@@ -92,26 +84,20 @@ async def create_user_api_key(user_id: str, name: str = "Default API Key", acces
         
         print(f"📊 Dados para atualizar: {update_data}")
         
-        # Usar SQL direto para bypasse RLS se necessário
         try:
-            # Primeiro tentar a abordagem padrão
             response = supabase.table('profiles').update(update_data).eq('id', user_id).execute()
             
-            # Se não retornou dados, pode ser problema de RLS
             if not response.data or len(response.data) == 0:
                 print(f"⚠️ Update não retornou dados, tentando com auth context")
                 
-                # Tentar definir o contexto de usuário para RLS
                 supabase.auth.admin.create_user({
                     "user_metadata": {"user_id": user_id}
                 })
                 
-                # Tentar novamente
                 response = supabase.table('profiles').update(update_data).eq('id', user_id).execute()
                 
         except Exception as e:
             print(f"⚠️ Erro na atualização: {e}")
-            # Como fallback, vamos tentar sem algumas validações RLS
             response = {"data": [], "error": str(e)}
         
         print(f"📊 Resposta do Supabase: {response}")
@@ -146,24 +132,23 @@ async def get_user_api_key(user_id: str, access_token: str = None) -> Optional[D
     Busca a API Key ativa do usuário na tabela profiles
     """
     try:
-        # Usar contexto de usuário para RLS
         from services.session_manager import get_supabase_client_with_user_context
         supabase = get_supabase_client_with_user_context(access_token)
         
-        # Usar execute() sem .single() para evitar erro quando não há resultados
+       
         response = supabase.table('profiles') \
             .select('*') \
             .eq('id', user_id) \
             .execute()
         
-        # Verificar se há dados e se a API Key existe e está ativa
+       
         if response.data and len(response.data) > 0:
             profile = response.data[0]
             print(f"🔍 Verificando API Key para usuário {user_id}:")
             print(f"   - api_key existe: {bool(profile.get('api_key'))}")
             print(f"   - api_key_is_active: {profile.get('api_key_is_active')}")
             
-            # Só retornar se a API Key existir (não for None/null) E estiver ativa
+           
             if profile.get('api_key') and profile.get('api_key_is_active'):
                 return {
                     "id": profile["id"],
@@ -194,7 +179,7 @@ async def validate_api_key(api_key: str) -> Optional[Dict[str, Any]]:
         
         supabase = get_supabase_client()
         
-        # Buscar API Key na tabela profiles
+       
         response = supabase.table('profiles') \
             .select('*') \
             .eq('api_key', api_key) \
@@ -206,16 +191,16 @@ async def validate_api_key(api_key: str) -> Optional[Dict[str, Any]]:
         
         profile = response.data[0]
         
-        # Atualizar contadores de uso
+        
         await update_api_key_usage(api_key)
         
-        # Retornar dados do usuário
+       
         return {
             "user_id": profile["id"],
-            "api_key_id": profile["id"],  # Usar o mesmo ID do profile
+            "api_key_id": profile["id"],  
             "api_key_name": profile["api_key_name"],
             "profile": {
-                "email": profile.get("username"),  # Assumindo que username é o email
+                "email": profile.get("username"),  
                 "full_name": profile.get("full_name"),
                 "avatar_url": profile.get("avatar_url")
             },
@@ -235,7 +220,7 @@ async def update_api_key_usage(api_key: str):
     try:
         supabase = get_supabase_client()
         
-        # Usar a função SQL para incrementar o contador
+       
         supabase.rpc('increment_api_key_usage_count', {'api_key_param': api_key}).execute()
             
     except Exception as error:
@@ -247,13 +232,13 @@ async def revoke_user_api_key(user_id: str, access_token: str = None) -> bool:
     Revoga (remove completamente) a API Key do usuário na tabela profiles
     """
     try:
-        # Usar contexto de usuário para RLS
+       
         from services.session_manager import get_supabase_client_with_user_context
         supabase = get_supabase_client_with_user_context(access_token)
         
         print(f"🔄 Removendo API Key completamente para usuário: {user_id}")
         
-        # Limpar todos os campos relacionados à API Key
+        
         response = supabase.table('profiles') \
             .update({
                 "api_key": None,
@@ -284,10 +269,10 @@ async def regenerate_user_api_key(user_id: str, access_token: str = None) -> Opt
     Regenera uma nova API Key para o usuário (revoga a antiga)
     """
     try:
-        # Revogar API Key atual
+       
         await revoke_user_api_key(user_id, access_token)
         
-        # Criar nova API Key
+        
         return await create_user_api_key(user_id, "Regenerated API Key", access_token)
         
     except Exception as error:

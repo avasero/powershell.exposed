@@ -8,23 +8,19 @@ from config.settings import (
     GLOBAL_RATE_LIMIT_REQUESTS, GLOBAL_RATE_LIMIT_WINDOW
 )
 
-# Armazenamento em memória para rate limiting (em produção, use Redis)
-request_counts = defaultdict(list)  # session_id -> [timestamps]
-global_request_timestamps = []  # Lista global de timestamps de todas as requisições
-
+request_counts = defaultdict(list)  
+global_request_timestamps = []  
 
 def cleanup_expired_data():
     """Remove expired rate limiting data"""
     current_time = time.time()
     
-    # Limpar contadores de requisições expirados
     for session_id in list(request_counts.keys()):
         request_counts[session_id] = [req_time for req_time in request_counts[session_id] 
                                      if current_time - req_time < RATE_LIMIT_WINDOW]
         if not request_counts[session_id]:
             del request_counts[session_id]
     
-    # Limpar timestamps globais expirados
     global global_request_timestamps
     global_request_timestamps = [req_time for req_time in global_request_timestamps 
                                 if current_time - req_time < GLOBAL_RATE_LIMIT_WINDOW]
@@ -34,13 +30,10 @@ def check_global_rate_limit() -> dict:
     """Checks if the global rate limit has been exceeded"""
     current_time = time.time()
     
-    # Limpar dados expirados
     cleanup_expired_data()
     
-    # Contar requisições globais na janela atual
     global_request_count = len(global_request_timestamps)
     
-    # Calcular quando o rate limit global vai resetar
     reset_time = None
     seconds_until_reset = None
     
@@ -71,10 +64,8 @@ def check_rate_limit(session_id: str) -> dict:
     """Checks if the session is within the rate limit"""
     current_time = time.time()
     
-    # Limpar dados expirados
     cleanup_expired_data()
     
-    # Se não há session_id, não aplicar rate limiting
     if not session_id:
         return {
             "within_limit": True,
@@ -86,17 +77,14 @@ def check_rate_limit(session_id: str) -> dict:
             "seconds_until_reset": None
         }
     
-    # Contar requisições atuais (sem adicionar nova ainda)
     current_requests = [req_time for req_time in request_counts[session_id] 
                        if current_time - req_time < RATE_LIMIT_WINDOW]
     
     request_count = len(current_requests)
     
-    # Calcular quando o rate limit vai resetar (baseado na requisição mais antiga)
     reset_time = None
     seconds_until_reset = None
     
-    # Calcular reset apenas se atingiu o limite básico (5)
     if current_requests and request_count >= RATE_LIMIT_REQUESTS:
         oldest_request = min(current_requests)
         reset_time = oldest_request + RATE_LIMIT_WINDOW
@@ -105,8 +93,8 @@ def check_rate_limit(session_id: str) -> dict:
     return {
         "within_limit": request_count < RATE_LIMIT_REQUESTS,
         "current_count": request_count,
-        "limit": RATE_LIMIT_REQUESTS,  # 5 análises
-        "window_seconds": RATE_LIMIT_WINDOW,  # 60 segundos
+        "limit": RATE_LIMIT_REQUESTS,  
+        "window_seconds": RATE_LIMIT_WINDOW,  
         "reset_time": reset_time,
         "seconds_until_reset": seconds_until_reset
     }

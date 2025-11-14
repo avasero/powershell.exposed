@@ -18,12 +18,10 @@ async def get_user_profile_endpoint(
     try:
         supabase = get_supabase_client()
         
-        # Get user profile from database
         response = supabase.table('profiles').select('*').eq('id', user["id"]).single().execute()
         
         if response.data:
             profile = response.data
-            # Remove sensitive information
             safe_profile = {
                 "id": profile.get("id"),
                 "username": profile.get("username"),
@@ -67,7 +65,6 @@ async def update_user_profile_endpoint(
     try:
         body = await request.json()
         
-        # Define allowed fields for update
         allowed_fields = ["username", "full_name", "avatar_url"]
         update_data = {}
         
@@ -83,7 +80,6 @@ async def update_user_profile_endpoint(
         
         supabase = get_supabase_client()
         
-        # Update user profile
         response = supabase.table('profiles').update(update_data).eq('id', user["id"]).execute()
         
         if response.data:
@@ -116,7 +112,6 @@ async def get_user_statistics_endpoint(
     try:
         supabase = get_supabase_client()
         
-        # Get user analysis statistics
         response = supabase.table('powershell_analyses') \
             .select('id, risk_score, severity, is_malicious, created_at') \
             .eq('user_id', user["id"]) \
@@ -125,7 +120,6 @@ async def get_user_statistics_endpoint(
         if response.data:
             analyses = response.data
             
-            # Calculate statistics
             total_analyses = len(analyses)
             malicious_count = sum(1 for a in analyses if a.get('is_malicious'))
             
@@ -136,7 +130,6 @@ async def get_user_statistics_endpoint(
             
             avg_risk_score = sum(float(a.get('risk_score', 0)) for a in analyses) / total_analyses if total_analyses > 0 else 0
             
-            # Get recent analyses (last 10)
             recent_analyses = sorted(analyses, key=lambda x: x.get('created_at', ''), reverse=True)[:10]
             
             return JSONResponse({
@@ -182,7 +175,6 @@ async def delete_user_analysis_endpoint(
     try:
         supabase = get_supabase_client()
         
-        # First, verify the analysis belongs to the user
         check_response = supabase.table('powershell_analyses') \
             .select('id, user_id') \
             .eq('id', analysis_id) \
@@ -196,7 +188,6 @@ async def delete_user_analysis_endpoint(
                 status_code=404
             )
         
-        # Delete the analysis
         delete_response = supabase.table('powershell_analyses') \
             .delete() \
             .eq('id', analysis_id) \
@@ -231,7 +222,6 @@ async def get_user_command_evaluations_endpoint(
     try:
         supabase = get_supabase_client()
         
-        # Buscar todas as análises do usuário
         response = supabase.table('powershell_analyses') \
             .select('*') \
             .eq('user_id', user["id"]) \
@@ -241,13 +231,11 @@ async def get_user_command_evaluations_endpoint(
         if response.data:
             analyses = []
             for analysis in response.data:
-                # Processar campos JSON se necessário
                 signatures_detected = analysis.get("signatures_detected", [])
                 cmdlets_detected = analysis.get("cmdlets_detected", [])
                 tactics = analysis.get("tactics", [])
                 techniques = analysis.get("techniques", [])
                 
-                # Parse JSON strings if needed
                 if isinstance(signatures_detected, str):
                     try:
                         signatures_detected = json.loads(signatures_detected)

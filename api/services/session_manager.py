@@ -21,14 +21,13 @@ async def get_or_create_session(
         if not ip_address:
             return None
         
-        # Criar string de localização apenas com país
+      
         location = country
         
-        # Tentar encontrar sessão existente (últimas 24 horas)
+      
         yesterday = datetime.utcnow() - timedelta(hours=24)
         
-        # Se user_id é fornecido, procurar sessão do usuário específico
-        # Se não, procurar sessão anônima (user_id = null) para o IP
+       
         if user_id:
             existing_session = supabase.table('sessions').select('id').eq('user_id', user_id).gte('created_at', yesterday.isoformat()).limit(1).execute()
         else:
@@ -38,7 +37,7 @@ async def get_or_create_session(
             session_id = existing_session.data[0]['id']
             return session_id
         
-        # Criar nova sessão
+      
         session_data = {
             "user_id": user_id,
             "ip": ip_address,
@@ -89,7 +88,6 @@ def get_supabase_client_with_user_context(access_token: str = None) -> Client:
     client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
     
     if access_token:
-        # Definir o token JWT no cabeçalho de autorização
         client.postgrest.auth(access_token)
         
     return client

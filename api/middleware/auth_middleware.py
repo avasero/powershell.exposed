@@ -8,7 +8,7 @@ from utils.auth import decode_jwt_token, extract_user_from_token, verify_token_p
 from services.api_key_manager import validate_api_key
 
 
-# Create HTTPBearer instance for automatic token extraction
+
 security = HTTPBearer(auto_error=False)
 
 
@@ -25,7 +25,6 @@ async def get_current_user_optional(
     try:
         token = credentials.credentials
         
-        # Check if it's an API Key (starts with pse_)
         if token.startswith("pse_"):
             api_key_data = await validate_api_key(token)
             if api_key_data:
@@ -39,15 +38,14 @@ async def get_current_user_optional(
                 }
             return None
         
-        # Otherwise, try JWT token
+
         payload = decode_jwt_token(token)
         user = extract_user_from_token(payload)
         user["auth_type"] = "jwt"
-        user["access_token"] = token  # Incluir o token original
+        user["access_token"] = token  
         return user
         
     except AuthenticationError as e:
-        # For optional authentication, we don't raise an error
         print(f"Authentication error in optional auth: {e}")
         return None
     except Exception as e:
@@ -72,7 +70,6 @@ async def get_current_user_required(
     try:
         token = credentials.credentials
         
-        # Check if it's an API Key (starts with pse_)
         if token.startswith("pse_"):
             api_key_data = await validate_api_key(token)
             if api_key_data:
@@ -91,13 +88,12 @@ async def get_current_user_required(
                     headers={"WWW-Authenticate": "Bearer"},
                 )
         
-        # Otherwise, try JWT token
         payload = decode_jwt_token(token)
         user = extract_user_from_token(payload)
         user["auth_type"] = "jwt"
-        user["access_token"] = token  # Incluir o token original
+        user["access_token"] = token  
         
-        # Verify user has authenticated role
+        
         if not verify_token_permissions(user, "authenticated"):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -107,7 +103,7 @@ async def get_current_user_required(
         return user
         
     except HTTPException:
-        # Re-raise HTTP exceptions
+        
         raise
     except AuthenticationError as e:
         raise HTTPException(
@@ -150,13 +146,13 @@ async def get_user_from_request_headers(request: Request) -> Optional[Dict[str, 
         if not authorization:
             return None
         
-        # Check if it's a Bearer token
+      
         if not authorization.startswith("Bearer "):
             return None
         
-        token = authorization[7:]  # Remove "Bearer " prefix
+        token = authorization[7:]  
         
-        # Check if it's an API Key (starts with pse_)
+        
         if token.startswith("pse_"):
             try:
                 api_key_data = await validate_api_key(token)
@@ -173,7 +169,7 @@ async def get_user_from_request_headers(request: Request) -> Optional[Dict[str, 
                 print(f"API Key validation error in middleware: {e}")
                 return None
         
-        # Otherwise, try JWT token
+      
         try:
             payload = decode_jwt_token(token)
             user = extract_user_from_token(payload)
@@ -194,11 +190,9 @@ async def auth_middleware(request: Request, call_next):
     """
     Authentication middleware function
     """
-    # Extract user from headers and add to request state
     user = await get_user_from_request_headers(request)
     request.state.user = user
     
-    # Add authentication info to request state
     request.state.is_authenticated = user is not None
     request.state.user_id = user.get("id") if user else None
     request.state.user_email = user.get("email") if user else None

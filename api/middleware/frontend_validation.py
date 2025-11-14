@@ -14,30 +14,29 @@ def is_request_from_frontend(request: Request) -> bool:
     Verifica se a requisição vem de um frontend autorizado
     através do Origin ou Referer header
     """
-    # Obter headers de origem
+
     origin = request.headers.get("Origin")
     referer = request.headers.get("Referer")
     
-    # Lista de origens permitidas (sem trailing slash)
+ 
     allowed_domains = []
     for origin_url in ALLOWED_ORIGINS:
         parsed = urlparse(origin_url)
         allowed_domains.append(f"{parsed.scheme}://{parsed.netloc}")
     
-    # Verificar Origin header primeiro (mais confiável)
+   
     if origin:
         if origin in allowed_domains:
             return True
     
-    # Se não há Origin, verificar Referer
+  
     if referer:
         parsed_referer = urlparse(referer)
         referer_origin = f"{parsed_referer.scheme}://{parsed_referer.netloc}"
         if referer_origin in allowed_domains:
             return True
     
-    # REMOVIDO: Para desenvolvimento local, permitir localhost sem Origin/Referer
-    # Em produção, todas as requisições anônimas devem ter Origin válido
+    
     
     return False
 
@@ -46,19 +45,15 @@ def requires_frontend_or_api_key(request: Request, user: Optional[Dict[str, Any]
     """
     Determina se a requisição precisa de validação de frontend ou API key
     """
-    # Se o usuário está autenticado com API Key, permitir
     if user and user.get("auth_type") == "api_key":
         return True
     
-    # Se o usuário está autenticado com JWT (web app), permitir
     if user and user.get("auth_type") == "jwt":
         return True
     
-    # Se não há autenticação (anônimo), deve vir do frontend
     if not user:
         return is_request_from_frontend(request)
     
-    # Qualquer outro caso, negar
     return False
 
 
@@ -68,7 +63,6 @@ def get_user_agent_info(request: Request) -> Dict[str, str]:
     """
     user_agent = request.headers.get("User-Agent", "Unknown")
     
-    # Detectar se é um cliente de API comum (Postman, curl, etc.)
     api_clients = ["postman", "curl", "httpie", "insomnia", "thunder client", "python-requests"]
     is_api_client = any(client in user_agent.lower() for client in api_clients)
     
@@ -80,20 +74,15 @@ def get_user_agent_info(request: Request) -> Dict[str, str]:
 
 
 async def validate_anonymous_access(request: Request, call_next):
-    """
-    Middleware para validar acesso anônimo
-    EXECUTADO ANTES do auth_middleware para interceptar requisições anônimas
-    """
+    
     try:
       
         
-        # Pular validação para rotas de documentação, health check, etc.
         skip_paths = [
             "/docs", "/redoc", "/openapi.json", "/health", 
             "/favicon.ico", "/.well-known"
         ]
         
-        # Verificar se é rota raiz exata
         if request.url.path == "/":
            
             response = await call_next(request)
@@ -104,14 +93,11 @@ async def validate_anonymous_access(request: Request, call_next):
             response = await call_next(request)
             return response
         
-        # Para endpoints que exigem validação de origem para acesso anônimo
         restricted_endpoints = ["/evaluate", "/generate-captcha", "/verify-captcha", "/create-user-session"]
         
         if request.url.path in restricted_endpoints:
-            # ✅ LOG: Identificar tipo de requisição
             request_type = "WEB" if is_request_from_frontend(request) else "API/External"
             
-            # Verificar se há token de autenticação
             authorization = request.headers.get("Authorization", "")
             has_auth_token = authorization.startswith("Bearer ")
             
@@ -119,18 +105,16 @@ async def validate_anonymous_access(request: Request, call_next):
             origin = request.headers.get("Origin", "None")
             referer = request.headers.get("Referer", "None")
             
-            # Se há token, verificar se é uma API Key VÁLIDA
             if has_auth_token:
-                token = authorization[7:]  # Remove "Bearer " prefix
+                token = authorization[7:]  
                 
-                # Se é uma API Key (começa com pse_)
+               
                 if token.startswith("pse_"):
                    
                     try:
                         api_key_data = await validate_api_key(token)
                         if api_key_data:
                             print(f"- USER: {api_key_data['user_id']}")
-                            # API Key válida - deixar passar para auth_middleware
                         else:
                         
                             return JSONResponse(
@@ -151,15 +135,11 @@ async def validate_anonymous_access(request: Request, call_next):
                             }
                         )
                 else:
-                    # Token presente mas NÃO é uma API Key (pode ser JWT)
                     print(f"🔍 Token detectado (não é API Key) - verificando origem...")
                     
-                    # Se vem do frontend, permitir JWT tokens (será validado no auth_middleware)
                     if is_request_from_frontend(request):
                         print(f"✅ Token JWT do frontend - permitindo validação pelo auth_middleware")
-                        # Deixar passar para o auth_middleware validar o JWT
                     else:
-                        # Para uso externo (Postman), APENAS API Keys são permitidas
                         print(f"❌ Token presente mas não é uma API Key válida - BLOQUEANDO")
                         print(f"   Token: {token[:20]}... (Para uso externo, apenas API Keys são permitidas)")
                         
@@ -171,10 +151,8 @@ async def validate_anonymous_access(request: Request, call_next):
                             }
                         )
             else:
-                # NÃO há token de autenticação (acesso anônimo)
                 
                 if not is_request_from_frontend(request):
-                    # Log tentativa de acesso não autorizado
                     print(f"🚫 BLOQUEANDO acesso anônimo - Path: {request.url.path}")
                     print(f"   Origin: {origin}")
                     print(f"   Referer: {referer}")
@@ -190,15 +168,12 @@ async def validate_anonymous_access(request: Request, call_next):
                         },
                     )
                 else:
-                    # Log acesso anônimo autorizado (do frontend)
                     print(f"✅ Acesso anônimo AUTORIZADO do frontend - Origin: {origin}")
         
-        # Prosseguir para próximo middleware
         response = await call_next(request)
         return response
         
     except Exception as e:
-        # Log erro inesperado e re-raise
         print(f"❌ Erro no middleware de validação: {e}")
         print(f"   Tipo: {type(e).__name__}")
         raise

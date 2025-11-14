@@ -19,8 +19,7 @@ def generate_phash(command: str) -> int:
     Returns:
         int: CRC32 hash value as integer
     """
-    # ❌ REMOVIDO: .strip() - NÃO normalizar o comando
-    # Usar comando RAW exatamente como recebido
+    
     b = command.encode('utf-8')
     v = zlib.crc32(b) & 0xffffffff
     return v
@@ -70,7 +69,7 @@ async def save_to_cache(phash: int, indicators_matched: Any, results_blob: Dict[
     try:
         supabase = get_supabase_client()
         
-        # 🗂️ STEP 1: Check current cache size
+       
         count_response = supabase.table('cache_results') \
             .select('phash', count='exact') \
             .execute()
@@ -78,10 +77,10 @@ async def save_to_cache(phash: int, indicators_matched: Any, results_blob: Dict[
         current_count = count_response.count if count_response.count else 0
        
         
-        # 🗑️ STEP 2: If we have 5+ entries, remove the oldest ones to keep only 4
+        
         if current_count >= 5:
             
-            # Get oldest entries to remove (keep only the 4 most recent)
+            
             oldest_entries = supabase.table('cache_results') \
                 .select('phash, created_at') \
                 .order('created_at', desc=False) \
@@ -91,7 +90,7 @@ async def save_to_cache(phash: int, indicators_matched: Any, results_blob: Dict[
             if oldest_entries.data:
                 phashes_to_delete = [entry['phash'] for entry in oldest_entries.data]
                 
-                # Delete oldest entries
+               
                 for old_phash in phashes_to_delete:
                     delete_response = supabase.table('cache_results') \
                         .delete() \
@@ -100,20 +99,20 @@ async def save_to_cache(phash: int, indicators_matched: Any, results_blob: Dict[
                     
                    
         
-        # 💾 STEP 3: Add the new cache entry
+       
         cache_data = {
             "phash": phash,
             "indicators_matched": indicators_matched,
             "results_blob": results_blob
         }
         
-        # Use upsert to handle potential duplicates
+      
         response = supabase.table('cache_results') \
             .upsert(cache_data) \
             .execute()
         
         if response.data:
-            # Get updated count
+            
             new_count_response = supabase.table('cache_results') \
                 .select('phash', count='exact') \
                 .execute()
@@ -139,20 +138,20 @@ def should_cache_result(analysis_result: Dict[str, Any]) -> bool:
     Returns:
         bool: True if should be cached, False otherwise
     """
-    # Check if there are any detected signatures/indicators
+     
     detected_signatures = analysis_result.get("detected_signatures", [])
     
     if len(detected_signatures) == 0:
         return False
     
-    # Check if any detected signature is a premium indicator
+    
     for sig in detected_signatures:
-        # If any signature has is_premium_indicator flag set to True, do not cache
+        
         if sig.get("is_premium_indicator", False):
             print(f"🚫 Not caching result - premium indicator detected: {sig.get('name')}")
             return False
     
-    # Only cache if there are indicators and none of them are premium
+   
     return True
 
 
@@ -161,7 +160,6 @@ def create_cache_compatible_result(analysis_result: Dict[str, Any]) -> Dict[str,
     Create a cache-compatible version of analysis results
     Ensures pattern appears only once per signature
     """
-    # Clean detected_signatures to remove pattern duplication
     cleaned_signatures = []
     for sig in analysis_result.get("detected_signatures", []):
         cleaned_sig = {
@@ -178,7 +176,7 @@ def create_cache_compatible_result(analysis_result: Dict[str, Any]) -> Dict[str,
                     "matched_text": md.get("matched_text"),
                     "position": md.get("position"),
                     "match_number": md.get("match_number"),
-                    "matched_in": md.get("matched_in")  # ✅ Preservar informação de onde o match ocorreu
+                    "matched_in": md.get("matched_in")  
                 }
                 for md in sig.get("matches_details", [])
             ],
@@ -191,7 +189,7 @@ def create_cache_compatible_result(analysis_result: Dict[str, Any]) -> Dict[str,
         }
         cleaned_signatures.append(cleaned_sig)
     
-    # ✅ Incluir decoded_command e double_decoded_command no cache
+  
     return {
         "total_score": analysis_result.get("total_score", 0.0),
         "risk_score": analysis_result.get("total_score", 0.0),
@@ -220,7 +218,7 @@ def extract_indicators_matched(analysis_result: Dict[str, Any]) -> Any:
     """
     detected_signatures = analysis_result.get("detected_signatures", [])
     
-    # Create a simplified version for indicators_matched column
+    
     indicators = []
     for sig in detected_signatures:
         indicators.append({
@@ -271,7 +269,7 @@ async def clear_all_cache() -> bool:
         response = supabase.table('cache_results') \
             .delete() \
             .neq('phash', 0) \
-            .execute()  # Delete all entries where phash != 0 (which is all entries)
+            .execute()  
         
         return True
         
@@ -289,7 +287,6 @@ async def get_cache_status() -> Dict[str, Any]:
     try:
         supabase = get_supabase_client()
         
-        # Get all cache entries ordered by creation date
         response = supabase.table('cache_results') \
             .select('phash, created_at, indicators_matched') \
             .order('created_at', desc=True) \

@@ -24,7 +24,6 @@ async def get_user_api_key_endpoint(
     Requires JWT authentication (not API Key to avoid loops).
     """
     try:
-        # Só permitir acesso via JWT (não via API Key para evitar loops)
         if current_user.get("auth_type") != "jwt":
             raise HTTPException(
                 status_code=400,
@@ -77,7 +76,6 @@ async def create_user_api_key_endpoint(
     The API Key can be used for external tools like Postman or cURL.
     """
     try:
-        # Só permitir acesso via JWT
         if current_user.get("auth_type") != "jwt":
             raise HTTPException(
                 status_code=400,
@@ -126,7 +124,6 @@ async def revoke_user_api_key_endpoint(
     immediately stop working and cannot be used for API access.
     """
     try:
-        # Só permitir acesso via JWT
         if current_user.get("auth_type") != "jwt":
             raise HTTPException(
                 status_code=400,
@@ -168,7 +165,6 @@ async def regenerate_user_api_key_endpoint(
     The old API Key will immediately stop working.
     """
     try:
-        # Só permitir acesso via JWT
         if current_user.get("auth_type") != "jwt":
             raise HTTPException(
                 status_code=400,

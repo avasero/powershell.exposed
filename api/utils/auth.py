@@ -24,7 +24,7 @@ async def get_supabase_public_key():
             response = await client.get(f"{SUPABASE_URL}/auth/v1/.well-known/jwks_uri")
             if response.status_code == 200:
                 jwks_data = response.json()
-                # Return the first key (Supabase typically has one)
+                
                 if jwks_data.get("keys"):
                     return jwks_data["keys"][0]
     except Exception as e:
@@ -38,8 +38,7 @@ def decode_jwt_token(token: str) -> Optional[Dict[str, Any]]:
     Returns the decoded payload if valid, None if invalid
     """
     try:
-        # For Supabase, we can use the JWT secret directly
-        # In production, you should fetch and cache the public key
+       
         if not SUPABASE_JWT_SECRET:
             print("⚠️ JWT secret not configured - authentication disabled")
             raise AuthenticationError("JWT secret not configured")
@@ -84,7 +83,7 @@ def verify_token_permissions(user: Dict[str, Any], required_role: str = "authent
     """
     user_role = user.get("role", "")
     
-    # Define role hierarchy
+   
     role_hierarchy = {
         "anon": 0,
         "authenticated": 1,
@@ -107,7 +106,6 @@ async def get_user_from_supabase(user_id: str) -> Optional[Dict[str, Any]]:
         
         supabase = get_supabase_client()
         
-        # Get user profile from profiles table
         response = supabase.table('profiles').select('*').eq('id', user_id).single().execute()
         
         if response.data:

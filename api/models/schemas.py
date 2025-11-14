@@ -10,7 +10,7 @@ class AnalyzeCommandRequest(BaseModel):
     """Schema for PowerShell command analysis request"""
     command: str = Field(..., description="PowerShell command to analyze", max_length=10000, example="Get-Process")
     
-    # Optional fields from frontend
+    
     user_id: Optional[str] = Field(None, description="User ID (if authenticated)")
     ip_address: Optional[str] = Field(None, description="Client IP address")
     user_agent: Optional[str] = Field(None, description="User agent string")
@@ -51,7 +51,6 @@ class UpdateProfileRequest(BaseModel):
     avatar_url: Optional[str] = Field(None, description="Avatar URL")
 
 
-# Response schemas
 class SignatureMatch(BaseModel):
     """Schema for signature match details"""
     pattern: str
