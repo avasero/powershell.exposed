@@ -317,14 +317,11 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     tactics = set()
     techniques = set()
     
-   
     original_command = command
     
-  
     deobfuscated_command, decode_iterations, obfuscation_type, all_decoded_layers = deobfuscate_powershell(command)
     has_deobfuscation = deobfuscated_command != command
     
-   
     first_decoded_layer = None
     second_decoded_layer = None
     
@@ -399,8 +396,44 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             total_score += obfuscation_sig["score"]
 
    
-    encoding_detection = detect_encoded_command(original_command)
+    # ✅ NEW: Add Double Encoded Command indicator when decode_iterations >= 2
+    if decode_iterations >= 2:
+        double_encoded_sig = next((sig for sig in signatures if sig.get("name") == "Double Encoded Command Detected"), None)
+        
+        if double_encoded_sig:
+            print(f"🔍 [DOUBLE ENCODING] Adding indicator - {decode_iterations} layers detected")
+            
+            detected_signatures.append({
+                "name": "Double Encoded Command Detected",
+                "description": f"Multiple layers of Base64 encoding detected: {decode_iterations} nested -EncodedCommand parameters found",
+                "severity": double_encoded_sig["severity"],
+                "base_score": double_encoded_sig["score"],
+                "matches_found": 1,
+                "total_score": double_encoded_sig["score"],
+                "max_match_allowed": 1,
+                "pattern": f"{decode_iterations}_layer_encoding",
+                "matches_details": [{
+                    "matched_text": f"Layer 1: {first_decoded_layer[:80] if first_decoded_layer else 'N/A'}...",
+                    "position": {"start": 0, "end": len(original_command)},
+                    "match_number": 1,
+                    "matched_in": "original"
+                }],
+                "tactics": double_encoded_sig.get("tactics", ["Defense Evasion"]),
+                "techniques": double_encoded_sig.get("techniques", ["T1027.010", "T1140"]),
+                "reference": double_encoded_sig.get("reference", []),
+                "link": double_encoded_sig.get("link"),
+                "is_premium_indicator": False,
+                "found_in_deobfuscated": False
+            })
+            
+            tactics.update(double_encoded_sig.get("tactics", ["Defense Evasion"]))
+            techniques.update(double_encoded_sig.get("techniques", ["T1027.010", "T1140"]))
+            total_score += double_encoded_sig["score"]
+            
+            print(f"✅ [DOUBLE ENCODED] Added signature with score {double_encoded_sig['score']}")
     
+    # Encoded Command Detection (single layer)
+    encoding_detection = detect_encoded_command(original_command)
     
     print(f"🔍 [ENCODING DETECTION DEBUG]")
     print(f"   Command: {original_command[:100]}...")
@@ -436,7 +469,6 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                 "is_premium_indicator": False,
                 "found_in_deobfuscated": False
             })
-            
             
             tactics.update(encoded_sig.get("tactics", ["Defense Evasion"]))
             techniques.update(encoded_sig.get("techniques", ["T1027", "T1027.001", "T1140"]))
