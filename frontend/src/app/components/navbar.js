@@ -56,44 +56,42 @@ export default function Navbar() {
             </span>
           )}
           
-          <ThemedButton
-            onClick={() => window.location.href = '/indicators'}
-            size="sm"
-            variant="ghost"
+          <a
+            href="/indicators"
+            className="font-mono text-sm underline hover:text-green-400"
           >
             Indicators
-          </ThemedButton>
+          </a>
           
           {isAuthenticated() ? (
             <>
-              <ThemedButton
+              <a
                 onClick={handleLogout}
-                size="sm"
+                className="font-mono text-sm underline hover:text-green-400 cursor-pointer"
               >
                 Logout
-              </ThemedButton>
-              <ThemedButton
-                onClick={() => window.location.href = '/settings'}
-                size="sm"
-                variant="outline"
+              </a>
+              <a
+                href="/settings"
+                className="font-mono text-sm underline hover:text-green-400"
               >
                 Settings
-              </ThemedButton>
+              </a>
             </>
           ) : (
             <>
-              <ThemedButton
-                onClick={() => window.location.href = '/evaluate'}
-                size="sm"
+              <a
+              href="/evaluate"
+              className="font-mono text-sm underline hover:text-green-400"
               >
                 Evaluate Command
-              </ThemedButton>
-              <ThemedButton
-                onClick={() => window.location.href = '/login'}
-                size="sm"
+              </a>
+              <a
+                href="/login"
+                className="font-mono text-sm underline hover:text-green-400"
               >
                 Login
-              </ThemedButton>
+              </a>
             </>
           )}
         </div>
@@ -102,7 +100,7 @@ export default function Navbar() {
         <div className="md:hidden flex items-center space-x-2">
           {/* Botão de Análises - apenas na homepage para usuários autenticados */}
           {isAuthenticated() && pathname === '/' && (
-            <ThemedButton
+            <a
               onClick={openAnalysisDrawer}
               size="sm"
               className="p-2"
@@ -111,20 +109,8 @@ export default function Navbar() {
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
-            </ThemedButton>
-          )}
-          
-          {/* Botão Try Analysis para usuários não logados no mobile */}
-          {!isAuthenticated() && (
-            <ThemedButton
-              onClick={() => window.location.href = '/evaluate'}
-              size="sm"
-              className="px-3 py-2 text-xs"
-            >
-              Try
-            </ThemedButton>
-          )}
-          
+            </a>
+          )}  
           <HamburgerButton />
         </div>
       </nav>

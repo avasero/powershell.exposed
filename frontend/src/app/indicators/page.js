@@ -294,8 +294,8 @@ export default function IndicatorsPage() {
           </div>
         ) : (
           <>
-            {/* Table */}
-            <div className="overflow-x-auto border rounded-lg bg-black/80 border-green-500/30">
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto border rounded-lg bg-black/80 border-green-500/30">
               <table className="w-full">
                 <thead className="border-b border-green-500/30">
                   <tr className="bg-black/40">
@@ -353,13 +353,12 @@ export default function IndicatorsPage() {
                       }}
                     >
                       <td className="px-4 py-3">
-                        <button
+                        <a
                           onClick={() => handleIndicatorClick(indicator.id)}
-                          className="font-mono text-sm font-bold text-left hover:opacity-80 transition-opacity"
-                          style={{color: 'var(--foreground)'}}
+                          className="font-mono text-sm font-bold text-left hover:opacity-80 transition-opacity underline hover:text-green-500"
                         >
                           {truncateText(indicator.name, 40)}
-                        </button>
+                        </a>
                       </td>
                       <td className="px-4 py-3">
                         <span className={`font-mono text-sm font-bold ${getSeverityColor(indicator.severity)}`}>
@@ -367,7 +366,7 @@ export default function IndicatorsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 font-mono text-sm" style={{color: 'var(--foreground)'}}>
-                        {indicator.basescore || 0}/10
+                        {indicator.basescore || 0}
                       </td>
                       <td className="px-4 py-3 font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
                         {truncateText(indicator.description, 60)}
@@ -381,7 +380,6 @@ export default function IndicatorsPage() {
                                 alt={indicator.last_modified_by}
                                 className="w-6 h-6 rounded-full border border-green-500/30"
                                 onError={(e) => {
-                                  // Fallback if image fails to load
                                   e.target.style.display = 'none';
                                   e.target.nextElementSibling.style.display = 'flex';
                                 }}
@@ -413,6 +411,93 @@ export default function IndicatorsPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3">
+              {indicators.map((indicator) => (
+                <div 
+                  key={indicator.id}
+                  onClick={() => handleIndicatorClick(indicator.id)}
+                  className="border rounded-lg p-4 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all cursor-pointer hover:shadow-lg"
+                  style={{
+                    boxShadow: 'hover' ? '0 0 15px rgba(32, 224, 115, 0.1)' : 'none'
+                  }}
+                >
+                  {/* Header: Name and Severity */}
+                  <div className="flex items-start justify-between mb-3 gap-2">
+                    <div className="flex-1 min-w-0">
+                      <a
+                        className="font-mono text-sm font-bold hover:text-green-400 transition-colors underline break-words"
+                        style={{color: 'var(--accent)'}}
+                      >
+                        {indicator.name}
+                      </a>
+                    </div>
+                    <span className={`font-mono text-xs font-bold whitespace-nowrap px-2 py-1 rounded ${getSeverityColor(indicator.severity)}`}>
+                      {indicator.severity ? indicator.severity.charAt(0).toUpperCase() + indicator.severity.slice(1).toLowerCase() : 'N/A'}
+                    </span>
+                  </div>
+
+                  {/* Base Score */}
+                  <div className="mb-3 flex items-center justify-between text-xs font-mono">
+                    <span style={{color: 'var(--muted-foreground)'}}>Base Score:</span>
+                    <span style={{color: 'var(--accent)'}} className="font-bold">
+                      {indicator.basescore || 0}
+                    </span>
+                  </div>
+
+                  {/* Description */}
+                  {indicator.description && (
+                    <div className="mb-3">
+                      <p className="font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>
+                        {truncateText(indicator.description, 100)}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Footer: Last Modified Info */}
+                  <div className="pt-3 border-t border-green-500/20 flex items-center justify-between text-xs font-mono">
+                    <div className="flex items-center gap-2">
+                      {indicator.last_modified_by ? (
+                        <>
+                          {indicator.last_modified_by_avatar ? (
+                            <img 
+                              src={indicator.last_modified_by_avatar} 
+                              alt={indicator.last_modified_by}
+                              className="w-5 h-5 rounded-full border border-green-500/30"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                if (e.target.nextElementSibling) {
+                                  e.target.nextElementSibling.style.display = 'flex';
+                                }
+                              }}
+                            />
+                          ) : null}
+                          {!indicator.last_modified_by_avatar && (
+                            <div className="w-5 h-5 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
+                              <span style={{color: 'var(--accent)'}} className="text-xs font-bold">
+                                {indicator.last_modified_by.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <span style={{color: 'var(--muted-foreground)'}}>
+                            {truncateText(indicator.last_modified_by, 15)}
+                          </span>
+                        </>
+                      ) : (
+                        <span style={{color: 'var(--muted-foreground)'}}>-</span>
+                      )}
+                    </div>
+                    <span style={{color: 'var(--muted-foreground)'}}>
+                      {indicator.updated_at ? new Date(indicator.updated_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric'
+                      }) : '-'}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Pagination */}
