@@ -1,27 +1,38 @@
 "use client";
 
-// Score-based color system (5 bins from 1-10)
-function getScoreColor(score) {
-  if (score >= 8.1) return "border-red-600 text-red-600";      // Critical: 8.1-10.0
-  if (score >= 6.1) return "border-orange-400 text-orange-400"; // High: 6.1-8.0
-  if (score >= 4.1) return "border-yellow-400 text-yellow-400"; // Medium: 4.1-6.0
-  if (score >= 2.1) return "border-green-400 text-green-400";   // Low: 2.1-4.0
-  return "border-green-400 text-green-400";                      // Very Low: 1.0-2.0
+// Severity-based color system matching IndicatorsSummaryTable
+function getSeverityColor(severity) {
+  const colors = {
+    'critical': 'bg-red-500/20 text-red-400 border-red-500/50',
+    'high': 'bg-orange-500/20 text-orange-400 border-orange-500/50',
+    'medium': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50',
+    'low': 'bg-blue-500/20 text-blue-400 border-blue-500/50',
+  };
+  return colors[severity?.toLowerCase()] || 'bg-gray-500/20 text-gray-400 border-gray-500/50';
 }
 
-export default function SeverityBadge({ score, className = "" }) {
-  // Handle undefined score gracefully
-  if (score === undefined || score === null) {
+export default function SeverityBadge({ score, severity, className = "" }) {
+  // Handle undefined score/severity gracefully
+  if ((score === undefined || score === null) && !severity) {
     return (
-      <span className={`font-mono text-xs px-1 sm:px-2 py-1 rounded border border-gray-400 text-gray-400 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ${className}`}>
+      <span className={`font-mono text-xs px-2 py-1 rounded border bg-gray-500/20 text-gray-400 border-gray-500/50 ${className}`}>
         N/A
       </span>
     );
   }
 
+  // Derive severity from score for coloring
+  let derivedSeverity = 'low';
+  if (score >= 8.1) derivedSeverity = 'critical';
+  else if (score >= 6.1) derivedSeverity = 'high';
+  else if (score >= 4.1) derivedSeverity = 'medium';
+  else if (score >= 2.1) derivedSeverity = 'low';
+
+  const colorClass = getSeverityColor(severity || derivedSeverity);
+
   return (
-    <span className={`font-mono text-xs px-1 sm:px-2 py-1 rounded border bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ${getScoreColor(score)} ${className}`}>
-      Score: {score.toFixed(1)}
+    <span className={`font-mono text-xs px-2 py-1 rounded border ${colorClass} ${className}`}>
+      SCORE: {score.toFixed(1)}
     </span>
   );
 }

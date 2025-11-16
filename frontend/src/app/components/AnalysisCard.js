@@ -141,9 +141,8 @@ export default function AnalysisCard({
               </div>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            
-            {severity && <SeverityBadge score={score} />}
+          <div className="flex items-center gap-2 ml-4">
+            <SeverityBadge severity={severity} score={score} />
           </div>
         </div>
 
@@ -362,12 +361,12 @@ export default function AnalysisCard({
                 <div className="flex flex-wrap gap-1">
                   {Array.isArray(tactic) ? tactic.map((t, i) => (
                     <span key={i} className="text-xs px-2 py-1 rounded font-mono"
-                      style={{backgroundColor: 'var(--accent)', color: 'white'}}>
+                      style={{backgroundColor: 'var(--accent)', color: 'black'}}>
                       {t}
                     </span>
                   )) : (
                     <span className="text-xs px-2 py-1 rounded font-mono"
-                      style={{backgroundColor: 'var(--accent)', color: 'white'}}>
+                      style={{backgroundColor: 'var(--accent)', color: 'black'}}>
                       {tactic}
                     </span>
                   )}
