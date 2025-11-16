@@ -56,6 +56,7 @@ export default function AnalysisPage() {
   const [freshAnalysisLoading, setFreshAnalysisLoading] = useState(false); // ⚡ Novo estado para análise fresca
   const [error, setError] = useState("");
   const [newCommand, setNewCommand] = useState("");
+  const [contentReady, setContentReady] = useState(false);
   const analysisExecutedRef = useRef(false);
 
 
@@ -169,7 +170,7 @@ export default function AnalysisPage() {
             severity: analysisData.is_malicious ? "malicious" : "safe",
             signatures: (analysisData.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
             decoded: analysisData.decoded_command || null,
-            doubleDecoded: analysisData.double_decoded_command || null,  // ✅ MAPEAMENTO CORRETO
+            doubleDecoded: analysisData.double_decoded_command || null,
             indicators: analysisData.analysis_details?.indicators || [],
             details: analysisData.analysis_details?.recommendations?.join(", ") || "",
             tactics: analysisData.tactics || [],
@@ -179,34 +180,12 @@ export default function AnalysisPage() {
             cacheInfo: response.analysis?.cache_info
           };
           
-          // ✅ DEBUG LOG
-          console.log("🔍 [FRONTEND] Analysis Result:", {
-            hasDecoded: !!analysisData.decoded_command,
-            hasDoubleDecoded: !!analysisData.double_decoded_command,
-            decodedValue: analysisData.decoded_command,
-            doubleDecodedValue: analysisData.double_decoded_command,
-            decodedLength: analysisData.decoded_command ? analysisData.decoded_command.length : 0,
-            doubleDecodedLength: analysisData.double_decoded_command ? analysisData.double_decoded_command.length : 0,
-            analysisDataKeys: Object.keys(analysisData)
-          });
-          
-          // ✅ NOVO: Debug específico para renderização
-          console.log("📊 [RENDER DEBUG] Render conditions:", {
-            willShowDecoded: !!(analysisResult.decoded && !analysisResult.doubleDecoded),
-            willShowDoubleDecoded: !!analysisResult.doubleDecoded,
-            decoded_is_null: analysisResult.decoded === null,
-            doubleDecoded_is_null: analysisResult.doubleDecoded === null
-          });
-          
-          // 📊 DEBUG - Verificar se está chegando
-          console.log("📊 [DOUBLE DECODED MAPPING]", {
-            raw_from_backend: analysisData.double_decoded_command,
-            mapped_to_result: analysisResult.doubleDecoded,
-            is_null: analysisResult.doubleDecoded === null,
-            length: analysisResult.doubleDecoded ? analysisResult.doubleDecoded.length : 0
-          });
-          
           setResult(analysisResult);
+          
+          // Smooth transition delay
+          setTimeout(() => {
+            setContentReady(true);
+          }, 150);
         } else {
           throw new Error(response.error || 'Analysis failed');
         }
@@ -214,11 +193,13 @@ export default function AnalysisPage() {
         if (err.message === 'Rate limit excedido') {
           setLoading(false);
           setFreshAnalysisLoading(false);
+          setContentReady(true);
           return; 
         }
         
         setError(err.message);
         setResult(null);
+        setContentReady(true);
       } finally {
         setLoading(false);
         setFreshAnalysisLoading(false);
@@ -278,6 +259,7 @@ export default function AnalysisPage() {
       performAnalysis(command);
     } else if (command.length === 0) {
       setLoading(false);
+      setContentReady(true);
       setResult({
         score: 0,
         severity: "safe",
@@ -289,17 +271,30 @@ export default function AnalysisPage() {
     }
   }, [params, performAnalysis]);
   
- 
   const totalScore = result ? result.score : 0;
   
-
-  if (loading && freshAnalysisLoading) {
+  if (loading && freshAnalysisLoading && !contentReady) {
     return <AnalysisSkeleton />;
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
-             <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center" style={{color: 'var(--accent)'}}>
+    <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 animate-fade-in">
+      <style jsx>{`
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.4s ease-out;
+        }
+      `}</style>
+      <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center" style={{color: 'var(--accent)'}}>
          Evaluation Results
        </h1>
 

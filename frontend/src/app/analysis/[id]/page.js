@@ -59,6 +59,7 @@ export default function AnalysisDetailsPage() {
   const [cacheHit, setCacheHit] = useState(false);
   const [isCacheRedirect, setIsCacheRedirect] = useState(false);
   const [cacheRedirectInfo, setCacheRedirectInfo] = useState(null);
+  const [contentReady, setContentReady] = useState(false);
   const analysisExecutedRef = useRef(false);
 
   useEffect(() => {
@@ -69,9 +70,8 @@ export default function AnalysisDetailsPage() {
         if (info.is_cache_hit && info.analysis_id === params.id) {
           setIsCacheRedirect(true);
           setCacheRedirectInfo(info);
-          setLoading(false); 
+          setLoading(true); // Keep loading state for smooth transition
           
-       
           sessionStorage.removeItem('cache_redirect_info');
         }
       } catch (e) {
@@ -80,14 +80,10 @@ export default function AnalysisDetailsPage() {
     }
   }, [params.id]);
 
-
   const loadAnalysis = useCallback(async () => {
     try {
-     
-      if (!isCacheRedirect) {
-        setLoading(true);
-      }
-      
+      setLoading(true);
+      setContentReady(false);
       setError("");
       
       const loadStartTime = performance.now();
@@ -111,13 +107,12 @@ export default function AnalysisDetailsPage() {
       setCmd(analysis.command || analysisResult.command);
       setNewCommand(analysis.command || analysisResult.command);
       
-      // ✅ FIX: Aceitar double_decoded mesmo quando decoded é null
       const processedResult = {
         score: analysis.risk_score || analysisResult.risk_score || 0,
         severity: (analysis.risk_score || analysisResult.risk_score || 0) > 5 ? "malicious" : "safe",
         signatures: (analysis.signatures_detected || analysisResult.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
         decoded: analysis.decoded_command || analysisResult.decoded_command || null,
-        doubleDecoded: analysis.double_decoded_command || analysisResult.double_decoded_command || null,  // ✅ MAPEAMENTO CORRETO
+        doubleDecoded: analysis.double_decoded_command || analysisResult.double_decoded_command || null,
         indicators: analysisResult.analysis_details?.indicators || [],
         details: analysisResult.analysis_details?.recommendations?.join(", ") || "",
         tactics: analysis.tactics || analysisResult.tactics || [],
@@ -125,34 +120,18 @@ export default function AnalysisDetailsPage() {
         analysisId: params.id 
       };
       
-      // ✅ DEBUG LOG EXPANDIDO
-      console.log("🔍 [DETAILS PAGE] Processed Result:", {
-        hasDecoded: !!processedResult.decoded,
-        hasDoubleDecoded: !!processedResult.doubleDecoded,
-        decodedValue: processedResult.decoded,
-        doubleDecodedValue: processedResult.doubleDecoded,
-        decodedLength: processedResult.decoded ? processedResult.decoded.length : 0,
-        doubleDecodedLength: processedResult.doubleDecoded ? processedResult.doubleDecoded.length : 0,
-        rawAnalysisDecoded: analysis.decoded_command,
-        rawAnalysisDoubleDecoded: analysis.double_decoded_command,
-        analysisData: analysis,
-        analysisResultData: analysisResult
-      });
-      
-      // ✅ NOVO: Debug específico para renderização
-      console.log("📊 [RENDER DEBUG] Render conditions:", {
-        willShowDecoded: !!(processedResult.decoded && !processedResult.doubleDecoded),
-        willShowDoubleDecoded: !!processedResult.doubleDecoded,
-        decoded_is_null: processedResult.decoded === null,
-        doubleDecoded_is_null: processedResult.doubleDecoded === null
-      });
-      
       setResult(processedResult);
+      
+      // Smooth transition delay
+      setTimeout(() => {
+        setContentReady(true);
+        setLoading(false);
+      }, 150);
       
     } catch (err) {
       setError(err.message || "Failed to load analysis");
-    } finally {
       setLoading(false);
+      setContentReady(true);
     }
   }, [params.id, isCacheRedirect, cacheRedirectInfo]);
 
@@ -325,12 +304,27 @@ export default function AnalysisDetailsPage() {
   const totalScore = result ? result.score : 0;
   
 
-  if (loading && !isCacheRedirect) {
+  if (loading || !contentReady) {
     return <AnalysisSkeleton />;
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
+    <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 animate-fade-in">
+      <style jsx>{`
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.4s ease-out;
+        }
+      `}</style>
              <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center" style={{color: 'var(--accent)'}}>
         Evaluation Results
       </h1>
