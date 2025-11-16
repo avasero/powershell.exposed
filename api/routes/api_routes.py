@@ -36,14 +36,13 @@ async def analyze_command_endpoint(
     current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
 ) -> AnalyzeCommandResponse:
     """
-    ⚡ SUPER FAST PowerShell Command Analysis
+    PowerShell Command Analysis
     Optimized for instant cache responses
     """
     try:
         command = request_data.command
         
-        # ✅ FIX: REMOVER TODAS AS VALIDAÇÕES - Aceitar qualquer string
-        # INCLUINDO strings vazias e apenas espaços
+        
         if command is None:
             return JSONResponse(
                 {
@@ -53,7 +52,7 @@ async def analyze_command_endpoint(
                 status_code=400
             )
         
-        # ✅ Apenas validação de comprimento máximo
+       
         if len(command) > 10000:
             return JSONResponse(
                 {
@@ -63,10 +62,10 @@ async def analyze_command_endpoint(
                 status_code=400
             )
         
-        # ✅ Log do comando RAW sem processamento
+     
         print(f"📥 [RAW COMMAND] Length: {len(command)}, Content: '{command[:100]}'")
 
-        # VERIFICAR RATE LIMIT GLOBAL PRIMEIRO
+        
         global_rate_limit_info = check_global_rate_limit()
         
         if not global_rate_limit_info["within_limit"]:
@@ -79,10 +78,10 @@ async def analyze_command_endpoint(
                 status_code=429
             )
         
-        # Extrair dados do schema com fallbacks seguros
+       
         user_id = current_user["id"] if current_user else request_data.user_id
         
-        # ✅ FIX: Capturar IP real do request se não foi fornecido
+        
         ip_address = request_data.ip_address
         if not ip_address:
             ip_address = get_client_ip_from_request(request)
@@ -90,23 +89,20 @@ async def analyze_command_endpoint(
         country = request_data.country
         user_agent = request_data.user_agent or "FastAPI-Client"
         
-        # Determinar search_type baseado no tipo de autenticação
+
         if current_user and current_user.get("auth_type") == "api_key":
-            # API Key = uso externo (Postman, cURL, etc)
+            
             search_type = "API"
         elif current_user and current_user.get("auth_type") == "jwt":
-            # JWT Token = interface web
+            
             search_type = "WEB"
         elif request_data.search_type:
-            # Usar o tipo enviado pelo frontend se não há autenticação
             search_type = request_data.search_type
         else:
-            # Fallback para API se não há informação
             search_type = "API"
         
         session_id = request_data.session_id
         
-        # Garantir que temos um session_id para aplicar rate limiting
         if not session_id:
             supabase = get_supabase_client()
             session_id = await get_or_create_session(
@@ -117,11 +113,9 @@ async def analyze_command_endpoint(
                 country=country
             )
         
-        # Check rate limit for session
         if session_id:
             rate_limit_info = check_rate_limit(session_id)
             
-            # If rate limit exceeded, return error with wait time
             if not rate_limit_info["within_limit"]:
                 return JSONResponse(
                     {
@@ -133,43 +127,33 @@ async def analyze_command_endpoint(
                     status_code=429
                 )
             
-            # Add request to rate limit counter
             add_request_to_rate_limit(session_id)
         
-        # ADICIONAR REQUISIÇÃO AO CONTADOR GLOBAL
         add_global_request()
         
-        # ✅ BUSCAR GEOLOCALIZAÇÃO SE NECESSÁRIO
-        # Se não tem país E (é API request OU não tem search_type definido)
         if not country and ip_address:
             location_data = await get_ip_location(ip_address)
             if location_data:
                 country = location_data.get("country")
                 print(f"✅ País encontrado: {country}")
         
-        # ⚡ IMMEDIATE CACHE CHECK: Priority #1 for speed
         phash = generate_phash(command)
         
-        # ⚡ PRIORITY CACHE CHECK: Check cache IMMEDIATELY
         cached_result = await check_cache(phash)
         
         if cached_result:
-            # ⚡ INSTANT CACHE RESPONSE: Minimal processing
             results_blob = cached_result.get("results_blob", {})
             
-            # ✅ FIX: Garantir que todos os campos necessários existam
             if "total_score" not in results_blob:
                 results_blob["total_score"] = results_blob.get("risk_score", 0.0)
             if "detected_signatures" not in results_blob:
                 results_blob["detected_signatures"] = results_blob.get("signatures_detected", [])
             
-            # ✅ FIX: Garantir decoded_command e double_decoded_command existem (mesmo que None)
             if "decoded_command" not in results_blob:
                 results_blob["decoded_command"] = None
             if "double_decoded_command" not in results_blob:
                 results_blob["double_decoded_command"] = None
             
-            # ⚡ FAST DATABASE SAVE: Wait for completion to get real analysis_id
             db_result = await save_analysis_to_db(
                 command=command,
                 analysis_result=results_blob,
@@ -184,7 +168,6 @@ async def analyze_command_endpoint(
             
             analysis_id = db_result.get("short_id") if db_result.get("success") else "cache-error"
             
-            # ⚡ MINIMAL RESPONSE: Only essential data for speed
             return JSONResponse({
                 "success": True,
                 "from_cache": True,
@@ -195,8 +178,8 @@ async def analyze_command_endpoint(
                     "signatures_detected": results_blob.get("signatures_detected", []),
                     "tactics": results_blob.get("tactics", []),
                     "techniques": results_blob.get("techniques", []),
-                    "decoded_command": results_blob.get("decoded_command"),  # ✅ INCLUIR
-                    "double_decoded_command": results_blob.get("double_decoded_command"),  # ✅ INCLUIR
+                    "decoded_command": results_blob.get("decoded_command"),  
+                    "double_decoded_command": results_blob.get("double_decoded_command"), 
                     "total_signatures_checked": results_blob.get("total_signatures_checked", 0),
                     "detected_count": results_blob.get("detected_count", 0),
                     "cache_info": {
@@ -210,7 +193,6 @@ async def analyze_command_endpoint(
                 "session_id": session_id
             })
         
-        # STEP 3: Cache miss - run full analysis via /analyse-pcre2 logic
         signatures = await load_signatures_from_db(user_id=user_id)
         
         if not signatures:
@@ -219,32 +201,25 @@ async def analyze_command_endpoint(
                 status_code=500
             )
         
-        # Analisar comando
         analysis_result = analyze_command_patterns(command, signatures)
         severity = calculate_severity_and_risk(analysis_result["total_score"])
         
-        # Adicionar informações calculadas ao resultado
         analysis_result.update({
             "severity": severity,
             "total_signatures_checked": len(signatures),
             "detected_count": len(analysis_result["detected_signatures"])
         })
         
-        # Ordenar assinaturas por score
         analysis_result["detected_signatures"].sort(key=lambda x: x["total_score"], reverse=True)
         
-        # STEP 3.1: Check if we should cache this result (only if indicators matched)
         cache_saved = False
         if should_cache_result(analysis_result):
             
-            # Prepare cache data
             indicators_matched = extract_indicators_matched(analysis_result)
             cache_compatible_result = create_cache_compatible_result(analysis_result)
             
-            # Save to cache
             cache_saved = await save_to_cache(phash, indicators_matched, cache_compatible_result)
         
-        # STEP 3.2: Salvar no banco
         db_result = await save_analysis_to_db(
             command=command,
             analysis_result=analysis_result,
@@ -307,7 +282,6 @@ async def create_user_session_endpoint(
     try:
         user_id = request_data.user_id
         
-        # ✅ FIX: Capturar IP real do request se não foi fornecido
         ip_address = request_data.ip_address
         if not ip_address:
             ip_address = get_client_ip_from_request(request)
@@ -321,7 +295,7 @@ async def create_user_session_endpoint(
                 status_code=400
             )
         
-        # ✅ BUSCAR GEOLOCALIZAÇÃO SE NECESSÁRIO
+        
         if not country and ip_address:
             location_data = await get_ip_location(ip_address)
             if location_data:
@@ -330,7 +304,7 @@ async def create_user_session_endpoint(
         
         supabase = get_supabase_client()
         
-        # Forçar criação de nova sessão (não procurar existente)
+        
         session_id = await get_or_create_session(
             supabase=supabase,
             user_id=user_id,
@@ -369,12 +343,10 @@ async def get_user_analyses_endpoint(
     Se limit não for especificado, retorna TODOS os registros
     """
     try:
-        # Obter parâmetros da query
         limit_param = request.query_params.get("limit")
-        limit = int(limit_param) if limit_param else None  # None = sem limite
+        limit = int(limit_param) if limit_param else None   
         user_id_from_query = request.query_params.get("user_id")
         
-        # ✅ FIX: Priorizar user_id do current_user (autenticado)
         user_id = current_user["id"] if current_user else user_id_from_query
         session_id = request.cookies.get("session_id")
         if not session_id:
@@ -388,7 +360,6 @@ async def get_user_analyses_endpoint(
         
         supabase = get_supabase_client()
         
-        # Buscar análises por user_id (usuários logados) ou session_id (anônimos)
         if user_id:
             query = supabase.table('powershell_analyses') \
                 .select('*') \
@@ -411,7 +382,6 @@ async def get_user_analyses_endpoint(
             response = query.execute()
         
         if response.data:
-            # ✅ FIX: Processar TODOS os campos corretamente
             analyses = []
             for analysis in response.data:
                 analyses.append({
@@ -461,7 +431,6 @@ async def get_analysis_by_id_endpoint(analysis_id: str):
         
         supabase = get_supabase_client()
         
-        # Primeiro, tentar buscar por short_id (8 caracteres alfanuméricos)
         if len(analysis_id) == 8 and analysis_id.isalnum():
             
             response = supabase.table('powershell_analyses').select('*').eq('short_id', analysis_id).single().execute()
@@ -474,13 +443,11 @@ async def get_analysis_by_id_endpoint(analysis_id: str):
                     status_code=404
                 )
         else:
-            # Verificar se é um UUID (formato: 8-4-4-4-12 caracteres)
             import re
             uuid_pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
             is_uuid = re.match(uuid_pattern, analysis_id, re.IGNORECASE)
             
             if is_uuid:
-                # Buscar análise diretamente pelo UUID no banco
                
                 response = supabase.table('powershell_analyses').select('*').eq('uuid', analysis_id).single().execute()
                 
@@ -493,12 +460,10 @@ async def get_analysis_by_id_endpoint(analysis_id: str):
                 
                 analysis_data = response.data
             else:
-                # Assumir que é um ID do banco (compatibilidade com análises antigas)
                 try:
                     db_id = int(analysis_id)
                     
                     
-                    # Buscar análise por ID do banco
                     response = supabase.table('powershell_analyses').select('*').eq('id', db_id).single().execute()
                     
                     if not response.data:
@@ -516,7 +481,6 @@ async def get_analysis_by_id_endpoint(analysis_id: str):
                         status_code=400
                     )
         
-        # Remover informações sensíveis para compartilhamento público
         safe_analysis = {
             "id": analysis_data.get("id"),
             "command": analysis_data.get("command"),

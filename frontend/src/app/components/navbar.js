@@ -55,12 +55,12 @@ export default function Navbar() {
             </span>
           )}
           
-          <a
+          <Link
             href="/indicators"
             className="font-mono text-sm underline hover:text-green-400"
           >
             Indicators
-          </a>
+          </Link>
           
           {isAuthenticated() ? (
             <>

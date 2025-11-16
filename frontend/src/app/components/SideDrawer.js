@@ -110,7 +110,7 @@ export default function SideDrawer() {
 
         <div className={`flex flex-col p-4 space-y-3 drawer-content-animate ${isDrawerOpen ? 'show' : ''}`}>
           <div className="">
-            <a
+            <Link
               href="/indicators"
               onClick={handleLinkClick}
               className="font-mono text-sm underline hover:text-green-400 cursor-pointer"
@@ -118,9 +118,9 @@ export default function SideDrawer() {
               <div className="flex items-center justify-center space-x-2 pb-2">
                 <span>PowerShell Indicators</span>
               </div>
-            </a>
+            </Link>
             
-            <a
+            <Link
               href="/evaluate"
               onClick={handleLinkClick}
               className="font-mono text-sm underline hover:text-green-400 cursor-pointer"
@@ -129,7 +129,7 @@ export default function SideDrawer() {
               <div className="flex items-center justify-center space-x-2">
                 <span>Evaluate command</span>
               </div>
-            </a>
+            </Link>
 
             {isAuthenticated() && (
               <a

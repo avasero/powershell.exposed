@@ -4,23 +4,21 @@ Aplicação principal FastAPI - PowerShell.exposed API
 import os
 import sys
 
-# Adicionar path para imports
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-# Importar schemas para documentação
+
 try:
     from models.schemas import AnalyzeCommandResponse, ErrorResponse, RateLimitResponse
 except ImportError:
-    # Fallback se schemas não estiverem disponíveis
     AnalyzeCommandResponse = dict
     ErrorResponse = dict  
     RateLimitResponse = dict
 
-# Configuration
 API_TITLE = "PowerShell.exposed API"
 API_DESCRIPTION = """
 ## PowerShell Security Analysis API
@@ -55,7 +53,6 @@ For direct API access (Postman, cURL, scripts):
 """
 API_VERSION = "1.0.0"
 
-# Create FastAPI application
 app = FastAPI(
     title=API_TITLE,
     description=API_DESCRIPTION,
@@ -64,7 +61,6 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Configurar CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -80,11 +76,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# IMPORTANTE: Ordem dos middlewares é crucial no FastAPI
-# Os middlewares são executados na ordem REVERSA de como são adicionados
-# Por isso, adicionamos primeiro o que queremos executar POR ÚLTIMO
 
-# 1. Middleware de validação do frontend (executado PRIMEIRO)
 try:
     from middleware.frontend_validation import validate_anonymous_access
     app.middleware("http")(validate_anonymous_access)
@@ -92,14 +84,12 @@ try:
 except ImportError as e:
     print(f"⚠️ Frontend validation middleware not available: {e}")
 
-# 2. Middleware de autenticação (executado SEGUNDO) 
 try:
     from middleware.auth_middleware import auth_middleware
     app.middleware("http")(auth_middleware)
 except ImportError as e:
     print(f"⚠️ Auth middleware not available: {e}")
 
-# Carregar rotas básicas
 try:
     from routes.api_routes import (
         root_endpoint, health_check_endpoint, analyze_command_endpoint,
@@ -107,7 +97,6 @@ try:
         create_user_session_endpoint
     )
     
-    # Substituir rotas básicas por versões completas
     app.get("/", include_in_schema=False)(root_endpoint)
     app.get("/health", include_in_schema=False)(health_check_endpoint)
     app.post("/evaluate", 
@@ -127,7 +116,6 @@ try:
 except ImportError as e:
     print(f"⚠️ Basic routes not available: {e}")
     
-    # Fallback routes
     @app.get("/")
     async def root_fallback():
         return JSONResponse({
@@ -149,7 +137,6 @@ except ImportError as e:
             "error": "Analysis service temporarily unavailable"
         }, status_code=503)
 
-# Carregar rotas de API Key
 try:
     from routes.api_key_routes import (
         get_user_api_key_endpoint, create_user_api_key_endpoint,
@@ -165,7 +152,6 @@ try:
 except ImportError as e:
     print(f"⚠️ API Key endpoints não disponíveis: {e}")
     
-    # Fallback API Key endpoints
     @app.get("/user/api-key")
     async def api_key_get_fallback():
         return JSONResponse({
@@ -178,7 +164,6 @@ except ImportError as e:
             "error": "API Key creation temporarily unavailable"
         }, status_code=503)
 
-# Carregar rotas protegidas
 try:
     from routes.protected_routes import get_user_command_evaluations_endpoint
     app.get("/user/command-evaluations", tags=["User Data"], summary="Get User Command Evaluations")(get_user_command_evaluations_endpoint)
