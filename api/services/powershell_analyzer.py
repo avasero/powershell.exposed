@@ -13,6 +13,7 @@ from config.settings import CACHE_DURATION
 from services.detectors.obfuscation_detector import deobfuscate
 from services.detectors.encoded_command_detector import detect_encoded_command
 from services.detectors.double_encoded_detector import detect_double_encoded_command
+import Levenshtein
 
 
 ENCODED_COMMAND_PATTERN = r'[\u002D\u2013\u2014\u2015](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']?\s*([a-z0-9+/]{20,}={0,2})'
@@ -311,40 +312,41 @@ def deobfuscate_powershell(command: str) -> tuple:
     return command, 0, "none", []
 
 
-def detect_obfuscation(original_command: str, deobfuscated_command: str) -> bool:
+def detect_obfuscation(original_command: str, deobfuscated_command: str, threshold: float = 0.30) -> bool:
     """
-    Detects if obfuscation was present by comparing original and deobfuscated commands
-    Uses multiple heuristics to determine if format string obfuscation was removed
+    Detects obfuscation using Levenshtein distance
+    
+    Args:
+        original_command: Original command
+        deobfuscated_command: Deobfuscated command
+        threshold: Minimum similarity ratio to consider obfuscated (0.30 = 30% different)
+    
+    Returns:
+        bool: True if obfuscation detected (commands are significantly different)
     """
     if original_command == deobfuscated_command:
         return False
     
-    # Check for format string patterns in original
-    has_format_strings = bool(re.search(r'["\']?\{[0-9]+\}["\']?\s*-f\s*["\']', original_command, re.IGNORECASE))
+    # Calculate Levenshtein distance
+    distance = Levenshtein.distance(original_command, deobfuscated_command)
     
-    # Check for concatenation operators in original
-    has_concatenation = '}{' in original_command or ')(' in original_command
+    # Calculate similarity ratio (0.0 to 1.0)
+    # ratio() gives similarity (1.0 = identical, 0.0 = completely different)
+    similarity = Levenshtein.ratio(original_command, deobfuscated_command)
     
-    # Check for string splitting patterns
-    has_string_splitting = bool(re.search(r'["\'][^"\']+["\'][,\s]+["\'][^"\']+["\']', original_command))
+    # Obfuscation is detected if similarity is BELOW threshold
+    # Example: threshold=0.70 means commands must be at least 70% similar
+    # If similarity < 0.70, then obfuscation is detected
+    is_obfuscated = similarity < (1.0 - threshold)
     
-    # Length difference heuristic (deobfuscated is usually shorter)
-    length_ratio = len(deobfuscated_command) / len(original_command) if len(original_command) > 0 else 1.0
-    significant_length_difference = length_ratio < 0.8 or length_ratio > 1.2
+    print(f"🔍 [LEVENSHTEIN] Original length: {len(original_command)}")
+    print(f"🔍 [LEVENSHTEIN] Deobfuscated length: {len(deobfuscated_command)}")
+    print(f"🔍 [LEVENSHTEIN] Distance: {distance}")
+    print(f"🔍 [LEVENSHTEIN] Similarity: {similarity:.2%}")
+    print(f"🔍 [LEVENSHTEIN] Threshold: {(1.0 - threshold):.2%}")
+    print(f"🔍 [LEVENSHTEIN] Obfuscated: {is_obfuscated}")
     
-    # Check if deobfuscated has fewer special characters
-    original_special_chars = len(re.findall(r'[{}\(\),"\']', original_command))
-    deobfuscated_special_chars = len(re.findall(r'[{}\(\),"\']', deobfuscated_command))
-    reduced_complexity = deobfuscated_special_chars < original_special_chars * 0.7
-    
-    # Obfuscation is detected if we have format strings OR multiple heuristics match
-    obfuscation_indicators = [
-        has_format_strings,
-        has_concatenation and reduced_complexity,
-        has_string_splitting and significant_length_difference
-    ]
-    
-    return any(obfuscation_indicators)
+    return is_obfuscated
 
 
 def analyze_command_patterns(command: str, signatures: list) -> dict:
@@ -423,35 +425,17 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         print(f"\n[ANALYZED] Command processed (no obfuscation/encoding detected)")
     
    
-    # Step 4: Detect format string obfuscation - check BOTH custom and pyminusone deobfuscator
-    is_obfuscated = False
-    
-    # Check custom deobfuscator result
-    custom_obfuscation_detected = detect_obfuscation(original_command, custom_deobfuscated)
-    
-    # Check pyminusone deobfuscator result (if format string deobfuscation occurred)
-    pyminusone_obfuscation_detected = False
-    if has_deobfuscation and obfuscation_type == "format_deobfuscated":
-        pyminusone_obfuscation_detected = detect_obfuscation(original_command, deobfuscated_command)
-    
-    # Obfuscation is detected if EITHER deobfuscator found it
-    is_obfuscated = custom_obfuscation_detected or pyminusone_obfuscation_detected
+    # Step 4: Detect obfuscation using Levenshtein distance
+    is_obfuscated = detect_obfuscation(original_command, custom_deobfuscated, threshold=0.30)
     
     if is_obfuscated:
-        print(f"🚨 [OBFUSCATION] Format string obfuscation detected!")
-        print(f"   Custom deobfuscator detected: {custom_obfuscation_detected}")
-        print(f"   PyMinusOne detected: {pyminusone_obfuscation_detected}")
+        print(f"🚨 [OBFUSCATION] Format string obfuscation detected via Levenshtein!")
         print(f"   Original: {original_command[:100]}...")
-        print(f"   Custom deobfuscated: {custom_deobfuscated[:100]}...")
-        if pyminusone_obfuscation_detected:
-            print(f"   PyMinusOne deobfuscated: {deobfuscated_command[:100]}...")
+        print(f"   Deobfuscated: {custom_deobfuscated[:100]}...")
         
         obfuscation_sig = next((sig for sig in signatures if sig.get("name") == "Obfuscation Detected"), None)
         
         if obfuscation_sig:
-            # Use the best deobfuscated result for display
-            best_deobfuscated = custom_deobfuscated if custom_obfuscation_detected else deobfuscated_command
-            
             obfuscation_detected = {
                 "name": obfuscation_sig["name"],
                 "description": obfuscation_sig["description"],
@@ -463,7 +447,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                 "pattern": "__OBFUSCATION_CHECK__",
                 "matches_details": [
                     {
-                        "matched_text": f"Format string obfuscation: {original_command[:80]}... → {best_deobfuscated[:80]}...",
+                        "matched_text": f"Format string obfuscation: {original_command[:80]}... → {custom_deobfuscated[:80]}...",
                         "position": {"start": 0, "end": len(original_command)},
                         "match_number": 1,
                         "matched_in": "original"
@@ -484,9 +468,8 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             
             print(f"✅ [OBFUSCATION] Added signature with score {obfuscation_sig['score']}")
     else:
-        print(f"ℹ️ [OBFUSCATION] No obfuscation detected")
-        print(f"   Custom deobfuscator: original == deobfuscated? {original_command == custom_deobfuscated}")
-        print(f"   PyMinusOne: original == deobfuscated? {original_command == deobfuscated_command}")
+        print(f"ℹ️ [OBFUSCATION] No obfuscation detected via Levenshtein")
+        print(f"   Commands are too similar (threshold not met)")
     
     # ✅ NEW: Add Double Encoded Command indicator when decode_iterations >= 2
     if decode_iterations >= 2:
@@ -577,10 +560,11 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     
     print(f"🔍 [SIGNATURE LOOP] has_encoded_command_indicator: {has_encoded_command_indicator}")
     
-    # Commands to analyze
+    # ✅ FIX: Usar custom_deobfuscated para análise recursiva
     commands_to_analyze = [original_command]
-    if has_deobfuscation:
-        commands_to_analyze.append(deobfuscated_command)
+    if custom_deobfuscated != command:
+        commands_to_analyze.append(custom_deobfuscated)
+        print(f"🔄 [RECURSIVE ANALYSIS] Adding deobfuscated command to analysis: {custom_deobfuscated[:100]}...")
     
     for signature in signatures:
         # Skip special indicators
@@ -597,7 +581,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         matched_in_decoded = False
         
         for cmd_to_test in commands_to_analyze:
-            is_decoded_version = (cmd_to_test == deobfuscated_command and has_deobfuscation)
+            is_decoded_version = (cmd_to_test == custom_deobfuscated and custom_deobfuscated != command)
             
             for pattern in signature["patterns"]:
                 try:
