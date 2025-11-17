@@ -569,21 +569,27 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             print(f"✅ [ENCODED COMMAND] Added signature with score {encoded_sig['score']}")
 
     
+    # ✅ FIX: Calcular has_encoded_command_indicator ANTES do loop de signatures
     has_encoded_command_indicator = any(
         sig.get("name") == "Encoded Command Detected" 
         for sig in detected_signatures
     )
-
     
+    print(f"🔍 [SIGNATURE LOOP] has_encoded_command_indicator: {has_encoded_command_indicator}")
+    
+    # Commands to analyze
     commands_to_analyze = [original_command]
     if has_deobfuscation:
         commands_to_analyze.append(deobfuscated_command)
     
     for signature in signatures:
+        # Skip special indicators
         if signature.get("name") in ["Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected"]:
             continue
         
+        # ✅ FIX: Skip "Long base64 string" if we already have "Encoded Command Detected"
         if signature.get("name") == "Long base64 string" and has_encoded_command_indicator:
+            print(f"⏭️ [SKIP] Skipping 'Long base64 string' - already have 'Encoded Command Detected'")
             continue
         
         all_signature_matches = []
