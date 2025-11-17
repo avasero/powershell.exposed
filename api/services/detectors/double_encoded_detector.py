@@ -32,9 +32,6 @@ def detect_double_encoded_command(
     decoded_command: str, 
     decode_iterations: int = 0
 ) -> dict:
-    """
-    ✅ Detecta double encoding no comando RAW sem normalização
-    """
     try:
         if decode_iterations >= 2:
             return {

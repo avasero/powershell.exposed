@@ -11,9 +11,8 @@ from services.session_manager import get_supabase_client
 def generate_phash(command: str) -> int:
     """
     Generate a CRC32 hash for the PowerShell command
-    ✅ FIX: Normalizar APENAS para hash (remover espaços no início/fim)
     """
-    # ✅ Normalizar para cache (trim), mas análise usa comando raw
+    
     normalized_for_hash = command.strip()
     
     b = normalized_for_hash.encode('utf-8')
@@ -23,7 +22,7 @@ def generate_phash(command: str) -> int:
 
 async def check_cache(phash: int) -> Optional[Dict[str, Any]]:
     """
-    ⚡ LIGHTNING FAST cache check
+    cache check
     Optimized for minimum latency
     """
     try:

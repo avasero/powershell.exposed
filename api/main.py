@@ -1,6 +1,4 @@
-"""
-Aplicação principal FastAPI - PowerShell.exposed API
-"""
+
 import os
 import sys
 

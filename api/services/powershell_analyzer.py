@@ -1,5 +1,4 @@
-"""
-Módulo de análise de comandos PowerShell
+"""PowerShell Analyzer Service
 """
 import re
 import time
