@@ -115,32 +115,6 @@ async def load_signatures_from_db(user_id: str = None) -> list:
         return []
 
 
-def fix_brace_spacing(s: str) -> str:
-    """
-      "{ 1 }"  -> "{1}"
-      "{ 1, -10 }" -> "{1,-10}"
-      "}{ " -> "}{"
-    """
-   
-    s = re.sub(r'\{\s*([^}]*?)\s*\}', lambda m: "{" + re.sub(r'\s+', '', m.group(1)) + "}", s)
-
-  
-    s = s.replace('} {', '}{')
-
-    return s
-
-
-def clean_pyminusone_output(deobfuscated: str) -> str:
-   
-  
-    cleaned = re.sub(r'\{\s+(\d+)\s+\}', r'{\1}', deobfuscated)
-    cleaned = re.sub(r'"\s+-f\s+', '" -f ', cleaned)
-    cleaned = re.sub(r'\(\s+\{', '({', cleaned)
-    cleaned = re.sub(r'\}\s+\)', '})', cleaned)
-    
-    return cleaned
-
-
 def decode_base64_utf16(encoded_str: str) -> str:
     """
     Decodifica Base64 UTF-16LE (padrão PowerShell)
@@ -148,22 +122,17 @@ def decode_base64_utf16(encoded_str: str) -> str:
     ✅ SEM VALIDAÇÃO - Apenas decodifica e retorna
     """
     try:
-       
         encoded_str = encoded_str.replace(' ', '').replace('\n', '').replace('\r', '')
         
         if not encoded_str:
             return ""
         
-      
         decoded_bytes = base64.b64decode(encoded_str + '===', validate=False)[:len(encoded_str)*3//4]
-        
-       
         decoded_text = decoded_bytes.decode('utf-16-le', errors='ignore')
         
         return decoded_text
         
     except Exception:
-       
         try:
             decoded_bytes = base64.b64decode(encoded_str, validate=False)
             return decoded_bytes.decode('utf-16-le', errors='ignore')
@@ -259,7 +228,7 @@ def deobfuscate_powershell(command: str) -> tuple:
             deobf = pyminusone.deobfuscate_powershell(command_to_process)
 
             if deobf and deobf != command_to_process:
-                cleaned = fix_brace_spacing(deobf)
+                cleaned = deobfuscate(deobf)
 
                 if cleaned != command_to_process and '{ ' not in cleaned and ' }' not in cleaned:
                     if obfuscation_type != "base64_decoded":
@@ -274,7 +243,7 @@ def deobfuscate_powershell(command: str) -> tuple:
                         
                         try:
                             recursive_result = pyminusone.deobfuscate_powershell(current)
-                            recursive_cleaned = fix_brace_spacing(recursive_result)
+                            recursive_cleaned = deobfuscate(recursive_result)
                             
                             if len(recursive_cleaned) < len(current) and recursive_cleaned != current:
                                 current = recursive_cleaned
@@ -298,7 +267,7 @@ def deobfuscate_powershell(command: str) -> tuple:
             if obfuscation_type != "base64_decoded":
                 obfuscation_type = "format_deobfuscated"
             
-            cleaned_manual = fix_brace_spacing(manual_result)
+            cleaned_manual = deobfuscate(manual_result)
             
           
             return cleaned_manual, base64_iterations, obfuscation_type, all_decoded_layers
