@@ -33,7 +33,7 @@ def deobfuscate_once(s: str) -> str:
     s_new = re.sub(r'\.\s*(Invoke|Start|Execute)\s*\(\s*([^\)]+)\s*\)', r'\2', s_new, flags=re.IGNORECASE)
     s_new = re.sub(r'\s{2,}', ' ', s_new)
     return s_new
-
+##test
 def deobfuscate(s: str, max_iters=20) -> str:
     s = normalize_quotes(s)
     previous = None
