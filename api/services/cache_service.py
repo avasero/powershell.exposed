@@ -11,16 +11,12 @@ from services.session_manager import get_supabase_client
 def generate_phash(command: str) -> int:
     """
     Generate a CRC32 hash for the PowerShell command
-    ✅ NÃO NORMALIZAR - usar comando raw para garantir hash único
-    
-    Args:
-        command (str): The PowerShell command to hash (raw, without normalization)
-        
-    Returns:
-        int: CRC32 hash value as integer
+    ✅ FIX: Normalizar APENAS para hash (remover espaços no início/fim)
     """
+    # ✅ Normalizar para cache (trim), mas análise usa comando raw
+    normalized_for_hash = command.strip()
     
-    b = command.encode('utf-8')
+    b = normalized_for_hash.encode('utf-8')
     v = zlib.crc32(b) & 0xffffffff
     return v
 

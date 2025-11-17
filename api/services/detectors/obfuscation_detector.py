@@ -31,6 +31,18 @@ def apply_format(match):
 
 def deobfuscate_once(s: str) -> str:
     s_new = format_pattern.sub(lambda m: apply_format(m), s)
+    
+    # ✅ FIX: Remover concatenações de strings com + e espaços
+    # Remove: "I" + "E" + "X" → IEX
+    s_new = re.sub(r'["\']([^"\']+)["\']\s*\+\s*["\']([^"\']+)["\']', r'\1\2', s_new)
+    
+    # ✅ Aplicar recursivamente até não ter mais concatenações
+    while True:
+        prev = s_new
+        s_new = re.sub(r'["\']([^"\']+)["\']\s*\+\s*["\']([^"\']+)["\']', r'\1\2', s_new)
+        if prev == s_new:
+            break
+    
     # junta parênteses adjacentes: ')(' -> '' (concatenação comum)
     s_new = re.sub(r'\)\s*\(', '', s_new)
     # remove operador & usado para invocar scriptblocks no começo
