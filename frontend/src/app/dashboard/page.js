@@ -33,9 +33,10 @@ export default function DashboardPage() {
       
       // Para usuários logados, usar user_id diretamente
       if (isAuthenticated() && user?.id) {
-        // Carregar apenas 10 análises mais recentes para o dashboard
         const { makeAuthenticatedRequest } = await import('../../lib/api');
-        const response = await makeAuthenticatedRequest(`/user-analyses?limit=10&user_id=${user.id}`, {
+        
+        // Usar endpoint com limite de 10 para o dashboard
+        const response = await makeAuthenticatedRequest(`/user/command-evaluations?limit=10&offset=0`, {
           method: 'GET'
         });
 
@@ -46,7 +47,7 @@ export default function DashboardPage() {
         const result = await response.json();
         
         // Processar dados do backend
-        const analyses = result.analyses || result || [];
+        const analyses = result.analyses || [];
         setAnalyses(analyses);
         
         // Calcular stats localmente se não vierem do backend

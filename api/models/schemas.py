@@ -222,3 +222,53 @@ class RateLimitResponse(BaseModel):
             }
         }
     }
+
+
+class PaginationParams(BaseModel):
+    """Pagination parameters for list endpoints"""
+    limit: Optional[int] = Field(
+        None, 
+        ge=1, 
+        le=100,
+        description="Number of records to return. Max 100. If not specified, returns all records."
+    )
+    offset: Optional[int] = Field(
+        0,
+        ge=0,
+        description="Pagination offset. Use with limit for page-based pagination."
+    )
+    short_id: Optional[str] = Field(
+        None,
+        description="Filter by specific analysis short_id (8-character identifier)"
+    )
+
+
+class CommandEvaluationResponse(BaseModel):
+    """Single command evaluation record"""
+    id: int
+    uuid: str
+    short_id: str
+    command: str
+    risk_score: float
+    severity: str
+    signatures_detected: List[Dict[str, Any]]
+    cmdlets_detected: List[Dict[str, Any]]
+    tactics: List[str]
+    techniques: List[str]
+    created_at: str
+    search_type: str
+    ip_country: Optional[str] = None
+    ip_city: Optional[str] = None
+
+
+class UserCommandEvaluationsResponse(BaseModel):
+    """Response for user command evaluations list"""
+    success: bool
+    user_id: str
+    auth_type: str = Field(description="Authentication type: 'jwt' for web or 'api_key' for API")
+    total_returned: int = Field(description="Number of records returned in this response")
+    pagination: Dict[str, Any] = Field(
+        description="Pagination info: limit, offset, and has_more flag"
+    )
+    analyses: List[CommandEvaluationResponse]
+    message: Optional[str] = None

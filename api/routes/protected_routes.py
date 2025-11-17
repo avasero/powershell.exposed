@@ -1,11 +1,13 @@
 """
 Protected API Routes - Authentication Required
 """
-from fastapi import Request, HTTPException, Depends
+from fastapi import Request, HTTPException, Depends, Query
 from fastapi.responses import JSONResponse
 from typing import Dict, Any, Optional
 from middleware.auth_middleware import get_current_user_required, get_current_user_optional
 from services.session_manager import get_supabase_client
+from models.schemas import UserCommandEvaluationsResponse, CommandEvaluationResponse
+import json
 
 
 async def get_user_profile_endpoint(
@@ -208,25 +210,74 @@ async def delete_user_analysis_endpoint(
 
 
 async def get_user_command_evaluations_endpoint(
+    request: Request,
+    limit: int = Query(
+        None, 
+        ge=1, 
+        le=100,
+        title="Limit",
+        description="Number of records to return. Maximum 100. If not specified, returns all records."
+    ),
+    offset: int = Query(
+        0, 
+        ge=0,
+        title="Offset",
+        description="Pagination offset. Use with limit for page-based pagination. Default is 0."
+    ),
+    short_id: str = Query(
+        None,
+        title="Short ID",
+        description="Filter by specific analysis short_id. The short_id is an 8-character identifier for each analysis."
+    ),
     user: Dict[str, Any] = Depends(get_current_user_required)
-):
+) -> UserCommandEvaluationsResponse:
     """
-    Get User Command Evaluations
+    Get User Command Evaluations with Pagination
     
-    Retrieves all PowerShell command analyses for the authenticated user.
-    This endpoint works with both JWT tokens and API Keys.
+    Retrieves PowerShell command analyses for the authenticated user.
+    Supports pagination and filtering by specific analysis.
     
-    Returns complete analysis history with risk scores, detected signatures,
-    and MITRE ATT&CK mappings.
+    **Query Parameters:**
+    - `limit`: Number of records to return (1-100, optional)
+    - `offset`: Pagination offset (default: 0, optional)
+    - `short_id`: Filter by specific analysis short_id (optional)
+    
+    **Authentication:**
+    Requires authentication via JWT token (web) or API Key (external tools).
+    
+    **Example Usage:**
+    - Get all analyses: `GET /user/command-evaluations`
+    - Get first 10: `GET /user/command-evaluations?limit=10&offset=0`
+    - Get next page: `GET /user/command-evaluations?limit=10&offset=10`
+    - Get specific analysis: `GET /user/command-evaluations?short_id=abc12345`
+    
+    **Response includes:**
+    - Analysis command and risk score
+    - Detected signatures with MITRE ATT&CK mappings
+    - Pagination information (has_more flag)
+    - Total count of returned records
     """
     try:
         supabase = get_supabase_client()
         
-        response = supabase.table('powershell_analyses') \
+        # Build query
+        query = supabase.table('powershell_analyses') \
             .select('*') \
             .eq('user_id', user["id"]) \
-            .order('created_at', desc=True) \
-            .execute()
+            .order('created_at', desc=True)
+        
+        # Apply short_id filter if provided
+        if short_id:
+            query = query.eq('short_id', short_id)
+        
+        # Apply pagination
+        if limit is not None:
+            query = query.limit(limit)
+        
+        if offset > 0:
+            query = query.offset(offset)
+        
+        response = query.execute()
         
         if response.data:
             analyses = []
@@ -281,7 +332,12 @@ async def get_user_command_evaluations_endpoint(
                 "success": True,
                 "user_id": user["id"],
                 "auth_type": user.get("auth_type", "jwt"),
-                "total_analyses": len(analyses),
+                "total_returned": len(analyses),
+                "pagination": {
+                    "limit": limit,
+                    "offset": offset,
+                    "has_more": len(analyses) == limit if limit else False
+                },
                 "analyses": analyses
             })
         else:
@@ -289,7 +345,12 @@ async def get_user_command_evaluations_endpoint(
                 "success": True,
                 "user_id": user["id"],
                 "auth_type": user.get("auth_type", "jwt"),
-                "total_analyses": 0,
+                "total_returned": 0,
+                "pagination": {
+                    "limit": limit,
+                    "offset": offset,
+                    "has_more": False
+                },
                 "analyses": [],
                 "message": "No command evaluations found for this user"
             })

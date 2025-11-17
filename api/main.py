@@ -1,4 +1,3 @@
-
 import os
 import sys
 
@@ -11,11 +10,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 
 try:
-    from models.schemas import AnalyzeCommandResponse, ErrorResponse, RateLimitResponse
+    from models.schemas import AnalyzeCommandResponse, ErrorResponse, RateLimitResponse, UserCommandEvaluationsResponse
 except ImportError:
     AnalyzeCommandResponse = dict
     ErrorResponse = dict  
     RateLimitResponse = dict
+    UserCommandEvaluationsResponse = dict
 
 API_TITLE = "PowerShell.exposed API"
 API_DESCRIPTION = """
@@ -164,9 +164,68 @@ except ImportError as e:
 
 try:
     from routes.protected_routes import get_user_command_evaluations_endpoint
-    app.get("/user/command-evaluations", tags=["User Data"], summary="Get User Command Evaluations")(get_user_command_evaluations_endpoint)
+    from models.schemas import UserCommandEvaluationsResponse
+    
+    app.get(
+        "/user/command-evaluations",
+        tags=["User Data"],
+        summary="Get User Command Evaluations with Pagination",
+        description="Retrieve user's PowerShell command analyses with optional pagination and filtering by short_id",
+        response_model=UserCommandEvaluationsResponse,
+        responses={
+            200: {
+                "description": "Successfully retrieved user command evaluations",
+                "content": {
+                    "application/json": {
+                        "example": {
+                            "success": True,
+                            "user_id": "user-123",
+                            "auth_type": "jwt",
+                            "total_returned": 10,
+                            "pagination": {
+                                "limit": 10,
+                                "offset": 0,
+                                "has_more": True
+                            },
+                            "analyses": [
+                                {
+                                    "id": 1,
+                                    "uuid": "550e8400-e29b-41d4-a716-446655440000",
+                                    "short_id": "abc12345",
+                                    "command": "IEX(New-Object Net.WebClient).DownloadString(...)",
+                                    "risk_score": 8.5,
+                                    "severity": "high",
+                                    "signatures_detected": [],
+                                    "cmdlets_detected": [],
+                                    "tactics": ["T1059.001"],
+                                    "techniques": [],
+                                    "created_at": "2024-01-15T10:30:00Z",
+                                    "search_type": "WEB",
+                                    "ip_country": "US",
+                                    "ip_city": "New York"
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            401: {
+                "description": "Authentication required"
+            },
+            500: {
+                "description": "Internal server error"
+            }
+        }
+    )(get_user_command_evaluations_endpoint)
+    
 except ImportError as e:
     print(f"⚠️ Protected routes not available: {e}")
+    
+    @app.get("/user/command-evaluations")
+    async def command_evals_fallback():
+        return JSONResponse({
+            "error": "Command evaluations endpoint temporarily unavailable"
+        }, status_code=503)
 
 if __name__ == "__main__":
     import uvicorn

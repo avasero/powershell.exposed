@@ -114,6 +114,34 @@ export async function getUserCommandEvaluations() {
 }
 
 /**
+ * Get user command evaluations with pagination
+ * @param {number} limit - Number of records to return (max 100)
+ * @param {number} offset - Pagination offset
+ * @param {string} shortId - Filter by specific analysis short_id
+ * @returns {Promise<object>} - User command evaluations
+ */
+export async function getUserCommandEvaluations(limit = null, offset = 0, shortId = null) {
+  const params = new URLSearchParams()
+  
+  if (limit !== null) {
+    params.append('limit', limit)
+  }
+  
+  if (offset > 0) {
+    params.append('offset', offset)
+  }
+  
+  if (shortId) {
+    params.append('short_id', shortId)
+  }
+  
+  const queryString = params.toString()
+  const endpoint = queryString ? `/user/command-evaluations?${queryString}` : '/user/command-evaluations'
+  
+  return await makeAuthenticatedJSONRequest(endpoint)
+}
+
+/**
  * Get user API key
  * @returns {Promise<object>} - User API key data
  */
