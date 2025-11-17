@@ -244,6 +244,7 @@ async def analyze_command_endpoint(
                 "techniques": analysis_result["techniques"],
                 "decoded_command": analysis_result.get("decoded_command"),
                 "double_decoded_command": analysis_result.get("double_decoded_command"),
+                "deobfuscated_command": analysis_result.get("deobfuscated_command"),  # Add this
                 "total_signatures_checked": len(signatures),
                 "detected_count": len(analysis_result["detected_signatures"]),
                 "cache_info": {

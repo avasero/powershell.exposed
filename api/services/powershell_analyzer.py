@@ -10,9 +10,9 @@ import base64
 from services.session_manager import get_supabase_client
 from config.settings import CACHE_DURATION
 
+from services.detectors.obfuscation_detector import deobfuscate
 from services.detectors.encoded_command_detector import detect_encoded_command
 from services.detectors.double_encoded_detector import detect_double_encoded_command
-from services.detectors.obfuscation_detector import detect_obfuscation
 
 
 ENCODED_COMMAND_PATTERN = r'[\u002D\u2013\u2014\u2015](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']?\s*([a-z0-9+/]{20,}={0,2})'
@@ -312,10 +312,46 @@ def deobfuscate_powershell(command: str) -> tuple:
 
 
 def analyze_command_patterns(command: str, signatures: list) -> dict:
+    """
+    Analyzes PowerShell command with obfuscation handling
+    """
+    # Step 1: Deobfuscate the command first
+    deobfuscated_command = deobfuscate(command)
+    
+    print(f"🔧 [DEOBFUSCATION] Original: {command[:100]}")
+    print(f"🔧 [DEOBFUSCATION] Deobfuscated: {deobfuscated_command[:100]}")
+    
+    # Step 2: Detect encoding on deobfuscated command
+    encoding_result = detect_encoded_command(deobfuscated_command)
+    
+    decoded_command = None
+    double_decoded_command = None
+    
+    if encoding_result["is_encoded"]:
+        decoded_command = encoding_result.get("decoded_preview")
+        
+        # Check for double encoding
+        if decoded_command:
+            double_encoding_result = detect_double_encoded_command(
+                command=command,
+                decoded_command=decoded_command,
+                decode_iterations=1
+            )
+            
+            if double_encoding_result["is_double_encoded"]:
+                double_decoded_command = double_encoding_result.get("second_level_decoded")
+    
+    # Step 3: Analyze signatures on all variants
+    analysis_text = deobfuscated_command
+    if decoded_command:
+        analysis_text += " " + decoded_command
+    if double_decoded_command:
+        analysis_text += " " + double_decoded_command
+    
     detected_signatures = []
-    total_score = 0
-    tactics = set()
-    techniques = set()
+    total_score = 0.0
+    tactics_set = set()
+    techniques_set = set()
     
     original_command = command
     
@@ -391,8 +427,8 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             }
             
             detected_signatures.append(obfuscation_detected)
-            tactics.update(obfuscation_sig.get("tactics", []))
-            techniques.update(obfuscation_sig.get("techniques", []))
+            tactics_set.update(obfuscation_sig.get("tactics", []))
+            techniques_set.update(obfuscation_sig.get("techniques", []))
             total_score += obfuscation_sig["score"]
 
    
@@ -426,8 +462,8 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                 "found_in_deobfuscated": False
             })
             
-            tactics.update(double_encoded_sig.get("tactics", ["Defense Evasion"]))
-            techniques.update(double_encoded_sig.get("techniques", ["T1027.010", "T1140"]))
+            tactics_set.update(double_encoded_sig.get("tactics", ["Defense Evasion"]))
+            techniques_set.update(double_encoded_sig.get("techniques", ["T1027.010", "T1140"]))
             total_score += double_encoded_sig["score"]
             
             print(f"✅ [DOUBLE ENCODED] Added signature with score {double_encoded_sig['score']}")
@@ -470,8 +506,8 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                 "found_in_deobfuscated": False
             })
             
-            tactics.update(encoded_sig.get("tactics", ["Defense Evasion"]))
-            techniques.update(encoded_sig.get("techniques", ["T1027", "T1027.001", "T1140"]))
+            tactics_set.update(encoded_sig.get("tactics", ["Defense Evasion"]))
+            techniques_set.update(encoded_sig.get("techniques", ["T1027", "T1027.001", "T1140"]))
             total_score += encoded_sig["score"]
             
             print(f"✅ [ENCODED COMMAND] Added signature with score {encoded_sig['score']}")
@@ -578,8 +614,8 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             
             detected_signatures.append(detected_signature)
             
-            tactics.update(signature["tactics"])
-            techniques.update(signature["techniques"])
+            tactics_set.update(signature["tactics"])
+            techniques_set.update(signature["techniques"])
             total_score += signature_total_score
     
   
@@ -593,12 +629,11 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     return {
         "detected_signatures": detected_signatures,
         "total_score": total_score,
-        "tactics": list(tactics),
-        "techniques": list(techniques),
-        "decoded_command": first_decoded_layer if (has_deobfuscation and decode_iterations >= 1) else None,
-        "double_decoded_command": second_decoded_layer if (has_deobfuscation and decode_iterations >= 2) else None,
-        "is_obfuscated": is_obfuscated,
-        "obfuscation_type": obfuscation_type
+        "tactics": list(tactics_set),
+        "techniques": list(techniques_set),
+        "decoded_command": decoded_command,
+        "double_decoded_command": double_decoded_command,
+        "deobfuscated_command": deobfuscated_command if deobfuscated_command != command else None
     }
 
 
