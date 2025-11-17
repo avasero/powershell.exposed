@@ -141,6 +141,7 @@ async def analyze_command_endpoint(
         
         cached_result = await check_cache(phash)
         
+        # ✅ FIX: Processar cache corretamente dentro do bloco if
         if cached_result:
             results_blob = cached_result.get("results_blob", {})
             
@@ -153,7 +154,10 @@ async def analyze_command_endpoint(
                 results_blob["decoded_command"] = None
             if "double_decoded_command" not in results_blob:
                 results_blob["double_decoded_command"] = None
+            if "deobfuscated_command" not in results_blob:
+                results_blob["deobfuscated_command"] = None
             
+            # ✅ Salvar no banco DENTRO do bloco if
             db_result = await save_analysis_to_db(
                 command=command,
                 analysis_result=results_blob,
@@ -168,6 +172,7 @@ async def analyze_command_endpoint(
             
             analysis_id = db_result.get("short_id") if db_result.get("success") else "cache-error"
             
+            # ✅ Retornar resposta do cache DENTRO do bloco if
             return JSONResponse({
                 "success": True,
                 "from_cache": True,
@@ -178,8 +183,9 @@ async def analyze_command_endpoint(
                     "signatures_detected": results_blob.get("signatures_detected", []),
                     "tactics": results_blob.get("tactics", []),
                     "techniques": results_blob.get("techniques", []),
-                    "decoded_command": results_blob.get("decoded_command"),  
-                    "double_decoded_command": results_blob.get("double_decoded_command"), 
+                    "decoded_command": results_blob.get("decoded_command"),
+                    "double_decoded_command": results_blob.get("double_decoded_command"),
+                    "deobfuscated_command": results_blob.get("deobfuscated_command"),
                     "total_signatures_checked": results_blob.get("total_signatures_checked", 0),
                     "detected_count": results_blob.get("detected_count", 0),
                     "cache_info": {
@@ -193,6 +199,7 @@ async def analyze_command_endpoint(
                 "session_id": session_id
             })
         
+        # ✅ Se não houver cache, continuar com análise normal
         signatures = await load_signatures_from_db(user_id=user_id)
         
         if not signatures:
@@ -260,7 +267,6 @@ async def analyze_command_endpoint(
         })
         
     except Exception as error:
-       
         return JSONResponse(
             {"error": f"Internal error: {str(error)}"},
             status_code=500
@@ -399,7 +405,8 @@ async def get_user_analyses_endpoint(
                     "techniques": analysis.get("techniques", []),
                     "created_at": analysis.get("created_at"),
                     "is_cache": analysis.get("is_cache", False),
-                    "decoded_command": analysis.get("decoded_command")
+                    "decoded_command": analysis.get("decoded_command"),
+                    "deobfuscated_command": analysis.get("obfuscated_command")  # ✅ FIX: Mapear obfuscated_command -> deobfuscated_command
                 })
             
             return JSONResponse({
@@ -492,6 +499,7 @@ async def get_analysis_by_id_endpoint(analysis_id: str):
             "techniques": analysis_data.get("techniques"),
             "decoded_command": analysis_data.get("decoded_command"),
             "double_decoded_command": analysis_data.get("double_decoded_command"),
+            "deobfuscated_command": analysis_data.get("obfuscated_command"),  # ✅ FIX: Mapear obfuscated_command -> deobfuscated_command
             "created_at": analysis_data.get("created_at"),
         }
         

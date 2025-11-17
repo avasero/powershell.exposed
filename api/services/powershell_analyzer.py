@@ -311,18 +311,54 @@ def deobfuscate_powershell(command: str) -> tuple:
     return command, 0, "none", []
 
 
+def detect_obfuscation(original_command: str, deobfuscated_command: str) -> bool:
+    """
+    Detects if obfuscation was present by comparing original and deobfuscated commands
+    Uses multiple heuristics to determine if format string obfuscation was removed
+    """
+    if original_command == deobfuscated_command:
+        return False
+    
+    # Check for format string patterns in original
+    has_format_strings = bool(re.search(r'["\']?\{[0-9]+\}["\']?\s*-f\s*["\']', original_command, re.IGNORECASE))
+    
+    # Check for concatenation operators in original
+    has_concatenation = '}{' in original_command or ')(' in original_command
+    
+    # Check for string splitting patterns
+    has_string_splitting = bool(re.search(r'["\'][^"\']+["\'][,\s]+["\'][^"\']+["\']', original_command))
+    
+    # Length difference heuristic (deobfuscated is usually shorter)
+    length_ratio = len(deobfuscated_command) / len(original_command) if len(original_command) > 0 else 1.0
+    significant_length_difference = length_ratio < 0.8 or length_ratio > 1.2
+    
+    # Check if deobfuscated has fewer special characters
+    original_special_chars = len(re.findall(r'[{}\(\),"\']', original_command))
+    deobfuscated_special_chars = len(re.findall(r'[{}\(\),"\']', deobfuscated_command))
+    reduced_complexity = deobfuscated_special_chars < original_special_chars * 0.7
+    
+    # Obfuscation is detected if we have format strings OR multiple heuristics match
+    obfuscation_indicators = [
+        has_format_strings,
+        has_concatenation and reduced_complexity,
+        has_string_splitting and significant_length_difference
+    ]
+    
+    return any(obfuscation_indicators)
+
+
 def analyze_command_patterns(command: str, signatures: list) -> dict:
     """
     Analyzes PowerShell command with obfuscation handling
     """
-    # Step 1: Deobfuscate the command first
-    deobfuscated_command = deobfuscate(command)
+    # Step 1: Deobfuscate the command first using our custom deobfuscator
+    custom_deobfuscated = deobfuscate(command)
     
-    print(f"🔧 [DEOBFUSCATION] Original: {command[:100]}")
-    print(f"🔧 [DEOBFUSCATION] Deobfuscated: {deobfuscated_command[:100]}")
+    print(f"🔧 [CUSTOM DEOBFUSCATION] Original: {command[:100]}")
+    print(f"🔧 [CUSTOM DEOBFUSCATION] Deobfuscated: {custom_deobfuscated[:100]}")
     
     # Step 2: Detect encoding on deobfuscated command
-    encoding_result = detect_encoded_command(deobfuscated_command)
+    encoding_result = detect_encoded_command(custom_deobfuscated)
     
     decoded_command = None
     double_decoded_command = None
@@ -341,13 +377,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             if double_encoding_result["is_double_encoded"]:
                 double_decoded_command = double_encoding_result.get("second_level_decoded")
     
-    # Step 3: Analyze signatures on all variants
-    analysis_text = deobfuscated_command
-    if decoded_command:
-        analysis_text += " " + decoded_command
-    if double_decoded_command:
-        analysis_text += " " + double_decoded_command
-    
+    # Step 3: Continue with existing deobfuscation logic for format strings
     detected_signatures = []
     total_score = 0.0
     tactics_set = set()
@@ -355,6 +385,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     
     original_command = command
     
+    # Use pyminusone for format string deobfuscation
     deobfuscated_command, decode_iterations, obfuscation_type, all_decoded_layers = deobfuscate_powershell(command)
     has_deobfuscation = deobfuscated_command != command
     
@@ -392,15 +423,35 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         print(f"\n[ANALYZED] Command processed (no obfuscation/encoding detected)")
     
    
+    # Step 4: Detect format string obfuscation - check BOTH custom and pyminusone deobfuscator
     is_obfuscated = False
+    
+    # Check custom deobfuscator result
+    custom_obfuscation_detected = detect_obfuscation(original_command, custom_deobfuscated)
+    
+    # Check pyminusone deobfuscator result (if format string deobfuscation occurred)
+    pyminusone_obfuscation_detected = False
     if has_deobfuscation and obfuscation_type == "format_deobfuscated":
-        is_obfuscated = detect_obfuscation(command, deobfuscated_command)
+        pyminusone_obfuscation_detected = detect_obfuscation(original_command, deobfuscated_command)
+    
+    # Obfuscation is detected if EITHER deobfuscator found it
+    is_obfuscated = custom_obfuscation_detected or pyminusone_obfuscation_detected
     
     if is_obfuscated:
-     
+        print(f"🚨 [OBFUSCATION] Format string obfuscation detected!")
+        print(f"   Custom deobfuscator detected: {custom_obfuscation_detected}")
+        print(f"   PyMinusOne detected: {pyminusone_obfuscation_detected}")
+        print(f"   Original: {original_command[:100]}...")
+        print(f"   Custom deobfuscated: {custom_deobfuscated[:100]}...")
+        if pyminusone_obfuscation_detected:
+            print(f"   PyMinusOne deobfuscated: {deobfuscated_command[:100]}...")
+        
         obfuscation_sig = next((sig for sig in signatures if sig.get("name") == "Obfuscation Detected"), None)
         
         if obfuscation_sig:
+            # Use the best deobfuscated result for display
+            best_deobfuscated = custom_deobfuscated if custom_obfuscation_detected else deobfuscated_command
+            
             obfuscation_detected = {
                 "name": obfuscation_sig["name"],
                 "description": obfuscation_sig["description"],
@@ -412,7 +463,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                 "pattern": "__OBFUSCATION_CHECK__",
                 "matches_details": [
                     {
-                        "matched_text": "Obfuscation detected",
+                        "matched_text": f"Format string obfuscation: {original_command[:80]}... → {best_deobfuscated[:80]}...",
                         "position": {"start": 0, "end": len(original_command)},
                         "match_number": 1,
                         "matched_in": "original"
@@ -430,8 +481,13 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             tactics_set.update(obfuscation_sig.get("tactics", []))
             techniques_set.update(obfuscation_sig.get("techniques", []))
             total_score += obfuscation_sig["score"]
-
-   
+            
+            print(f"✅ [OBFUSCATION] Added signature with score {obfuscation_sig['score']}")
+    else:
+        print(f"ℹ️ [OBFUSCATION] No obfuscation detected")
+        print(f"   Custom deobfuscator: original == deobfuscated? {original_command == custom_deobfuscated}")
+        print(f"   PyMinusOne: original == deobfuscated? {original_command == deobfuscated_command}")
+    
     # ✅ NEW: Add Double Encoded Command indicator when decode_iterations >= 2
     if decode_iterations >= 2:
         double_encoded_sig = next((sig for sig in signatures if sig.get("name") == "Double Encoded Command Detected"), None)
@@ -633,7 +689,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         "techniques": list(techniques_set),
         "decoded_command": decoded_command,
         "double_decoded_command": double_decoded_command,
-        "deobfuscated_command": deobfuscated_command if deobfuscated_command != command else None
+        "deobfuscated_command": custom_deobfuscated if custom_deobfuscated != command else None
     }
 
 
@@ -669,20 +725,25 @@ async def save_analysis_to_db(
         
         ip_country = country if country and country != 'Unknown' else None
         
-       
-        deobfuscated_cmd = analysis_result.get("decoded_command")
+        # ✅ FIX: Usar o nome correto do campo no banco
+        deobfuscated_cmd = analysis_result.get("deobfuscated_command")
+        decoded_cmd = analysis_result.get("decoded_command")
         double_decoded_cmd = analysis_result.get("double_decoded_command")
         
         if deobfuscated_cmd and deobfuscated_cmd.strip():
-            print(f"✅ [DB SAVE] decoded_command (deobfuscated): {deobfuscated_cmd[:80]}...")
+            print(f"✅ [DB SAVE] obfuscated_command (deobfuscated): {deobfuscated_cmd[:80]}...")
+        
+        if decoded_cmd and decoded_cmd.strip():
+            print(f"✅ [DB SAVE] decoded_command: {decoded_cmd[:80]}...")
         
         if double_decoded_cmd and double_decoded_cmd.strip():
-            print(f"✅ [DB SAVE] double_decoded_command (Base64 decoded): {double_decoded_cmd[:80]}...")
+            print(f"✅ [DB SAVE] double_decoded_command: {double_decoded_cmd[:80]}...")
         
         insert_data = {
             "command": command,
-            "decoded_command": deobfuscated_cmd,
+            "decoded_command": decoded_cmd,
             "double_decoded_command": double_decoded_cmd,
+            "obfuscated_command": deobfuscated_cmd,  # ✅ FIX: Nome correto da coluna
             "risk_score": round(analysis_result["total_score"], 1),
             "severity": analysis_result["severity"],
             "signatures_detected": analysis_result["detected_signatures"],

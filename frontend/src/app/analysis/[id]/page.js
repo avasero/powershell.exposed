@@ -113,6 +113,7 @@ export default function AnalysisDetailsPage() {
         signatures: (analysis.signatures_detected || analysisResult.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
         decoded: analysis.decoded_command || analysisResult.decoded_command || null,
         doubleDecoded: analysis.double_decoded_command || analysisResult.double_decoded_command || null,
+        deobfuscated: analysis.deobfuscated_command || analysisResult.deobfuscated_command || null,  // ✅ ADICIONAR
         indicators: analysisResult.analysis_details?.indicators || [],
         details: analysisResult.analysis_details?.recommendations?.join(", ") || "",
         tactics: analysis.tactics || analysisResult.tactics || [],
@@ -133,7 +134,7 @@ export default function AnalysisDetailsPage() {
       setLoading(false);
       setContentReady(true);
     }
-  }, [params.id, isCacheRedirect, cacheRedirectInfo]);
+  }, [params.id, isCacheRedirect]); // ✅ FIX: Remover cacheRedirectInfo da dependência
 
   
   useEffect(() => {
@@ -257,6 +258,7 @@ export default function AnalysisDetailsPage() {
           signatures: (analysisData.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
           decoded: analysisData.decoded_command,
           doubleDecoded: analysisData.double_decoded_command,
+          deobfuscated: analysisData.deobfuscated_command,  // ✅ ADICIONAR
           indicators: analysisData.analysis_details?.indicators || [],
           details: analysisData.analysis_details?.recommendations?.join(", ") || "",
           tactics: analysisData.tactics || [],
@@ -308,6 +310,11 @@ export default function AnalysisDetailsPage() {
     return <AnalysisSkeleton />;
   }
 
+  // ✅ Verificar se o indicador de obfuscação foi detectado
+  const hasObfuscationIndicator = result?.signatures?.some(
+    sig => sig.name === "Obfuscation Detected"
+  );
+  
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 animate-fade-in">
       <style jsx>{`
@@ -477,9 +484,25 @@ export default function AnalysisDetailsPage() {
         </div>
       )} */}
 
-      {result && result.decoded && result.doubleDecoded && (() => {
-        console.log("🟦 [RENDER] Showing FIRST DECODED LAYER (double-encoded)");
-        return (
+      {/* ✅ BLOCO 1: Deobfuscated (PRIMEIRO - aparece APENAS se indicador estiver presente) */}
+      {result && result.deobfuscated && hasObfuscationIndicator && (
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+          <div className="border rounded-lg p-4 bg-black/80 border-purple-500/30">
+            <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
+              🔓 Deobfuscated Command
+            </div>
+            <div className="bg-black rounded p-3 border border-purple-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
+              <code>{result.deobfuscated}</code>
+            </div>
+            <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
+              Format string obfuscation was removed (e.g., &#123;&quot;&#123;1&#125;&#123;0&#125;&quot; -f &apos;EX&apos;,&apos;I&apos;&#125; → &apos;IEX&apos;)
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ BLOCO 2: First Decoded Layer (double-encoded: decoded && doubleDecoded) */}
+      {result && result.decoded && result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
             <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
@@ -493,12 +516,10 @@ export default function AnalysisDetailsPage() {
             </div>
           </div>
         </div>
-        );
-      })()}
+      )}
 
-      {result && result.decoded && !result.doubleDecoded && (() => {
-        console.log("🟦 [RENDER] Showing DECODED block (single-layer)");
-        return (
+      {/* ✅ BLOCO 3: Decoded Command (single-encoded: decoded && !doubleDecoded) */}
+      {result && result.decoded && !result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
             <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
@@ -512,13 +533,10 @@ export default function AnalysisDetailsPage() {
             </div>
           </div>
         </div>
-        );
-      })()}
+      )}
 
-      {/* ✅ BLOCO 3: Mostrar double_decoded APENAS quando existir (decode_iterations >= 2) */}
-      {result && result.doubleDecoded && (() => {
-        console.log("🟨 [RENDER] Showing DOUBLE-DECODED block (multi-layer)");
-        return (
+      {/* ✅ BLOCO 4: Final Decoded (doubleDecoded exists) */}
+      {result && result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-yellow-500/30">
             <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
@@ -532,8 +550,7 @@ export default function AnalysisDetailsPage() {
             </div>
           </div>
         </div>
-        );
-      })()}
+      )}
 
       {result && result.signatures && result.signatures.length > 0 && (
          <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
@@ -624,8 +641,8 @@ export default function AnalysisDetailsPage() {
             </div>
           </div>
         </div>
-      )}
-
+      )
+      }
       <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
         <ThemedButton onClick={() => router.push('/')}>
           Evaluate Another Command

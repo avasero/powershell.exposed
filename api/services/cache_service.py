@@ -200,6 +200,7 @@ def create_cache_compatible_result(analysis_result: Dict[str, Any]) -> Dict[str,
         "techniques": analysis_result.get("techniques", []),
         "decoded_command": analysis_result.get("decoded_command"),
         "double_decoded_command": analysis_result.get("double_decoded_command"),
+        "deobfuscated_command": analysis_result.get("deobfuscated_command"),  # ✅ ADICIONAR
         "total_signatures_checked": analysis_result.get("total_signatures_checked", 0),
         "detected_count": analysis_result.get("detected_count", 0),
         "cached": True
