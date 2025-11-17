@@ -1,20 +1,20 @@
 import re
 
 def normalize_quotes(s: str) -> str:
-    # Normaliza aspas tipográficas e remove caracteres invisíveis
+
     s = s.replace('“', '"').replace('”', '"').replace('‘', "'").replace('’', "'")
     s = s.replace('`', "'")
     s = re.sub(r'[\u200b-\u200f\uFEFF]', '', s)
     return s
 
-# Regex para capturar: ("{...}" -f 'a','b',...)
+
 format_pattern = re.compile(
     r'\(\s*("(?:(?:\\")|[^"])*"|\'(?:(?:\\\')|[^\'])*\')\s*-f\s*([^\)]+)\)',
     flags=re.IGNORECASE
 )
 
 def parse_args(args_text: str):
-    # Extrai argumentos entre aspas simples ou duplas
+    
     args = re.findall(r'(["\'])(.*?)\1', args_text)
     return [a[1] for a in args]
 
@@ -32,22 +32,20 @@ def apply_format(match):
 def deobfuscate_once(s: str) -> str:
     s_new = format_pattern.sub(lambda m: apply_format(m), s)
     
-    # ✅ FIX: Remover concatenações de strings com + e espaços
+    
     # Remove: "I" + "E" + "X" → IEX
     s_new = re.sub(r'["\']([^"\']+)["\']\s*\+\s*["\']([^"\']+)["\']', r'\1\2', s_new)
     
-    # ✅ Aplicar recursivamente até não ter mais concatenações
+   
     while True:
         prev = s_new
         s_new = re.sub(r'["\']([^"\']+)["\']\s*\+\s*["\']([^"\']+)["\']', r'\1\2', s_new)
         if prev == s_new:
             break
     
-    # junta parênteses adjacentes: ')(' -> '' (concatenação comum)
+    
     s_new = re.sub(r'\)\s*\(', '', s_new)
-    # remove operador & usado para invocar scriptblocks no começo
     s_new = re.sub(r'&\s*', '', s_new)
-    # simplifica chamadas de método .Invoke(...), .Start(...), .Execute(...) mantendo argumento
     s_new = re.sub(r'\.\s*(Invoke|Start|Execute)\s*\(\s*([^\)]+)\s*\)', r'\2', s_new, flags=re.IGNORECASE)
     s_new = re.sub(r'\s{2,}', ' ', s_new)
     return s_new

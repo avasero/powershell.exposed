@@ -116,11 +116,6 @@ async def load_signatures_from_db(user_id: str = None) -> list:
 
 
 def decode_base64_utf16(encoded_str: str) -> str:
-    """
-    Decodifica Base64 UTF-16LE (padrão PowerShell)
-    SEMPRE usa UTF-16LE, NUNCA UTF-8
-    ✅ SEM VALIDAÇÃO - Apenas decodifica e retorna
-    """
     try:
         encoded_str = encoded_str.replace(' ', '').replace('\n', '').replace('\r', '')
         
@@ -141,15 +136,6 @@ def decode_base64_utf16(encoded_str: str) -> str:
 
 
 def deobfuscate_powershell(command: str) -> tuple:
-    """
-    Deofusca comandos PowerShell usando regex robusta e pyminusone
-    ✅ NÃO NORMALIZA - usa comando raw
-    Detecta DOIS tipos diferentes:
-    1. -EncodedCommand (Base64 UTF-16LE) → DECODING
-    2. Format strings ("{1}{0}" -f 'x','y') → DEOBFUSCATION
-    
-    Retorna: (processed_command, iteration_count, obfuscation_type, all_layers)
-    """
    
     has_leading_ampersand = command.startswith('&')
     
@@ -284,36 +270,25 @@ def deobfuscate_powershell(command: str) -> tuple:
 def detect_obfuscation(original_command: str, deobfuscated_command: str, threshold: float = 0.30) -> bool:
     """
     Detects obfuscation using Levenshtein distance
-    
-    Args:
-        original_command: Original command
-        deobfuscated_command: Deobfuscated command
-        threshold: Minimum similarity ratio to consider obfuscated (0.30 = 30% different)
-    
-    Returns:
-        bool: True if obfuscation detected (commands are significantly different)
     """
     if original_command == deobfuscated_command:
         return False
     
-    # Calculate Levenshtein distance
+    
     distance = Levenshtein.distance(original_command, deobfuscated_command)
     
-    # Calculate similarity ratio (0.0 to 1.0)
-    # ratio() gives similarity (1.0 = identical, 0.0 = completely different)
+    
     similarity = Levenshtein.ratio(original_command, deobfuscated_command)
     
-    # Obfuscation is detected if similarity is BELOW threshold
-    # Example: threshold=0.70 means commands must be at least 70% similar
-    # If similarity < 0.70, then obfuscation is detected
+   
     is_obfuscated = similarity < (1.0 - threshold)
     
-    print(f"🔍 [LEVENSHTEIN] Original length: {len(original_command)}")
-    print(f"🔍 [LEVENSHTEIN] Deobfuscated length: {len(deobfuscated_command)}")
-    print(f"🔍 [LEVENSHTEIN] Distance: {distance}")
-    print(f"🔍 [LEVENSHTEIN] Similarity: {similarity:.2%}")
-    print(f"🔍 [LEVENSHTEIN] Threshold: {(1.0 - threshold):.2%}")
-    print(f"🔍 [LEVENSHTEIN] Obfuscated: {is_obfuscated}")
+    print(f" [LEVENSHTEIN] Original length: {len(original_command)}")
+    print(f" [LEVENSHTEIN] Deobfuscated length: {len(deobfuscated_command)}")
+    print(f" [LEVENSHTEIN] Distance: {distance}")
+    print(f" [LEVENSHTEIN] Similarity: {similarity:.2%}")
+    print(f" [LEVENSHTEIN] Threshold: {(1.0 - threshold):.2%}")
+    print(f" [LEVENSHTEIN] Obfuscated: {is_obfuscated}")
     
     return is_obfuscated
 
@@ -322,13 +297,13 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     """
     Analyzes PowerShell command with obfuscation handling
     """
-    # Step 1: Deobfuscate the command first using our custom deobfuscator
+
     custom_deobfuscated = deobfuscate(command)
     
-    print(f"🔧 [CUSTOM DEOBFUSCATION] Original: {command[:100]}")
-    print(f"🔧 [CUSTOM DEOBFUSCATION] Deobfuscated: {custom_deobfuscated[:100]}")
+    print(f" [CUSTOM DEOBFUSCATION] Original: {command[:100]}")
+    print(f" [CUSTOM DEOBFUSCATION] Deobfuscated: {custom_deobfuscated[:100]}")
     
-    # Step 2: Detect encoding on deobfuscated command
+    
     encoding_result = detect_encoded_command(custom_deobfuscated)
     
     decoded_command = None
@@ -337,7 +312,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     if encoding_result["is_encoded"]:
         decoded_command = encoding_result.get("decoded_preview")
         
-        # Check for double encoding
+        
         if decoded_command:
             double_encoding_result = detect_double_encoded_command(
                 command=command,
@@ -348,7 +323,6 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             if double_encoding_result["is_double_encoded"]:
                 double_decoded_command = double_encoding_result.get("second_level_decoded")
     
-    # Step 3: Continue with existing deobfuscation logic for format strings
     detected_signatures = []
     total_score = 0.0
     tactics_set = set()
@@ -356,7 +330,6 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     
     original_command = command
     
-    # Use pyminusone for format string deobfuscation
     deobfuscated_command, decode_iterations, obfuscation_type, all_decoded_layers = deobfuscate_powershell(command)
     has_deobfuscation = deobfuscated_command != command
     
@@ -369,7 +342,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         if len(all_decoded_layers) >= 2:
             second_decoded_layer = all_decoded_layers[1]["decoded"]
     
-    print(f"🔍 [LAYER EXTRACTION]")
+    print(f" [LAYER EXTRACTION]")
     print(f"   Total layers: {len(all_decoded_layers)}")
     print(f"   First layer: {first_decoded_layer[:80] if first_decoded_layer else 'None'}...")
     print(f"   Second layer: {second_decoded_layer[:80] if second_decoded_layer else 'None'}...")
@@ -394,7 +367,6 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         print(f"\n[ANALYZED] Command processed (no obfuscation/encoding detected)")
     
    
-    # Step 4: Detect obfuscation using Levenshtein distance
     is_obfuscated = detect_obfuscation(original_command, custom_deobfuscated, threshold=0.30)
     
     if is_obfuscated:
@@ -440,7 +412,6 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         print(f"ℹ️ [OBFUSCATION] No obfuscation detected via Levenshtein")
         print(f"   Commands are too similar (threshold not met)")
     
-    # ✅ NEW: Add Double Encoded Command indicator when decode_iterations >= 2
     if decode_iterations >= 2:
         double_encoded_sig = next((sig for sig in signatures if sig.get("name") == "Double Encoded Command Detected"), None)
         
@@ -476,7 +447,6 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             
             print(f"✅ [DOUBLE ENCODED] Added signature with score {double_encoded_sig['score']}")
     
-    # Encoded Command Detection (single layer)
     encoding_detection = detect_encoded_command(original_command)
     
     print(f"🔍 [ENCODING DETECTION DEBUG]")
@@ -521,7 +491,6 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             print(f"✅ [ENCODED COMMAND] Added signature with score {encoded_sig['score']}")
 
     
-    # ✅ FIX: Calcular has_encoded_command_indicator ANTES do loop de signatures
     has_encoded_command_indicator = any(
         sig.get("name") == "Encoded Command Detected" 
         for sig in detected_signatures
@@ -529,20 +498,21 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     
     print(f"🔍 [SIGNATURE LOOP] has_encoded_command_indicator: {has_encoded_command_indicator}")
     
-    # ✅ FIX: Usar custom_deobfuscated para análise recursiva
+    # ✅ FIX: Análise recursiva - incluir comando decodificado se houver -EncodedCommand
     commands_to_analyze = [original_command]
-    if custom_deobfuscated != command:
+    if decode_iterations >= 1 and deobfuscated_command != command:
+        commands_to_analyze.append(deobfuscated_command)
+        print(f"🔄 [RECURSIVE ANALYSIS] Adding decoded command to analysis: {deobfuscated_command[:100]}...")
+    elif custom_deobfuscated != command:
         commands_to_analyze.append(custom_deobfuscated)
         print(f"🔄 [RECURSIVE ANALYSIS] Adding deobfuscated command to analysis: {custom_deobfuscated[:100]}...")
     
     for signature in signatures:
-        # Skip special indicators
         if signature.get("name") in ["Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected"]:
             continue
         
-        # ✅ FIX: Skip "Long base64 string" if we already have "Encoded Command Detected"
-        if signature.get("name") == "Long base64 string" and has_encoded_command_indicator:
-            print(f"⏭️ [SKIP] Skipping 'Long base64 string' - already have 'Encoded Command Detected'")
+        if signature.get("name") == "Long base64 strings" and has_encoded_command_indicator:
+            print(f"⏭️ [SKIP] Skipping 'Long base64 strings' - already have 'Encoded Command Detected'")
             continue
         
         all_signature_matches = []
@@ -578,6 +548,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                                 "matched_in": "deobfuscated" if is_decoded_version else "original"
                             })
                             
+
                 except re.error:
                     continue
 
