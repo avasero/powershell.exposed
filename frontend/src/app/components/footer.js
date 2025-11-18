@@ -1,6 +1,8 @@
-"use client";
+  "use client";
 import React from "react";
 import Link from "next/link";
+import { IoLogoGithub } from "react-icons/io";
+
 
 export default function Footer() {
   return (
@@ -26,9 +28,9 @@ export default function Footer() {
             Imprint
           </Link>
           {' - '}
-          <a href="https://github.com/avasero/psexposed#readme" target="_blank" rel="noopener noreferrer" style={{color: 'var(--accent)', textDecoration: 'underline'}}>
-            Contribute
-          </a>
+          <Link href="https://github.com/avasero/psexposed#readme" title="Contribute" target="_blank" rel="noopener noreferrer" style={{color: 'var(--accent)', textDecoration: 'underline'}}>
+            <IoLogoGithub className="w-12 h-12 inline-block" />
+          </Link>
         </div>
       </div>
     </footer>
