@@ -101,7 +101,7 @@ export default function LoginPage() {
                   color: 'var(--accent)'
                 }}
               >
-                {loading ? <LoadingSpinner size="sm" /> : 'Login'}
+                {loading ? <LoadingSpinner size="sm" isInline={true} /> : 'Login'}
               </ThemedButton>
             </form>
           ) : (

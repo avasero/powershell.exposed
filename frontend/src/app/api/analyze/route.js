@@ -24,7 +24,7 @@ export async function POST(request) {
       session_id
     };
 
-    const response = await fetch('https://powershell-fastapi.vercel.app/evaluate', {
+    const response = await fetch('https://api.powershell.exposed/evaluate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -1,6 +1,6 @@
 "use client";
 
-export default function LoadingSpinner({ message = "Loading", size = "xl" }) {
+export default function LoadingSpinner({ message = "Loading", size = "xl", isInline = false }) {
   const sizeClasses = {
     sm: "text-sm",
     md: "text-base", 
@@ -14,6 +14,29 @@ export default function LoadingSpinner({ message = "Loading", size = "xl" }) {
     lg: "h-12 w-12",
     xl: "h-16 w-16"
   };
+
+  if (isInline) {
+    return (
+      <div className="relative inline-flex items-center justify-center">
+        {/* Outer glow effect */}
+        <div className="absolute inset-0 blur-xl opacity-50 animate-pulse" 
+             style={{background: 'var(--accent)'}}></div>
+        
+        {/* Main spinner */}
+        <div className={`relative ${spinnerSizes[size]}`}>
+          <div className="absolute inset-0 rounded-full border-2 border-gray-700"></div>
+          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-current animate-spin"
+               style={{color: 'var(--accent)'}}></div>
+        </div>
+        
+        {/* Inner dot */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-2 h-2 rounded-full animate-pulse"
+               style={{backgroundColor: 'var(--accent)'}}></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-[60vh] w-full">
