@@ -62,6 +62,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://api.powershell.exposed/",
         "http://localhost:3000",
         "https://powershell-exposed.vercel.app",
         "https://powershell.exposed",
