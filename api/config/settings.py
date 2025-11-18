@@ -22,7 +22,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "https://powershell-exposed.vercel.app",
     "https://powershell.exposed",
-    "https://api.powershell.exposed/",
+    "https://api.powershell.exposed",
     "https://www.powershell.exposed",
     "https://www.ps.exposed",
     "https://ps.exposed"
