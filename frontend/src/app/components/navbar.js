@@ -55,36 +55,44 @@ export default function Navbar() {
             </span>
           )}
           
-          <Link
-            href="/indicators"
-            className="font-mono text-sm underline hover:text-green-400"
-          >
-            Indicators
-          </Link>
+          
           
           {isAuthenticated() ? (
             <>
-              <a
-                onClick={handleLogout}
-                className="font-mono text-sm underline hover:text-green-400 cursor-pointer"
-              >
-                Logout
-              </a>
               <a
                 href="/settings"
                 className="font-mono text-sm underline hover:text-green-400"
               >
                 Settings
               </a>
+              <a
+                onClick={handleLogout}
+                className="font-mono text-sm underline hover:text-green-400 cursor-pointer"
+              >
+                Logout
+              </a>
             </>
           ) : (
             <>
+            <ThemedButton
+              onClick={() => { window.location.href = '/evaluate'}}
+              className="w-full sm:w-auto"
+              
+            >
+                Evaluate Command
+            </ThemedButton>
               <a
               href="/evaluate"
               className="font-mono text-sm underline hover:text-green-400"
               >
-                Evaluate Command
+                
               </a>
+              <Link
+                href="/indicators"
+                className="font-mono text-sm underline hover:text-green-400"
+              >
+                Indicators
+              </Link>
               <a
                 href="/login"
                 className="font-mono text-sm underline hover:text-green-400"

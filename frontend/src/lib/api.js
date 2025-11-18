@@ -106,14 +106,6 @@ export async function getUserAnalyses(limit = 20) {
 }
 
 /**
- * Get user command evaluations (protected endpoint)
- * @returns {Promise<object>} - User command evaluations
- */
-export async function getUserCommandEvaluations() {
-  return await makeAuthenticatedJSONRequest('/user/command-evaluations')
-}
-
-/**
  * Get user command evaluations with pagination
  * @param {number} limit - Number of records to return (max 100)
  * @param {number} offset - Pagination offset
