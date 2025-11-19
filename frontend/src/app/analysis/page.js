@@ -36,6 +36,47 @@ function getScoreLabel(score) {
   return "INFORMATIONAL";
 }
 
+// ✅ Componente para conteúdo protegido (adicionar no início do arquivo se ainda não existir)
+const ProtectedCodeBlock = ({ code, borderColorClass = "border-gray-500/20" }) => {
+  const isProtected = code === "[PREMIUM_PROTECTED_CONTENT]";
+
+  if (isProtected) {
+    return (
+      <div className={`bg-black rounded-lg p-3 border ${borderColorClass} relative overflow-hidden min-h-[140px]`}>
+        {/* Blurred Placeholder Content as Background Layer */}
+        <div className="absolute inset-0 blur-md select-none opacity-40 pointer-events-none font-mono text-xs leading-relaxed z-0" aria-hidden="true">
+          {`# Premium content hidden
+$payload = [System.Convert]::FromBase64String("SGVsbG8gV29ybGQ=")
+IEX([System.Text.Encoding]::Unicode.GetString($payload))
+# Advanced decoding available to premium subscribers
+# Threat analysis requires elevated access
+# ...`}
+        </div>
+        
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/60 backdrop-blur-xl backdrop-saturate-150 border border-green-500/20 rounded-lg">
+          <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent rounded-lg"></div>
+          
+          <div className="relative rounded-xl p-6 flex flex-col items-center gap-3 shadow-2xl">
+            <div className="text-4xl drop-shadow-lg">🔒</div>
+            <span className="font-mono font-bold text-green-400 text-lg tracking-wide drop-shadow-lg" style={{ color: 'var(--accent)', filter: 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.6))' }}>
+              Premium Feature
+            </span>
+            <span className="text-xs text-gray-300 text-center leading-relaxed font-mono">
+              Exclusive decoded & deobfuscated payloads for premium users. Upgrade to unlock advanced threat intelligence.
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`bg-black rounded p-3 border ${borderColorClass} text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words`} style={{ color: 'var(--foreground)' }}>
+      <code>{code}</code>
+    </div>
+  );
+};
+
 export default function AnalysisPage() {
   const params = useSearchParams();
   const router = useRouter();
@@ -439,9 +480,7 @@ export default function AnalysisPage() {
             <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
               🔓 Deobfuscated Command
             </div>
-            <div className="bg-black rounded p-3 border border-purple-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
-              <code>{result.deobfuscated}</code>
-            </div>
+            <ProtectedCodeBlock code={result.deobfuscated} borderColorClass="border-purple-500/20" />
             <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
               Format string obfuscation was removed (e.g., &#123;&quot;&#123;1&#125;&#123;0&#125;&quot; -f &apos;EX&apos;,&apos;I&apos;&#125; → &apos;IEX&apos;)
             </div>
@@ -456,9 +495,7 @@ export default function AnalysisPage() {
             <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
                First Decoded Layer (Iteration 1)
             </div>
-            <div className="bg-black rounded p-3 border border-blue-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
-              <code>{result.decoded}</code>
-            </div>
+            <ProtectedCodeBlock code={result.decoded} borderColorClass="border-blue-500/20" />
             <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
               First layer of decoding - still contains -EncodedCommand
             </div>
@@ -473,9 +510,7 @@ export default function AnalysisPage() {
             <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
               🔓 Decoded Command
             </div>
-            <div className="bg-black rounded p-3 border border-blue-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
-              <code>{result.decoded}</code>
-            </div>
+            <ProtectedCodeBlock code={result.decoded} borderColorClass="border-blue-500/20" />
             <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
               This is the decoded version from -EncodedCommand
             </div>
@@ -490,9 +525,7 @@ export default function AnalysisPage() {
             <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
                Final Decoded Command (Iteration 2)
             </div>
-            <div className="bg-black rounded p-3 border border-yellow-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
-              <code>{result.doubleDecoded}</code>
-            </div>
+            <ProtectedCodeBlock code={result.doubleDecoded} borderColorClass="border-yellow-500/20" />
             <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
               Final layer decoded from multiple nested -EncodedCommand (2+ layers detected)
             </div>

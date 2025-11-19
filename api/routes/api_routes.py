@@ -28,6 +28,7 @@ from services.cache_service import (
 )
 from services.session_manager import get_or_create_session, get_supabase_client
 from utils.geolocation import get_ip_location, get_client_ip_from_request
+from services.plan_service import can_user_decode_commands
 
 
 async def analyze_command_endpoint(
@@ -185,7 +186,11 @@ async def analyze_command_endpoint(
             double_decoded_cmd = results_blob.get("double_decoded_command")
             deobfuscated_cmd = results_blob.get("deobfuscated_command")
             
-            if not is_premium_user:
+            # ✅ Check if user can decode commands based on plan
+            can_decode = await can_user_decode_commands(user_id)
+            
+            # Mask content for users without decode permission
+            if not can_decode:
                 if decoded_cmd:
                     decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
                 if double_decoded_cmd:
@@ -273,7 +278,11 @@ async def analyze_command_endpoint(
         double_decoded_cmd = analysis_result.get("double_decoded_command")
         deobfuscated_cmd = analysis_result.get("deobfuscated_command")
         
-        if not is_premium_user:
+        # ✅ Check if user can decode commands based on plan
+        can_decode = await can_user_decode_commands(user_id)
+        
+        # Mask content for users without decode permission
+        if not can_decode:
             if decoded_cmd:
                 decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
             if double_decoded_cmd:
@@ -543,11 +552,14 @@ async def get_analysis_by_id_endpoint(
             if profile_response.data:
                 is_premium_user = profile_response.data.get('is_premium_user', False)
         
+        # ✅ Check if user can decode commands based on plan
+        can_decode = await can_user_decode_commands(user_id)
+        
         decoded_cmd = analysis_data.get("decoded_command")
         double_decoded_cmd = analysis_data.get("double_decoded_command")
-        deobfuscated_cmd = analysis_data.get("obfuscated_command") # Mapped from obfuscated_command in DB
+        deobfuscated_cmd = analysis_data.get("obfuscated_command")
         
-        if not is_premium_user:
+        if not can_decode:
             if decoded_cmd:
                 decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
             if double_decoded_cmd:
