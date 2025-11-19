@@ -306,8 +306,12 @@ export default function AnalysisDetailsPage() {
   const totalScore = result ? result.score : 0;
   
 
-  if (loading || !contentReady) {
-    return <AnalysisSkeleton />;
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  if (!contentReady) {
+    return null; // Or a minimal placeholder if needed
   }
 
   // ✅ Verificar se o indicador de obfuscação foi detectado
