@@ -42,23 +42,35 @@ const ProtectedCodeBlock = ({ code, borderColorClass = "border-gray-500/20" }) =
 
   if (isProtected) {
     return (
-      <div className={`bg-black rounded p-3 border ${borderColorClass} relative overflow-hidden min-h-[100px]`}>
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/40 backdrop-blur-[2px]">
-          <div className="bg-black/90 border border-green-500/50 rounded-lg p-4 flex flex-col items-center gap-2 shadow-lg">
-            <span className="text-2xl">🔒</span>
-            <span className="font-mono font-bold text-green-400 text-sm">Premium Feature</span>
-            <span className="text-[10px] text-gray-400 text-center max-w-[180px]">
-              Upgrade to view decoded & deobfuscated payloads
+      <div className={`bg-black rounded-lg p-3 border ${borderColorClass} relative overflow-hidden min-h-[140px]`}>
+        {/* Blurred Placeholder Content as Background Layer */}
+        <div className="absolute inset-0 blur-md select-none opacity-40 pointer-events-none font-mono text-xs leading-relaxed z-0" aria-hidden="true">
+          {`# Premium content hidden
+$payload = [System.Convert]::FromBase64String("SGVsbG8gV29ybGQ=")
+IEX([System.Text.Encoding]::Unicode.GetString($payload))
+# Advanced decoding available to premium subscribers
+# Threat analysis requires elevated access
+# ...`}
+        </div>
+        
+      
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/60 backdrop-blur-xl backdrop-saturate-150 border border-green-500/20 rounded-lg">
+          
+          <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent rounded-lg"></div>
+          
+         
+          <div className="relative rounded-xl p-6 flex flex-col items-center gap-3 shadow-2xl">
+            
+            <div className="text-4xl drop-shadow-lg" >
+            </div>
+           
+            <span className="font-mono font-bold text-green-400 text-lg tracking-wide drop-shadow-lg" style={{ color: 'var(--accent)', filter: 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.6))' }}>
+              Premium Feature
+            </span>
+            <span className="text-xs text-gray-300 text-center leading-relaxed font-mono">
+              Exclusive decoded & deobfuscated payloads for premium users. Upgrade to unlock advanced threat intelligence.
             </span>
           </div>
-        </div>
-        <div className="blur-sm select-none opacity-30 pointer-events-none font-mono text-xs" aria-hidden="true">
-          {`# Premium content hidden
-$payload = [System.Convert]::FromBase64String("...")
-IEX([System.Text.Encoding]::Unicode.GetString($payload))
-# This content is only available to premium users
-# ...
-# ...`}
         </div>
       </div>
     );
