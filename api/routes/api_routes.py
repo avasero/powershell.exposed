@@ -173,30 +173,28 @@ async def analyze_command_endpoint(
             
             analysis_id = db_result.get("short_id") if db_result.get("success") else "cache-error"
             
-            # Check if user is premium
-            is_premium_user = False
-            if user_id:
-                supabase = get_supabase_client()
-                profile_response = supabase.table('profiles').select('is_premium_user').eq('id', user_id).single().execute()
-                if profile_response.data:
-                    is_premium_user = profile_response.data.get('is_premium_user', False)
-            
+            # ✅ FIX: Remover lógica antiga de is_premium_user
             # Mask content for non-premium users
             decoded_cmd = results_blob.get("decoded_command")
             double_decoded_cmd = results_blob.get("double_decoded_command")
             deobfuscated_cmd = results_blob.get("deobfuscated_command")
             
-            # ✅ Check if user can decode commands based on plan
+            # ✅ Check if user can decode commands based on plan (anonymous = free = false)
             can_decode = await can_user_decode_commands(user_id)
+            
+            print(f"🔐 [CACHE RESPONSE] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Can decode: {can_decode}")
             
             # Mask content for users without decode permission
             if not can_decode:
                 if decoded_cmd:
                     decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
+                    print(f"🚫 [MASKING] decoded_command masked")
                 if double_decoded_cmd:
                     double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
+                    print(f"🚫 [MASKING] double_decoded_command masked")
                 if deobfuscated_cmd:
                     deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
+                    print(f"🚫 [MASKING] deobfuscated_command masked")
 
             # ✅ Retornar resposta do cache DENTRO do bloco if
             return JSONResponse({
@@ -278,17 +276,22 @@ async def analyze_command_endpoint(
         double_decoded_cmd = analysis_result.get("double_decoded_command")
         deobfuscated_cmd = analysis_result.get("deobfuscated_command")
         
-        # ✅ Check if user can decode commands based on plan
+        # ✅ Check if user can decode commands based on plan (anonymous = free = false)
         can_decode = await can_user_decode_commands(user_id)
+        
+        print(f"🔐 [FRESH ANALYSIS] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Can decode: {can_decode}")
         
         # Mask content for users without decode permission
         if not can_decode:
             if decoded_cmd:
                 decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
+                print(f"🚫 [MASKING] decoded_command masked")
             if double_decoded_cmd:
                 double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
+                print(f"🚫 [MASKING] double_decoded_command masked")
             if deobfuscated_cmd:
                 deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
+                print(f"🚫 [MASKING] deobfuscated_command masked")
 
         return JSONResponse({
             "success": True,
@@ -543,21 +546,17 @@ async def get_analysis_by_id_endpoint(
                         status_code=400
                     )
         
-        # Check if user is premium
-        is_premium_user = False
+        # ✅ FIX: Remover lógica antiga de is_premium_user
         user_id = current_user.get("id") if current_user else None
         
-        if user_id:
-            profile_response = supabase.table('profiles').select('is_premium_user').eq('id', user_id).single().execute()
-            if profile_response.data:
-                is_premium_user = profile_response.data.get('is_premium_user', False)
-        
-        # ✅ Check if user can decode commands based on plan
+        # ✅ Check if user can decode commands based on plan (anonymous = free = false)
         can_decode = await can_user_decode_commands(user_id)
         
         decoded_cmd = analysis_data.get("decoded_command")
         double_decoded_cmd = analysis_data.get("double_decoded_command")
         deobfuscated_cmd = analysis_data.get("obfuscated_command")
+        
+        print(f"🔐 [GET ANALYSIS] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Can decode: {can_decode}")
         
         if not can_decode:
             if decoded_cmd:

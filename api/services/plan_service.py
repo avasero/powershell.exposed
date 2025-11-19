@@ -18,6 +18,8 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
     try:
         supabase = get_supabase_client()
         
+        print(f"🔍 [PLAN_SERVICE] Fetching plan for user: {user_id[:8]}...")
+        
         # Get user profile with plan information
         response = supabase.table('profiles')\
             .select('plan_id, plans(name, can_decode_commands)')\
@@ -25,7 +27,10 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
             .single()\
             .execute()
         
+        print(f"📊 [PLAN_SERVICE] Raw response: {response.data}")
+        
         if not response.data:
+            print(f"⚠️ [PLAN_SERVICE] No profile found for user {user_id[:8]}, returning free plan")
             # Return default free plan features
             return {
                 "plan_name": "free",
@@ -33,14 +38,22 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
             }
         
         plan_data = response.data.get('plans', {})
+        print(f"📋 [PLAN_SERVICE] Plan data: {plan_data}")
         
-        return {
+        result = {
             "plan_name": plan_data.get('name', 'free'),
             "can_decode_commands": plan_data.get('can_decode_commands', False)
         }
         
+        print(f"✅ [PLAN_SERVICE] Final result: {result}")
+        
+        return result
+        
     except Exception as e:
-        print(f"❌ Error fetching user plan: {e}")
+        print(f"❌ [PLAN_SERVICE] Error fetching user plan: {e}")
+        print(f"   Exception type: {type(e).__name__}")
+        import traceback
+        traceback.print_exc()
         # Return free plan as fallback
         return {
             "plan_name": "free",
@@ -58,11 +71,20 @@ async def can_user_decode_commands(user_id: Optional[str]) -> bool:
     Returns:
         True if user can decode commands, False otherwise
     """
+    # ✅ AQUI: Usuários anônimos (user_id = None) são tratados como plano FREE
     if not user_id:
-        return False
+        print(f"🔒 [DECODE_CHECK] Anonymous user (user_id=None) - FREE PLAN - decode denied")
+        return False  # ← RETORNA FALSE = NÃO PODE VER COMANDOS DECODIFICADOS
+    
+    # Para usuários autenticados, busca o plano no banco
+    print(f"🔍 [DECODE_CHECK] Checking decode permission for user: {user_id[:8]}...")
     
     plan_features = await get_user_plan_features(user_id)
-    return plan_features.get("can_decode_commands", False)
+    can_decode = plan_features.get("can_decode_commands", False)
+    
+    print(f"🎯 [DECODE_CHECK] User: {user_id[:8]}... | Plan: {plan_features.get('plan_name')} | Can decode: {can_decode}")
+    
+    return can_decode
 
 
 async def get_plan_by_name(plan_name: str) -> Optional[Dict[str, Any]]:
