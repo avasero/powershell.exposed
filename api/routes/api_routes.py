@@ -172,6 +172,27 @@ async def analyze_command_endpoint(
             
             analysis_id = db_result.get("short_id") if db_result.get("success") else "cache-error"
             
+            # Check if user is premium
+            is_premium_user = False
+            if user_id:
+                supabase = get_supabase_client()
+                profile_response = supabase.table('profiles').select('is_premium_user').eq('id', user_id).single().execute()
+                if profile_response.data:
+                    is_premium_user = profile_response.data.get('is_premium_user', False)
+            
+            # Mask content for non-premium users
+            decoded_cmd = results_blob.get("decoded_command")
+            double_decoded_cmd = results_blob.get("double_decoded_command")
+            deobfuscated_cmd = results_blob.get("deobfuscated_command")
+            
+            if not is_premium_user:
+                if decoded_cmd:
+                    decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
+                if double_decoded_cmd:
+                    double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
+                if deobfuscated_cmd:
+                    deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
+
             # ✅ Retornar resposta do cache DENTRO do bloco if
             return JSONResponse({
                 "success": True,
@@ -183,9 +204,9 @@ async def analyze_command_endpoint(
                     "signatures_detected": results_blob.get("signatures_detected", []),
                     "tactics": results_blob.get("tactics", []),
                     "techniques": results_blob.get("techniques", []),
-                    "decoded_command": results_blob.get("decoded_command"),
-                    "double_decoded_command": results_blob.get("double_decoded_command"),
-                    "deobfuscated_command": results_blob.get("deobfuscated_command"),
+                    "decoded_command": decoded_cmd,
+                    "double_decoded_command": double_decoded_cmd,
+                    "deobfuscated_command": deobfuscated_cmd,
                     "total_signatures_checked": results_blob.get("total_signatures_checked", 0),
                     "detected_count": results_blob.get("detected_count", 0),
                     "cache_info": {
@@ -239,6 +260,27 @@ async def analyze_command_endpoint(
             is_cache=False
         )
         
+        # Check if user is premium
+        is_premium_user = False
+        if user_id:
+            supabase = get_supabase_client()
+            profile_response = supabase.table('profiles').select('is_premium_user').eq('id', user_id).single().execute()
+            if profile_response.data:
+                is_premium_user = profile_response.data.get('is_premium_user', False)
+        
+        # Mask content for non-premium users
+        decoded_cmd = analysis_result.get("decoded_command")
+        double_decoded_cmd = analysis_result.get("double_decoded_command")
+        deobfuscated_cmd = analysis_result.get("deobfuscated_command")
+        
+        if not is_premium_user:
+            if decoded_cmd:
+                decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
+            if double_decoded_cmd:
+                double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
+            if deobfuscated_cmd:
+                deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
+
         return JSONResponse({
             "success": True,
             "from_cache": False,
@@ -249,9 +291,9 @@ async def analyze_command_endpoint(
                 "signatures_detected": analysis_result["detected_signatures"],
                 "tactics": analysis_result["tactics"],
                 "techniques": analysis_result["techniques"],
-                "decoded_command": analysis_result.get("decoded_command"),
-                "double_decoded_command": analysis_result.get("double_decoded_command"),
-                "deobfuscated_command": analysis_result.get("deobfuscated_command"),  # Add this
+                "decoded_command": decoded_cmd,
+                "double_decoded_command": double_decoded_cmd,
+                "deobfuscated_command": deobfuscated_cmd,  # Add this
                 "total_signatures_checked": len(signatures),
                 "detected_count": len(analysis_result["detected_signatures"]),
                 "cache_info": {
@@ -429,7 +471,10 @@ async def get_user_analyses_endpoint(
         )
 
 
-async def get_analysis_by_id_endpoint(analysis_id: str):
+async def get_analysis_by_id_endpoint(
+    analysis_id: str,
+    current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
+):
     """
     Busca uma análise específica por short_id, UUID ou ID do banco (compatibilidade)
     Permite acesso público para análises compartilháveis
@@ -489,6 +534,27 @@ async def get_analysis_by_id_endpoint(analysis_id: str):
                         status_code=400
                     )
         
+        # Check if user is premium
+        is_premium_user = False
+        user_id = current_user.get("id") if current_user else None
+        
+        if user_id:
+            profile_response = supabase.table('profiles').select('is_premium_user').eq('id', user_id).single().execute()
+            if profile_response.data:
+                is_premium_user = profile_response.data.get('is_premium_user', False)
+        
+        decoded_cmd = analysis_data.get("decoded_command")
+        double_decoded_cmd = analysis_data.get("double_decoded_command")
+        deobfuscated_cmd = analysis_data.get("obfuscated_command") # Mapped from obfuscated_command in DB
+        
+        if not is_premium_user:
+            if decoded_cmd:
+                decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
+            if double_decoded_cmd:
+                double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
+            if deobfuscated_cmd:
+                deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
+
         safe_analysis = {
             "id": analysis_data.get("id"),
             "command": analysis_data.get("command"),
@@ -497,9 +563,9 @@ async def get_analysis_by_id_endpoint(analysis_id: str):
             "signatures_detected": analysis_data.get("signatures_detected"),
             "tactics": analysis_data.get("tactics"),
             "techniques": analysis_data.get("techniques"),
-            "decoded_command": analysis_data.get("decoded_command"),
-            "double_decoded_command": analysis_data.get("double_decoded_command"),
-            "deobfuscated_command": analysis_data.get("obfuscated_command"),  # ✅ FIX: Mapear obfuscated_command -> deobfuscated_command
+            "decoded_command": decoded_cmd,
+            "double_decoded_command": double_decoded_cmd,
+            "deobfuscated_command": deobfuscated_cmd,  # ✅ FIX: Mapear obfuscated_command -> deobfuscated_command
             "created_at": analysis_data.get("created_at"),
         }
         
