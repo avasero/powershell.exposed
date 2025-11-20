@@ -11,27 +11,31 @@ export const getOrCreateSession = () => {
     }
 
     const sessionData = localStorage.getItem(SESSION_KEY);
-    
+
     if (sessionData) {
       const session = JSON.parse(sessionData);
       const now = Date.now();
-      
+
       // Verificar se a sessão ainda é válida
       if (session.created_at && (now - session.created_at) < SESSION_DURATION) {
-       
         return session.id;
-      } else {
-       
-        localStorage.removeItem(SESSION_KEY);
       }
     }
-    
-    // Não criar sessão aqui - deixar o backend criar e retornar
-    
-    return null;
+
+    // Se não existir ou expirou, criar nova
+    const newSessionId = crypto.randomUUID();
+    const newSession = {
+      id: newSessionId,
+      created_at: Date.now()
+    };
+
+    localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
+    return newSessionId;
+
   } catch (error) {
     console.error('❌ Erro ao gerenciar sessão:', error);
-    return null;
+    // Fallback se falhar (não salva mas retorna um ID temporário)
+    return crypto.randomUUID();
   }
 };
 
@@ -46,12 +50,12 @@ export const getCurrentSessionId = () => {
     if (sessionData) {
       const session = JSON.parse(sessionData);
       const now = Date.now();
-      
+
       if (session.created_at && (now - session.created_at) < SESSION_DURATION) {
         return session.id;
       }
     }
-    
+
     return null;
   } catch (error) {
     console.error('❌ Erro ao obter sessão atual:', error);
@@ -65,9 +69,9 @@ export const clearSession = () => {
     if (typeof localStorage === 'undefined') {
       return;
     }
-    
+
     localStorage.removeItem(SESSION_KEY);
-    
+
   } catch (error) {
     console.error('❌ Erro ao limpar sessão:', error);
   }
@@ -87,12 +91,12 @@ export const renewSession = () => {
     if (sessionData) {
       const session = JSON.parse(sessionData);
       session.created_at = Date.now();
-      
+
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-      
+
       return session.id;
     }
-    
+
     return null;
   } catch (error) {
     console.error('❌ Erro ao renovar sessão:', error);
@@ -104,12 +108,12 @@ export const renewSession = () => {
 export const saveSessionFromBackend = (sessionId) => {
   try {
     if (typeof localStorage === 'undefined') {
-      
+
       return false;
     }
 
     if (!sessionId) {
-      
+
       return false;
     }
 
@@ -117,10 +121,10 @@ export const saveSessionFromBackend = (sessionId) => {
       id: sessionId,
       created_at: Date.now()
     };
-    
+
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-      
-    
+
+
     return true;
   } catch (error) {
     console.error('❌ Erro ao salvar sessão do backend:', error);
@@ -141,7 +145,7 @@ export const getSessionInfo = () => {
       const now = Date.now();
       const age = now - session.created_at;
       const remaining = Math.max(0, SESSION_DURATION - age);
-      
+
       return {
         id: session.id,
         created_at: session.created_at,
@@ -150,7 +154,7 @@ export const getSessionInfo = () => {
         is_valid: age < SESSION_DURATION
       };
     }
-    
+
     return null;
   } catch (error) {
     console.error('❌ Erro ao obter informações da sessão:', error);
