@@ -209,11 +209,10 @@ export default function AnalysisChat() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-mono font-bold text-lg flex items-center gap-2" style={{ color: 'var(--accent)' }}>
-              <span className="text-xl">⚡</span>
-              {isAnonymous ? 'Recent Scans' : 'Your Scans'}
+              {isAnonymous ? 'Recent Evaluations' : 'Your Evaluations'}
             </h2>
             <p className="font-mono text-xs mt-1 opacity-70" style={{ color: 'var(--muted-foreground)' }}>
-              {isAnonymous ? 'Stored locally in your browser' : 'Synced with your account'}
+              {isAnonymous ? '' : 'Synced with your account'}
             </p>
           </div>
         </div>
