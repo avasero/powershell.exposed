@@ -173,18 +173,16 @@ async def analyze_command_endpoint(
             
             analysis_id = db_result.get("short_id") if db_result.get("success") else "cache-error"
             
-            # ✅ FIX: Remover lógica antiga de is_premium_user
-            # Mask content for non-premium users
+            # ✅ FIX: Use centralized plan service for ALL users (including anonymous)
             decoded_cmd = results_blob.get("decoded_command")
             double_decoded_cmd = results_blob.get("double_decoded_command")
             deobfuscated_cmd = results_blob.get("deobfuscated_command")
             
-            # ✅ Check if user can decode commands based on plan (anonymous = free = false)
+            # ✅ Check decode permission via plan service (handles anonymous → free plan)
             can_decode = await can_user_decode_commands(user_id)
             
             print(f"🔐 [CACHE RESPONSE] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Can decode: {can_decode}")
             
-            # Mask content for users without decode permission
             if not can_decode:
                 if decoded_cmd:
                     decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
@@ -196,7 +194,7 @@ async def analyze_command_endpoint(
                     deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
                     print(f"🚫 [MASKING] deobfuscated_command masked")
 
-            # ✅ Retornar resposta do cache DENTRO do bloco if
+            
             return JSONResponse({
                 "success": True,
                 "from_cache": True,
@@ -276,7 +274,7 @@ async def analyze_command_endpoint(
         double_decoded_cmd = analysis_result.get("double_decoded_command")
         deobfuscated_cmd = analysis_result.get("deobfuscated_command")
         
-        # ✅ Check if user can decode commands based on plan (anonymous = free = false)
+        # ✅ FIX: Use centralized plan service for ALL users (including anonymous)
         can_decode = await can_user_decode_commands(user_id)
         
         print(f"🔐 [FRESH ANALYSIS] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Can decode: {can_decode}")
@@ -305,7 +303,7 @@ async def analyze_command_endpoint(
                 "techniques": analysis_result["techniques"],
                 "decoded_command": decoded_cmd,
                 "double_decoded_command": double_decoded_cmd,
-                "deobfuscated_command": deobfuscated_cmd,  # Add this
+                "deobfuscated_command": deobfuscated_cmd,
                 "total_signatures_checked": len(signatures),
                 "detected_count": len(analysis_result["detected_signatures"]),
                 "cache_info": {
@@ -545,13 +543,8 @@ async def get_analysis_by_id_endpoint(
                         {"error": "Invalid analysis ID"},
                         status_code=400
                     )
-        
-        # ✅ FIX: Remover lógica antiga de is_premium_user
         user_id = current_user.get("id") if current_user else None
-        
-        # ✅ Check if user can decode commands based on plan (anonymous = free = false)
         can_decode = await can_user_decode_commands(user_id)
-        
         decoded_cmd = analysis_data.get("decoded_command")
         double_decoded_cmd = analysis_data.get("double_decoded_command")
         deobfuscated_cmd = analysis_data.get("obfuscated_command")
@@ -565,7 +558,6 @@ async def get_analysis_by_id_endpoint(
                 double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
             if deobfuscated_cmd:
                 deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
-
         safe_analysis = {
             "id": analysis_data.get("id"),
             "command": analysis_data.get("command"),
@@ -576,17 +568,14 @@ async def get_analysis_by_id_endpoint(
             "techniques": analysis_data.get("techniques"),
             "decoded_command": decoded_cmd,
             "double_decoded_command": double_decoded_cmd,
-            "deobfuscated_command": deobfuscated_cmd,  # ✅ FIX: Mapear obfuscated_command -> deobfuscated_command
+            "deobfuscated_command": deobfuscated_cmd,  
             "created_at": analysis_data.get("created_at"),
         }
-        
         return JSONResponse({
             "success": True,
             "analysis": safe_analysis
         })
-        
     except Exception as error:
-       
         return JSONResponse(
             {"error": f"Failed to fetch analysis: {str(error)}"},
             status_code=500

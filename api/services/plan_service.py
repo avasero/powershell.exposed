@@ -71,12 +71,22 @@ async def can_user_decode_commands(user_id: Optional[str]) -> bool:
     Returns:
         True if user can decode commands, False otherwise
     """
-    # ✅ AQUI: Usuários anônimos (user_id = None) são tratados como plano FREE
+    # ✅ FIX: Anonymous users are treated as FREE PLAN
     if not user_id:
-        print(f"🔒 [DECODE_CHECK] Anonymous user (user_id=None) - FREE PLAN - decode denied")
-        return False  # ← RETORNA FALSE = NÃO PODE VER COMANDOS DECODIFICADOS
+        print(f"🔓 [DECODE_CHECK] Anonymous user (user_id=None) - checking FREE PLAN features...")
+        
+        # Fetch free plan features from database
+        free_plan = await get_plan_by_name("free")
+        
+        if free_plan:
+            can_decode = free_plan.get("can_decode_commands", False)
+            print(f"✅ [DECODE_CHECK] Anonymous user -> FREE PLAN | Can decode: {can_decode}")
+            return can_decode
+        else:
+            print(f"⚠️ [DECODE_CHECK] Free plan not found in database, denying decode")
+            return False
     
-    # Para usuários autenticados, busca o plano no banco
+    # For authenticated users, fetch their plan
     print(f"🔍 [DECODE_CHECK] Checking decode permission for user: {user_id[:8]}...")
     
     plan_features = await get_user_plan_features(user_id)
