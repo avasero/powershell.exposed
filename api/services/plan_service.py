@@ -79,9 +79,19 @@ async def can_user_decode_commands(user_id: Optional[str]) -> bool:
         free_plan = await get_plan_by_name("free")
         
         if free_plan:
-            can_decode = free_plan.get("can_decode_commands", False)
-            print(f"✅ [DECODE_CHECK] Anonymous user -> FREE PLAN | Can decode: {can_decode}")
-            return can_decode
+            can_decode_static = free_plan.get("can_decode_commands", False)
+            
+            # If static permission allows, check dynamic rate limit
+            if can_decode_static:
+                from middleware.rate_limiting import check_decode_limit
+                limit_info = check_decode_limit(None, "free")
+                if not limit_info["within_limit"]:
+                    print(f"⚠️ [DECODE_CHECK] Anonymous user rate limit exceeded: {limit_info['current_count']}/{limit_info['limit']}")
+                    return False
+                return True
+            
+            print(f"✅ [DECODE_CHECK] Anonymous user -> FREE PLAN | Can decode: {can_decode_static}")
+            return can_decode_static
         else:
             print(f"⚠️ [DECODE_CHECK] Free plan not found in database, denying decode")
             return False
@@ -91,6 +101,15 @@ async def can_user_decode_commands(user_id: Optional[str]) -> bool:
     
     plan_features = await get_user_plan_features(user_id)
     can_decode = plan_features.get("can_decode_commands", False)
+    plan_name = plan_features.get("plan_name", "free")
+    
+    # If static permission allows, check dynamic rate limit for free users
+    if can_decode and plan_name == "free":
+        from middleware.rate_limiting import check_decode_limit
+        limit_info = check_decode_limit(user_id, plan_name)
+        if not limit_info["within_limit"]:
+            print(f"⚠️ [DECODE_CHECK] User {user_id[:8]} rate limit exceeded: {limit_info['current_count']}/{limit_info['limit']}")
+            return False
     
     print(f"🎯 [DECODE_CHECK] User: {user_id[:8]}... | Plan: {plan_features.get('plan_name')} | Can decode: {can_decode}")
     

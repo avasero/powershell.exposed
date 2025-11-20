@@ -14,9 +14,9 @@ from models.schemas import (
 
 from middleware.rate_limiting import (
     check_global_rate_limit, add_global_request, check_rate_limit,
-    add_request_to_rate_limit, reset_rate_limit,
-    global_request_timestamps, GLOBAL_RATE_LIMIT_REQUESTS,
-    GLOBAL_RATE_LIMIT_WINDOW
+    check_decode_limit, add_request_to_rate_limit, reset_rate_limit, 
+    increment_decode_usage, global_request_timestamps, 
+    GLOBAL_RATE_LIMIT_REQUESTS, GLOBAL_RATE_LIMIT_WINDOW
 )
 from services.powershell_analyzer import (
     load_signatures_from_db, analyze_command_patterns, calculate_severity_and_risk,
@@ -28,7 +28,7 @@ from services.cache_service import (
 )
 from services.session_manager import get_or_create_session, get_supabase_client
 from utils.geolocation import get_ip_location, get_client_ip_from_request
-from services.plan_service import can_user_decode_commands
+from services.plan_service import can_user_decode_commands, get_user_plan_features
 
 
 async def analyze_command_endpoint(
@@ -115,7 +115,13 @@ async def analyze_command_endpoint(
             )
         
         if session_id:
-            rate_limit_info = check_rate_limit(session_id)
+            # ✅ Fetch user plan for rate limiting
+            plan_name = "free"
+            if user_id:
+                plan_features = await get_user_plan_features(user_id)
+                plan_name = plan_features.get("plan_name", "free")
+            
+            rate_limit_info = check_rate_limit(session_id, plan_name)
             
             if not rate_limit_info["within_limit"]:
                 return JSONResponse(
@@ -193,6 +199,10 @@ async def analyze_command_endpoint(
                 if deobfuscated_cmd:
                     deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
                     print(f"🚫 [MASKING] deobfuscated_command masked")
+            else:
+                # ✅ Increment decode usage if user can decode and content is present
+                if decoded_cmd or double_decoded_cmd or deobfuscated_cmd:
+                    increment_decode_usage(user_id)
 
             
             return JSONResponse({
@@ -280,7 +290,13 @@ async def analyze_command_endpoint(
         print(f"🔐 [FRESH ANALYSIS] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Can decode: {can_decode}")
         
         # Mask content for users without decode permission
+        decode_limit_reached = False
         if not can_decode:
+            # Check if it's due to rate limit
+            limit_info = check_decode_limit(user_id, plan_name)
+            if not limit_info["within_limit"]:
+                decode_limit_reached = True
+                
             if decoded_cmd:
                 decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
                 print(f"🚫 [MASKING] decoded_command masked")
@@ -290,6 +306,10 @@ async def analyze_command_endpoint(
             if deobfuscated_cmd:
                 deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
                 print(f"🚫 [MASKING] deobfuscated_command masked")
+        else:
+            # ✅ Increment decode usage if user can decode and content is present
+            if decoded_cmd or double_decoded_cmd or deobfuscated_cmd:
+                increment_decode_usage(user_id)
 
         return JSONResponse({
             "success": True,
@@ -304,6 +324,7 @@ async def analyze_command_endpoint(
                 "decoded_command": decoded_cmd,
                 "double_decoded_command": double_decoded_cmd,
                 "deobfuscated_command": deobfuscated_cmd,
+                "decode_limit_reached": decode_limit_reached,
                 "total_signatures_checked": len(signatures),
                 "detected_count": len(analysis_result["detected_signatures"]),
                 "cache_info": {
@@ -551,13 +572,28 @@ async def get_analysis_by_id_endpoint(
         
         print(f"🔐 [GET ANALYSIS] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Can decode: {can_decode}")
         
+        decode_limit_reached = False
         if not can_decode:
+            # Fetch plan to check if it's due to rate limit
+            plan_name = "free"
+            if user_id:
+                plan_features = await get_user_plan_features(user_id)
+                plan_name = plan_features.get("plan_name", "free")
+                
+            limit_info = check_decode_limit(user_id, plan_name)
+            if not limit_info["within_limit"]:
+                decode_limit_reached = True
+
             if decoded_cmd:
                 decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
             if double_decoded_cmd:
                 double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
             if deobfuscated_cmd:
                 deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
+        else:
+            # ✅ Increment decode usage if user can decode and content is present
+            if decoded_cmd or double_decoded_cmd or deobfuscated_cmd:
+                increment_decode_usage(user_id)
         safe_analysis = {
             "id": analysis_data.get("id"),
             "command": analysis_data.get("command"),
@@ -568,7 +604,8 @@ async def get_analysis_by_id_endpoint(
             "techniques": analysis_data.get("techniques"),
             "decoded_command": decoded_cmd,
             "double_decoded_command": double_decoded_cmd,
-            "deobfuscated_command": deobfuscated_cmd,  
+            "deobfuscated_command": deobfuscated_cmd,
+            "decode_limit_reached": decode_limit_reached,
             "created_at": analysis_data.get("created_at"),
         }
         return JSONResponse({

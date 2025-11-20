@@ -37,7 +37,7 @@ function getScoreLabel(score) {
 }
 
 // ✅ Componente para conteúdo protegido
-const ProtectedCodeBlock = ({ code, borderColorClass = "border-gray-500/20" }) => {
+const ProtectedCodeBlock = ({ code, borderColorClass = "border-gray-500/20", limitReached = false }) => {
   const isProtected = code === "[PREMIUM_PROTECTED_CONTENT]";
 
   if (isProtected) {
@@ -52,23 +52,27 @@ IEX([System.Text.Encoding]::Unicode.GetString($payload))
 # Threat analysis requires elevated access
 # ...`}
         </div>
-        
-      
+
+
         <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/60 backdrop-blur-xl backdrop-saturate-150 border border-green-500/20 rounded-lg">
-          
+
           <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent rounded-lg"></div>
-          
-         
+
+
           <div className="relative rounded-xl p-6 flex flex-col items-center gap-3 shadow-2xl">
-            
+
             <div className="text-4xl drop-shadow-lg" >
+              {limitReached ? "⏳" : "🔒"}
             </div>
-           
+
             <span className="font-mono font-bold text-green-400 text-lg tracking-wide drop-shadow-lg" style={{ color: 'var(--accent)', filter: 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.6))' }}>
-              Premium Feature
+              {limitReached ? "Daily Decode Limit Reached" : "Premium Feature"}
             </span>
             <span className="text-xs text-gray-300 text-center leading-relaxed font-mono">
-              Exclusive decoded & deobfuscated payloads for premium users. Upgrade to unlock advanced threat intelligence.
+              {limitReached
+                ? "You have reached your daily limit of 5 decodes. Upgrade to Premium for unlimited access."
+                : "Exclusive decoded & deobfuscated payloads for premium users. Upgrade to unlock advanced threat intelligence."
+              }
             </span>
           </div>
         </div>
@@ -160,7 +164,8 @@ export default function AnalysisDetailsPage() {
         signatures: (analysis.signatures_detected || analysisResult.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
         decoded: analysis.decoded_command || analysisResult.decoded_command || null,
         doubleDecoded: analysis.double_decoded_command || analysisResult.double_decoded_command || null,
-        deobfuscated: analysis.deobfuscated_command || analysisResult.deobfuscated_command || null,  // ✅ ADICIONAR
+        deobfuscated: analysis.deobfuscated_command || analysisResult.deobfuscated_command || null,
+        decodeLimitReached: analysis.decode_limit_reached || analysisResult.decode_limit_reached || false,
         indicators: analysisResult.analysis_details?.indicators || [],
         details: analysisResult.analysis_details?.recommendations?.join(", ") || "",
         tactics: analysis.tactics || analysisResult.tactics || [],
@@ -305,7 +310,8 @@ export default function AnalysisDetailsPage() {
           signatures: (analysisData.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
           decoded: analysisData.decoded_command,
           doubleDecoded: analysisData.double_decoded_command,
-          deobfuscated: analysisData.deobfuscated_command,  // ✅ ADICIONAR
+          deobfuscated: analysisData.deobfuscated_command,
+          decodeLimitReached: analysisData.decode_limit_reached || false,
           indicators: analysisData.analysis_details?.indicators || [],
           details: analysisData.analysis_details?.recommendations?.join(", ") || "",
           tactics: analysisData.tactics || [],
@@ -542,7 +548,7 @@ export default function AnalysisDetailsPage() {
             <div className="font-mono text-sm font-bold mb-3" style={{ color: 'var(--accent)' }}>
               🔓 Deobfuscated Command
             </div>
-            <ProtectedCodeBlock code={result.deobfuscated} borderColorClass="border-purple-500/20" />
+            <ProtectedCodeBlock code={result.deobfuscated} borderColorClass="border-purple-500/20" limitReached={result.decodeLimitReached} />
             <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
               Format string obfuscation was removed (e.g., &#123;&quot;&#123;1&#125;&#123;0&#125;&quot; -f &apos;EX&apos;,&apos;I&apos;&#125; → &apos;IEX&apos;)
             </div>
@@ -557,7 +563,7 @@ export default function AnalysisDetailsPage() {
             <div className="font-mono text-sm font-bold mb-3" style={{ color: 'var(--accent)' }}>
               First Decoded Layer (Iteration 1)
             </div>
-            <ProtectedCodeBlock code={result.decoded} borderColorClass="border-blue-500/20" />
+            <ProtectedCodeBlock code={result.decoded} borderColorClass="border-blue-500/20" limitReached={result.decodeLimitReached} />
             <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
               First layer of decoding - still contains -EncodedCommand
             </div>
@@ -572,7 +578,7 @@ export default function AnalysisDetailsPage() {
             <div className="font-mono text-sm font-bold mb-3" style={{ color: 'var(--accent)' }}>
               Decoded Command
             </div>
-            <ProtectedCodeBlock code={result.decoded} borderColorClass="border-blue-500/20" />
+            <ProtectedCodeBlock code={result.decoded} borderColorClass="border-blue-500/20" limitReached={result.decodeLimitReached} />
             <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
               This is the decoded version from -EncodedCommand
             </div>
@@ -587,7 +593,7 @@ export default function AnalysisDetailsPage() {
             <div className="font-mono text-sm font-bold mb-3" style={{ color: 'var(--accent)' }}>
               Final Decoded Command (Iteration 2)
             </div>
-            <ProtectedCodeBlock code={result.doubleDecoded} borderColorClass="border-yellow-500/20" />
+            <ProtectedCodeBlock code={result.doubleDecoded} borderColorClass="border-yellow-500/20" limitReached={result.decodeLimitReached} />
             <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
               Final layer decoded from multiple nested -EncodedCommand (2+ layers detected)
             </div>
