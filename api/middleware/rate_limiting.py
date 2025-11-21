@@ -136,13 +136,14 @@ def add_request_to_rate_limit(session_id: str):
     request_counts[session_id].append(current_time)
 
 
-def check_decode_limit(user_id: str, plan_name: str = "free") -> dict:
+def check_decode_limit(user_id: str, plan_name: str = "free", session_id: str = None) -> dict:
     """
     Checks if the user is within the decode limit
     
     Args:
         user_id: User ID to check
         plan_name: User's plan name
+        session_id: Session ID for anonymous users
     """
     current_time = time.time()
     cleanup_expired_data()
@@ -152,11 +153,17 @@ def check_decode_limit(user_id: str, plan_name: str = "free") -> dict:
         return {
             "within_limit": True,
             "current_count": 0,
-            "limit": float('inf')
+            "limit": float('inf'),
+            "remaining": float('inf')
         }
         
-    # Anonymous users (no user_id) are treated as free
-    target_id = user_id if user_id else "anonymous"
+    # ✅ FIX: Use session_id for anonymous users, user_id for authenticated
+    if not user_id:
+        # Anonymous user - use session_id for tracking
+        target_id = f"session:{session_id}" if session_id else "anonymous"
+    else:
+        # Authenticated user - use user_id
+        target_id = f"user:{user_id}"
     
     current_decodes = [req_time for req_time in decode_counts[target_id] 
                       if current_time - req_time < LIMIT_WINDOW]
@@ -171,9 +178,16 @@ def check_decode_limit(user_id: str, plan_name: str = "free") -> dict:
     }
 
 
-def increment_decode_usage(user_id: str):
+def increment_decode_usage(user_id: str, session_id: str = None):
     """Increments the decode usage counter"""
-    target_id = user_id if user_id else "anonymous"
+    # ✅ FIX: Use session_id for anonymous users, user_id for authenticated
+    if not user_id:
+        # Anonymous user - use session_id for tracking
+        target_id = f"session:{session_id}" if session_id else "anonymous"
+    else:
+        # Authenticated user - use user_id
+        target_id = f"user:{user_id}"
+    
     current_time = time.time()
     decode_counts[target_id].append(current_time)
 

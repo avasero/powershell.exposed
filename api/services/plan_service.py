@@ -61,57 +61,46 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
         }
 
 
-async def can_user_decode_commands(user_id: Optional[str]) -> bool:
+async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[str] = None) -> bool:
     """
     Check if user has permission to decode commands
     
     Args:
         user_id: User ID to check (None for anonymous)
+        session_id: Session ID for anonymous users
         
     Returns:
         True if user can decode commands, False otherwise
     """
-    # ✅ FIX: Anonymous users are treated as FREE PLAN
+    # ✅ FIX: Anonymous and FREE users get rate-limited decoding (5/hour per session)
     if not user_id:
-        print(f"🔓 [DECODE_CHECK] Anonymous user (user_id=None) - checking FREE PLAN features...")
+        print(f"🔓 [DECODE_CHECK] Anonymous user (session: {session_id[:8] if session_id else 'NONE'}) - checking rate limit...")
         
-        # Fetch free plan features from database
-        free_plan = await get_plan_by_name("free")
+        from middleware.rate_limiting import check_decode_limit
+        limit_info = check_decode_limit(None, "free", session_id=session_id)
         
-        if free_plan:
-            can_decode_static = free_plan.get("can_decode_commands", False)
-            
-            # If static permission allows, check dynamic rate limit
-            if can_decode_static:
-                from middleware.rate_limiting import check_decode_limit
-                limit_info = check_decode_limit(None, "free")
-                if not limit_info["within_limit"]:
-                    print(f"⚠️ [DECODE_CHECK] Anonymous user rate limit exceeded: {limit_info['current_count']}/{limit_info['limit']}")
-                    return False
-                return True
-            
-            print(f"✅ [DECODE_CHECK] Anonymous user -> FREE PLAN | Can decode: {can_decode_static}")
-            return can_decode_static
-        else:
-            print(f"⚠️ [DECODE_CHECK] Free plan not found in database, denying decode")
-            return False
+        can_decode = limit_info["within_limit"]
+        print(f"✅ [DECODE_CHECK] Anonymous session -> FREE PLAN | Can decode: {can_decode} | Used: {limit_info['current_count']}/{limit_info['limit']}")
+        
+        return can_decode
     
     # For authenticated users, fetch their plan
     print(f"🔍 [DECODE_CHECK] Checking decode permission for user: {user_id[:8]}...")
     
     plan_features = await get_user_plan_features(user_id)
-    can_decode = plan_features.get("can_decode_commands", False)
     plan_name = plan_features.get("plan_name", "free")
     
-    # If static permission allows, check dynamic rate limit for free users
-    if can_decode and plan_name == "free":
-        from middleware.rate_limiting import check_decode_limit
-        limit_info = check_decode_limit(user_id, plan_name)
-        if not limit_info["within_limit"]:
-            print(f"⚠️ [DECODE_CHECK] User {user_id[:8]} rate limit exceeded: {limit_info['current_count']}/{limit_info['limit']}")
-            return False
+    # ✅ Premium/Enterprise users have unlimited decoding
+    if plan_name in ["premium", "enterprise"]:
+        print(f"✅ [DECODE_CHECK] User: {user_id[:8]}... | Plan: {plan_name} | Unlimited decoding")
+        return True
     
-    print(f"🎯 [DECODE_CHECK] User: {user_id[:8]}... | Plan: {plan_features.get('plan_name')} | Can decode: {can_decode}")
+    # ✅ Free users get rate-limited decoding (5/hour per user)
+    from middleware.rate_limiting import check_decode_limit
+    limit_info = check_decode_limit(user_id, plan_name, session_id=None)
+    
+    can_decode = limit_info["within_limit"]
+    print(f"🎯 [DECODE_CHECK] User: {user_id[:8]}... | Plan: {plan_name} | Can decode: {can_decode} | Used: {limit_info['current_count']}/{limit_info['limit']}")
     
     return can_decode
 

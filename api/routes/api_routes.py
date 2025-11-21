@@ -185,9 +185,9 @@ async def analyze_command_endpoint(
             deobfuscated_cmd = results_blob.get("deobfuscated_command")
             
             # ✅ Check decode permission via plan service (handles anonymous → free plan)
-            can_decode = await can_user_decode_commands(user_id)
+            can_decode = await can_user_decode_commands(user_id, session_id=session_id)
             
-            print(f"🔐 [CACHE RESPONSE] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Can decode: {can_decode}")
+            print(f"🔐 [CACHE RESPONSE] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Session: {session_id[:8] if session_id else 'NONE'} | Can decode: {can_decode}")
             
             if not can_decode:
                 if decoded_cmd:
@@ -202,7 +202,7 @@ async def analyze_command_endpoint(
             else:
                 # ✅ Increment decode usage if user can decode and content is present
                 if decoded_cmd or double_decoded_cmd or deobfuscated_cmd:
-                    increment_decode_usage(user_id)
+                    increment_decode_usage(user_id, session_id=session_id)
 
             
             return JSONResponse({
@@ -285,15 +285,15 @@ async def analyze_command_endpoint(
         deobfuscated_cmd = analysis_result.get("deobfuscated_command")
         
         # ✅ FIX: Use centralized plan service for ALL users (including anonymous)
-        can_decode = await can_user_decode_commands(user_id)
+        can_decode = await can_user_decode_commands(user_id, session_id=session_id)
         
-        print(f"🔐 [FRESH ANALYSIS] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Can decode: {can_decode}")
+        print(f"🔐 [FRESH ANALYSIS] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Session: {session_id[:8] if session_id else 'NONE'} | Can decode: {can_decode}")
         
         # Mask content for users without decode permission
         decode_limit_reached = False
         if not can_decode:
             # Check if it's due to rate limit
-            limit_info = check_decode_limit(user_id, plan_name)
+            limit_info = check_decode_limit(user_id, plan_name, session_id=session_id)
             if not limit_info["within_limit"]:
                 decode_limit_reached = True
                 
@@ -309,7 +309,7 @@ async def analyze_command_endpoint(
         else:
             # ✅ Increment decode usage if user can decode and content is present
             if decoded_cmd or double_decoded_cmd or deobfuscated_cmd:
-                increment_decode_usage(user_id)
+                increment_decode_usage(user_id, session_id=session_id)
 
         return JSONResponse({
             "success": True,
@@ -565,7 +565,7 @@ async def get_analysis_by_id_endpoint(
                         status_code=400
                     )
         user_id = current_user.get("id") if current_user else None
-        can_decode = await can_user_decode_commands(user_id)
+        can_decode = await can_user_decode_commands(user_id, session_id=None)
         decoded_cmd = analysis_data.get("decoded_command")
         double_decoded_cmd = analysis_data.get("double_decoded_command")
         deobfuscated_cmd = analysis_data.get("obfuscated_command")
@@ -580,7 +580,7 @@ async def get_analysis_by_id_endpoint(
                 plan_features = await get_user_plan_features(user_id)
                 plan_name = plan_features.get("plan_name", "free")
                 
-            limit_info = check_decode_limit(user_id, plan_name)
+            limit_info = check_decode_limit(user_id, plan_name, session_id=None)
             if not limit_info["within_limit"]:
                 decode_limit_reached = True
 
@@ -593,7 +593,8 @@ async def get_analysis_by_id_endpoint(
         else:
             # ✅ Increment decode usage if user can decode and content is present
             if decoded_cmd or double_decoded_cmd or deobfuscated_cmd:
-                increment_decode_usage(user_id)
+                increment_decode_usage(user_id, session_id=None)
+
         safe_analysis = {
             "id": analysis_data.get("id"),
             "command": analysis_data.get("command"),
