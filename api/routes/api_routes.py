@@ -307,9 +307,8 @@ async def analyze_command_endpoint(
                 deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
                 print(f"🚫 [MASKING] deobfuscated_command masked")
         else:
-            # ✅ Increment decode usage if user can decode and content is present
-            if decoded_cmd or double_decoded_cmd or deobfuscated_cmd:
-                increment_decode_usage(user_id, session_id=session_id)
+            # ✅ DB-backed rate limiting handles counting automatically via save_analysis_to_db
+            pass
 
         return JSONResponse({
             "success": True,
@@ -591,9 +590,8 @@ async def get_analysis_by_id_endpoint(
             if deobfuscated_cmd:
                 deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
         else:
-            # ✅ Increment decode usage if user can decode and content is present
-            if decoded_cmd or double_decoded_cmd or deobfuscated_cmd:
-                increment_decode_usage(user_id, session_id=None)
+            # ✅ DB-backed rate limiting handles counting automatically via save_analysis_to_db
+            pass
 
         safe_analysis = {
             "id": analysis_data.get("id"),

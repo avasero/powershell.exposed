@@ -73,36 +73,63 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
         True if user can decode commands, False otherwise
     """
     # ✅ FIX: Anonymous and FREE users get rate-limited decoding (5/hour per session)
+    # We handle both anonymous and authenticated free users in the same logic block below.
+    # Just logging here for clarity.
     if not user_id:
-        print(f"🔓 [DECODE_CHECK] Anonymous user (session: {session_id[:8] if session_id else 'NONE'}) - checking rate limit...")
-        
-        from middleware.rate_limiting import check_decode_limit
-        limit_info = check_decode_limit(None, "free", session_id=session_id)
-        
-        can_decode = limit_info["within_limit"]
-        print(f"✅ [DECODE_CHECK] Anonymous session -> FREE PLAN | Can decode: {can_decode} | Used: {limit_info['current_count']}/{limit_info['limit']}")
-        
-        return can_decode
-    
+        print(f"[DECODE_CHECK] Anonymous user (session: {session_id[:8] if session_id else 'NONE'}) - checking DB rate limit...")
+
     # For authenticated users, fetch their plan
-    print(f"🔍 [DECODE_CHECK] Checking decode permission for user: {user_id[:8]}...")
+    print(f"[DECODE_CHECK] Checking decode permission for user: {user_id[:8] if user_id else 'ANONYMOUS'}...")
     
-    plan_features = await get_user_plan_features(user_id)
-    plan_name = plan_features.get("plan_name", "free")
+    if user_id:
+        plan_features = await get_user_plan_features(user_id)
+        plan_name = plan_features.get("plan_name", "free")
+    else:
+        plan_name = "free"
     
-    # ✅ Premium/Enterprise users have unlimited decoding
+    # Premium/Enterprise users have unlimited decoding
     if plan_name in ["premium", "enterprise"]:
-        print(f"✅ [DECODE_CHECK] User: {user_id[:8]}... | Plan: {plan_name} | Unlimited decoding")
+        print(f"[DECODE_CHECK] User: {user_id[:8]}... | Plan: {plan_name} | Unlimited decoding")
         return True
     
-    # ✅ Free users get rate-limited decoding (5/hour per user)
+    # Free users get rate-limited decoding (5/hour per user)
     # IMPORTANT: Even if 'can_decode_commands' is False in DB for free plan, 
     # we MUST allow 5 decodes per hour.
-    from middleware.rate_limiting import check_decode_limit
-    limit_info = check_decode_limit(user_id, plan_name, session_id=session_id)
     
-    can_decode = limit_info["within_limit"]
-    print(f"🎯 [DECODE_CHECK] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Session: {session_id[:8] if session_id else 'NONE'} | Plan: {plan_name} | Can decode: {can_decode} | Used: {limit_info['current_count']}/{limit_info['limit']}")
+    # DB-BACKED RATE LIMITING (Robust against restarts/workers)
+    from datetime import datetime, timedelta
+    
+    # 1. Define the window (last 1 hour)
+    window_start = datetime.utcnow() - timedelta(hours=1)
+    
+    # 2. Query the DB for usage count
+    # We count analyses created in the last hour that have decoded content
+    # This counts "attempts" to decode, which is the safest metric.
+    supabase = get_supabase_client()
+    
+    query = supabase.table('powershell_analyses')\
+        .select('id', count='exact')\
+        .gte('created_at', window_start.isoformat())\
+        .neq('decoded_command', 'null') # Only count if it had encoded content
+        
+    if user_id:
+        query = query.eq('user_id', user_id)
+        target_id = f"user:{user_id}"
+    elif session_id:
+        query = query.eq('session_id', session_id)
+        target_id = f"session:{session_id}"
+    else:
+        # Should not happen, but block if no ID
+        print("[DECODE_CHECK] No user_id or session_id provided, blocking decode.")
+        return False
+        
+    result = query.execute()
+    current_usage = result.count
+    limit = 5 # Hardcoded limit for free/anonymous
+    
+    can_decode = current_usage < limit
+    
+    print(f"[DECODE_CHECK] {target_id} | Plan: {plan_name} | Can decode: {can_decode} | Used (DB): {current_usage}/{limit}")
     
     return can_decode
 
