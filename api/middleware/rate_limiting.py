@@ -170,8 +170,13 @@ def check_decode_limit(user_id: str, plan_name: str = "free", session_id: str = 
     
     decode_count = len(current_decodes)
     
+    within_limit = decode_count < FREE_DECODE_LIMIT
+    
+    if not within_limit:
+        print(f"🚫 [RATE_LIMIT] Decode limit reached for {target_id}: {decode_count}/{FREE_DECODE_LIMIT}")
+    
     return {
-        "within_limit": decode_count < FREE_DECODE_LIMIT,
+        "within_limit": within_limit,
         "current_count": decode_count,
         "limit": FREE_DECODE_LIMIT,
         "remaining": max(0, FREE_DECODE_LIMIT - decode_count)

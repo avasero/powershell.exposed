@@ -96,6 +96,8 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
         return True
     
     # ✅ Free users get rate-limited decoding (5/hour per user)
+    # IMPORTANT: Even if 'can_decode_commands' is False in DB for free plan, 
+    # we MUST allow 5 decodes per hour.
     from middleware.rate_limiting import check_decode_limit
     limit_info = check_decode_limit(user_id, plan_name, session_id=None)
     
