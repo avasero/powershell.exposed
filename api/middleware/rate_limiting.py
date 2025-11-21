@@ -160,7 +160,19 @@ def check_decode_limit(user_id: str, plan_name: str = "free", session_id: str = 
     # ✅ FIX: Use session_id for anonymous users, user_id for authenticated
     if not user_id:
         # Anonymous user - use session_id for tracking
-        target_id = f"session:{session_id}" if session_id else "anonymous"
+        if session_id:
+            target_id = f"session:{session_id}"
+        else:
+            # ⚠️ Fallback: If no session_id, use a temporary unique ID to avoid global blocking
+            # Ideally this should be IP-based, but for now we want to avoid the "Global Limit" bug.
+            # A better approach would be to require session_id or pass IP here.
+            # Since we don't have IP passed to this function, we'll log a warning and use a random suffix
+            # to effectively allow it (or block it if we want strictness). 
+            # Given the user's complaint about "catching another person's limit", 
+            # we should NOT use a shared key.
+            import uuid
+            target_id = f"anon_fallback:{uuid.uuid4()}" 
+            print(f"⚠️ [RATE_LIMIT] No session_id for anonymous user in check_decode_limit! Generated temp ID: {target_id}")
     else:
         # Authenticated user - use user_id
         target_id = f"user:{user_id}"
@@ -188,7 +200,13 @@ def increment_decode_usage(user_id: str, session_id: str = None):
     # ✅ FIX: Use session_id for anonymous users, user_id for authenticated
     if not user_id:
         # Anonymous user - use session_id for tracking
-        target_id = f"session:{session_id}" if session_id else "anonymous"
+        if session_id:
+            target_id = f"session:{session_id}"
+        else:
+            # ⚠️ Fallback: Same logic as check_decode_limit
+            import uuid
+            target_id = f"anon_fallback:{uuid.uuid4()}"
+            print(f"⚠️ [RATE_LIMIT] No session_id for anonymous user in increment_decode_usage! Generated temp ID: {target_id}")
     else:
         # Authenticated user - use user_id
         target_id = f"user:{user_id}"
