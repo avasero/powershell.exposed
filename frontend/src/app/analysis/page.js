@@ -36,11 +36,20 @@ function getScoreLabel(score) {
   return "INFORMATIONAL";
 }
 
-// ✅ Componente para conteúdo protegido (adicionar no início do arquivo se ainda não existir)
+// ✅ Componente com DEBUG
 const ProtectedCodeBlock = ({ code, borderColorClass = "border-gray-500/20", limitReached = false }) => {
+  // ✅ DEBUG: Log para verificar o que está chegando
+  console.log("🔍 [ProtectedCodeBlock] Received:", {
+    code: code?.substring(0, 50) + "...",
+    codeLength: code?.length,
+    isProtected: code === "[PREMIUM_PROTECTED_CONTENT]",
+    limitReached
+  });
+
   const isProtected = code === "[PREMIUM_PROTECTED_CONTENT]";
 
   if (isProtected) {
+    console.log("🚫 [ProtectedCodeBlock] Showing LOCK SCREEN");
     return (
       <div className={`bg-black rounded-lg p-3 border ${borderColorClass} relative overflow-hidden min-h-[140px]`}>
         {/* Blurred Placeholder Content as Background Layer */}
@@ -75,6 +84,7 @@ IEX([System.Text.Encoding]::Unicode.GetString($payload))
     );
   }
 
+  console.log("✅ [ProtectedCodeBlock] Showing ACTUAL CONTENT");
   return (
     <div className={`bg-black rounded p-3 border ${borderColorClass} text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words`} style={{ color: 'var(--foreground)' }}>
       <code>{code}</code>

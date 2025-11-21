@@ -36,11 +36,20 @@ function getScoreLabel(score) {
   return "INFORMATIONAL";
 }
 
-// ✅ Componente para conteúdo protegido
+// ✅ Componente para conteúdo protegido - FIXED with return statement
 const ProtectedCodeBlock = ({ code, borderColorClass = "border-gray-500/20", limitReached = false }) => {
+  // ✅ DEBUG: Log para verificar o que está chegando
+  console.log("🔍 [ProtectedCodeBlock] Received:", {
+    code: code?.substring(0, 50) + "...",
+    codeLength: code?.length,
+    isProtected: code === "[PREMIUM_PROTECTED_CONTENT]",
+    limitReached
+  });
+
   const isProtected = code === "[PREMIUM_PROTECTED_CONTENT]";
 
   if (isProtected) {
+    console.log("🚫 [ProtectedCodeBlock] Showing LOCK SCREEN");
     return (
       <div className={`bg-black rounded-lg p-3 border ${borderColorClass} relative overflow-hidden min-h-[140px]`}>
         {/* Blurred Placeholder Content as Background Layer */}
@@ -80,6 +89,8 @@ IEX([System.Text.Encoding]::Unicode.GetString($payload))
     );
   }
 
+  // ✅ CRITICAL: Show actual content when not protected
+  console.log("✅ [ProtectedCodeBlock] Showing ACTUAL CONTENT");
   return (
     <div className={`bg-black rounded p-3 border ${borderColorClass} text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words`} style={{ color: 'var(--foreground)' }}>
       <code>{code}</code>
@@ -139,12 +150,19 @@ export default function AnalysisDetailsPage() {
 
       const loadStartTime = performance.now();
 
+      // ✅ FIX: Get session_id to send in headers
+      const sessionId = getOrCreateSession();
+
       const { makeAuthenticatedRequest } = await import('../../../lib/api');
       const res = await makeAuthenticatedRequest(`/analysis/${params.id}`, {
-        headers: isCacheRedirect ? {
-          'Cache-Control': 'max-age=300',
-          'X-Cache-Redirect': 'true'
-        } : {}
+        headers: {
+          ...(isCacheRedirect ? {
+            'Cache-Control': 'max-age=300',
+            'X-Cache-Redirect': 'true'
+          } : {}),
+          // ✅ FIX: Always send session_id for anonymous users
+          'X-Session-ID': sessionId
+        }
       });
 
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
@@ -172,6 +190,15 @@ export default function AnalysisDetailsPage() {
         techniques: analysis.techniques || analysisResult.techniques || [],
         analysisId: params.id
       };
+
+      // ✅ DEBUG: Log para ver o que foi processado
+      console.log("📊 [ANALYSIS LOADED]", {
+        hasDecoded: !!processedResult.decoded,
+        hasDoubleDecoded: !!processedResult.doubleDecoded,
+        hasDeobfuscated: !!processedResult.deobfuscated,
+        decodeLimitReached: processedResult.decodeLimitReached,
+        decodedPreview: processedResult.decoded?.substring(0, 50)
+      });
 
       setResult(processedResult);
 
