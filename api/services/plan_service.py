@@ -73,14 +73,10 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
         True if user can decode commands, False otherwise
     """
     # ✅ FIX: Anonymous and FREE users get rate-limited decoding (5/hour per session)
-    # We handle both anonymous and authenticated free users in the same logic block below.
-    # Just logging here for clarity.
     if not user_id:
         print(f"[DECODE_CHECK] Anonymous user (session: {session_id[:8] if session_id else 'NONE'}) - checking DB rate limit...")
 
     # For authenticated users, fetch their plan
-    print(f"[DECODE_CHECK] Checking decode permission for user: {user_id[:8] if user_id else 'ANONYMOUS'}...")
-    
     if user_id:
         plan_features = await get_user_plan_features(user_id)
         plan_name = plan_features.get("plan_name", "free")
@@ -93,9 +89,6 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
         return True
     
     # Free users get rate-limited decoding (5/hour per user)
-    # IMPORTANT: Even if 'can_decode_commands' is False in DB for free plan, 
-    # we MUST allow 5 decodes per hour.
-    
     # DB-BACKED RATE LIMITING (Robust against restarts/workers)
     from datetime import datetime, timedelta
     
@@ -103,20 +96,20 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
     window_start = datetime.utcnow() - timedelta(hours=1)
     
     # 2. Query the DB for usage count
-    # We count analyses created in the last hour that have decoded content
-    # This counts "attempts" to decode, which is the safest metric.
     supabase = get_supabase_client()
     
+    # ✅ FIX: Check ANY decoded content column using OR filter
     query = supabase.table('powershell_analyses')\
         .select('id', count='exact')\
         .gte('created_at', window_start.isoformat())\
-        .neq('decoded_command', 'null') # Only count if it had encoded content
+        .or_('decoded_command.neq.null,double_decoded_command.neq.null,obfuscated_command.neq.null')
         
     if user_id:
         query = query.eq('user_id', user_id)
         target_id = f"user:{user_id}"
     elif session_id:
-        query = query.eq('session_id', session_id)
+        # ✅ FIX: For anonymous, explicitly check session_id AND user_id IS NULL
+        query = query.eq('session_id', session_id).is_('user_id', 'null')
         target_id = f"session:{session_id}"
     else:
         # Should not happen, but block if no ID

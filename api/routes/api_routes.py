@@ -502,6 +502,7 @@ async def get_user_analyses_endpoint(
 
 
 async def get_analysis_by_id_endpoint(
+    request: Request,
     analysis_id: str,
     current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
 ):
@@ -564,12 +565,16 @@ async def get_analysis_by_id_endpoint(
                         status_code=400
                     )
         user_id = current_user.get("id") if current_user else None
-        can_decode = await can_user_decode_commands(user_id, session_id=None)
+        
+        # ✅ FIX: Extract session_id from request for anonymous users
+        session_id = request.headers.get("X-Session-ID") or request.cookies.get("session_id")
+        
+        can_decode = await can_user_decode_commands(user_id, session_id=session_id)
         decoded_cmd = analysis_data.get("decoded_command")
         double_decoded_cmd = analysis_data.get("double_decoded_command")
         deobfuscated_cmd = analysis_data.get("obfuscated_command")
         
-        print(f"🔐 [GET ANALYSIS] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Can decode: {can_decode}")
+        print(f"🔐 [GET ANALYSIS] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Session: {session_id[:8] if session_id else 'NONE'} | Can decode: {can_decode}")
         
         decode_limit_reached = False
         if not can_decode:
@@ -579,7 +584,7 @@ async def get_analysis_by_id_endpoint(
                 plan_features = await get_user_plan_features(user_id)
                 plan_name = plan_features.get("plan_name", "free")
                 
-            limit_info = check_decode_limit(user_id, plan_name, session_id=None)
+            limit_info = check_decode_limit(user_id, plan_name, session_id=session_id)
             if not limit_info["within_limit"]:
                 decode_limit_reached = True
 
