@@ -28,7 +28,7 @@ from services.cache_service import (
 )
 from services.session_manager import get_or_create_session, get_supabase_client
 from utils.geolocation import get_ip_location, get_client_ip_from_request
-from services.plan_service import can_user_decode_commands, get_user_plan_features
+from services.plan_service import can_user_decode_commands, get_user_plan_features, get_plan_by_name
 
 
 async def analyze_command_endpoint(

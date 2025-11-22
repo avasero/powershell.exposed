@@ -67,6 +67,34 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
         }
 
 
+async def get_plan_by_name(plan_name: str) -> Optional[Dict[str, Any]]:
+    """
+    Get plan details by name
+    
+    Args:
+        plan_name: Name of the plan to fetch
+        
+    Returns:
+        Dictionary with plan details or None if not found
+    """
+    try:
+        supabase = get_supabase_client()
+        
+        response = supabase.table('plans')\
+            .select('name, can_decode_commands, request_limit_per_hour, decode_limit_per_hour')\
+            .eq('name', plan_name)\
+            .single()\
+            .execute()
+            
+        if response.data:
+            return response.data
+            
+        return None
+    except Exception as e:
+        print(f"❌ [PLAN_SERVICE] Error fetching plan {plan_name}: {e}")
+        return None
+
+
 async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[str] = None) -> dict:
     """
     Check if user has permission to decode commands
