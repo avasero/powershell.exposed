@@ -76,7 +76,7 @@ IEX([System.Text.Encoding]::Unicode.GetString($payload))
               Decode Limit Reached
             </span>
             <span className="text-sm text-gray-300 text-center leading-relaxed font-mono px-4">
-              You made {decodeInfo?.limit || 5} decodes in an hour, wait {minutesUntilReset} minutes until your next {decodeInfo?.limit || 5} decodes
+              Your {decodeInfo?.limit || 5} min/hour limit was reached and it will reset in the next cycle.
             </span>
             <span className="text-xs text-gray-400 text-center font-mono mt-2">
               Upgrade to Premium for unlimited decodes
