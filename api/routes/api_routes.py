@@ -187,11 +187,11 @@ async def analyze_command_endpoint(
             deobfuscated_cmd = results_blob.get("deobfuscated_command")
             
             # ✅ Check decode permission via plan service (handles anonymous → free plan)
-            can_decode = await can_user_decode_commands(user_id, session_id=session_id)
+            decode_info = await can_user_decode_commands(user_id, session_id=session_id)
             
-            print(f"🔐 [CACHE RESPONSE] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Session: {session_id[:8] if session_id else 'NONE'} | Can decode: {can_decode}")
+            print(f"🔐 [CACHE RESPONSE] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Session: {session_id[:8] if session_id else 'NONE'} | Can decode: {decode_info['can_decode']} | Usage: {decode_info['current_usage']}/{decode_info['limit']}")
             
-            if not can_decode:
+            if not decode_info["can_decode"]:
                 if decoded_cmd:
                     decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
                     print(f"🚫 [MASKING] decoded_command masked")
@@ -201,10 +201,6 @@ async def analyze_command_endpoint(
                 if deobfuscated_cmd:
                     deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
                     print(f"🚫 [MASKING] deobfuscated_command masked")
-            else:
-                # ✅ Increment decode usage if user can decode and content is present
-                if decoded_cmd or double_decoded_cmd or deobfuscated_cmd:
-                    increment_decode_usage(user_id, session_id=session_id)
 
             
             return JSONResponse({
@@ -230,7 +226,13 @@ async def analyze_command_endpoint(
                     }
                 },
                 "analysis_id": analysis_id,
-                "session_id": session_id
+                "session_id": session_id,
+                "decode_info": {  # ✅ NEW: Include decode info
+                    "current_usage": decode_info["current_usage"],
+                    "limit": decode_info["limit"],
+                    "remaining": decode_info["remaining"],
+                    "seconds_until_reset": decode_info["seconds_until_reset"]
+                }
             })
         
         # ✅ Se não houver cache, continuar com análise normal
@@ -287,17 +289,14 @@ async def analyze_command_endpoint(
         deobfuscated_cmd = analysis_result.get("deobfuscated_command")
         
         # ✅ FIX: Use centralized plan service for ALL users (including anonymous)
-        can_decode = await can_user_decode_commands(user_id, session_id=session_id)
+        decode_info = await can_user_decode_commands(user_id, session_id=session_id)
         
-        print(f"🔐 [FRESH ANALYSIS] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Session: {session_id[:8] if session_id else 'NONE'} | Can decode: {can_decode}")
+        print(f"🔐 [FRESH ANALYSIS] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Session: {session_id[:8] if session_id else 'NONE'} | Can decode: {decode_info['can_decode']} | Usage: {decode_info['current_usage']}/{decode_info['limit']}")
         
         # Mask content for users without decode permission
         decode_limit_reached = False
-        if not can_decode:
-            # Check if it's due to rate limit
-            limit_info = check_decode_limit(user_id, plan_name, session_id=session_id)
-            if not limit_info["within_limit"]:
-                decode_limit_reached = True
+        if not decode_info["can_decode"]:
+            decode_limit_reached = True
                 
             if decoded_cmd:
                 decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
@@ -308,9 +307,6 @@ async def analyze_command_endpoint(
             if deobfuscated_cmd:
                 deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
                 print(f"🚫 [MASKING] deobfuscated_command masked")
-        else:
-            # ✅ DB-backed rate limiting handles counting automatically via save_analysis_to_db
-            pass
 
         return JSONResponse({
             "success": True,
@@ -337,7 +333,13 @@ async def analyze_command_endpoint(
                 }
             },
             "analysis_id": db_result.get("short_id") if db_result.get("success") else None,
-            "session_id": session_id
+            "session_id": session_id,
+            "decode_info": {  # ✅ NEW: Include decode info
+                "current_usage": decode_info["current_usage"],
+                "limit": decode_info["limit"],
+                "remaining": decode_info["remaining"],
+                "seconds_until_reset": decode_info["seconds_until_reset"]
+            }
         })
         
     except Exception as error:
@@ -580,15 +582,7 @@ async def get_analysis_by_id_endpoint(
         
         decode_limit_reached = False
         if not can_decode:
-            # Fetch plan to check if it's due to rate limit
-            plan_name = "free"
-            if user_id:
-                plan_features = await get_user_plan_features(user_id)
-                plan_name = plan_features.get("plan_name", "free")
-                
-            limit_info = check_decode_limit(user_id, plan_name, session_id=session_id)
-            if not limit_info["within_limit"]:
-                decode_limit_reached = True
+            decode_limit_reached = True
 
             if decoded_cmd:
                 decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
@@ -596,9 +590,6 @@ async def get_analysis_by_id_endpoint(
                 double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
             if deobfuscated_cmd:
                 deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
-        else:
-            # ✅ DB-backed rate limiting handles counting automatically via save_analysis_to_db
-            pass
 
         safe_analysis = {
             "id": analysis_data.get("id"),
@@ -616,7 +607,13 @@ async def get_analysis_by_id_endpoint(
         }
         return JSONResponse({
             "success": True,
-            "analysis": safe_analysis
+            "analysis": safe_analysis,
+            "decode_info": {  # ✅ NEW: Include decode info
+                "current_usage": decode_info["current_usage"],
+                "limit": decode_info["limit"],
+                "remaining": decode_info["remaining"],
+                "seconds_until_reset": decode_info["seconds_until_reset"]
+            }
         })
     except Exception as error:
         return JSONResponse(
