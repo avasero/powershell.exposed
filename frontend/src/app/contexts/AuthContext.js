@@ -312,6 +312,11 @@ export const AuthProvider = ({ children }) => {
         // User is not authenticated and trying to access protected route
         router.push('/');
       }
+
+      // Redirect logged-in users from landing page to analysis
+      if (userIsAuthenticated && pathname === '/') {
+        router.push('/evaluate');
+      }
     }
   }, [user, loading, pathname, router, publicRoutes]);
 

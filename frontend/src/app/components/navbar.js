@@ -43,7 +43,7 @@ export default function Navbar() {
     <>
       <nav className="w-full flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b bg-black/80 border-green-500/30">
         <div className="flex items-center">
-          <Link href="/" className="flex items-center space-x-2 font-mono text-lg sm:text-xl font-bold" style={{color: 'var(--accent)'}}>
+          <Link href={isAuthenticated() ? "/evaluate" : "/"} className="flex items-center space-x-2 font-mono text-lg sm:text-xl font-bold" style={{color: 'var(--accent)'}}>
             <svg 
               version="1.0" 
               xmlns="http://www.w3.org/2000/svg"
