@@ -515,12 +515,9 @@ async def get_analysis_by_id_endpoint(
     Permite acesso público para análises compartilháveis
     """
     try:
-        
-        
         supabase = get_supabase_client()
         
         if len(analysis_id) == 8 and analysis_id.isalnum():
-            
             response = supabase.table('powershell_analyses').select('*').eq('short_id', analysis_id).single().execute()
             
             if response.data:
@@ -536,11 +533,9 @@ async def get_analysis_by_id_endpoint(
             is_uuid = re.match(uuid_pattern, analysis_id, re.IGNORECASE)
             
             if is_uuid:
-               
                 response = supabase.table('powershell_analyses').select('*').eq('uuid', analysis_id).single().execute()
                 
                 if not response.data:
-                   
                     return JSONResponse(
                         {"error": "Analysis not found"},
                         status_code=404
@@ -550,8 +545,6 @@ async def get_analysis_by_id_endpoint(
             else:
                 try:
                     db_id = int(analysis_id)
-                    
-                    
                     response = supabase.table('powershell_analyses').select('*').eq('id', db_id).single().execute()
                     
                     if not response.data:
@@ -561,27 +554,26 @@ async def get_analysis_by_id_endpoint(
                         )
                     
                     analysis_data = response.data
-                   
                 except ValueError:
-               
                     return JSONResponse(
                         {"error": "Invalid analysis ID"},
                         status_code=400
                     )
-        user_id = current_user.get("id") if current_user else None
         
-        # ✅ FIX: Extract session_id from request for anonymous users
+        user_id = current_user.get("id") if current_user else None
         session_id = request.headers.get("X-Session-ID") or request.cookies.get("session_id")
         
-        can_decode = await can_user_decode_commands(user_id, session_id=session_id)
+        # ✅ FIX: Get decode_info BEFORE using it
+        decode_info = await can_user_decode_commands(user_id, session_id=session_id)
+        
         decoded_cmd = analysis_data.get("decoded_command")
         double_decoded_cmd = analysis_data.get("double_decoded_command")
         deobfuscated_cmd = analysis_data.get("obfuscated_command")
         
-        print(f"🔐 [GET ANALYSIS] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Session: {session_id[:8] if session_id else 'NONE'} | Can decode: {can_decode}")
+        print(f"🔐 [GET ANALYSIS] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Session: {session_id[:8] if session_id else 'NONE'} | Can decode: {decode_info['can_decode']}")
         
         decode_limit_reached = False
-        if not can_decode:
+        if not decode_info["can_decode"]:
             decode_limit_reached = True
 
             if decoded_cmd:
@@ -608,7 +600,7 @@ async def get_analysis_by_id_endpoint(
         return JSONResponse({
             "success": True,
             "analysis": safe_analysis,
-            "decode_info": {  # ✅ NEW: Include decode info
+            "decode_info": {
                 "current_usage": decode_info["current_usage"],
                 "limit": decode_info["limit"],
                 "remaining": decode_info["remaining"],
@@ -616,6 +608,9 @@ async def get_analysis_by_id_endpoint(
             }
         })
     except Exception as error:
+        print(f"❌ [GET ANALYSIS ERROR] {error}")
+        import traceback
+        traceback.print_exc()
         return JSONResponse(
             {"error": f"Failed to fetch analysis: {str(error)}"},
             status_code=500
