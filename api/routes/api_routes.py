@@ -201,6 +201,14 @@ async def analyze_command_endpoint(
                 if deobfuscated_cmd:
                     deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
                     print(f"🚫 [MASKING] deobfuscated_command masked")
+                
+                # ✅ FIX: Mask matched_text in signatures to prevent leak
+                signatures_detected = results_blob.get("signatures_detected", [])
+                for signature in signatures_detected:
+                    matches = signature.get("matches_details", [])
+                    for match in matches:
+                        if "matched_text" in match:
+                            match["matched_text"] = "[PREMIUM_PROTECTED_CONTENT]"
 
             
             return JSONResponse({
@@ -307,6 +315,13 @@ async def analyze_command_endpoint(
             if deobfuscated_cmd:
                 deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
                 print(f"🚫 [MASKING] deobfuscated_command masked")
+
+            # ✅ FIX: Mask matched_text in signatures to prevent leak
+            for signature in analysis_result["detected_signatures"]:
+                matches = signature.get("matches_details", [])
+                for match in matches:
+                    if "matched_text" in match:
+                        match["matched_text"] = "[PREMIUM_PROTECTED_CONTENT]"
 
         return JSONResponse({
             "success": True,
