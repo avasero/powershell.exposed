@@ -96,6 +96,36 @@ IEX([System.Text.Encoding]::Unicode.GetString($payload))
   );
 };
 
+const DecodeUsageBadge = ({ decodeInfo }) => {
+  if (!decodeInfo) return null;
+
+  const isUnlimited = decodeInfo.limit === Infinity || decodeInfo.limit > 1000;
+  const current = decodeInfo.current_usage || 0;
+  const limit = decodeInfo.limit || 5;
+  const remaining = Math.max(0, limit - current);
+
+  if (isUnlimited) {
+    return (
+      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 mb-4">
+        <span className="text-xs font-mono font-bold text-purple-400">Premium: Unlimited Decodes</span>
+      </div>
+    );
+  }
+
+  // Calculate color based on usage
+  let colorClass = "text-green-400 border-green-500/30 bg-green-500/10";
+  if (remaining === 0) colorClass = "text-red-400 border-red-500/30 bg-red-500/10";
+  else if (remaining <= 2) colorClass = "text-yellow-400 border-yellow-500/30 bg-yellow-500/10";
+
+  return (
+    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border ${colorClass} mb-4`}>
+      <span className="text-xs font-mono font-bold">
+        Decode {Math.min(current, limit)} of {limit} ({remaining} remaining)
+      </span>
+    </div>
+  );
+};
+
 export default function AnalysisDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -567,8 +597,11 @@ export default function AnalysisDetailsPage() {
       {result && result.deobfuscated && hasObfuscationIndicator && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-purple-500/30">
-            <div className="font-mono text-sm font-bold mb-3" style={{ color: 'var(--accent)' }}>
-              🔓 Deobfuscated Command
+            <div className="flex justify-between items-center mb-3">
+              <div className="font-mono text-sm font-bold" style={{ color: 'var(--accent)' }}>
+                🔓 Deobfuscated Command
+              </div>
+              <DecodeUsageBadge decodeInfo={decodeInfo} />
             </div>
             <ProtectedCodeBlock code={result.deobfuscated} borderColorClass="border-purple-500/20" limitReached={result.decodeLimitReached} decodeInfo={decodeInfo} />
             <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
@@ -582,8 +615,11 @@ export default function AnalysisDetailsPage() {
       {result && result.decoded && result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
-            <div className="font-mono text-sm font-bold mb-3" style={{ color: 'var(--accent)' }}>
-              First Decoded Layer (Iteration 1)
+            <div className="flex justify-between items-center mb-3">
+              <div className="font-mono text-sm font-bold" style={{ color: 'var(--accent)' }}>
+                First Decoded Layer (Iteration 1)
+              </div>
+              <DecodeUsageBadge decodeInfo={decodeInfo} />
             </div>
             <ProtectedCodeBlock code={result.decoded} borderColorClass="border-blue-500/20" limitReached={result.decodeLimitReached} decodeInfo={decodeInfo} />
             <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
@@ -597,8 +633,11 @@ export default function AnalysisDetailsPage() {
       {result && result.decoded && !result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
-            <div className="font-mono text-sm font-bold mb-3" style={{ color: 'var(--accent)' }}>
-              Decoded Command
+            <div className="flex justify-between items-center mb-3">
+              <div className="font-mono text-sm font-bold" style={{ color: 'var(--accent)' }}>
+                Decoded Command
+              </div>
+              <DecodeUsageBadge decodeInfo={decodeInfo} />
             </div>
             <ProtectedCodeBlock code={result.decoded} borderColorClass="border-blue-500/20" limitReached={result.decodeLimitReached} decodeInfo={decodeInfo} />
             <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
@@ -612,8 +651,11 @@ export default function AnalysisDetailsPage() {
       {result && result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-yellow-500/30">
-            <div className="font-mono text-sm font-bold mb-3" style={{ color: 'var(--accent)' }}>
-              Final Decoded Command (Iteration 2)
+            <div className="flex justify-between items-center mb-3">
+              <div className="font-mono text-sm font-bold" style={{ color: 'var(--accent)' }}>
+                Final Decoded Command (Iteration 2)
+              </div>
+              <DecodeUsageBadge decodeInfo={decodeInfo} />
             </div>
             <ProtectedCodeBlock code={result.doubleDecoded} borderColorClass="border-yellow-500/20" limitReached={result.decodeLimitReached} decodeInfo={decodeInfo} />
             <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
