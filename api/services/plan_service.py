@@ -121,7 +121,7 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
     current_usage = result.count or 0
     limit = 5
     
-    can_decode = current_usage < limit
+    can_decode = current_usage <= limit
     
     # ✅ FIX: Calculate seconds until reset using the oldest record's created_at
     seconds_until_reset = None

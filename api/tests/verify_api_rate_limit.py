@@ -2,13 +2,15 @@ import requests
 import time
 import base64
 
+import uuid
+
 API_URL = "http://localhost:8000"
 
 def test_api_rate_limit():
     print("🚀 Starting API Rate Limiting Verification")
     
     # Use a unique session ID for this test
-    session_id = f"test_session_{int(time.time())}"
+    session_id = str(uuid.uuid4())
     
     # 1. Test Request Rate Limit (Free: 10 requests/hour)
     print("\n🧪 Test 1: Request Rate Limit")
@@ -50,7 +52,7 @@ def test_api_rate_limit():
     # But wait, limits are per user/session. 
     # If we are anonymous, it tracks by session_id?
     # Let's use a new session_id
-    session_id_decode = f"test_session_decode_{int(time.time())}"
+    session_id_decode = str(uuid.uuid4())
     
     # Simple encoded command: Write-Host 'Decoded' -> V3JpdGUtSG9zdCAnRGVjb2RlZCc=
     encoded_cmd = base64.b64encode("Write-Host 'Decoded'".encode('utf-16le')).decode()
