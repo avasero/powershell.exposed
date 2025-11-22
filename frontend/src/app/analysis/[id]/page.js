@@ -99,6 +99,10 @@ IEX([System.Text.Encoding]::Unicode.GetString($payload))
 const DecodeUsageBadge = ({ decodeInfo }) => {
   if (!decodeInfo) return null;
 
+  console.log("🔍 [DecodeUsageBadge] decodeInfo:", decodeInfo);
+  console.log("🔍 [DecodeUsageBadge] limit:", decodeInfo.limit, "Type:", typeof decodeInfo.limit);
+  console.log("🔍 [DecodeUsageBadge] isUnlimited check:", decodeInfo.limit === null);
+
   const isUnlimited = decodeInfo.limit === null || decodeInfo.limit === -1 || decodeInfo.limit === Infinity || decodeInfo.limit > 1000;
   const current = decodeInfo.current_usage || 0;
   const limit = decodeInfo.limit || 5;
