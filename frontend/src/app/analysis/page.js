@@ -37,28 +37,31 @@ function getScoreLabel(score) {
 }
 
 // ✅ Componente com DEBUG
-const ProtectedCodeBlock = ({ code, borderColorClass = "border-gray-500/20", limitReached = false }) => {
-  // ✅ DEBUG: Log para verificar o que está chegando
+const ProtectedCodeBlock = ({ code, borderColorClass = "border-gray-500/20", limitReached = false, decodeInfo = null }) => {
   console.log("🔍 [ProtectedCodeBlock] Received:", {
     code: code?.substring(0, 50) + "...",
     codeLength: code?.length,
     isProtected: code === "[PREMIUM_PROTECTED_CONTENT]",
-    limitReached
+    limitReached,
+    decodeInfo
   });
 
   const isProtected = code === "[PREMIUM_PROTECTED_CONTENT]";
 
   if (isProtected) {
     console.log("🚫 [ProtectedCodeBlock] Showing LOCK SCREEN");
+    
+    const minutesUntilReset = decodeInfo?.seconds_until_reset 
+      ? Math.ceil(decodeInfo.seconds_until_reset / 60) 
+      : 0;
+    
     return (
       <div className={`bg-black rounded-lg p-3 border ${borderColorClass} relative overflow-hidden min-h-[140px]`}>
-        {/* Blurred Placeholder Content as Background Layer */}
         <div className="absolute inset-0 blur-md select-none opacity-40 pointer-events-none font-mono text-xs leading-relaxed z-0" aria-hidden="true">
-          {`# Premium content hidden
+          {`# Decode limit reached
 $payload = [System.Convert]::FromBase64String("SGVsbG8gV29ybGQ=")
 IEX([System.Text.Encoding]::Unicode.GetString($payload))
-# Advanced decoding available to premium subscribers
-# Threat analysis requires elevated access
+# Wait for reset to decode more commands
 # ...`}
         </div>
 
@@ -66,17 +69,15 @@ IEX([System.Text.Encoding]::Unicode.GetString($payload))
           <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent rounded-lg"></div>
 
           <div className="relative rounded-xl p-6 flex flex-col items-center gap-3 shadow-2xl">
-            <div className="text-4xl drop-shadow-lg">
-              {limitReached ? "⏳" : "🔒"}
-            </div>
-            <span className="font-mono font-bold text-green-400 text-lg tracking-wide drop-shadow-lg" style={{ color: 'var(--accent)', filter: 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.6))' }}>
-              {limitReached ? "Daily Decode Limit Reached" : "Premium Feature"}
+            <div className="text-4xl drop-shadow-lg">⏳</div>
+            <span className="font-mono font-bold text-green-400 text-lg tracking-wide drop-shadow-lg text-center" style={{ color: 'var(--accent)', filter: 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.6))' }}>
+              Decode Limit Reached
             </span>
-            <span className="text-xs text-gray-300 text-center leading-relaxed font-mono">
-              {limitReached
-                ? "You have reached your daily limit of 5 decodes. Upgrade to Premium for unlimited access."
-                : "Exclusive decoded & deobfuscated payloads for premium users. Upgrade to unlock advanced threat intelligence."
-              }
+            <span className="text-sm text-gray-300 text-center leading-relaxed font-mono px-4">
+              You made {decodeInfo?.limit || 5} decodes in an hour, wait {minutesUntilReset} minutes until your next {decodeInfo?.limit || 5} decodes
+            </span>
+            <span className="text-xs text-gray-400 text-center font-mono mt-2">
+              Upgrade to Premium for unlimited decodes
             </span>
           </div>
         </div>
@@ -113,6 +114,7 @@ export default function AnalysisPage() {
   const [error, setError] = useState("");
   const [newCommand, setNewCommand] = useState("");
   const [contentReady, setContentReady] = useState(false);
+  const [decodeInfo, setDecodeInfo] = useState(null);
   const analysisExecutedRef = useRef(false);
 
 
@@ -490,9 +492,9 @@ export default function AnalysisPage() {
             <div className="font-mono text-sm font-bold mb-3" style={{ color: 'var(--accent)' }}>
               🔓 Deobfuscated Command
             </div>
-            <ProtectedCodeBlock code={result.deobfuscated} borderColorClass="border-purple-500/20" limitReached={result.decodeLimitReached} />
+            <ProtectedCodeBlock code={result.deobfuscated} borderColorClass="border-purple-500/20" limitReached={result.decodeLimitReached} decodeInfo={decodeInfo} />
             <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
-              Format string obfuscation was removed (e.g., &#123;&quot;&#123;1&#125;&#123;0&#125;&quot; -f &apos;EX&apos;,&apos;I&apos;&#125; → &apos;IEX&apos;)
+              Format string obfuscation was removed
             </div>
           </div>
         </div>
