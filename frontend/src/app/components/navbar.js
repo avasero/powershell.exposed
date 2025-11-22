@@ -1,6 +1,6 @@
 "use client";
 import { FaUserCircle } from "react-icons/fa";
-import React from "react";
+import React, { useState, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
@@ -16,12 +16,27 @@ export default function Navbar() {
   const { openDrawer } = useDrawer();
   const { openAnalysisDrawer } = useAnalysisDrawer();
   const pathname = usePathname();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const timeoutRef = useRef(null);
   const handleLogout = async () => {
     try {
       await signOut();
     } catch (error) {
       console.error("Error logging out:", error);
     }
+  };
+
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    setIsDropdownOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => {
+      setIsDropdownOpen(false);
+    }, 300);
   };
 
   return (
@@ -52,39 +67,53 @@ export default function Navbar() {
         {!(pathname === '/' && !isAuthenticated()) && (
           <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated() && (
-              <span className="font-mono text-sm" style={{color: 'var(--foreground)'}}>
-                <FaUserCircle className="inline mb-1 mr-1 w-8 h-8" />
-              </span>
+              <div 
+                className="relative"
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
+                <FaUserCircle 
+                  className="inline mb-1 mr-1 w-8 h-8 cursor-pointer" 
+                  style={{color: 'var(--foreground)'}} 
+                />
+                
+                {/* Dropdown Menu */}
+                <div 
+                  className={`absolute right-0 mt-2 w-48 bg-black border border-green-500/30 rounded-md shadow-lg transition-all duration-200 z-50 ${
+                    isDropdownOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
+                  }`}
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                >
+                  <a
+                    href="/settings"
+                    className="block px-4 py-2 text-sm font-mono hover:bg-green-500/10 transition-colors"
+                    style={{color: 'var(--foreground)'}}
+                  >
+                    Settings
+                  </a>
+                  <a
+                    onClick={handleLogout}
+                    className="block px-4 py-2 text-sm font-mono hover:bg-green-500/10 cursor-pointer transition-colors"
+                    style={{color: 'var(--foreground)'}}
+                  >
+                    Logout
+                  </a>
+                </div>
+              </div>
             )}
-            {isAuthenticated() ? (
+            {!isAuthenticated() && (
               <>
+                <ThemedButton
+                  onClick={() => { window.location.href = '/evaluate'}}
+                  className="w-full sm:w-auto"
+                >
+                  Evaluate Command
+                </ThemedButton>
                 <a
-                  href="/settings"
+                  href="/evaluate"
                   className="font-mono text-sm underline hover:text-green-400"
                 >
-                  Settings
-                </a>
-                <a
-                  onClick={handleLogout}
-                  className="font-mono text-sm underline hover:text-green-400 cursor-pointer"
-                >
-                  Logout
-                </a>
-              </>
-            ) : (
-              <>
-              <ThemedButton
-                onClick={() => { window.location.href = '/evaluate'}}
-                className="w-full sm:w-auto"
-                
-              >
-                  Evaluate Command
-              </ThemedButton>
-                <a
-                href="/evaluate"
-                className="font-mono text-sm underline hover:text-green-400"
-                >
-                  
                 </a>
                 <Link
                   href="/indicators"

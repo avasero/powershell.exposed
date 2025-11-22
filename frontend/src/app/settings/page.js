@@ -17,16 +17,17 @@ export default function SettingsPage() {
 
   if (!isAuthenticated()) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: 'var(--background)'}}>
-        <div className="text-center">
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="text-center p-8 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm max-w-md">
+          <div className="text-4xl mb-4">🔒</div>
           <h2 className="text-xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
             Authentication Required
           </h2>
-          <p className="font-mono text-sm mb-6" style={{color: 'var(--muted-foreground)'}}>
+          <p className="font-mono text-sm mb-6 text-white/70">
             Please log in to access your settings.
           </p>
           <Link href="/login">
-            <button className="font-mono px-4 py-2 rounded border" style={{
+            <button className="font-mono px-6 py-3 rounded-lg border transition-all hover:scale-105" style={{
               backgroundColor: 'var(--accent)',
               color: 'var(--accent-foreground)',
               borderColor: 'var(--accent)'
@@ -40,108 +41,163 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{backgroundColor: 'var(--background)', color: 'var(--foreground)'}}>
+    <div className="min-h-screen bg-black">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <Link 
-              href="/" 
-              className="inline-flex items-center gap-2 font-mono text-sm hover:underline"
-              style={{color: 'var(--accent)'}}
-            >
-              ← Back to Home
-            </Link>
-          </div>
+          <Link 
+            href="/" 
+            className="inline-flex items-center gap-2 font-mono text-sm hover:underline mb-6 text-white/70 hover:text-green-400 transition-colors"
+          >
+            ← Back to Home
+          </Link>
           
-          <div className="text-center">
-            <h1 className="text-3xl font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-mono font-bold mb-3 bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent">
               Settings
             </h1>
-            <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-              Manage your account settings and preferences
+            <p className="font-mono text-sm text-white/50">
+              Manage your account and preferences
             </p>
           </div>
         </div>
 
-        {/* User Info Section */}
-        <div className="mb-8">
-          <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
-            <h2 className="text-xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
-              Account Information
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block font-mono text-sm font-medium mb-1" style={{color: 'var(--foreground)'}}>
-                  Email:
-                </label>
-                <div className="font-mono text-sm p-2 rounded border" style={{
-                  backgroundColor: 'var(--muted)',
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--foreground)'
-                }}>
-                  {user?.email || 'Not available'}
-                </div>
+        {/* Account Overview Card */}
+        <div className="mb-6 p-6 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm hover:bg-white/10 hover:border-green-500/50 transition-all duration-200">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-2xl font-bold text-black">
+              {user?.email?.[0].toUpperCase()}
+            </div>
+            <div>
+              <h2 className="text-xl font-mono font-bold text-white">
+                {user?.user_metadata?.username || 'User'}
+              </h2>
+              <p className="font-mono text-sm text-white/50">
+                {user?.email}
+              </p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <div className="p-4 rounded-lg border border-white/10 bg-black/30">
+              <div className="text-xs font-mono uppercase tracking-wider text-white/40 mb-1">
+                Account Created
+              </div>
+              <div className="font-mono text-sm text-white/90">
+                {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
+              </div>
+            </div>
+            
+            <div className="p-4 rounded-lg border border-white/10 bg-black/30">
+              <div className="text-xs font-mono uppercase tracking-wider text-white/40 mb-1">
+                Last Login
+              </div>
+              <div className="font-mono text-sm text-white/90">
+                {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : 'Unknown'}
+              </div>
+            </div>
+            
+            <div className="p-4 rounded-lg border border-white/10 bg-black/30">
+              <div className="text-xs font-mono uppercase tracking-wider text-white/40 mb-1">
+                Status
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span className="font-mono text-sm text-green-400">Active</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* API Key Management Section */}
-        <div className="mb-8">
+        {/* API Key Management */}
+        <div className="mb-6">
           <ApiKeyManager />
         </div>
 
-        {/* Additional Settings Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-  
-    
+        {/* Features Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="group relative p-6 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-green-500/50 transition-all duration-200 cursor-default overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-green-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            
+            <h3 className="font-mono font-semibold text-white mb-2">
+              Unlimited Analyses
+            </h3>
+            <p className="font-mono text-xs text-white/50">
+              Run as many evaluations as you need
+            </p>
+          </div>
 
-          {/* Security Section */}
-          <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
-            <h2 className="text-xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
-              Additional Information
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block font-mono text-sm font-medium mb-2" style={{color: 'var(--foreground)'}}>
-                  Account Created:
-                </label>
-                <div className="font-mono text-sm p-2 rounded border" style={{
-                  backgroundColor: 'var(--muted)',
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--foreground)'
-                }}>
-                  {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
-                </div>
-              </div>
-              <div>
-                <label className="block font-mono text-sm font-medium mb-2" style={{color: 'var(--foreground)'}}>
-                  Last Login:
-                </label>
-                <div className="font-mono text-sm p-2 rounded border" style={{
-                  backgroundColor: 'var(--muted)',
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--foreground)'
-                }}>
-                  {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : 'Unknown'}
-                </div>
-              </div>
-            </div>
+          <div className="group relative p-6 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-green-500/50 transition-all duration-200 cursor-default overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-green-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+           
+            <h3 className="font-mono font-semibold text-white mb-2">
+              API Access
+            </h3>
+            <p className="font-mono text-xs text-white/50">
+              Generate and manage API keys
+            </p>
+          </div>
+
+          <div className="group relative p-6 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-green-500/50 transition-all duration-200 cursor-default overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-green-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          
+            <h3 className="font-mono font-semibold text-white mb-2">
+              History Saved
+            </h3>
+            <p className="font-mono text-xs text-white/50">
+              All analyses automatically stored
+            </p>
           </div>
         </div>
 
-  
-         
+        {/* Quick Actions */}
+        <div className="p-6 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm mb-6">
+          <h3 className="font-mono font-bold text-lg mb-4 text-white">
+            Quick Actions
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Link 
+              href="/history"
+              className="p-4 rounded-lg border border-white/10 bg-black/30 hover:bg-white/10 hover:border-green-500/50 transition-all duration-200 group"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-mono text-sm font-semibold text-white mb-1">
+                    View History
+                  </div>
+                  <div className="font-mono text-xs text-white/50">
+                    Access all your analyses
+                  </div>
+                </div>
+                <span className="text-white/30 group-hover:text-green-400 transition-colors">→</span>
+              </div>
+            </Link>
+
+            <Link 
+              href="/evaluate"
+              className="p-4 rounded-lg border border-white/10 bg-black/30 hover:bg-white/10 hover:border-green-500/50 transition-all duration-200 group"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-mono text-sm font-semibold text-white mb-1">
+                    New Analysis
+                  </div>
+                  <div className="font-mono text-xs text-white/50">
+                    Evaluate a command
+                  </div>
+                </div>
+                <span className="text-white/30 group-hover:text-green-400 transition-colors">→</span>
+              </div>
+            </Link>
+          </div>
+        </div>
 
         {/* Footer Navigation */}
-        <div className="mt-12 text-center">
+        <div className="text-center">
           <Link 
             href="/" 
-            className="inline-flex items-center gap-2 font-mono text-sm hover:underline"
-            style={{color: 'var(--accent)'}}
+            className="inline-flex items-center gap-2 font-mono text-sm text-white/50 hover:text-green-400 transition-colors"
           >
             ← Return to PowerShell.exposed
           </Link>
