@@ -550,7 +550,6 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     
   
    
-    
     return {
         "detected_signatures": detected_signatures,
         "total_score": total_score,
@@ -594,18 +593,24 @@ async def save_analysis_to_db(
         
         ip_country = country if country and country != 'Unknown' else None
         
-       
+        # Extract decoded content
         deobfuscated_cmd = analysis_result.get("deobfuscated_command")
         decoded_cmd = analysis_result.get("decoded_command")
         double_decoded_cmd = analysis_result.get("double_decoded_command")
         
-       
+        # ✅ NEW: Determine if analysis has actual decoded content
+        has_decoded_content = bool(
+            decoded_cmd or double_decoded_cmd or deobfuscated_cmd
+        )
+        
+        print(f"[SAVE_ANALYSIS] has_decoded_content: {has_decoded_content} | decoded: {bool(decoded_cmd)} | double: {bool(double_decoded_cmd)} | deobf: {bool(deobfuscated_cmd)}")
         
         insert_data = {
             "command": command,
             "decoded_command": decoded_cmd,
             "double_decoded_command": double_decoded_cmd,
-            "obfuscated_command": deobfuscated_cmd,  
+            "obfuscated_command": deobfuscated_cmd,
+            "has_decoded_content": has_decoded_content,  # ✅ NEW
             "risk_score": round(analysis_result["total_score"], 1),
             "severity": analysis_result["severity"],
             "signatures_detected": analysis_result["detected_signatures"],
