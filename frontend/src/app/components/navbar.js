@@ -49,57 +49,59 @@ export default function Navbar() {
         </div>
         
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-4">
-          {isAuthenticated() && (
-            <span className="font-mono text-sm" style={{color: 'var(--foreground)'}}>
-              <FaUserCircle className="inline mb-1 mr-1 w-8 h-8" />
-            </span>
-          )}
-          {isAuthenticated() ? (
-            <>
-              <a
-                href="/settings"
-                className="font-mono text-sm underline hover:text-green-400"
-              >
-                Settings
-              </a>
-              <a
-                onClick={handleLogout}
-                className="font-mono text-sm underline hover:text-green-400 cursor-pointer"
-              >
-                Logout
-              </a>
-            </>
-          ) : (
-            <>
-            <ThemedButton
-              onClick={() => { window.location.href = '/evaluate'}}
-              className="w-full sm:w-auto"
-              
-            >
-                Evaluate Command
-            </ThemedButton>
-              <a
-              href="/evaluate"
-              className="font-mono text-sm underline hover:text-green-400"
-              >
+        {!(pathname === '/' && !isAuthenticated()) && (
+          <div className="hidden md:flex items-center space-x-4">
+            {isAuthenticated() && (
+              <span className="font-mono text-sm" style={{color: 'var(--foreground)'}}>
+                <FaUserCircle className="inline mb-1 mr-1 w-8 h-8" />
+              </span>
+            )}
+            {isAuthenticated() ? (
+              <>
+                <a
+                  href="/settings"
+                  className="font-mono text-sm underline hover:text-green-400"
+                >
+                  Settings
+                </a>
+                <a
+                  onClick={handleLogout}
+                  className="font-mono text-sm underline hover:text-green-400 cursor-pointer"
+                >
+                  Logout
+                </a>
+              </>
+            ) : (
+              <>
+              <ThemedButton
+                onClick={() => { window.location.href = '/evaluate'}}
+                className="w-full sm:w-auto"
                 
-              </a>
-              <Link
-                href="/indicators"
-                className="font-mono text-sm underline hover:text-green-400"
               >
-                Indicators
-              </Link>
-              <a
-                href="/login"
+                  Evaluate Command
+              </ThemedButton>
+                <a
+                href="/evaluate"
                 className="font-mono text-sm underline hover:text-green-400"
-              >
-                Login
-              </a>
-            </>
-          )}
-        </div>
+                >
+                  
+                </a>
+                <Link
+                  href="/indicators"
+                  className="font-mono text-sm underline hover:text-green-400"
+                >
+                  Indicators
+                </Link>
+                <a
+                  href="/login"
+                  className="font-mono text-sm underline hover:text-green-400"
+                >
+                  Login
+                </a>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Mobile Navigation */}
         <div className="md:hidden flex items-center space-x-2">
