@@ -1,4 +1,5 @@
 "use client";
+import { FaUserCircle } from "react-icons/fa";
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -51,12 +52,9 @@ export default function Navbar() {
         <div className="hidden md:flex items-center space-x-4">
           {isAuthenticated() && (
             <span className="font-mono text-sm" style={{color: 'var(--foreground)'}}>
-              {user?.user_metadata?.username || user?.email}
+              <FaUserCircle className="inline mb-1 mr-1 w-8 h-8" />
             </span>
           )}
-          
-          
-          
           {isAuthenticated() ? (
             <>
               <a
