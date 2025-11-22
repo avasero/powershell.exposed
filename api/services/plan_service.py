@@ -61,7 +61,7 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
         }
 
 
-async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[str] = None) -> dict:
+async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[str] = None) -> bool:
     """
     Check if user has permission to decode commands
     
@@ -70,8 +70,12 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
         session_id: Session ID for anonymous users
         
     Returns:
-        Dictionary with decode permission and usage details
+        True if user can decode commands, False otherwise
     """
+    # ✅ FIX: Anonymous and FREE users get rate-limited decoding (5/hour per session)
+    if not user_id:
+        print(f"[DECODE_CHECK] Anonymous user (session: {session_id[:8] if session_id else 'NONE'}) - checking DB rate limit...")
+
     # For authenticated users, fetch their plan
     if user_id:
         plan_features = await get_user_plan_features(user_id)
@@ -81,71 +85,46 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
     
     # Premium/Enterprise users have unlimited decoding
     if plan_name in ["premium", "enterprise"]:
-        return {
-            "can_decode": True,
-            "current_usage": 0,
-            "limit": float('inf'),
-            "remaining": float('inf'),
-            "seconds_until_reset": None
-        }
+        print(f"[DECODE_CHECK] User: {user_id[:8]}... | Plan: {plan_name} | Unlimited decoding")
+        return True
     
-    # Free users get rate-limited decoding (5/hour)
+    # Free users get rate-limited decoding (5/hour per user)
+    # DB-BACKED RATE LIMITING (Robust against restarts/workers)
     from datetime import datetime, timedelta
     
+    # 1. Define the window (last 1 hour)
     window_start = datetime.utcnow() - timedelta(hours=1)
+    
+    # 2. Query the DB for usage count
     supabase = get_supabase_client()
     
-    # ✅ FIX: Query for analyses with ANY decoded content
+    # ✅ FIX: Check ANY decoded content column using OR filter
     query = supabase.table('powershell_analyses')\
-        .select('id, created_at', count='exact')\
+        .select('id', count='exact')\
         .gte('created_at', window_start.isoformat())\
-        .or_('decoded_command.not.is.null,double_decoded_command.not.is.null,obfuscated_command.not.is.null')
+        .or_('decoded_command.neq.null,double_decoded_command.neq.null,obfuscated_command.neq.null')
         
     if user_id:
         query = query.eq('user_id', user_id)
         target_id = f"user:{user_id}"
     elif session_id:
+        # ✅ FIX: For anonymous, explicitly check session_id AND user_id IS NULL
         query = query.eq('session_id', session_id).is_('user_id', 'null')
         target_id = f"session:{session_id}"
     else:
+        # Should not happen, but block if no ID
         print("[DECODE_CHECK] No user_id or session_id provided, blocking decode.")
-        return {
-            "can_decode": False,
-            "current_usage": 0,
-            "limit": 5,
-            "remaining": 0,
-            "seconds_until_reset": 0
-        }
+        return False
         
     result = query.execute()
-    current_usage = result.count or 0
-    limit = 5
+    current_usage = result.count
+    limit = 5 # Hardcoded limit for free/anonymous
     
     can_decode = current_usage < limit
     
-    # ✅ FIX: Calculate seconds until reset properly
-    seconds_until_reset = None
-    if not can_decode and result.data and len(result.data) > 0:
-        # Find the oldest decode in the window
-        oldest_created_at = min(analysis['created_at'] for analysis in result.data)
-        # Parse the timestamp and add 1 hour
-        oldest_time = datetime.fromisoformat(oldest_created_at.replace('Z', '+00:00'))
-        reset_time = oldest_time + timedelta(hours=1)
-        current_time = datetime.now(reset_time.tzinfo)  # ✅ FIX: Use datetime.now() with timezone
-        seconds_until_reset = max(0, int((reset_time - current_time).total_seconds()))
-    elif not can_decode:
-        # ✅ FIX: If limit reached but no data (edge case), set to 1 hour
-        seconds_until_reset = 3600
+    print(f"[DECODE_CHECK] {target_id} | Plan: {plan_name} | Can decode: {can_decode} | Used (DB): {current_usage}/{limit}")
     
-    print(f"[DECODE_CHECK] {target_id} | Plan: {plan_name} | Can decode: {can_decode} | Used (DB): {current_usage}/{limit} | Reset in: {seconds_until_reset}s")
-    
-    return {
-        "can_decode": can_decode,
-        "current_usage": current_usage,
-        "limit": limit,
-        "remaining": max(0, limit - current_usage),
-        "seconds_until_reset": seconds_until_reset
-    }
+    return can_decode
 
 
 async def get_plan_by_name(plan_name: str) -> Optional[Dict[str, Any]]:
