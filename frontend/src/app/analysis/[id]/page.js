@@ -71,7 +71,7 @@ IEX([System.Text.Encoding]::Unicode.GetString($payload))
           <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent rounded-lg"></div>
 
           <div className="relative rounded-xl p-6 flex flex-col items-center gap-3 shadow-2xl">
-            <div className="text-4xl drop-shadow-lg">⏳</div>
+            
             <span className="font-mono font-bold text-green-400 text-lg tracking-wide drop-shadow-lg text-center" style={{ color: 'var(--accent)', filter: 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.6))' }}>
               Decode Limit Reached
             </span>
