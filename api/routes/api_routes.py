@@ -124,12 +124,14 @@ async def analyze_command_endpoint(
             rate_limit_info = check_rate_limit(session_id, plan_name)
             
             if not rate_limit_info["within_limit"]:
+                seconds_until_reset = rate_limit_info.get('seconds_until_reset', 0)
+                minutes_until_reset = seconds_until_reset // 60
                 return JSONResponse(
                     {
                         "error": "Rate limit exceeded",
                         "rate_limit_info": rate_limit_info,
                         "session_id": session_id,
-                        "message": f"You have made {rate_limit_info['current_count']} searches in this session. Please wait {rate_limit_info.get('seconds_until_reset', 0)} seconds before trying again."
+                        "message": f"You have made {rate_limit_info['current_count']} searches in this session. Please wait {minutes_until_reset} minutes before trying again."
                     },
                     status_code=429
                 )

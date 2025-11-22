@@ -394,7 +394,7 @@ export default function AnalysisPage() {
           <div className="p-4">
             <div className="text-center mb-4">
               <div className="font-mono text-sm mb-2" style={{ color: 'var(--muted-foreground)' }}>
-                <strong>Notice:</strong> You have made <span style={{ color: 'var(--accent)' }}>{rateLimitInfo.current_count}</span> of <span style={{ color: 'var(--accent)' }}>{rateLimitInfo.limit}</span> allowed searches in {rateLimitInfo.window_seconds} seconds.
+                <strong>Notice:</strong> You have made <span style={{ color: 'var(--accent)' }}>{rateLimitInfo.current_count}</span> of <span style={{ color: 'var(--accent)' }}>{rateLimitInfo.limit}</span> allowed searches in 1 hour.
               </div>
             </div>
 
@@ -413,13 +413,7 @@ export default function AnalysisPage() {
                       <div className="text-4xl mb-3">⏰</div>
 
                       <div className="font-mono font-bold text-xl mb-3" style={{ color: 'var(--accent)' }}>
-                        Wait for reset
-                      </div>
-
-                      <div className="font-mono text-3xl font-bold mb-4 px-4 py-2 rounded-lg border bg-black/80 border-green-500/30" style={{
-                        color: 'var(--accent)'
-                      }}>
-                        {formatTime}
+                        Wait for reset: {Math.ceil(timeLeft / 60)} minutes
                       </div>
 
                       <div className="font-mono text-sm max-w-xs mx-auto" style={{ color: 'var(--muted-foreground)' }}>
@@ -431,7 +425,7 @@ export default function AnalysisPage() {
                           className="h-2 rounded-full transition-all duration-1000"
                           style={{
                             backgroundColor: 'var(--accent)',
-                            width: `${Math.max(0, (timeLeft / 60) * 100)}%`
+                            width: `${Math.max(0, (timeLeft / 3600) * 100)}%`  // ✅ FIX: Use 3600 (1 hour) instead of 60
                           }}
                         ></div>
                       </div>
