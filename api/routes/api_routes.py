@@ -597,6 +597,16 @@ async def get_analysis_by_id_endpoint(
                 double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
             if deobfuscated_cmd:
                 deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
+            
+            # ✅ FIX: Mask matched_text in signatures to prevent leak
+            signatures_detected = analysis_data.get("signatures_detected", [])
+            if signatures_detected:
+                for signature in signatures_detected:
+                    matches = signature.get("matches_details", [])
+                    if matches:
+                        for match in matches:
+                            if "matched_text" in match:
+                                match["matched_text"] = "[PREMIUM_PROTECTED_CONTENT]"
 
         safe_analysis = {
             "id": analysis_data.get("id"),
