@@ -76,16 +76,22 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
     if user_id:
         plan_features = await get_user_plan_features(user_id)
         plan_name = plan_features.get("plan_name", "free")
+        can_decode_unlimited = plan_features.get("can_decode_commands", False)
     else:
+        # For anonymous users, check the 'free' plan configuration from DB
         plan_name = "free"
+        free_plan = await get_plan_by_name("free")
+        if free_plan:
+            can_decode_unlimited = free_plan.get("can_decode_commands", False)
+        else:
+            can_decode_unlimited = False
     
-    # Premium/Enterprise users have unlimited decoding
-    if plan_name in ["premium", "enterprise"]:
+    if can_decode_unlimited or plan_name in ["premium", "enterprise"]:
         return {
             "can_decode": True,
             "current_usage": 0,
-            "limit": float('inf'),
-            "remaining": float('inf'),
+            "limit": None,
+            "remaining": None,
             "seconds_until_reset": None
         }
     
