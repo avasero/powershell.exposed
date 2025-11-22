@@ -29,7 +29,6 @@ export default function ApiKeyRevealModal({ apiKey, onClose, onCopy }) {
         }}
       >
         <div className="text-center mb-4">
-          <div className="text-4xl mb-2">🔑</div>
           <h3 className="text-lg font-mono font-bold" style={{color: 'var(--accent)'}}>
             API Key Created Successfully!
           </h3>
@@ -42,7 +41,7 @@ export default function ApiKeyRevealModal({ apiKey, onClose, onCopy }) {
             borderWidth: '2px'
           }}>
             <div className="flex items-center space-x-2 mb-2">
-              <span className="text-lg">⚠️</span>
+             
               <span className="font-mono font-bold text-sm" style={{color: 'var(--destructive)'}}>
                 IMPORTANT - READ CAREFULLY
               </span>
@@ -78,7 +77,7 @@ export default function ApiKeyRevealModal({ apiKey, onClose, onCopy }) {
                   color: copied ? 'var(--success-foreground)' : 'var(--accent-foreground)'
                 }}
               >
-                {copied ? '✅ Copied!' : '📋 Copy API Key'}
+                {copied ? ' Copied!' : 'Copy API Key'}
               </ThemedButton>
             </div>
           </div>

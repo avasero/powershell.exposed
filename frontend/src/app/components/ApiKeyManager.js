@@ -158,7 +158,7 @@ export default function ApiKeyManager() {
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-xl font-mono font-bold" style={{color: 'var(--accent)'}}>
-          🔑 API Key Management
+           API Key Management
         </h2>
         <p className="mt-2 font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
           Use your API Key to access the PowerShell.exposed API from external tools like Postman
@@ -223,7 +223,7 @@ export default function ApiKeyManager() {
                     variant="outline"
                     disabled={loading}
                   >
-                    🔄 Regenerate
+                     Regenerate
                   </ThemedButton>
                   <ThemedButton
                     onClick={revokeApiKey}
@@ -234,7 +234,7 @@ export default function ApiKeyManager() {
                       color: 'var(--destructive)'
                     }}
                   >
-                    🗑️ Revoke
+                     Revoke
                   </ThemedButton>
                 </div>
               </div>
@@ -252,7 +252,7 @@ export default function ApiKeyManager() {
                   disabled={loading}
                   className="w-full"
                 >
-                  🔑 Create API Key
+                   Create API Key
                 </ThemedButton>
               </div>
             )}
@@ -263,7 +263,7 @@ export default function ApiKeyManager() {
       {/* Usage Instructions */}
       <div className="p-4 rounded-lg border" style={{backgroundColor: 'var(--muted)', borderColor: 'var(--border-color)'}}>
         <h3 className="font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
-          📖 How to Use Your API Key
+          How to Use Your API Key
         </h3>
         <div className="space-y-2 font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
           <p><strong>1. Copy your API Key from the modal when creating</strong></p>

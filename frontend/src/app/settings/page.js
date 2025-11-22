@@ -19,7 +19,6 @@ export default function SettingsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: 'var(--background)'}}>
         <div className="text-center">
-          <div className="text-4xl mb-4">🔒</div>
           <h2 className="text-xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
             Authentication Required
           </h2>
@@ -75,18 +74,6 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block font-mono text-sm font-medium mb-1" style={{color: 'var(--foreground)'}}>
-                  Username:
-                </label>
-                <div className="font-mono text-sm p-2 rounded border" style={{
-                  backgroundColor: 'var(--muted)',
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--foreground)'
-                }}>
-                  {user?.user_metadata?.username || 'Not set'}
-                </div>
-              </div>
-              <div>
-                <label className="block font-mono text-sm font-medium mb-1" style={{color: 'var(--foreground)'}}>
                   Email:
                 </label>
                 <div className="font-mono text-sm p-2 rounded border" style={{
@@ -109,43 +96,13 @@ export default function SettingsPage() {
         {/* Additional Settings Sections */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {/* Preferences Section */}
-          <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
-            <h2 className="text-xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
-              Preferences
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block font-mono text-sm font-medium mb-2" style={{color: 'var(--foreground)'}}>
-                  Theme:
-                </label>
-                <div className="font-mono text-sm p-2 rounded border" style={{
-                  backgroundColor: 'var(--muted)',
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--muted-foreground)'
-                }}>
-                  Auto (follows system preference)
-                </div>
-              </div>
-              <div>
-                <label className="block font-mono text-sm font-medium mb-2" style={{color: 'var(--foreground)'}}>
-                  Analysis History:
-                </label>
-                <div className="font-mono text-sm p-2 rounded border" style={{
-                  backgroundColor: 'var(--muted)',
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--muted-foreground)'
-                }}>
-                  Saved automatically when logged in
-                </div>
-              </div>
-            </div>
-          </div>
+  
+    
 
           {/* Security Section */}
           <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
             <h2 className="text-xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
-              Security
+              Additional Information
             </h2>
             <div className="space-y-4">
               <div>
@@ -176,54 +133,8 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Usage Information */}
-        <div className="mt-8">
-          <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
-            <h2 className="text-xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
-              Usage Information
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-4 rounded border" style={{
-                backgroundColor: 'var(--muted)',
-                borderColor: 'var(--border-color)'
-              }}>
-                <div className="text-2xl mb-2" style={{color: 'var(--accent)'}}>∞</div>
-                <div className="font-mono text-sm" style={{color: 'var(--foreground)'}}>
-                  Analyses Remaining
-                </div>
-                <div className="font-mono text-xs mt-1" style={{color: 'var(--muted-foreground)'}}>
-                  Unlimited for registered users
-                </div>
-              </div>
-              
-              <div className="text-center p-4 rounded border" style={{
-                backgroundColor: 'var(--muted)',
-                borderColor: 'var(--border-color)'
-              }}>
-                <div className="text-2xl mb-2" style={{color: 'var(--accent)'}}>◆</div>
-                <div className="font-mono text-sm" style={{color: 'var(--foreground)'}}>
-                  API Access
-                </div>
-                <div className="font-mono text-xs mt-1" style={{color: 'var(--muted-foreground)'}}>
-                  Manage your API keys above
-                </div>
-              </div>
-              
-              <div className="text-center p-4 rounded border" style={{
-                backgroundColor: 'var(--muted)',
-                borderColor: 'var(--border-color)'
-              }}>
-                <div className="text-2xl mb-2" style={{color: 'var(--accent)'}}>✓</div>
-                <div className="font-mono text-sm" style={{color: 'var(--foreground)'}}>
-                  History Saved
-                </div>
-                <div className="font-mono text-xs mt-1" style={{color: 'var(--muted-foreground)'}}>
-                  All your analyses are stored
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+  
+         
 
         {/* Footer Navigation */}
         <div className="mt-12 text-center">
