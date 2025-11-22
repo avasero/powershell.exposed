@@ -51,12 +51,12 @@ const ProtectedCodeBlock = ({ code, borderColorClass = "border-gray-500/20", lim
 
   if (isProtected) {
     console.log("🚫 [ProtectedCodeBlock] Showing LOCK SCREEN");
-    
+
     // ✅ Calculate minutes until reset
-    const minutesUntilReset = decodeInfo?.seconds_until_reset 
-      ? Math.ceil(decodeInfo.seconds_until_reset / 60) 
+    const minutesUntilReset = decodeInfo?.seconds_until_reset
+      ? Math.ceil(decodeInfo.seconds_until_reset / 60)
       : 0;
-    
+
     return (
       <div className={`bg-black rounded-lg p-3 border ${borderColorClass} relative overflow-hidden min-h-[140px]`}>
         <div className="absolute inset-0 blur-md select-none opacity-40 pointer-events-none font-mono text-xs leading-relaxed z-0" aria-hidden="true">
@@ -71,7 +71,7 @@ IEX([System.Text.Encoding]::Unicode.GetString($payload))
           <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent rounded-lg"></div>
 
           <div className="relative rounded-xl p-6 flex flex-col items-center gap-3 shadow-2xl">
-            
+
             <span className="font-mono font-bold text-green-400 text-lg tracking-wide drop-shadow-lg text-center" style={{ color: 'var(--accent)', filter: 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.6))' }}>
               Decode Limit Reached
             </span>
@@ -200,6 +200,7 @@ export default function AnalysisDetailsPage() {
       });
 
       setResult(processedResult);
+      setDecodeInfo(analysisData.decode_info);
 
       // Smooth transition delay
       setTimeout(() => {
@@ -346,6 +347,7 @@ export default function AnalysisDetailsPage() {
         };
 
         setResult(analysisResult);
+        setDecodeInfo(data.decode_info);
         setCmd(command);
       } else {
         throw new Error(response.error || 'Analysis failed');

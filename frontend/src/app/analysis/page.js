@@ -50,11 +50,11 @@ const ProtectedCodeBlock = ({ code, borderColorClass = "border-gray-500/20", lim
 
   if (isProtected) {
     console.log("🚫 [ProtectedCodeBlock] Showing LOCK SCREEN");
-    
-    const minutesUntilReset = decodeInfo?.seconds_until_reset 
-      ? Math.ceil(decodeInfo.seconds_until_reset / 60) 
+
+    const minutesUntilReset = decodeInfo?.seconds_until_reset
+      ? Math.ceil(decodeInfo.seconds_until_reset / 60)
       : 0;
-    
+
     return (
       <div className={`bg-black rounded-lg p-3 border ${borderColorClass} relative overflow-hidden min-h-[140px]`}>
         <div className="absolute inset-0 blur-md select-none opacity-40 pointer-events-none font-mono text-xs leading-relaxed z-0" aria-hidden="true">
@@ -239,6 +239,7 @@ export default function AnalysisPage() {
           };
 
           setResult(analysisResult);
+          setDecodeInfo(response.decode_info);
 
           // Smooth transition delay
           setTimeout(() => {
