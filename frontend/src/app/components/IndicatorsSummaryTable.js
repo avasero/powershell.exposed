@@ -80,11 +80,10 @@ export default function IndicatorsSummaryTable({ signatures }) {
                       {(sig.tactics || []).slice(0, 2).map((tactic, i) => (
                         <span 
                           key={i}
-                          className="px-1.5 py-0.5 rounded text-xs border"
+                          className="px-1.5 py-0.5 rounded text-xs"
                           style={{
-                            backgroundColor: 'var(--card-bg)',
-                            borderColor: 'var(--border-color)',
-                            color: 'var(--muted-foreground)'
+                            backgroundColor: '#FFA500',
+                            color: 'white'
                           }}
                           title={tactic}
                         >
@@ -106,11 +105,10 @@ export default function IndicatorsSummaryTable({ signatures }) {
                       {(sig.techniques || []).slice(0, 3).map((tech, i) => (
                         <span 
                           key={i}
-                          className="px-1.5 py-0.5 rounded text-xs font-mono border"
+                          className="px-1.5 py-0.5 rounded text-xs font-mono"
                           style={{
-                            backgroundColor: 'var(--card-bg)',
-                            borderColor: 'var(--border-color)',
-                            color: 'var(--accent)'
+                            backgroundColor: '#1E9CFD',
+                            color: 'white'
                           }}
                         >
                           {tech}

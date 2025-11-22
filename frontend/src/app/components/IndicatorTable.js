@@ -81,7 +81,7 @@ export default function IndicatorTable({ signatures = [] }) {
                       <div className="flex flex-wrap gap-1">
                         {sig.tactic.map((tactic, tacticIdx) => (
                           <span key={tacticIdx} className="font-mono text-xs px-2 py-1 rounded" 
-                                style={{backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'rgb(59, 130, 246)', border: '1px solid rgba(59, 130, 246, 0.3)'}}>
+                                style={{backgroundColor: '#FFA500', color: 'white'}}>
                             {tactic}
                           </span>
                         ))}
@@ -95,7 +95,7 @@ export default function IndicatorTable({ signatures = [] }) {
                       <div className="flex flex-wrap gap-1">
                         {sig.technique.map((technique, techIdx) => (
                           <span key={techIdx} className="font-mono text-xs px-2 py-1 rounded" 
-                                style={{backgroundColor: 'rgba(168, 85, 247, 0.1)', color: 'rgb(168, 85, 247)', border: '1px solid rgba(168, 85, 247, 0.3)'}}>
+                                style={{backgroundColor: '#1E9CFD', color: 'white'}}>
                             {technique}
                           </span>
                         ))}

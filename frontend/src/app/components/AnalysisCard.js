@@ -361,12 +361,12 @@ export default function AnalysisCard({
                 <div className="flex flex-wrap gap-1">
                   {Array.isArray(tactic) ? tactic.map((t, i) => (
                     <span key={i} className="text-xs px-2 py-1 rounded font-mono"
-                      style={{backgroundColor: 'var(--accent)', color: 'black'}}>
+                          style={{backgroundColor: '#FFA500', color: 'white'}}>
                       {t}
                     </span>
                   )) : (
                     <span className="text-xs px-2 py-1 rounded font-mono"
-                      style={{backgroundColor: 'var(--accent)', color: 'black'}}>
+                          style={{backgroundColor: '#FFA500', color: 'white'}}>
                       {tactic}
                     </span>
                   )}
@@ -382,12 +382,12 @@ export default function AnalysisCard({
                 <div className="flex flex-wrap gap-1">
                   {Array.isArray(technique) ? technique.map((t, i) => (
                     <span key={i} className="text-xs px-2 py-1 rounded font-mono"
-                      style={{backgroundColor: 'var(--secondary)', color: 'white'}}>
+                          style={{backgroundColor: '#1E9CFD', color: 'white'}}>
                       {t}
                     </span>
                   )) : (
                     <span className="text-xs px-2 py-1 rounded font-mono"
-                      style={{backgroundColor: 'var(--secondary)', color: 'white'}}>
+                          style={{backgroundColor: '#1E9CFD', color: 'white'}}>
                       {technique}
                     </span>
                   )}
