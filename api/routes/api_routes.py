@@ -117,11 +117,19 @@ async def analyze_command_endpoint(
         if session_id:
             # ✅ Fetch user plan for rate limiting
             plan_name = "free"
+            request_limit = 10
+            
             if user_id:
                 plan_features = await get_user_plan_features(user_id)
                 plan_name = plan_features.get("plan_name", "free")
+                request_limit = plan_features.get("request_limit_per_hour", 10)
+            else:
+                # For anonymous, fetch free plan limits
+                free_plan = await get_plan_by_name("free")
+                if free_plan:
+                    request_limit = free_plan.get("request_limit_per_hour", 10)
             
-            rate_limit_info = check_rate_limit(session_id, plan_name)
+            rate_limit_info = check_rate_limit(session_id, plan_name, limit_per_hour=request_limit)
             
             if not rate_limit_info["within_limit"]:
                 seconds_until_reset = rate_limit_info.get('seconds_until_reset', 0)
@@ -240,7 +248,8 @@ async def analyze_command_endpoint(
                     "limit": decode_info["limit"],
                     "remaining": decode_info["remaining"],
                     "seconds_until_reset": decode_info["seconds_until_reset"]
-                }
+                },
+                "rate_limit_info": rate_limit_info  # ✅ NEW: Include request rate limit info
             })
         
         # ✅ Se não houver cache, continuar com análise normal
@@ -354,7 +363,8 @@ async def analyze_command_endpoint(
                 "limit": decode_info["limit"],
                 "remaining": decode_info["remaining"],
                 "seconds_until_reset": decode_info["seconds_until_reset"]
-            }
+            },
+            "rate_limit_info": rate_limit_info  # ✅ NEW: Include request rate limit info
         })
         
     except Exception as error:

@@ -22,7 +22,7 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
         
         # Get user profile with plan information
         response = supabase.table('profiles')\
-            .select('plan_id, plans(name, can_decode_commands)')\
+            .select('plan_id, plans(name, can_decode_commands, request_limit_per_hour, decode_limit_per_hour)')\
             .eq('id', user_id)\
             .single()\
             .execute()
@@ -34,7 +34,9 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
             # Return default free plan features
             return {
                 "plan_name": "free",
-                "can_decode_commands": False
+                "can_decode_commands": False,
+                "request_limit_per_hour": 10,
+                "decode_limit_per_hour": 5
             }
         
         plan_data = response.data.get('plans', {})
@@ -42,7 +44,9 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
         
         result = {
             "plan_name": plan_data.get('name', 'free'),
-            "can_decode_commands": plan_data.get('can_decode_commands', False)
+            "can_decode_commands": plan_data.get('can_decode_commands', False),
+            "request_limit_per_hour": plan_data.get('request_limit_per_hour', 10),
+            "decode_limit_per_hour": plan_data.get('decode_limit_per_hour', 5)
         }
         
         print(f"✅ [PLAN_SERVICE] Final result: {result}")
@@ -57,7 +61,9 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
         # Return free plan as fallback
         return {
             "plan_name": "free",
-            "can_decode_commands": False
+            "can_decode_commands": False,
+            "request_limit_per_hour": 10,
+            "decode_limit_per_hour": 5
         }
 
 
@@ -76,17 +82,26 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
     if user_id:
         plan_features = await get_user_plan_features(user_id)
         plan_name = plan_features.get("plan_name", "free")
-        can_decode_unlimited = plan_features.get("can_decode_commands", False)
+        can_decode_unlimited_flag = plan_features.get("can_decode_commands", False)
+        decode_limit = plan_features.get("decode_limit_per_hour", 5)
     else:
         # For anonymous users, check the 'free' plan configuration from DB
         plan_name = "free"
         free_plan = await get_plan_by_name("free")
         if free_plan:
-            can_decode_unlimited = free_plan.get("can_decode_commands", False)
+            can_decode_unlimited_flag = free_plan.get("can_decode_commands", False)
+            decode_limit = free_plan.get("decode_limit_per_hour", 5)
         else:
-            can_decode_unlimited = False
+            can_decode_unlimited_flag = False
+            decode_limit = 5
     
-    if can_decode_unlimited or plan_name in ["premium", "enterprise"]:
+    # If decode_limit is None, it means unlimited
+    is_unlimited = decode_limit is None
+    
+    # Legacy check: if can_decode_commands is True AND decode_limit is None, it's unlimited.
+    # If can_decode_commands is True but decode_limit is set, we respect the limit.
+    # If plan is premium/enterprise, we force unlimited if DB config is missing (legacy fallback)
+    if is_unlimited or (plan_name in ["premium", "enterprise"] and decode_limit is None):
         return {
             "can_decode": True,
             "current_usage": 0,
@@ -95,13 +110,16 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
             "seconds_until_reset": None
         }
     
-    # Free users get rate-limited decoding (5/hour)
+    # Use the dynamic limit
+    limit = decode_limit if decode_limit is not None else 5
+    
+    # Calculate current usage
     from datetime import datetime, timedelta
     
     window_start = datetime.utcnow() - timedelta(hours=1)
     supabase = get_supabase_client()
     
-    # ✅ Query for analyses with decoded content (has_decoded_content = true)
+    # Query for analyses with decoded content (has_decoded_content = true)
     query = supabase.table('powershell_analyses')\
         .select('id, created_at', count='exact')\
         .gte('created_at', window_start.isoformat())\
@@ -118,14 +136,13 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
         return {
             "can_decode": False,
             "current_usage": 0,
-            "limit": 5,
+            "limit": limit,
             "remaining": 0,
             "seconds_until_reset": 0
         }
         
     result = query.execute()
     current_usage = result.count or 0
-    limit = 5
     
     can_decode = current_usage <= limit
     

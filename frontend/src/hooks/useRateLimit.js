@@ -7,38 +7,42 @@ export function useRateLimit() {
   const [rateLimitInfo, setRateLimitInfo] = useState(null);
   const { timeLeft, isActive, startTimer, stopTimer, formatTime } = useCountdownTimer();
 
-  
+
   useEffect(() => {
-    
+
     if (!isActive && timeLeft === 0 && rateLimitInfo) {
-     
+
       setRateLimitInfo(null);
     }
   }, [isActive, timeLeft, rateLimitInfo]);
 
   const handleRateLimitResponse = useCallback((response, data) => {
-   
-    
-    
+
+
+
     if (response.ok && data?.success) {
-     
-      setRateLimitInfo(null);
+      // ✅ FIX: Update rate limit info even on success if available
+      if (data.rate_limit_info) {
+        setRateLimitInfo(data.rate_limit_info);
+      } else {
+        setRateLimitInfo(null);
+      }
       stopTimer();
-      return false; 
+      return false;
     }
-    
-    
+
+
     if ((response.status === 400 || response.status === 429) && data && data.rate_limit_info) {
       const rateLimitData = data.rate_limit_info;
       setRateLimitInfo(rateLimitData);
-      
-      
+
+
       if (rateLimitData?.seconds_until_reset) {
-       
+
         startTimer(rateLimitData.seconds_until_reset);
       }
-      
-      return true; 
+
+      return true;
     }
 
     return false;
@@ -53,7 +57,7 @@ export function useRateLimit() {
     rateLimitInfo,
     handleRateLimitResponse,
     reset,
-    
+
     timeLeft,
     isTimerActive: isActive,
     formatTime

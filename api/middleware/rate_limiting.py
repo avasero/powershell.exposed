@@ -75,20 +75,22 @@ def add_global_request():
     global_request_timestamps.append(current_time)
 
 
-def check_rate_limit(session_id: str, plan_name: str = "free") -> dict:
+def check_rate_limit(session_id: str, plan_name: str = "free", limit_per_hour: int = 10) -> dict:
     """
     Checks if the session is within the rate limit based on plan
     
     Args:
         session_id: Session ID to check
         plan_name: User's plan name (free, premium, enterprise)
+        limit_per_hour: Dynamic limit from DB
     """
     current_time = time.time()
     
     cleanup_expired_data()
     
-    # Premium and Enterprise have unlimited requests
-    if plan_name in ["premium", "enterprise"]:
+    # If limit is None (unlimited) or plan is premium/enterprise (legacy fallback)
+    # Note: We should rely on limit_per_hour being None for unlimited
+    if limit_per_hour is None or plan_name in ["premium", "enterprise"]:
         return {
             "within_limit": True,
             "current_count": 0,
@@ -100,9 +102,9 @@ def check_rate_limit(session_id: str, plan_name: str = "free") -> dict:
     
     if not session_id:
         # Fallback for no session ID (shouldn't happen in normal flow)
-        limit = FREE_REQUEST_LIMIT
+        limit = limit_per_hour if limit_per_hour else FREE_REQUEST_LIMIT
     else:
-        limit = FREE_REQUEST_LIMIT
+        limit = limit_per_hour
     
     current_requests = [req_time for req_time in request_counts[session_id] 
                        if current_time - req_time < LIMIT_WINDOW]
