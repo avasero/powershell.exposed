@@ -228,7 +228,6 @@ export default function AnalysisChat() {
             </div>
           ) : analyses.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-6 opacity-60">
-              <div className="text-4xl mb-3">🔍</div>
               <p className="font-mono text-sm text-white/70">
                 No recent analyses found
               </p>
