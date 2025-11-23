@@ -1,6 +1,6 @@
 "use client"
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
 import { useAnalysisEvent } from "../contexts/AnalysisEventContext";
 import { useIpAddress } from "../../hooks/useIpAddress";
@@ -13,6 +13,7 @@ import AnalysisChat from "../components/AnalysisChat";
 
 export default function EvaluatePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isAuthenticated } = useAuth();
   const { notifyNewAnalysis } = useAnalysisEvent();
   const { ipAddress, ipCountry, loading: ipLoading, error: ipError } = useIpAddress();
@@ -28,6 +29,13 @@ export default function EvaluatePage() {
   const [command, setCommand] = useState("");
   const [loading, setLoading] = useState(false);
   const [cacheHit, setCacheHit] = useState(false);
+
+  useEffect(() => {
+    const commandParam = searchParams.get("command");
+    if (commandParam) {
+      setCommand(commandParam);
+    }
+  }, [searchParams]);
 
   const handleAnalyze = async (e) => {
     e.preventDefault();

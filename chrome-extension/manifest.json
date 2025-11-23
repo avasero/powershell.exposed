@@ -1,0 +1,32 @@
+{
+    "manifest_version": 3,
+    "name": "PowerShell.exposed Analyzer",
+    "version": "1.0",
+    "description": "Analyze PowerShell commands directly from your browser.",
+    "permissions": [
+        "contextMenus",
+        "storage",
+        "activeTab",
+        "scripting"
+    ],
+    "host_permissions": [
+        "*://*/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action": {
+        "default_popup": "popup.html",
+        "default_title": "PowerShell.exposed Settings"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "content.js"
+            ]
+        }
+    ]
+}
