@@ -90,11 +90,12 @@ def check_rate_limit(session_id: str, plan_name: str = "free", limit_per_hour: i
     
     # If limit is None (unlimited) or plan is premium/enterprise (legacy fallback)
     # Note: We should rely on limit_per_hour being None for unlimited
-    if limit_per_hour is None or plan_name in ["premium", "enterprise"]:
+    # If limit is None (unlimited)
+    if limit_per_hour is None:
         return {
             "within_limit": True,
             "current_count": 0,
-            "limit": float('inf'),
+            "limit": None,
             "window_seconds": LIMIT_WINDOW,
             "reset_time": None,
             "seconds_until_reset": None
@@ -155,8 +156,8 @@ def check_decode_limit(user_id: str, plan_name: str = "free", session_id: str = 
         return {
             "within_limit": True,
             "current_count": 0,
-            "limit": float('inf'),
-            "remaining": float('inf')
+            "limit": None,
+            "remaining": None
         }
         
     # ✅ FIX: Use session_id for anonymous users, user_id for authenticated
