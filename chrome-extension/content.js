@@ -1,26 +1,26 @@
 // Content script for PowerShell.exposed Extension
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === "ANALYSIS_START") {
-        showLoading();
-    } else if (message.type === "ANALYSIS_RESULT") {
-        hideLoading();
-        if (message.success) {
-            showResult(message.data);
-        } else {
-            showError(message.error);
-        }
+  if (message.type === "ANALYSIS_START") {
+    showLoading();
+  } else if (message.type === "ANALYSIS_RESULT") {
+    hideLoading();
+    if (message.success) {
+      showResult(message.data);
+    } else {
+      showError(message.error);
     }
+  }
 });
 
 let modal = null;
 
 function createModal() {
-    if (modal) return modal;
+  if (modal) return modal;
 
-    modal = document.createElement('div');
-    modal.id = 'pse-analysis-modal';
-    modal.style.cssText = `
+  modal = document.createElement('div');
+  modal.id = 'pse-analysis-modal';
+  modal.style.cssText = `
     position: fixed;
     top: 20px;
     right: 20px;
@@ -36,13 +36,13 @@ function createModal() {
     overflow: hidden;
   `;
 
-    document.body.appendChild(modal);
-    return modal;
+  document.body.appendChild(modal);
+  return modal;
 }
 
 function showLoading() {
-    const m = createModal();
-    m.innerHTML = `
+  const m = createModal();
+  m.innerHTML = `
     <div style="padding: 20px; text-align: center;">
       <div style="color: #1CC76D; font-weight: bold; margin-bottom: 10px;">PowerShell.exposed</div>
       <div>Analyzing...</div>
@@ -50,13 +50,20 @@ function showLoading() {
   `;
 }
 
-function showResult(data) {
-    const m = createModal();
-    const analysis = data.analysis;
-    const isMalicious = analysis.risk_score >= 7 || analysis.severity === 'high' || analysis.severity === 'critical';
-    const color = isMalicious ? '#ff4444' : '#1CC76D';
+function hideLoading() {
+  if (modal) {
+    modal.remove();
+    modal = null;
+  }
+}
 
-    m.innerHTML = `
+function showResult(data) {
+  const m = createModal();
+  const analysis = data.analysis;
+  const isMalicious = analysis.risk_score >= 7 || analysis.severity === 'high' || analysis.severity === 'critical';
+  const color = isMalicious ? '#ff4444' : '#1CC76D';
+
+  m.innerHTML = `
     <div style="padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
       <span style="font-weight: bold; color: #1CC76D;">Analysis Result</span>
       <button id="pse-close-btn" style="background: none; border: none; color: #888; cursor: pointer; font-size: 16px;">&times;</button>
@@ -86,15 +93,15 @@ function showResult(data) {
     </div>
   `;
 
-    document.getElementById('pse-close-btn').onclick = () => {
-        m.remove();
-        modal = null;
-    };
+  document.getElementById('pse-close-btn').onclick = () => {
+    m.remove();
+    modal = null;
+  };
 }
 
 function showError(error) {
-    const m = createModal();
-    m.innerHTML = `
+  const m = createModal();
+  m.innerHTML = `
     <div style="padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
       <span style="font-weight: bold; color: #ff4444;">Error</span>
       <button id="pse-close-btn" style="background: none; border: none; color: #888; cursor: pointer; font-size: 16px;">&times;</button>
@@ -104,8 +111,8 @@ function showError(error) {
     </div>
   `;
 
-    document.getElementById('pse-close-btn').onclick = () => {
-        m.remove();
-        modal = null;
-    };
+  document.getElementById('pse-close-btn').onclick = () => {
+    m.remove();
+    modal = null;
+  };
 }
