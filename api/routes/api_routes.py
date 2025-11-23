@@ -47,8 +47,11 @@ async def analyze_command_endpoint(
         if command is None:
             return JSONResponse(
                 {
-                    "error": "Command validation failed",
-                    "details": "Command cannot be None"
+                    "error": {
+                        "code": "BadRequestError",
+                        "message": "The API request is invalid or malformed. The message usually provides details about why the request is not valid.",
+                        "details": "Command cannot be None"
+                    }
                 },
                 status_code=400
             )
@@ -57,8 +60,11 @@ async def analyze_command_endpoint(
         if len(command) > 10000:
             return JSONResponse(
                 {
-                    "error": "Command validation failed",
-                    "details": f"Command must be less than 10000 characters. Provided: {len(command)} characters"
+                    "error": {
+                        "code": "InvalidArgumentError",
+                        "message": "Some of the provided arguments are incorrect.",
+                        "details": f"Command must be less than 10000 characters. Provided: {len(command)} characters"
+                    }
                 },
                 status_code=400
             )
@@ -72,9 +78,12 @@ async def analyze_command_endpoint(
         if not global_rate_limit_info["within_limit"]:
             return JSONResponse(
                 {
-                    "error": "Search limit reached. Please try again in a moment",
-                    "global_rate_limit_info": global_rate_limit_info,
-                    "message": f"Global rate limit exceeded. {global_rate_limit_info['current_count']} requests in the last {global_rate_limit_info['window_seconds']} seconds. Please wait {global_rate_limit_info.get('seconds_until_reset', 0)} seconds."
+                    "error": {
+                        "code": "TooManyRequestsError",
+                        "message": "Too many requests.",
+                        "details": f"Global rate limit exceeded. {global_rate_limit_info['current_count']} requests in the last {global_rate_limit_info['window_seconds']} seconds. Please wait {global_rate_limit_info.get('seconds_until_reset', 0)} seconds."
+                    },
+                    "global_rate_limit_info": global_rate_limit_info
                 },
                 status_code=429
             )
@@ -136,15 +145,22 @@ async def analyze_command_endpoint(
                 minutes_until_reset = seconds_until_reset // 60
                 return JSONResponse(
                     {
-                        "error": "Rate limit exceeded",
+                        "error": {
+                            "code": "QuotaExceededError",
+                            "message": "You have exceeded one of your quotas (minute, daily or monthly). Daily quotas are reset every day at 00:00 UTC.",
+                            "details": f"You have made {rate_limit_info['current_count']} searches in this session. Please wait {minutes_until_reset} minutes before trying again."
+                        },
                         "rate_limit_info": rate_limit_info,
-                        "session_id": session_id,
-                        "message": f"You have made {rate_limit_info['current_count']} searches in this session. Please wait {minutes_until_reset} minutes before trying again."
+                        "session_id": session_id
                     },
                     status_code=429
                 )
             
             add_request_to_rate_limit(session_id)
+            
+            # Update rate limit info to reflect the current request
+            if rate_limit_info.get("limit") is not None:
+                rate_limit_info["current_count"] += 1
         
         add_global_request()
         
@@ -257,8 +273,14 @@ async def analyze_command_endpoint(
         
         if not signatures:
             return JSONResponse(
-                {"error": "No signatures available for analysis"},
-                status_code=500
+                {
+                    "error": {
+                        "code": "TransientError",
+                        "message": "Transient server error. Retry might work.",
+                        "details": "No signatures available for analysis"
+                    }
+                },
+                status_code=503
             )
         
         analysis_result = analyze_command_patterns(command, signatures)
@@ -369,8 +391,14 @@ async def analyze_command_endpoint(
         
     except Exception as error:
         return JSONResponse(
-            {"error": f"Internal error: {str(error)}"},
-            status_code=500
+            {
+                "error": {
+                    "code": "TransientError",
+                    "message": "Transient server error. Retry might work.",
+                    "details": f"Internal error: {str(error)}"
+                }
+            },
+            status_code=503
         )
 
 
@@ -399,7 +427,13 @@ async def create_user_session_endpoint(
         
         if not user_id:
             return JSONResponse(
-                {"error": "user_id is required"},
+                {
+                    "error": {
+                        "code": "InvalidArgumentError",
+                        "message": "Some of the provided arguments are incorrect.",
+                        "details": "user_id is required"
+                    }
+                },
                 status_code=400
             )
         
@@ -429,8 +463,14 @@ async def create_user_session_endpoint(
             })
         else:
             return JSONResponse(
-                {"error": "Failed to create user session"},
-                status_code=500
+                {
+                    "error": {
+                        "code": "TransientError",
+                        "message": "Transient server error. Retry might work.",
+                        "details": "Failed to create user session"
+                    }
+                },
+                status_code=503
             )
             
     except Exception as error:
@@ -462,7 +502,13 @@ async def get_user_analyses_endpoint(
         
         if not user_id and not session_id:
             return JSONResponse(
-                {"error": "User ID or Session ID required"},
+                {
+                    "error": {
+                        "code": "AuthenticationRequiredError",
+                        "message": "The operation requires an authenticated user. Verify that you have provided your API key.",
+                        "details": "User ID or Session ID required"
+                    }
+                },
                 status_code=401
             )
         
@@ -525,8 +571,14 @@ async def get_user_analyses_endpoint(
     except Exception as error:
         print(f"❌ Error fetching user analyses: {error}")
         return JSONResponse(
-            {"error": f"Failed to fetch user analyses: {str(error)}"},
-            status_code=500
+            {
+                "error": {
+                    "code": "TransientError",
+                    "message": "Transient server error. Retry might work.",
+                    "details": f"Failed to fetch user analyses: {str(error)}"
+                }
+            },
+            status_code=503
         )
 
 
@@ -549,7 +601,13 @@ async def get_analysis_by_id_endpoint(
                 analysis_data = response.data
             else:
                 return JSONResponse(
-                    {"error": "Analysis not found"},
+                    {
+                        "error": {
+                            "code": "NotFoundError",
+                            "message": "The requested resource was not found.",
+                            "details": "Analysis not found"
+                        }
+                    },
                     status_code=404
                 )
         else:
@@ -562,7 +620,13 @@ async def get_analysis_by_id_endpoint(
                 
                 if not response.data:
                     return JSONResponse(
-                        {"error": "Analysis not found"},
+                        {
+                            "error": {
+                                "code": "NotFoundError",
+                                "message": "The requested resource was not found.",
+                                "details": "Analysis not found"
+                            }
+                        },
                         status_code=404
                     )
                 
@@ -574,14 +638,26 @@ async def get_analysis_by_id_endpoint(
                     
                     if not response.data:
                         return JSONResponse(
-                            {"error": "Analysis not found"},
+                            {
+                                "error": {
+                                    "code": "NotFoundError",
+                                    "message": "The requested resource was not found.",
+                                    "details": "Analysis not found"
+                                }
+                            },
                             status_code=404
                         )
                     
                     analysis_data = response.data
                 except ValueError:
                     return JSONResponse(
-                        {"error": "Invalid analysis ID"},
+                        {
+                            "error": {
+                                "code": "InvalidArgumentError",
+                                "message": "Some of the provided arguments are incorrect.",
+                                "details": "Invalid analysis ID"
+                            }
+                        },
                         status_code=400
                     )
         
@@ -647,8 +723,14 @@ async def get_analysis_by_id_endpoint(
         import traceback
         traceback.print_exc()
         return JSONResponse(
-            {"error": f"Failed to fetch analysis: {str(error)}"},
-            status_code=500
+            {
+                "error": {
+                    "code": "TransientError",
+                    "message": "Transient server error. Retry might work.",
+                    "details": f"Failed to fetch analysis: {str(error)}"
+                }
+            },
+            status_code=503
         )
 
 

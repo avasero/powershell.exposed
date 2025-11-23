@@ -17,7 +17,13 @@ async def get_user_plan_endpoint(
     try:
         if not current_user:
             return JSONResponse(
-                {"error": "Authentication required"},
+                {
+                    "error": {
+                        "code": "AuthenticationRequiredError",
+                        "message": "The operation requires an authenticated user. Verify that you have provided your API key.",
+                        "details": "Authentication required"
+                    }
+                },
                 status_code=401
             )
         
@@ -31,8 +37,14 @@ async def get_user_plan_endpoint(
         
     except Exception as e:
         return JSONResponse(
-            {"error": f"Failed to fetch plan: {str(e)}"},
-            status_code=500
+            {
+                "error": {
+                    "code": "TransientError",
+                    "message": "Transient server error. Retry might work.",
+                    "details": f"Failed to fetch plan: {str(e)}"
+                }
+            },
+            status_code=503
         )
 
 
@@ -50,6 +62,12 @@ async def get_all_plans_endpoint():
         
     except Exception as e:
         return JSONResponse(
-            {"error": f"Failed to fetch plans: {str(e)}"},
-            status_code=500
+            {
+                "error": {
+                    "code": "TransientError",
+                    "message": "Transient server error. Retry might work.",
+                    "details": f"Failed to fetch plans: {str(e)}"
+                }
+            },
+            status_code=503
         )
