@@ -178,7 +178,6 @@ async def analyze_command_endpoint(
             location_data = await get_ip_location(ip_address)
             if location_data:
                 country = location_data.get("country")
-                print(f"✅ País encontrado: {country}")
         
         phash = generate_phash(command)
         
@@ -231,7 +230,6 @@ async def analyze_command_endpoint(
             # ✅ Check decode permission
             decode_info = await can_user_decode_commands(user_id, session_id=session_id)
             
-            print(f"🔐 [CACHE RESPONSE] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Session: {session_id[:8] if session_id else 'NONE'} | Can decode: {decode_info['can_decode']} | Usage: {decode_info['current_usage']}/{decode_info['limit']}")
             
             if not decode_info["can_decode"]:
                 if decoded_cmd:
@@ -357,13 +355,13 @@ async def analyze_command_endpoint(
                 
             if decoded_cmd:
                 decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
-                print(f"🚫 [MASKING] decoded_command masked")
+                print(f" [MASKING] decoded_command masked")
             if double_decoded_cmd:
                 double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
-                print(f"🚫 [MASKING] double_decoded_command masked")
+                print(f" [MASKING] double_decoded_command masked")
             if deobfuscated_cmd:
                 deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
-                print(f"🚫 [MASKING] deobfuscated_command masked")
+                print(f" [MASKING] deobfuscated_command masked")
 
             # ✅ FIX: Mask matched_text in signatures to prevent leak
             for signature in analysis_result["detected_signatures"]:
@@ -460,7 +458,6 @@ async def create_user_session_endpoint(
             location_data = await get_ip_location(ip_address)
             if location_data:
                 country = location_data.get("country")
-                print(f"✅ País encontrado: {country}")
         
         supabase = get_supabase_client()
         
@@ -689,7 +686,6 @@ async def get_analysis_by_id_endpoint(
         double_decoded_cmd = analysis_data.get("double_decoded_command")
         deobfuscated_cmd = analysis_data.get("obfuscated_command")
         
-        print(f"🔐 [GET ANALYSIS] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Session: {session_id[:8] if session_id else 'NONE'} | Can decode: {decode_info['can_decode']}")
         
         decode_limit_reached = False
         if not decode_info["can_decode"]:
