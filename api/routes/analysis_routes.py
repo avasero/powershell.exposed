@@ -1,26 +1,23 @@
 """
-Rotas da API para análise de comandos PowerShell
+Analysis API Routes - Command analysis and history
 """
 import json
 import time
 from typing import Optional, Dict, Any
-from fastapi import Request, HTTPException, Depends
+from fastapi import Request, Depends, Query
 from fastapi.responses import JSONResponse
-from middleware.auth_middleware import get_current_user_optional
+from middleware.auth_middleware import get_current_user_optional, get_current_user_required
 from models.schemas import (
     AnalyzeCommandRequest, AnalyzeCommandResponse, 
-    CreateUserSessionRequest, ErrorResponse
+    ErrorResponse, UserCommandEvaluationsResponse
 )
-
 from middleware.rate_limiting import (
-    check_global_rate_limit, add_global_request, check_rate_limit,
-    check_decode_limit, add_request_to_rate_limit, reset_rate_limit, 
-    increment_decode_usage, global_request_timestamps, 
+    check_global_rate_limit, add_global_request, 
     GLOBAL_RATE_LIMIT_REQUESTS, GLOBAL_RATE_LIMIT_WINDOW
 )
 from services.powershell_analyzer import (
     load_signatures_from_db, analyze_command_patterns, calculate_severity_and_risk,
-    save_analysis_to_db, clear_signatures_cache, signatures_cache, cache_timestamp
+    save_analysis_to_db, signatures_cache, cache_timestamp
 )
 from services.cache_service import (
     generate_phash, check_cache, save_to_cache, should_cache_result,
@@ -28,8 +25,7 @@ from services.cache_service import (
 )
 from services.session_manager import get_or_create_session, get_supabase_client
 from utils.geolocation import get_ip_location, get_client_ip_from_request
-from services.plan_service import can_user_decode_commands, get_user_plan_features, get_plan_by_name
-
+from services.plan_service import can_user_decode_commands, get_user_plan_features, get_plan_by_name, check_session_rate_limit_from_db
 
 async def analyze_command_endpoint(
     request: Request,
@@ -99,7 +95,6 @@ async def analyze_command_endpoint(
         country = request_data.country
         user_agent = request_data.user_agent or "FastAPI-Client"
         
-
         if current_user and current_user.get("auth_type") == "api_key":
             
             search_type = "API"
@@ -139,9 +134,6 @@ async def analyze_command_endpoint(
                     request_limit = free_plan.get("request_limit_per_hour", 10)
             
             # ✅ FIX: Database-based rate limit check
-            from datetime import datetime, timedelta
-            from services.plan_service import check_session_rate_limit_from_db
-            
             rate_limit_info = await check_session_rate_limit_from_db(
                 session_id=session_id,
                 user_id=user_id,
@@ -396,13 +388,13 @@ async def analyze_command_endpoint(
             },
             "analysis_id": db_result.get("short_id") if db_result.get("success") else None,
             "session_id": session_id,
-            "decode_info": {  # ✅ NEW: Include decode info
+            "decode_info": {
                 "current_usage": decode_info["current_usage"],
                 "limit": decode_info["limit"],
                 "remaining": decode_info["remaining"],
                 "seconds_until_reset": decode_info["seconds_until_reset"]
             },
-            "rate_limit_info": rate_limit_info  # ✅ NEW: Include request rate limit info
+            "rate_limit_info": rate_limit_info
         })
         
     except Exception as error:
@@ -416,85 +408,6 @@ async def analyze_command_endpoint(
             },
             status_code=503
         )
-
-
-
-
-
-async def create_user_session_endpoint(
-    request: Request,
-    request_data: CreateUserSessionRequest
-) -> Dict[str, Any]:
-    """
-    Create User Session
-    
-    Creates a new session for authenticated users to track their activity
-    and apply rate limiting. Required for proper user session management.
-    """
-    try:
-        user_id = request_data.user_id
-        
-        ip_address = request_data.ip_address
-        if not ip_address:
-            ip_address = get_client_ip_from_request(request)
-        
-        user_agent = request_data.user_agent or "Unknown"
-        country = request_data.country
-        
-        if not user_id:
-            return JSONResponse(
-                {
-                    "error": {
-                        "code": "InvalidArgumentError",
-                        "message": "Some of the provided arguments are incorrect.",
-                        "details": "user_id is required"
-                    }
-                },
-                status_code=400
-            )
-        
-        
-        if not country and ip_address:
-            location_data = await get_ip_location(ip_address)
-            if location_data:
-                country = location_data.get("country")
-        
-        supabase = get_supabase_client()
-        
-        
-        session_id = await get_or_create_session(
-            supabase=supabase,
-            user_id=user_id,
-            ip_address=ip_address,
-            user_agent=user_agent,
-            country=country
-        )
-        
-        if session_id:
-            return JSONResponse({
-                "success": True,
-                "session_id": session_id,
-                "message": "User session created successfully"
-            })
-        else:
-            return JSONResponse(
-                {
-                    "error": {
-                        "code": "TransientError",
-                        "message": "Transient server error. Retry might work.",
-                        "details": "Failed to create user session"
-                    }
-                },
-                status_code=503
-            )
-            
-    except Exception as error:
-      
-        return JSONResponse(
-            {"error": f"Internal error: {str(error)}"},
-            status_code=500
-        )
-
 
 async def get_user_analyses_endpoint(
     request: Request,
@@ -568,7 +481,7 @@ async def get_user_analyses_endpoint(
                     "created_at": analysis.get("created_at"),
                     "is_cache": analysis.get("is_cache", False),
                     "decoded_command": analysis.get("decoded_command"),
-                    "deobfuscated_command": analysis.get("obfuscated_command")  # ✅ FIX: Mapear obfuscated_command -> deobfuscated_command
+                    "deobfuscated_command": analysis.get("obfuscated_command")
                 })
             
             return JSONResponse({
@@ -595,7 +508,6 @@ async def get_user_analyses_endpoint(
             },
             status_code=503
         )
-
 
 async def get_analysis_by_id_endpoint(
     request: Request,
@@ -747,78 +659,177 @@ async def get_analysis_by_id_endpoint(
             status_code=503
         )
 
+async def delete_user_analysis_endpoint(
+    analysis_id: str,
+    user: Dict[str, Any] = Depends(get_current_user_required)
+):
+    """
+    Delete a specific analysis belonging to the authenticated user
+    Requires authentication and ownership
+    """
+    try:
+        supabase = get_supabase_client()
+        
+        check_response = supabase.table('powershell_analyses') \
+            .select('id, user_id') \
+            .eq('id', analysis_id) \
+            .eq('user_id', user["id"]) \
+            .single() \
+            .execute()
+        
+        if not check_response.data:
+            return JSONResponse(
+                {"error": "Analysis not found or you don't have permission to delete it"},
+                status_code=404
+            )
+        
+        delete_response = supabase.table('powershell_analyses') \
+            .delete() \
+            .eq('id', analysis_id) \
+            .eq('user_id', user["id"]) \
+            .execute()
+        
+        return JSONResponse({
+            "success": True,
+            "message": "Analysis deleted successfully"
+        })
+        
+    except Exception as error:
+        print(f"Error deleting analysis: {error}")
+        return JSONResponse(
+            {"error": f"Failed to delete analysis: {str(error)}"},
+            status_code=500
+        )
 
-async def get_global_rate_limit_status_endpoint():
-    """Returns the current global rate limit status"""
-    global_rate_limit_info = check_global_rate_limit()
+async def get_user_command_evaluations_endpoint(
+    request: Request,
+    limit: int = Query(
+        None, 
+        ge=1, 
+        le=100,
+        title="Limit",
+        description="Number of records to return. Maximum 100. If not specified, returns all records."
+    ),
+    offset: int = Query(
+        0, 
+        ge=0,
+        title="Offset",
+        description="Pagination offset. Use with limit for page-based pagination. Default is 0."
+    ),
+    short_id: str = Query(
+        None,
+        title="Short ID",
+        description="Filter by specific analysis short_id. The short_id is an 8-character identifier for each analysis."
+    ),
+    user: Dict[str, Any] = Depends(get_current_user_required)
+) -> UserCommandEvaluationsResponse:
+    """
+    Get User Command Evaluations with Pagination
     
-    return JSONResponse({
-        "success": True,
-        "global_rate_limit": global_rate_limit_info,
-        "debug_info": {
-            "total_requests_tracked": len(global_request_timestamps),
-            "limit_per_minute": GLOBAL_RATE_LIMIT_REQUESTS,
-            "window_seconds": GLOBAL_RATE_LIMIT_WINDOW
-        }
-    })
-
-
-async def clear_cache_endpoint():
-    """Limpa o cache de assinaturas"""
-    clear_signatures_cache()
-    
-    return JSONResponse({
-        "success": True,
-        "message": "Cache cleared, next request will reload from database"
-    })
-
-
-async def root_endpoint():
-    """Endpoint raiz da API"""
-    return JSONResponse({
-        "message": "Fast api working",
-        "status": "success"
-    })
-
-
-async def health_check_endpoint():
-    """Endpoint de health check"""
-    return JSONResponse({
-        "status": "healthy",
-        "message": "Fast api working"
-    })
-    
-
-async def clear_cache_endpoint():
-    """Limpa o cache de assinaturas"""
-    clear_signatures_cache()
-    
-    return JSONResponse({
-        "success": True,
-        "message": "Cache cleared, next request will reload from database"
-    })
-
-
-async def root_endpoint():
-    """Endpoint raiz da API"""
-    return JSONResponse({
-        "message": "Fast api working",
-        "status": "success"
-    })
-
-
-async def health_check_endpoint():
-    """Endpoint de health check"""
-    return JSONResponse({
-        "status": "healthy",
-        "message": "Fast api working"
-    })
-    
-
-
-async def health_check_endpoint():
-    """Endpoint de health check"""
-    return JSONResponse({
-        "status": "healthy",
-        "message": "Fast api working"
-    })
+    Retrieves PowerShell command analyses for the authenticated user.
+    Supports pagination and filtering by specific analysis.
+    """
+    try:
+        supabase = get_supabase_client()
+        
+        # Build query
+        query = supabase.table('powershell_analyses') \
+            .select('*') \
+            .eq('user_id', user["id"]) \
+            .order('created_at', desc=True)
+        
+        # Apply short_id filter if provided
+        if short_id:
+            query = query.eq('short_id', short_id)
+        
+        # Apply pagination
+        if limit is not None:
+            query = query.limit(limit)
+        
+        if offset > 0:
+            query = query.offset(offset)
+        
+        response = query.execute()
+        
+        if response.data:
+            analyses = []
+            for analysis in response.data:
+                signatures_detected = analysis.get("signatures_detected", [])
+                cmdlets_detected = analysis.get("cmdlets_detected", [])
+                tactics = analysis.get("tactics", [])
+                techniques = analysis.get("techniques", [])
+                
+                if isinstance(signatures_detected, str):
+                    try:
+                        signatures_detected = json.loads(signatures_detected)
+                    except:
+                        signatures_detected = []
+                
+                if isinstance(cmdlets_detected, str):
+                    try:
+                        cmdlets_detected = json.loads(cmdlets_detected)
+                    except:
+                        cmdlets_detected = []
+                
+                if isinstance(tactics, str):
+                    try:
+                        tactics = json.loads(tactics)
+                    except:
+                        tactics = []
+                
+                if isinstance(techniques, str):
+                    try:
+                        techniques = json.loads(techniques)
+                    except:
+                        techniques = []
+                
+                analyses.append({
+                    "id": analysis.get("id"),
+                    "uuid": analysis.get("uuid"),
+                    "short_id": analysis.get("short_id"),
+                    "command": analysis.get("command"),
+                    "risk_score": float(analysis.get("risk_score", 0)) if analysis.get("risk_score") is not None else 0,
+                    "severity": analysis.get("severity"),
+                    "signatures_detected": signatures_detected,
+                    "cmdlets_detected": cmdlets_detected,
+                    "tactics": tactics,
+                    "techniques": techniques,
+                    "created_at": analysis.get("created_at"),
+                    "search_type": analysis.get("search_type"),
+                    "ip_country": analysis.get("ip_country"),
+                    "ip_city": analysis.get("ip_city")
+                })
+            
+            return JSONResponse({
+                "success": True,
+                "user_id": user["id"],
+                "auth_type": user.get("auth_type", "jwt"),
+                "total_returned": len(analyses),
+                "pagination": {
+                    "limit": limit,
+                    "offset": offset,
+                    "has_more": len(analyses) == limit if limit else False
+                },
+                "analyses": analyses
+            })
+        else:
+            return JSONResponse({
+                "success": True,
+                "user_id": user["id"],
+                "auth_type": user.get("auth_type", "jwt"),
+                "total_returned": 0,
+                "pagination": {
+                    "limit": limit,
+                    "offset": offset,
+                    "has_more": False
+                },
+                "analyses": [],
+                "message": "No command evaluations found for this user"
+            })
+            
+    except Exception as error:
+        print(f"Error fetching user command evaluations: {error}")
+        return JSONResponse(
+            {"error": f"Failed to fetch command evaluations: {str(error)}"},
+            status_code=500
+        )

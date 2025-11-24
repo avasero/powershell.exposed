@@ -90,11 +90,12 @@ except ImportError as e:
     print(f"⚠️ Auth middleware not available: {e}")
 
 try:
-    from routes.api_routes import (
-        root_endpoint, health_check_endpoint, analyze_command_endpoint,
-        get_user_analyses_endpoint, get_analysis_by_id_endpoint,
-        create_user_session_endpoint
+    from routes.system_routes import root_endpoint, health_check_endpoint
+    from routes.analysis_routes import (
+        analyze_command_endpoint, get_user_analyses_endpoint, 
+        get_analysis_by_id_endpoint
     )
+    from routes.user_routes import create_user_session_endpoint
     
     app.get("/", include_in_schema=False)(root_endpoint)
     app.get("/health", include_in_schema=False)(health_check_endpoint)
@@ -164,7 +165,7 @@ except ImportError as e:
         }, status_code=503)
 
 try:
-    from routes.protected_routes import get_user_command_evaluations_endpoint
+    from routes.analysis_routes import get_user_command_evaluations_endpoint
     from models.schemas import UserCommandEvaluationsResponse
     
     app.get(
