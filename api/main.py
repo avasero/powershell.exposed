@@ -233,7 +233,7 @@ try:
     from routes.plan_routes import get_user_plan_endpoint, get_all_plans_endpoint
     
     app.get("/user/plan", tags=["Plans"], summary="Get User Plan", include_in_schema=False)(get_user_plan_endpoint)
-    app.get("/plans", tags=["Plans"], summary="Get All Plans")(get_all_plans_endpoint)
+    app.get("/plans", tags=["Plans"], summary="Get All Plans", include_in_schema=False)(get_all_plans_endpoint)
     
 except ImportError as e:
     print(f"⚠️ Plan routes not available: {e}")
