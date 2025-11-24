@@ -138,7 +138,15 @@ async def analyze_command_endpoint(
                 if free_plan:
                     request_limit = free_plan.get("request_limit_per_hour", 10)
             
-            rate_limit_info = check_rate_limit(session_id, plan_name, limit_per_hour=request_limit)
+            # ✅ FIX: Database-based rate limit check
+            from datetime import datetime, timedelta
+            from services.plan_service import check_session_rate_limit_from_db
+            
+            rate_limit_info = await check_session_rate_limit_from_db(
+                session_id=session_id,
+                user_id=user_id,
+                limit_per_hour=request_limit
+            )
             
             if not rate_limit_info["within_limit"]:
                 seconds_until_reset = rate_limit_info.get('seconds_until_reset', 0)
@@ -155,15 +163,7 @@ async def analyze_command_endpoint(
                     },
                     status_code=429
                 )
-            
-            # ✅ MOVED: Increment BEFORE cache check
-            add_request_to_rate_limit(session_id)
-            
-            # Update rate limit info to reflect the current request
-            if rate_limit_info.get("limit") is not None:
-                rate_limit_info["current_count"] += 1
         else:
-            # ✅ Initialize empty rate_limit_info if no session
             rate_limit_info = {
                 "within_limit": True,
                 "current_count": 0,
@@ -171,7 +171,7 @@ async def analyze_command_endpoint(
                 "seconds_until_reset": None
             }
         
-        # ✅ MOVED: Increment global BEFORE cache check
+        # ✅ Keep global rate limit
         add_global_request()
         
         if not country and ip_address:
@@ -184,7 +184,7 @@ async def analyze_command_endpoint(
         
         cached_result = await check_cache(phash)
         
-        # ✅ Cache hit now properly counted
+        # ✅ Cache hit now properly counted in DB
         if cached_result:
             results_blob = cached_result.get("results_blob", {})
             
@@ -200,7 +200,7 @@ async def analyze_command_endpoint(
             if "deobfuscated_command" not in results_blob:
                 results_blob["deobfuscated_command"] = None
             
-            # ✅ Salvar no banco DENTRO do bloco if
+            # ✅ Save to DB (this increments the count)
             db_result = await save_analysis_to_db(
                 command=command,
                 analysis_result=results_blob,
@@ -215,12 +215,20 @@ async def analyze_command_endpoint(
             
             analysis_id = db_result.get("short_id") if db_result.get("success") else "cache-error"
             
-            # ✅ FIX: Use centralized plan service for ALL users (including anonymous)
+            # ✅ FIX: Recalculate rate_limit_info AFTER saving to DB
+            if session_id:
+                rate_limit_info = await check_session_rate_limit_from_db(
+                    session_id=session_id,
+                    user_id=user_id,
+                    limit_per_hour=request_limit
+                )
+            
+            # ✅ FIX: Extract decoded variables BEFORE decode check
             decoded_cmd = results_blob.get("decoded_command")
             double_decoded_cmd = results_blob.get("double_decoded_command")
             deobfuscated_cmd = results_blob.get("deobfuscated_command")
             
-            # ✅ Check decode permission via plan service (handles anonymous → free plan)
+            # ✅ Check decode permission
             decode_info = await can_user_decode_commands(user_id, session_id=session_id)
             
             print(f"🔐 [CACHE RESPONSE] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Session: {session_id[:8] if session_id else 'NONE'} | Can decode: {decode_info['can_decode']} | Usage: {decode_info['current_usage']}/{decode_info['limit']}")
@@ -269,13 +277,13 @@ async def analyze_command_endpoint(
                 },
                 "analysis_id": analysis_id,
                 "session_id": session_id,
-                "decode_info": {  # ✅ NEW: Include decode info
+                "decode_info": {
                     "current_usage": decode_info["current_usage"],
                     "limit": decode_info["limit"],
                     "remaining": decode_info["remaining"],
                     "seconds_until_reset": decode_info["seconds_until_reset"]
                 },
-                "rate_limit_info": rate_limit_info  # ✅ NEW: Include request rate limit info
+                "rate_limit_info": rate_limit_info
             })
         
         # ✅ Fresh analysis continues here (counters already incremented above)

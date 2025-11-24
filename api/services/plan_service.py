@@ -2,7 +2,94 @@
 Service for managing user plans and features
 """
 from typing import Optional, Dict, Any
+from datetime import datetime, timedelta
 from services.session_manager import get_supabase_client
+
+
+async def check_session_rate_limit_from_db(
+    session_id: str,
+    user_id: Optional[str] = None,
+    limit_per_hour: int = 10
+) -> Dict[str, Any]:
+    """
+    Check rate limit based on actual database records
+    
+    Args:
+        session_id: Session ID to check
+        user_id: Optional user ID for authenticated users
+        limit_per_hour: Maximum requests per hour
+        
+    Returns:
+        Dictionary with rate limit status
+    """
+    try:
+        supabase = get_supabase_client()
+        
+        # Calculate time window (last hour)
+        window_start = datetime.utcnow() - timedelta(hours=1)
+        
+        # Query for analyses in the last hour
+        query = supabase.table('powershell_analyses')\
+            .select('id, created_at', count='exact')\
+            .eq('session_id', session_id)\
+            .gte('created_at', window_start.isoformat())
+        
+        # If user is authenticated, also count by user_id
+        if user_id:
+            query = query.eq('user_id', user_id)
+        
+        result = query.execute()
+        current_count = result.count or 0
+        
+        print(f"🔍 [DB RATE LIMIT] Session: {session_id[:8]} | Count: {current_count}/{limit_per_hour}")
+        
+        within_limit = current_count < limit_per_hour
+        
+        # Calculate seconds until reset
+        seconds_until_reset = None
+        if not within_limit:
+            # Get oldest record to calculate reset time
+            oldest_query = supabase.table('powershell_analyses')\
+                .select('created_at')\
+                .eq('session_id', session_id)\
+                .gte('created_at', window_start.isoformat())\
+                .order('created_at', desc=False)\
+                .limit(1)
+            
+            if user_id:
+                oldest_query = oldest_query.eq('user_id', user_id)
+            
+            oldest_result = oldest_query.execute()
+            
+            if oldest_result.data and len(oldest_result.data) > 0:
+                oldest_created_at = oldest_result.data[0]['created_at']
+                oldest_time = datetime.fromisoformat(oldest_created_at.replace('Z', '+00:00'))
+                reset_time = oldest_time + timedelta(hours=1)
+                current_time = datetime.now(reset_time.tzinfo)
+                seconds_until_reset = max(0, int((reset_time - current_time).total_seconds()))
+        
+        return {
+            "within_limit": within_limit,
+            "current_count": current_count,
+            "limit": limit_per_hour,
+            "window_seconds": 3600,
+            "seconds_until_reset": seconds_until_reset,
+            "reset_time": None
+        }
+        
+    except Exception as e:
+        print(f"❌ [DB RATE LIMIT] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        # Fallback: deny access on error
+        return {
+            "within_limit": False,
+            "current_count": 0,
+            "limit": limit_per_hour,
+            "window_seconds": 3600,
+            "seconds_until_reset": 3600,
+            "reset_time": None
+        }
 
 
 async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
@@ -65,34 +152,6 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
             "request_limit_per_hour": 10,
             "decode_limit_per_hour": 5
         }
-
-
-async def get_plan_by_name(plan_name: str) -> Optional[Dict[str, Any]]:
-    """
-    Get plan details by name
-    
-    Args:
-        plan_name: Name of the plan to fetch
-        
-    Returns:
-        Dictionary with plan details or None if not found
-    """
-    try:
-        supabase = get_supabase_client()
-        
-        response = supabase.table('plans')\
-            .select('name, can_decode_commands, request_limit_per_hour, decode_limit_per_hour')\
-            .eq('name', plan_name)\
-            .single()\
-            .execute()
-            
-        if response.data:
-            return response.data
-            
-        return None
-    except Exception as e:
-        print(f"❌ [PLAN_SERVICE] Error fetching plan {plan_name}: {e}")
-        return None
 
 
 async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[str] = None) -> dict:
