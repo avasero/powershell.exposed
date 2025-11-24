@@ -156,12 +156,22 @@ async def analyze_command_endpoint(
                     status_code=429
                 )
             
+            # ✅ MOVED: Increment BEFORE cache check
             add_request_to_rate_limit(session_id)
             
             # Update rate limit info to reflect the current request
             if rate_limit_info.get("limit") is not None:
                 rate_limit_info["current_count"] += 1
+        else:
+            # ✅ Initialize empty rate_limit_info if no session
+            rate_limit_info = {
+                "within_limit": True,
+                "current_count": 0,
+                "limit": None,
+                "seconds_until_reset": None
+            }
         
+        # ✅ MOVED: Increment global BEFORE cache check
         add_global_request()
         
         if not country and ip_address:
@@ -174,7 +184,7 @@ async def analyze_command_endpoint(
         
         cached_result = await check_cache(phash)
         
-        # ✅ FIX: Processar cache corretamente dentro do bloco if
+        # ✅ Cache hit now properly counted
         if cached_result:
             results_blob = cached_result.get("results_blob", {})
             
@@ -268,7 +278,7 @@ async def analyze_command_endpoint(
                 "rate_limit_info": rate_limit_info  # ✅ NEW: Include request rate limit info
             })
         
-        # ✅ Se não houver cache, continuar com análise normal
+        # ✅ Fresh analysis continues here (counters already incremented above)
         signatures = await load_signatures_from_db(user_id=user_id)
         
         if not signatures:
