@@ -41,7 +41,7 @@ async def check_session_rate_limit_from_db(
         result = query.execute()
         current_count = result.count or 0
         
-        print(f"🔍 [DB RATE LIMIT] Session: {session_id[:8]} | Count: {current_count}/{limit_per_hour}")
+        print(f" Session: {session_id[:8]} | Count: {current_count}/{limit_per_hour}")
         
         within_limit = current_count < limit_per_hour
         
@@ -105,7 +105,7 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
     try:
         supabase = get_supabase_client()
         
-        print(f"🔍 [PLAN_SERVICE] Fetching plan for user: {user_id[:8]}...")
+        
         
         # Get user profile with plan information
         response = supabase.table('profiles')\
@@ -114,10 +114,10 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
             .single()\
             .execute()
         
-        print(f"📊 [PLAN_SERVICE] Raw response: {response.data}")
+        
         
         if not response.data:
-            print(f"⚠️ [PLAN_SERVICE] No profile found for user {user_id[:8]}, returning free plan")
+            
             # Return default free plan features
             return {
                 "plan_name": "free",
@@ -127,7 +127,7 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
             }
         
         plan_data = response.data.get('plans', {})
-        print(f"📋 [PLAN_SERVICE] Plan data: {plan_data}")
+        
         
         result = {
             "plan_name": plan_data.get('name', 'free'),
@@ -136,12 +136,12 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
             "decode_limit_per_hour": plan_data.get('decode_limit_per_hour', 5)
         }
         
-        print(f"✅ [PLAN_SERVICE] Final result: {result}")
+       
         
         return result
         
     except Exception as e:
-        print(f"❌ [PLAN_SERVICE] Error fetching user plan: {e}")
+        
         print(f"   Exception type: {type(e).__name__}")
         import traceback
         traceback.print_exc()

@@ -70,7 +70,7 @@ async def analyze_command_endpoint(
             )
         
      
-        print(f"📥 [RAW COMMAND] Length: {len(command)}, Content: '{command[:100]}'")
+        print(f"Length: {len(command)}, Content: '{command[:100]}'")
 
         
         global_rate_limit_info = check_global_rate_limit()
@@ -348,7 +348,7 @@ async def analyze_command_endpoint(
         # ✅ FIX: Use centralized plan service for ALL users (including anonymous)
         decode_info = await can_user_decode_commands(user_id, session_id=session_id)
         
-        print(f"🔐 [FRESH ANALYSIS] User: {user_id[:8] if user_id else 'ANONYMOUS'} | Session: {session_id[:8] if session_id else 'NONE'} | Can decode: {decode_info['can_decode']} | Usage: {decode_info['current_usage']}/{decode_info['limit']}")
+        print(f" User: {user_id[:8] if user_id else 'ANONYMOUS'} | Session: {session_id[:8] if session_id else 'NONE'} | Can decode: {decode_info['can_decode']} | Usage: {decode_info['current_usage']}/{decode_info['limit']}")
         
         # Mask content for users without decode permission
         decode_limit_reached = False

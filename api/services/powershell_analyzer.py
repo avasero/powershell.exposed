@@ -603,7 +603,6 @@ async def save_analysis_to_db(
             decoded_cmd or double_decoded_cmd or deobfuscated_cmd
         )
         
-        print(f"[SAVE_ANALYSIS] has_decoded_content: {has_decoded_content} | decoded: {bool(decoded_cmd)} | double: {bool(double_decoded_cmd)} | deobf: {bool(deobfuscated_cmd)}")
         
         insert_data = {
             "command": command,
