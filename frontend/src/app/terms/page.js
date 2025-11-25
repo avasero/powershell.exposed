@@ -90,7 +90,7 @@ export default function TermsPage() {
             <ul className="list-disc pl-6 space-y-2">
               <li>To help you with support requests you make. We&apos;ll ask for express consent before accessing your account.</li>
               <li>On the rare occasions when an error occurs that stops an automated process partway through. We get automated alerts when such errors occur. When we can fix the issue and restart automated processing without looking at any personal data, we do. In rare cases, we have to look at a minimum amount of personal data to fix the issue. In these rare cases, we aim to fix the root cause to prevent the errors from recurring.</li>
-              <li>To safeguard PowerShell.exposed. We&apos;ll look at logs and metadata as part of our work to ensure the security of your data and the Services as a whole.</li>
+              <li>To safeguard powershell.exposed. We&apos;ll look at logs and metadata as part of our work to ensure the security of your data and the Services as a whole.</li>
               <li>To the extent required by applicable law.</li>
             </ul>
             

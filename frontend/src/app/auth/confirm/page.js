@@ -110,7 +110,7 @@ export default function ConfirmPage() {
             <>
               <div className="text-6xl mb-4">✅</div>
               <h1 className="text-2xl sm:text-3xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
-                Welcome to PowerShell.exposed!
+                Welcome to powershell.exposed!
               </h1>
               <p className="font-mono text-sm mb-6" style={{color: 'var(--muted-foreground)'}}>
                 Authentication successful! You are now logged in and can access all features.
