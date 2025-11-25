@@ -52,7 +52,7 @@ def detect_encoded_command(command: str) -> dict:
                     "is_encoded": True,
                     "type": "explicit_encoded_command",
                     "indicator": "Found -EncodedCommand parameter (or variant)",
-                    "decoded_preview": decoded[:150],
+                    "decoded_preview": decoded,
                     "confidence": 0.95
                 }
             else:

@@ -53,13 +53,13 @@ async def analyze_command_endpoint(
             )
         
        
-        if len(command) > 10000:
+        if len(command) > 100000:
             return JSONResponse(
                 {
                     "error": {
                         "code": "InvalidArgumentError",
                         "message": "Some of the provided arguments are incorrect.",
-                        "details": f"Command must be less than 10000 characters. Provided: {len(command)} characters"
+                        "details": f"Command must be less than 100000 characters. Provided: {len(command)} characters"
                     }
                 },
                 status_code=400

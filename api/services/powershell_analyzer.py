@@ -121,7 +121,7 @@ def decode_base64_utf16(encoded_str: str) -> str:
         if not encoded_str:
             return ""
         
-        decoded_bytes = base64.b64decode(encoded_str + '===', validate=False)[:len(encoded_str)*3//4]
+        decoded_bytes = base64.b64decode(encoded_str + '===', validate=False)
         decoded_text = decoded_bytes.decode('utf-16-le', errors='ignore')
         
         return decoded_text

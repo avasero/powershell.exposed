@@ -128,7 +128,15 @@ export default function EvaluatePage() {
       }
 
       if (!response.ok) {
-        setError(data.error || `HTTP error! status: ${response.status}`);
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        if (data.error) {
+          if (typeof data.error === 'string') {
+            errorMessage = data.error;
+          } else if (typeof data.error === 'object') {
+            errorMessage = data.error.details || data.error.message || JSON.stringify(data.error);
+          }
+        }
+        setError(errorMessage);
         setLoading(false);
         return;
       }
@@ -159,7 +167,15 @@ export default function EvaluatePage() {
 
         router.push(`/analysis/${data.analysis_id}`);
       } else {
-        setError(data.error || 'Analysis failed');
+        let errorMessage = 'Analysis failed';
+        if (data.error) {
+          if (typeof data.error === 'string') {
+            errorMessage = data.error;
+          } else if (typeof data.error === 'object') {
+            errorMessage = data.error.details || data.error.message || JSON.stringify(data.error);
+          }
+        }
+        setError(errorMessage);
         setLoading(false);
       }
 

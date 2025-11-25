@@ -12,7 +12,7 @@ export default function CommandInput({
   const textareaRef = useRef(null);
   const [showCharacterWarning, setShowCharacterWarning] = useState(false);
   
-  const CHARACTER_LIMIT = 10000;
+  const CHARACTER_LIMIT = 100000;
   const MAX_ROWS = 10;
   const MIN_HEIGHT = 50;
   const LINE_HEIGHT = 24; 
