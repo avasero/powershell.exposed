@@ -7,4 +7,4 @@ python-jose[cryptography]
 python-multipart
 pyminusone
 pydantic
-python-Levenshtein==0.26.1
+python-Levenshtein
