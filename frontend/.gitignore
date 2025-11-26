@@ -30,8 +30,7 @@ backend/
 Thumbs.db
 
 # Arquivos de ambiente
-.env
-.env.*
+.env.local
 
 # Outros
 *.bak
