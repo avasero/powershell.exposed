@@ -86,27 +86,27 @@ export default function Navbar() {
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
                 >
-                  <a
+                  <Link
                     href="/settings"
                     className="block px-4 py-2 text-sm font-mono hover:bg-green-500/10 transition-colors"
                     style={{ color: 'var(--foreground)' }}
                   >
                     Settings
-                  </a>
-                  <a
+                  </Link>
+                  <Link
                     onClick={handleLogout}
                     className="block px-4 py-2 text-sm font-mono hover:bg-green-500/10 cursor-pointer transition-colors"
                     style={{ color: 'var(--foreground)' }}
                   >
                     Logout
-                  </a>
-                  <a
+                  </Link>
+                  <Link
                     href="/indicators"
                     className="block px-4 py-2 text-sm font-mono hover:bg-green-500/10 cursor-pointer transition-colors"
                     style={{ color: 'var(--foreground)' }}
                   >
                     Indicators
-                  </a>
+                  </Link>
                 </div>
               </div>
             )}
