@@ -52,8 +52,6 @@ class CreateUserSessionRequest(BaseModel):
 
 class UpdateProfileRequest(BaseModel):
     """Schema for profile update"""
-    username: Optional[str] = Field(None, description="Username")
-    full_name: Optional[str] = Field(None, description="Full name")
     avatar_url: Optional[str] = Field(None, description="Avatar URL")
 
 
@@ -177,8 +175,6 @@ class ApiKeyResponse(BaseModel):
 class UserProfile(BaseModel):
     """Schema for user profile"""
     id: str
-    username: Optional[str] = None
-    full_name: Optional[str] = None
     avatar_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime

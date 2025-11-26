@@ -41,7 +41,7 @@ async def create_user_api_key(user_id: str, name: str = "Default API Key", acces
         
         
         user_check = supabase.table('profiles') \
-            .select('id, username') \
+            .select('id') \
             .eq('id', user_id) \
             .execute()
         
@@ -178,8 +178,7 @@ async def validate_api_key(api_key: str) -> Optional[Dict[str, Any]]:
             "api_key_id": profile["id"],  
             "api_key_name": profile["api_key_name"],
             "profile": {
-                "email": profile.get("username"),  
-                "full_name": profile.get("full_name"),
+                "email": profile.get("email"),  
                 "avatar_url": profile.get("avatar_url")
             },
             "usage_count": profile["api_key_usage_count"],

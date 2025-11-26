@@ -71,13 +71,13 @@ export default function SideDrawer() {
           animation: slideInRight 0.3s ease-in-out;
         }
       `}</style>
-      
-      <div 
+
+      <div
         className={`drawer-backdrop drawer-backdrop-animate absolute inset-0 bg-black transition-opacity duration-300 pointer-events-auto ${isDrawerOpen ? 'bg-opacity-40' : 'bg-opacity-0'}`}
         onClick={closeDrawer}
       />
-      
-      <div 
+
+      <div
         className={`drawer-container drawer-slide-animate drawer-shadow absolute right-0 top-0 h-full w-72 max-w-[75vw] bg-black border-green-500/30 hover:border-green-500/50 transition-all pointer-events-auto ${isDrawerOpen ? 'show' : ''}`}
         style={{ borderLeft: '1px solid rgba(34, 197, 94, 0.3)' }}
       >
@@ -119,12 +119,12 @@ export default function SideDrawer() {
                 <span>PowerShell Indicators</span>
               </div>
             </Link>
-            
+
             <Link
               href="/evaluate"
               onClick={handleLinkClick}
               className="font-mono text-sm underline hover:text-green-400 cursor-pointer"
-              
+
             >
               <div className="flex items-center justify-center space-x-2">
                 <span>Evaluate command</span>
@@ -157,10 +157,10 @@ export default function SideDrawer() {
                   Logged in as:
                 </span>
                 <div className="font-mono text-sm font-semibold" style={{ color: 'var(--accent)' }}>
-                  {user?.user_metadata?.username || user?.email}
+                  {user?.email}
                 </div>
               </div>
-              
+
               <a
                 href="/settings"
                 onClick={handleLinkClick}
@@ -177,7 +177,7 @@ export default function SideDrawer() {
                   <span>Settings</span>
                 </div>
               </a>
-              
+
               <a
                 onClick={handleLogout}
                 className="block w-full px-4 py-3 font-mono font-semibold rounded text-sm border transition-all duration-200 hover:opacity-80 text-center bg-black/80 border-green-500/30 hover:border-green-500/50 cursor-pointer"
@@ -193,7 +193,7 @@ export default function SideDrawer() {
               <a
                 href="/login"
                 onClick={handleLinkClick}
-                className="font-mono text-sm underline hover:text-green-400 cursor-pointer" 
+                className="font-mono text-sm underline hover:text-green-400 cursor-pointer"
               >
                 <div className="flex items-center justify-center space-x-2">
                   <span>Login</span>

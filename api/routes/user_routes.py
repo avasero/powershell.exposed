@@ -99,8 +99,6 @@ async def get_user_profile_endpoint(
             profile = response.data
             safe_profile = {
                 "id": profile.get("id"),
-                "username": profile.get("username"),
-                "full_name": profile.get("full_name"),
                 "avatar_url": profile.get("avatar_url"),
                 "created_at": profile.get("created_at"),
                 "updated_at": profile.get("updated_at")
@@ -139,7 +137,7 @@ async def update_user_profile_endpoint(
     try:
         body = await request.json()
         
-        allowed_fields = ["username", "full_name", "avatar_url"]
+        allowed_fields = ["avatar_url"]
         update_data = {}
         
         for field in allowed_fields:

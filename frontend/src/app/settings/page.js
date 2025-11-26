@@ -20,7 +20,7 @@ export default function SettingsPage() {
       <div className="min-h-screen flex items-center justify-center bg-black">
         <div className="text-center p-8 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm max-w-md">
           <div className="text-4xl mb-4">🔒</div>
-          <h2 className="text-xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
+          <h2 className="text-xl font-mono font-bold mb-4" style={{ color: 'var(--accent)' }}>
             Authentication Required
           </h2>
           <p className="font-mono text-sm mb-6 text-white/70">
@@ -43,16 +43,16 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-black">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        
+
         {/* Header */}
         <div className="mb-8">
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="inline-flex items-center gap-2 font-mono text-sm hover:underline mb-6 text-white/70 hover:text-green-400 transition-colors"
           >
             ← Back to Home
           </Link>
-          
+
           <div className="text-center mb-8">
             <h1 className="text-4xl font-mono font-bold mb-3 bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent">
               Settings
@@ -71,14 +71,14 @@ export default function SettingsPage() {
             </div>
             <div>
               <h2 className="text-xl font-mono font-bold text-white">
-                {user?.user_metadata?.username || 'User'}
+                {user?.email || 'User'}
               </h2>
               <p className="font-mono text-sm text-white/50">
                 {user?.email}
               </p>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
             <div className="p-4 rounded-lg border border-white/10 bg-black/30">
               <div className="text-xs font-mono uppercase tracking-wider text-white/40 mb-1">
@@ -88,7 +88,7 @@ export default function SettingsPage() {
                 {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
               </div>
             </div>
-            
+
             <div className="p-4 rounded-lg border border-white/10 bg-black/30">
               <div className="text-xs font-mono uppercase tracking-wider text-white/40 mb-1">
                 Last Login
@@ -97,7 +97,7 @@ export default function SettingsPage() {
                 {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : 'Unknown'}
               </div>
             </div>
-            
+
             <div className="p-4 rounded-lg border border-white/10 bg-black/30">
               <div className="text-xs font-mono uppercase tracking-wider text-white/40 mb-1">
                 Status
@@ -119,7 +119,7 @@ export default function SettingsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="group relative p-6 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-green-500/50 transition-all duration-200 cursor-default overflow-hidden">
             <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-green-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            
+
             <h3 className="font-mono font-semibold text-white mb-2">
               Unlimited Analyses
             </h3>
@@ -130,7 +130,7 @@ export default function SettingsPage() {
 
           <div className="group relative p-6 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-green-500/50 transition-all duration-200 cursor-default overflow-hidden">
             <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-green-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-           
+
             <h3 className="font-mono font-semibold text-white mb-2">
               API Access
             </h3>
@@ -141,7 +141,7 @@ export default function SettingsPage() {
 
           <div className="group relative p-6 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-green-500/50 transition-all duration-200 cursor-default overflow-hidden">
             <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-green-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          
+
             <h3 className="font-mono font-semibold text-white mb-2">
               History Saved
             </h3>
@@ -157,7 +157,7 @@ export default function SettingsPage() {
             Quick Actions
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <Link 
+            <Link
               href="/history"
               className="p-4 rounded-lg border border-white/10 bg-black/30 hover:bg-white/10 hover:border-green-500/50 transition-all duration-200 group"
             >
@@ -174,7 +174,7 @@ export default function SettingsPage() {
               </div>
             </Link>
 
-            <Link 
+            <Link
               href="/evaluate"
               className="p-4 rounded-lg border border-white/10 bg-black/30 hover:bg-white/10 hover:border-green-500/50 transition-all duration-200 group"
             >
@@ -195,8 +195,8 @@ export default function SettingsPage() {
 
         {/* Footer Navigation */}
         <div className="text-center">
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="inline-flex items-center gap-2 font-mono text-sm text-white/50 hover:text-green-400 transition-colors"
           >
             ← Return to PowerShell.exposed
