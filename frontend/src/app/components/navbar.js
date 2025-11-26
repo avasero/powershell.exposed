@@ -94,6 +94,12 @@ export default function Navbar() {
                   >
                     Settings
                   </a>
+                  <Link
+                  href="/indicators"
+                  className="block px-4 py-2 text-sm font-mono hover:bg-green-500/10 transition-colors"
+                >
+                  Indicators
+                </Link>
                   <a
                     onClick={handleLogout}
                     className="block px-4 py-2 text-sm font-mono hover:bg-green-500/10 cursor-pointer transition-colors"
