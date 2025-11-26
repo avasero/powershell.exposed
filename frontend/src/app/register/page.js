@@ -86,16 +86,6 @@ export default function RegisterPage() {
                 placeholder="your@email.com"
                 required
               />
-
-              <FormInput
-                label="Username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Your username"
-                required
-              />
-
               <div className="flex items-start space-x-2">
                 <input
                   type="checkbox"

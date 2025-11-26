@@ -70,9 +70,6 @@ export default function SettingsPage() {
               {user?.email?.[0].toUpperCase()}
             </div>
             <div>
-              <h2 className="text-xl font-mono font-bold text-white">
-                {user?.user_metadata?.username || 'User'}
-              </h2>
               <p className="font-mono text-sm text-white/50">
                 {user?.email}
               </p>
