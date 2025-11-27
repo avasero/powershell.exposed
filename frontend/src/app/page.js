@@ -15,35 +15,35 @@ export default function LandingPage() {
             powershell.exposed
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl font-mono" style={{color: 'var(--muted-foreground)'}}>
-            Community-Driven PowerShell Detection Indicators
+            Suspicious PowerShell Detection Engine.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-12">
           <div className="p-6 rounded-lg border bg-black/80 border-green-500/30">
             <h3 className="font-mono font-semibold mb-2" style={{color: 'var(--foreground)'}}>
-              Free Pattern Indicator Matching
+              Community version
             </h3>
             <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-              Public access to all pattern/regex-based indicators
+              Over 80 pattern based indicators ( and counting ). Check the Github project.
             </p>
           </div>
 
           <div className="p-6 rounded-lg border bg-black/80 border-green-500/30">
             <h3 className="font-mono font-semibold mb-2" style={{color: 'var(--foreground)'}}>
-              Real-Time Evaluation
+              Free Analysis
             </h3>
             <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-              Detailed analysis, including historic evaluations for registered users
+              Including aggregated scoring and command evaluation history.
             </p>
           </div>
 
           <div className="p-6 rounded-lg border bg-black/80 border-green-500/30">
             <h3 className="font-mono font-semibold mb-2" style={{color: 'var(--foreground)'}}>
-              Detection Model API
+              Eenterprise Version
             </h3>
             <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-              Coming Soon, with premium indicators (behavioral, anomaly)
+              API access, unlimited rate, premium indicators |( behavioral, anomaly ).
             </p>
           </div>
         </div>
@@ -63,25 +63,7 @@ export default function LandingPage() {
               </ThemedButton>
             </Link>
             
-            {!isAuthenticated() && (
-              <>
-                <Link href="/register">
-                  <ThemedButton 
-                    variant="outline"
-                    size="lg" 
-                    className="w-full sm:w-auto"
-                  >
-                    Create Free Account
-                  </ThemedButton>
-                </Link>
-                
-                <Link href="/login">
-                  <ThemedButton variant="outline" size="lg" className="w-full sm:w-auto">
-                    Login
-                  </ThemedButton>
-                </Link>
-              </>
-            )}
+            
           </div>
         </div>
       </div>
