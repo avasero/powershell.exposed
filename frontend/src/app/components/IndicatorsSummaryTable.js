@@ -82,7 +82,7 @@ export default function IndicatorsSummaryTable({ signatures }) {
                           key={i}
                           className="px-1.5 py-0.5 rounded text-xs"
                           style={{
-                            backgroundColor: '#FFA500',
+                            backgroundColor: '#1E9CFD',
                             color: 'white'
                           }}
                           title={tactic}
@@ -107,7 +107,7 @@ export default function IndicatorsSummaryTable({ signatures }) {
                           key={i}
                           className="px-1.5 py-0.5 rounded text-xs font-mono"
                           style={{
-                            backgroundColor: '#1E9CFD',
+                            backgroundColor: '#7140ed',
                             color: 'white'
                           }}
                         >
