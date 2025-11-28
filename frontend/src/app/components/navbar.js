@@ -99,13 +99,13 @@ export default function Navbar() {
                   >
                     Indicators
                   </Link>
-                  <a
+                  <Link
                     onClick={handleLogout}
                     className="block px-4 py-2 text-sm font-mono hover:bg-green-500/10 cursor-pointer transition-colors"
                     style={{ color: 'var(--foreground)' }}
                   >
                     Logout
-                  </a>
+                  </Link>
                 </div>
               </div>
             )}
