@@ -85,7 +85,6 @@ export default function RegisterPage() {
                 placeholder="your@email.com"
                 required
               />
-
               <div className="flex items-start space-x-2">
                 <input
                   type="checkbox"
