@@ -120,7 +120,7 @@ async def analyze_command_endpoint(
         
         if session_id:
             # ✅ Fetch user plan for rate limiting
-            plan_name = "free"
+            plan_name = "guest"
             request_limit = 10
             
             if user_id:
@@ -128,10 +128,10 @@ async def analyze_command_endpoint(
                 plan_name = plan_features.get("plan_name", "free")
                 request_limit = plan_features.get("request_limit_per_hour", 10)
             else:
-                # For anonymous, fetch free plan limits
-                free_plan = await get_plan_by_name("free")
-                if free_plan:
-                    request_limit = free_plan.get("request_limit_per_hour", 10)
+                # For anonymous, fetch guest plan limits
+                guest_plan = await get_plan_by_name("guest")
+                if guest_plan:
+                    request_limit = guest_plan.get("request_limit_per_hour", 10)
             
             # ✅ FIX: Database-based rate limit check
             rate_limit_info = await check_session_rate_limit_from_db(

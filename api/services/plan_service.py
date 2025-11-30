@@ -172,12 +172,12 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
         can_decode_unlimited_flag = plan_features.get("can_decode_commands", False)
         decode_limit = plan_features.get("decode_limit_per_hour", 5)
     else:
-        # For anonymous users, check the 'free' plan configuration from DB
-        plan_name = "free"
-        free_plan = await get_plan_by_name("free")
-        if free_plan:
-            can_decode_unlimited_flag = free_plan.get("can_decode_commands", False)
-            decode_limit = free_plan.get("decode_limit_per_hour", 5)
+        # For anonymous users, check the 'guest' plan configuration from DB
+        plan_name = "guest"
+        guest_plan = await get_plan_by_name("guest")
+        if guest_plan:
+            can_decode_unlimited_flag = guest_plan.get("can_decode_commands", False)
+            decode_limit = guest_plan.get("decode_limit_per_hour", 5)
         else:
             can_decode_unlimited_flag = False
             decode_limit = 5
