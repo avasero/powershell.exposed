@@ -235,14 +235,14 @@ export default function AnalysisChat() {
                 History Restricted
               </p>
               <p className="text-xs text-white/60 mt-2 mb-4">
-                Upgrade your plan to view recent evaluations
+                Login to see your history of evaluations
               </p>
               <ThemedButton
-                onClick={() => router.push('/settings')}
+                onClick={() => router.push('/login')}
                 size="sm"
                 className="text-xs"
               >
-                View Plans
+                Login
               </ThemedButton>
             </div>
           ) : analyses.length === 0 ? (
