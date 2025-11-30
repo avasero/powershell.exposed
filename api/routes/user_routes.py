@@ -99,7 +99,7 @@ async def get_user_profile_endpoint(
             profile = response.data
             safe_profile = {
                 "id": profile.get("id"),
-                "username": profile.get("username"),
+                "username": profile.get("email"),
                 "full_name": profile.get("full_name"),
                 "avatar_url": profile.get("avatar_url"),
                 "created_at": profile.get("created_at"),
