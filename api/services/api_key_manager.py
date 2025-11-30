@@ -73,20 +73,7 @@ async def create_user_api_key(user_id: str, name: str = "Default API Key", acces
         }
         
         
-        try:
-            response = supabase.table('profiles').update(update_data).eq('id', user_id).execute()
-            
-            if not response.data or len(response.data) == 0:
-                
-                supabase.auth.admin.create_user({
-                    "user_metadata": {"user_id": user_id}
-                })
-                
-                response = supabase.table('profiles').update(update_data).eq('id', user_id).execute()
-                
-        except Exception as e:
-          
-            response = {"data": [], "error": str(e)}
+        response = supabase.table('profiles').update(update_data).eq('id', user_id).execute()
         
        
         
