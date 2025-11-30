@@ -135,10 +135,11 @@ async def validate_anonymous_access(request: Request, call_next):
                             }
                         )
                 else:
-                    print(f"🔍 Token detectado (não é API Key) - verificando origem...")
+                    # print(f"🔍 Token detectado (não é API Key) - verificando origem...")
                     
                     if is_request_from_frontend(request):
-                        print(f"✅ Token JWT do frontend - permitindo validação pelo auth_middleware")
+                        # print(f"✅ Token JWT do frontend - permitindo validação pelo auth_middleware")
+                        pass
                     else:
                         print(f"❌ Token presente mas não é uma API Key válida - BLOQUEANDO")
                         print(f"   Token: {token[:20]}... (Para uso externo, apenas API Keys são permitidas)")

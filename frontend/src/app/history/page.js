@@ -7,6 +7,7 @@ import { getAnonymousAnalyses } from "../../utils/cookies";
 import SeverityBadge from "../components/SeverityBadge";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ThemedButton from "../components/ThemedButton";
+import { FaSortAmountDown, FaSortAmountUp, FaFilter, FaSearch, FaCalendarAlt, FaExclamationTriangle, FaTerminal } from "react-icons/fa";
 
 export default function HistoryPage() {
   const { isAuthenticated, user } = useAuth();
@@ -20,6 +21,11 @@ export default function HistoryPage() {
   const [sortOrder, setSortOrder] = useState("desc"); // asc, desc
   const router = useRouter();
 
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const LIMIT = 24;
+
   // Atualizar timestamps a cada 5 minutos (reduzir re-renders)
   useEffect(() => {
     const interval = setInterval(() => {
@@ -31,16 +37,25 @@ export default function HistoryPage() {
 
   // Carregar análises baseado no status de autenticação
   useEffect(() => {
+    // Reset state when auth changes
+    setAnalyses([]);
+    setOffset(0);
+    setHasMore(true);
+
     if (isAuthenticated()) {
-      loadUserAnalyses();
+      loadUserAnalyses(0);
     } else {
       loadAnonymousAnalyses();
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user?.id]); // Depend on user.id specifically to avoid re-runs on object ref change
 
-  const loadUserAnalyses = async () => {
+  const loadUserAnalyses = async (currentOffset = 0) => {
     try {
-      setLoading(true);
+      if (currentOffset === 0) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
       setError("");
 
       // ✅ FIX: Separar lógica para autenticados vs anônimos
@@ -48,7 +63,7 @@ export default function HistoryPage() {
         // ✅ USUÁRIOS AUTENTICADOS: Buscar do backend
         const { makeAuthenticatedRequest } = await import('../../lib/api');
 
-        const response = await makeAuthenticatedRequest(`/user-analyses`, {
+        const response = await makeAuthenticatedRequest(`/user-analyses?limit=${LIMIT}&offset=${currentOffset}`, {
           method: 'GET'
         });
 
@@ -65,20 +80,31 @@ export default function HistoryPage() {
         }
 
         const result = await response.json();
-        const analyses = result.analyses || [];
-        setAnalyses(analyses);
+        const newAnalyses = result.analyses || [];
+
+        if (currentOffset === 0) {
+          setAnalyses(newAnalyses);
+        } else {
+          setAnalyses(prev => [...prev, ...newAnalyses]);
+        }
+
+        setHasMore(result.has_more);
+        setOffset(currentOffset + newAnalyses.length);
+
       } else {
         // 🍪 USUÁRIOS ANÔNIMOS: Usar APENAS cookies (não backend)
         const cookieAnalyses = getAnonymousAnalyses();
         setAnalyses(cookieAnalyses || []);
+        setHasMore(false);
       }
 
     } catch (err) {
       console.error('❌ Error loading analyses:', err);
       setError("Error loading analysis history: " + err.message);
-      setAnalyses([]);
+      if (currentOffset === 0) setAnalyses([]);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -87,6 +113,12 @@ export default function HistoryPage() {
     setIsRestricted(true);
     setAnalyses([]);
     setLoading(false);
+  };
+
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      loadUserAnalyses(offset);
+    }
   };
 
   const formatDate = (dateString) => {
@@ -181,7 +213,7 @@ export default function HistoryPage() {
           return 0;
       }
 
-      return sortOrder === "asc" ? comparison : -comparison;
+      return sortOrder === "asc" ? -comparison : comparison;
     });
 
   if (loading) {
@@ -197,7 +229,6 @@ export default function HistoryPage() {
 
   return (
     <div className="flex-1 flex flex-col p-4 sm:p-6 md:p-8">
-
       <div className="mb-6">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-2" style={{ color: 'var(--accent)' }}>
           Analysis History
@@ -214,13 +245,16 @@ export default function HistoryPage() {
 
       <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
 
-        <div className="flex-1 max-w-md">
+        <div className="flex-1 max-w-md relative">
+          <div className="absolute inset-y-0  flex items-center pointer-events-none">
+            <FaSearch className="text-gray-500" />
+          </div>
           <input
             type="text"
             placeholder="Filter by command..."
             value={filterTerm}
             onChange={(e) => setFilterTerm(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border font-mono text-sm"
+            className="w-full py-2 pl-10 rounded-lg border font-mono text-sm focus:ring-1 focus:ring-green-500 outline-none transition-all"
             style={{
               backgroundColor: 'var(--card-bg)',
               borderColor: 'var(--border-color)',
@@ -228,7 +262,6 @@ export default function HistoryPage() {
             }}
           />
         </div>
-
 
         <div className="flex gap-2 items-center">
           <select
@@ -248,172 +281,151 @@ export default function HistoryPage() {
 
           <button
             onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-            className="px-3 py-2 rounded-lg border font-mono text-sm transition-colors"
+            className="px-3 py-2 rounded-lg border font-mono text-sm transition-colors flex items-center justify-center min-w-[40px] hover:bg-white/5"
             style={{
               backgroundColor: 'var(--card-bg)',
               borderColor: 'var(--border-color)',
               color: 'var(--foreground)'
             }}
+            title={sortOrder === "asc" ? "Ascending" : "Descending"}
           >
-            {sortOrder === "asc" ? "↑" : "↓"}
+            {sortOrder === "asc" ? <FaSortAmountUp /> : <FaSortAmountDown />}
           </button>
         </div>
       </div>
 
 
-      {error && (
-        <div className="mb-6 p-4 rounded-lg border border-red-500" style={{ backgroundColor: 'var(--card-bg)' }}>
-          <p className="font-mono text-sm text-red-400">{error}</p>
-        </div>
-      )}
+      {
+        error && (
+          <div className="mb-6 p-4 rounded-lg border border-red-500" style={{ backgroundColor: 'var(--card-bg)' }}>
+            <p className="font-mono text-sm text-red-400">{error}</p>
+          </div>
+        )
+      }
 
-      {isRestricted ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 border rounded-lg border-dashed" style={{ borderColor: 'var(--border-color)' }}>
-          <h2 className="font-mono text-xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
-            History Restricted
-          </h2>
-          <p className="font-mono text-sm mb-6 text-center max-w-md" style={{ color: 'var(--muted-foreground)' }}>
-            Guest users do not have access to evaluation history. <br />
-            Please upgrade your plan to view your past analyses.
-          </p>
-          <ThemedButton onClick={() => router.push('/settings')}>
-            View Plans
-          </ThemedButton>
-        </div>
-      ) : filteredAndSortedAnalyses.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="text-center max-w-md">
-            <div className="text-6xl mb-4">📊</div>
+      {
+        isRestricted ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 border rounded-lg border-dashed" style={{ borderColor: 'var(--border-color)' }}>
             <h2 className="font-mono text-xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
-              {filterTerm ? 'No results found' : 'No analyses found'}
+              History Restricted
             </h2>
-            <p className="font-mono text-sm mb-6" style={{ color: 'var(--muted-foreground)' }}>
-              {filterTerm
-                ? `No analyses match the filter "${filterTerm}"`
-                : isAuthenticated()
-                  ? 'Start by analyzing a PowerShell command'
-                  : 'Your anonymous analyses will appear here'}
+            <p className="font-mono text-sm mb-6 text-center max-w-md" style={{ color: 'var(--muted-foreground)' }}>
+              Guest users do not have access to evaluation history. <br />
+              Please upgrade your plan to view your past analyses.
             </p>
-            <ThemedButton onClick={() => router.push('/')}>
-              Analyze First Command
+            <ThemedButton onClick={() => router.push('/settings')}>
+              View Plans
             </ThemedButton>
           </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredAndSortedAnalyses.map((analysis) => (
-            <div
-              key={analysis.id}
-              onClick={() => handleAnalysisClick(analysis.command, analysis.short_id || analysis.uuid || analysis.id)}
-              className="p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:opacity-80 hover:scale-[1.02]"
-              style={{
-                backgroundColor: 'var(--card-bg)',
-                borderColor: 'var(--border-color)'
-              }}
-            >
+        ) : filteredAndSortedAnalyses.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <div className="text-center max-w-md">
+              <div className="text-6xl mb-4">📊</div>
+              <h2 className="font-mono text-xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+                {filterTerm ? 'No results found' : 'No analyses found'}
+              </h2>
+              <p className="font-mono text-sm mb-6" style={{ color: 'var(--muted-foreground)' }}>
+                {filterTerm
+                  ? `No analyses match the filter "${filterTerm}"`
+                  : isAuthenticated()
+                    ? 'Start by analyzing a PowerShell command'
+                    : 'Your anonymous analyses will appear here'}
+              </p>
+              <ThemedButton onClick={() => router.push('/')}>
+                Analyze First Command
+              </ThemedButton>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredAndSortedAnalyses.map((analysis) => (
+              <div
+                key={analysis.id}
+                onClick={() => handleAnalysisClick(analysis.command, analysis.short_id || analysis.uuid || analysis.id)}
+                className="group relative p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-green-500/50 transition-all duration-200 cursor-pointer overflow-hidden"
+              >
+                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-green-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-              <div className="flex items-start justify-between mb-3">
-                <SeverityBadge
-                  score={analysis.risk_score ?? analysis.score ?? 0}
-                  size="sm"
-                />
-                <span className="font-mono text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                  {formatDate(analysis.created_at)}
-                </span>
-              </div>
-
-
-              <div className="mb-3">
-                <p className="font-mono text-sm font-medium leading-tight" style={{ color: 'var(--foreground)' }}>
-                  {truncateCommand(analysis.command)}
-                </p>
-              </div>
-
-
-              {analysis.cmdlets_detected && Array.isArray(analysis.cmdlets_detected) && analysis.cmdlets_detected.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {analysis.cmdlets_detected.slice(0, 2).map((cmdlet, index) => {
-                    const displayName = cmdlet.alias || 'Unknown';
-                    const shortName = displayName.length > 10 ? displayName.substring(0, 10) + '...' : displayName;
-
-                    return (
-                      <span
-                        key={index}
-                        className="px-2 py-1 rounded text-xs font-mono bg-green-900/30 text-green-400 border border-green-800"
-                        title={`${cmdlet.alias} → ${cmdlet.cmdlet_name}`}
-                      >
-                        {shortName}
-                      </span>
-                    );
-                  })}
-                  {analysis.cmdlets_detected.length > 2 && (
-                    <span className="px-2 py-1 rounded text-xs font-mono" style={{ backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)' }}>
-                      +{analysis.cmdlets_detected.length - 2}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <SeverityBadge
+                      score={analysis.risk_score ?? analysis.score ?? 0}
+                      size="xs"
+                    />
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">
+                      {formatDate(analysis.created_at)}
                     </span>
-                  )}
+                  </div>
                 </div>
-              )}
 
+                <div className="mb-3">
+                  <p className="font-mono text-sm text-white/90 break-all line-clamp-2 group-hover:text-green-400 transition-colors">
+                    {truncateCommand(analysis.command)}
+                  </p>
+                </div>
 
-              {(analysis.signatures_detected || analysis.signatures) && Array.isArray(analysis.signatures_detected || analysis.signatures) && (analysis.signatures_detected || analysis.signatures).length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {(analysis.signatures_detected || analysis.signatures).slice(0, 1).map((sig, index) => {
-                    let sigName = '';
-                    if (typeof sig === 'object' && sig !== null) {
-                      sigName = sig.name || sig.keyword || 'Unknown';
-                    } else if (typeof sig === 'string') {
-                      sigName = sig;
-                    } else {
-                      sigName = 'Unknown';
-                    }
-
-                    const displayName = sigName.length > 12 ? sigName.substring(0, 12) + '...' : sigName;
-
-                    return (
-                      <span
-                        key={index}
-                        className="px-2 py-1 rounded text-xs font-mono bg-red-900/30 text-red-400 border border-red-800"
-                      >
-                        {displayName}
+                {(analysis.signatures_detected || analysis.signatures || []).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {(analysis.signatures_detected || analysis.signatures).slice(0, 2).map((sig, index) => {
+                      const name = typeof sig === 'string' ? sig : (sig.name || sig.keyword || 'Unknown');
+                      return (
+                        <span
+                          key={index}
+                          className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-red-500/10 text-red-400 border border-red-500/20"
+                        >
+                          {name.length > 15 ? name.substring(0, 15) + '...' : name}
+                        </span>
+                      );
+                    })}
+                    {(analysis.signatures_detected || analysis.signatures).length > 2 && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-white/5 text-white/40 border border-white/10">
+                        +{(analysis.signatures_detected || analysis.signatures).length - 2}
                       </span>
-                    );
-                  })}
-                  {(analysis.signatures_detected || analysis.signatures).length > 1 && (
-                    <span className="px-2 py-1 rounded text-xs font-mono" style={{ backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)' }}>
-                      +{(analysis.signatures_detected || analysis.signatures).length - 1} more
+                    )}
+                  </div>
+                )}
+
+                {!isAuthenticated() && analysis.is_anonymous && (
+                  <div className="mt-3 pt-3 border-t border-white/5">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-green-500/10 text-green-400 border border-green-500/20">
+                      Anonymous
                     </span>
-                  )}
-                </div>
-              )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )
+      }
 
 
-              {!isAuthenticated() && analysis.is_anonymous && (
-                <div className="mt-2 pt-2 border-t" style={{ borderColor: 'var(--border-color)' }}>
-                  <span className="px-2 py-1 rounded text-xs font-mono bg-green-900/30 text-green-400 border border-green-800">
-                    Anonymous Analysis
-                  </span>
-                </div>
+      {
+        filteredAndSortedAnalyses.length > 0 && (
+          <div className="mt-8 flex flex-col items-center gap-4">
+            {hasMore && !filterTerm && (
+              <ThemedButton
+                onClick={handleLoadMore}
+                variant="outline"
+                disabled={loadingMore}
+              >
+                {loadingMore ? <LoadingSpinner size="sm" /> : 'Load More'}
+              </ThemedButton>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <ThemedButton onClick={() => router.push('/')}>
+                New Analysis
+              </ThemedButton>
+              {!isAuthenticated() && (
+                <ThemedButton variant="outline" onClick={() => router.push('/register')}>
+                  Create Account to Save History
+                </ThemedButton>
               )}
             </div>
-          ))}
-        </div>
-      )}
-
-
-      {filteredAndSortedAnalyses.length > 0 && (
-        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-          <ThemedButton onClick={() => router.push('/')}>
-            New Analysis
-          </ThemedButton>
-          {!isAuthenticated() && (
-            <ThemedButton variant="outline" onClick={() => router.push('/register')}>
-              Create Account to Save History
-            </ThemedButton>
-          )}
-        </div>
-      )}
-    </div>
+          </div>
+        )
+      }
+    </div >
   );
 }
-
 

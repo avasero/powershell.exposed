@@ -415,12 +415,20 @@ async def get_user_analyses_endpoint(
 ):
     """
     Busca análises do usuário logado ou sessão anônima
-    Suporta parâmetro limit para limitar quantidade de resultados
-    Se limit não for especificado, retorna TODOS os registros
+    Suporta paginação com limit e offset
     """
     try:
+        # Pagination params
         limit_param = request.query_params.get("limit")
-        limit = int(limit_param) if limit_param else None   
+        offset_param = request.query_params.get("offset")
+        
+        limit = int(limit_param) if limit_param else 50
+        offset = int(offset_param) if offset_param else 0
+        
+        # Max limit protection
+        if limit > 100:
+            limit = 100
+            
         user_id_from_query = request.query_params.get("user_id")
         
         user_id = current_user["id"] if current_user else user_id_from_query
@@ -469,26 +477,18 @@ async def get_user_analyses_endpoint(
         
         supabase = get_supabase_client()
         
+        # Base query
+        query = supabase.table('powershell_analyses').select('*', count='exact')
+        
         if user_id:
-            query = supabase.table('powershell_analyses') \
-                .select('*') \
-                .eq('user_id', user_id) \
-                .order('created_at', desc=True)
-            
-            if limit:
-                query = query.limit(limit)
-                
-            response = query.execute()
+            query = query.eq('user_id', user_id)
         else:
-            query = supabase.table('powershell_analyses') \
-                .select('*') \
-                .eq('session_id', session_id) \
-                .order('created_at', desc=True)
+            query = query.eq('session_id', session_id)
             
-            if limit:
-                query = query.limit(limit)
-                
-            response = query.execute()
+        # Order and pagination
+        query = query.order('created_at', desc=True).range(offset, offset + limit - 1)
+            
+        response = query.execute()
         
         if response.data:
             analyses = []
@@ -514,13 +514,19 @@ async def get_user_analyses_endpoint(
             return JSONResponse({
                 "success": True,
                 "analyses": analyses,
-                "total": len(analyses)
+                "total": response.count,
+                "limit": limit,
+                "offset": offset,
+                "has_more": (offset + len(analyses)) < response.count
             })
         else:
             return JSONResponse({
                 "success": True,
                 "analyses": [],
-                "total": 0
+                "total": 0,
+                "limit": limit,
+                "offset": offset,
+                "has_more": False
             })
             
     except Exception as error:
