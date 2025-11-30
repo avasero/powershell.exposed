@@ -43,7 +43,6 @@ export default function SettingsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
         <div className="text-center p-8 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm max-w-md">
-          <div className="text-4xl mb-4">🔒</div>
           <h2 className="text-xl font-mono font-bold mb-4" style={{ color: 'var(--accent)' }}>
             Authentication Required
           </h2>

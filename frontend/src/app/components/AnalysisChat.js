@@ -231,7 +231,6 @@ export default function AnalysisChat() {
             </div>
           ) : isRestricted ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-6 opacity-80">
-              <div className="text-2xl mb-2">🔒</div>
               <p className="font-mono text-sm text-white/90 font-bold">
                 History Restricted
               </p>

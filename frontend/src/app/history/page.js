@@ -269,7 +269,6 @@ export default function HistoryPage() {
 
       {isRestricted ? (
         <div className="flex-1 flex flex-col items-center justify-center p-8 border rounded-lg border-dashed" style={{ borderColor: 'var(--border-color)' }}>
-          <div className="text-6xl mb-4">🔒</div>
           <h2 className="font-mono text-xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
             History Restricted
           </h2>
