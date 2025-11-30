@@ -24,7 +24,7 @@ export default function HistoryPage() {
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const LIMIT = 24;
+  const LIMIT = 100;
 
   // Atualizar timestamps a cada 5 minutos (reduzir re-renders)
   useEffect(() => {

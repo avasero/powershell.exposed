@@ -36,7 +36,7 @@ export default function RootLayout({ children }) {
       >
         <ThemeProvider>
           <AuthProvider>
-              <AnalysisEventProvider>
+            <AnalysisEventProvider>
               <DrawerProvider>
                 <AnalysisDrawerProvider>
                   <Navbar />
