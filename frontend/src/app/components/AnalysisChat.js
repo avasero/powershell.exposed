@@ -16,6 +16,7 @@ export default function AnalysisChat() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [isRestricted, setIsRestricted] = useState(false);
   const [hiddenAnalyses, setHiddenAnalyses] = useState(new Set());
   const router = useRouter();
 
@@ -92,6 +93,7 @@ export default function AnalysisChat() {
   const loadRecentAnalyses = async (hiddenSet = hiddenAnalyses) => {
     try {
       setLoading(true);
+      setIsRestricted(false);
 
       // ✅ USUÁRIOS AUTENTICADOS - usar backend
       if (isAuthenticated() && user?.id) {
@@ -100,7 +102,14 @@ export default function AnalysisChat() {
           method: 'GET'
         });
 
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+          if (response.status === 403) {
+            setIsRestricted(true);
+            setAnalyses([]);
+            return;
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
         const result = await response.json();
         const allAnalyses = result.analyses || [];
@@ -114,15 +123,9 @@ export default function AnalysisChat() {
         return;
       }
 
-      // 🍪 USUÁRIOS ANÔNIMOS - usar APENAS cookies
-      const cookieAnalyses = getAnonymousAnalyses();
-
-      const filteredAnalyses = cookieAnalyses.filter(analysis => {
-        const analysisId = analysis.id;
-        return !hiddenSet.has(analysisId);
-      }).slice(0, 10);
-
-      setAnalyses(filteredAnalyses);
+      // 🍪 USUÁRIOS ANÔNIMOS - Restringir
+      setIsRestricted(true);
+      setAnalyses([]);
 
     } catch (err) {
       console.error('❌ [ANALYSIS CHAT] Error loading analyses:', err);
@@ -225,6 +228,23 @@ export default function AnalysisChat() {
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="h-20 rounded-lg animate-pulse bg-white/5 border border-white/10"></div>
               ))}
+            </div>
+          ) : isRestricted ? (
+            <div className="flex flex-col items-center justify-center h-full text-center p-6 opacity-80">
+              <div className="text-2xl mb-2">🔒</div>
+              <p className="font-mono text-sm text-white/90 font-bold">
+                History Restricted
+              </p>
+              <p className="text-xs text-white/60 mt-2 mb-4">
+                Upgrade your plan to view recent evaluations
+              </p>
+              <ThemedButton
+                onClick={() => router.push('/settings')}
+                size="sm"
+                className="text-xs"
+              >
+                View Plans
+              </ThemedButton>
             </div>
           ) : analyses.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-6 opacity-60">

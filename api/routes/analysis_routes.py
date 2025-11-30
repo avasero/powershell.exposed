@@ -440,6 +440,33 @@ async def get_user_analyses_endpoint(
                 status_code=401
             )
         
+        # Check plan for history access
+        if user_id:
+            plan_features = await get_user_plan_features(user_id)
+            if plan_features.get("plan_name") == "guest":
+                 return JSONResponse(
+                    {
+                        "error": {
+                            "code": "PlanRestrictionError",
+                            "message": "Guest users do not have access to history.",
+                            "details": "Upgrade your plan to view history."
+                        }
+                    },
+                    status_code=403
+                )
+        else:
+             # Anonymous users are guests
+             return JSONResponse(
+                {
+                    "error": {
+                        "code": "PlanRestrictionError",
+                        "message": "Guest users do not have access to history.",
+                        "details": "Sign up and upgrade your plan to view history."
+                    }
+                },
+                status_code=403
+            )
+        
         supabase = get_supabase_client()
         
         if user_id:
@@ -730,6 +757,20 @@ async def get_user_command_evaluations_endpoint(
     Supports pagination and filtering by specific analysis.
     """
     try:
+        # Check plan for history access
+        plan_features = await get_user_plan_features(user["id"])
+        if plan_features.get("plan_name") == "guest":
+                return JSONResponse(
+                {
+                    "error": {
+                        "code": "PlanRestrictionError",
+                        "message": "Guest users do not have access to history.",
+                        "details": "Upgrade your plan to view history."
+                    }
+                },
+                status_code=403
+            )
+
         supabase = get_supabase_client()
         
         # Build query
