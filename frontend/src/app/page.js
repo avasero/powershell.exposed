@@ -22,28 +22,28 @@ export default function LandingPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-12">
           <div className="p-6 rounded-lg border bg-black/80 border-green-500/30">
             <h3 className="font-mono font-semibold mb-2" style={{color: 'var(--foreground)'}}>
-              Community version
+              GitHub Repository
             </h3>
             <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-              Over 80 pattern based indicators ( and counting ). Check the Github project.
+              With over 80 pattern based indicators maintained by practitioners.
             </p>
           </div>
 
           <div className="p-6 rounded-lg border bg-black/80 border-green-500/30">
             <h3 className="font-mono font-semibold mb-2" style={{color: 'var(--foreground)'}}>
-              Free Analysis
+              Free Features
             </h3>
             <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-              Including aggregated scoring and command evaluation history.
+              Pattern indicator matching with basic scoring and command decoding.
             </p>
           </div>
 
           <div className="p-6 rounded-lg border bg-black/80 border-green-500/30">
             <h3 className="font-mono font-semibold mb-2" style={{color: 'var(--foreground)'}}>
-              Eenterprise Version
+              Advanced Features
             </h3>
             <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-              API access, unlimited rate, premium indicators |( behavioral, anomaly ).
+              API access, command deobfuscatin, anomaly indicators and more.
             </p>
           </div>
         </div>
