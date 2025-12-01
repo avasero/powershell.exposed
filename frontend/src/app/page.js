@@ -1,3 +1,4 @@
+// eslint-disable-line react-hooks/exhaustive-deps
 "use client";
 import Link from "next/link";
 import ThemedButton from "./components/ThemedButton";

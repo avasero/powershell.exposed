@@ -1,5 +1,6 @@
+// eslint-disable-line react-hooks/exhaustive-deps
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
 import { useAnalysisDrawer } from "../contexts/AnalysisDrawerContext";
@@ -19,6 +20,8 @@ export default function AnalysisChat() {
   const [isRestricted, setIsRestricted] = useState(false);
   const [hiddenAnalyses, setHiddenAnalyses] = useState(new Set());
   const router = useRouter();
+  const hasFetchedRef = useRef(false);
+  const lastUserIdRef = useRef(null);
 
   const getHiddenAnalysesKey = () => {
     if (isAnonymous) {
@@ -71,17 +74,28 @@ export default function AnalysisChat() {
     }, 100);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
+    // Prevent duplicate fetches for the same user
+    const currentUserId = user?.id || 'anonymous';
+    if (hasFetchedRef.current && lastUserIdRef.current === currentUserId) {
+      return;
+    }
+    
     const hiddenSet = loadHiddenAnalyses();
 
     if (isAuthenticated() && user) {
       setIsAnonymous(false);
+      hasFetchedRef.current = true;
+      lastUserIdRef.current = currentUserId;
       loadRecentAnalyses(hiddenSet);
     } else if (!isAuthenticated()) {
       setIsAnonymous(true);
+      hasFetchedRef.current = true;
+      lastUserIdRef.current = currentUserId;
       loadRecentAnalyses(hiddenSet);
     }
-  }, [user?.id, isAuthenticated]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (analysisCount > 0) {

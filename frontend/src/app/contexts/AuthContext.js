@@ -1,5 +1,5 @@
 "use client"
-import { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 import { getAnonymousAnalyses, clearAnonymousAnalyses } from '../../utils/cookies';
@@ -405,9 +405,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const isAuthenticated = () => {
+  const isAuthenticated = useCallback(() => {
     return user !== null;
-  };
+  }, [user]);
 
   // If loading, show loading spinner
   if (loading) {

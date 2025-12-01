@@ -1,5 +1,6 @@
+// eslint-disable-line react-hooks/exhaustive-deps
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
 import { getAllUserAnalyses } from "../../../utils/database";
@@ -25,6 +26,8 @@ export default function HistoryPage() {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const LIMIT = 100;
+  const hasFetchedRef = useRef(false);
+  const lastUserIdRef = useRef(null);
 
   // Atualizar timestamps a cada 5 minutos (reduzir re-renders)
   useEffect(() => {
@@ -37,17 +40,26 @@ export default function HistoryPage() {
 
   // Carregar análises baseado no status de autenticação
   useEffect(() => {
+    // Prevent duplicate fetches for the same user
+    const currentUserId = user?.id || 'anonymous';
+    if (hasFetchedRef.current && lastUserIdRef.current === currentUserId) {
+      return;
+    }
+    
     // Reset state when auth changes
     setAnalyses([]);
     setOffset(0);
     setHasMore(true);
+
+    hasFetchedRef.current = true;
+    lastUserIdRef.current = currentUserId;
 
     if (isAuthenticated()) {
       loadUserAnalyses(0);
     } else {
       loadAnonymousAnalyses();
     }
-  }, [isAuthenticated, user?.id]); // Depend on user.id specifically to avoid re-runs on object ref change
+  }, [user?.id]); // Only depend on user.id to avoid re-runs
 
   const loadUserAnalyses = async (currentOffset = 0) => {
     try {

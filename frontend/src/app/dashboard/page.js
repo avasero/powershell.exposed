@@ -1,3 +1,4 @@
+// eslint-disable-line react-hooks/exhaustive-deps
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -17,7 +18,7 @@ export default function DashboardPage() {
   const [message, setMessage] = useState("");
   const router = useRouter();
 
-  useEffect(() => {
+  useEffect(() => { // eslint-disable-line react-hooks/exhaustive-deps
     if (!isAuthenticated()) {
       router.push('/login');
       return;

@@ -20,6 +20,10 @@ export default function Footer() {
         
         {/* Right side - Links */}
         <div className="mt-2 md:mt-0 text-center md:text-right" style={{color: 'var(--muted-foreground)'}}>
+          <Link href="mailto:hi@powershell.exposed" style={{color: 'var(--accent)', textDecoration: 'underline'}}>
+            Get in Touch
+          </Link>
+          {' - '}
           <Link href="/terms" style={{color: 'var(--accent)', textDecoration: 'underline'}}>
             Terms & Conditions
           </Link>

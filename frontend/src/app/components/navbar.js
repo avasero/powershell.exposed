@@ -1,3 +1,4 @@
+// eslint-disable-line react-hooks/exhaustive-deps
 "use client";
 import { FaUserCircle } from "react-icons/fa";
 import React, { useState, useRef } from "react";
