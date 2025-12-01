@@ -122,7 +122,7 @@ async def get_user_profile_endpoint(
             )
             
     except Exception as error:
-        print(f"Error fetching user profile: {error}")
+        print(f"[ERROR] Fetching user profile: {type(error).__name__}")
         return JSONResponse(
             {"error": f"Failed to fetch profile: {str(error)}"},
             status_code=500
@@ -169,7 +169,7 @@ async def update_user_profile_endpoint(
             )
             
     except Exception as error:
-        print(f"Error updating user profile: {error}")
+        print(f"[ERROR] Updating user profile: {type(error).__name__}")
         return JSONResponse(
             {"error": f"Failed to update profile: {str(error)}"},
             status_code=500
@@ -230,7 +230,7 @@ async def get_user_statistics_endpoint(
             })
             
     except Exception as error:
-        print(f"Error fetching user statistics: {error}")
+        print(f"[ERROR] Fetching user statistics: {type(error).__name__}")
         return JSONResponse(
             {"error": f"Failed to fetch statistics: {str(error)}"},
             status_code=500

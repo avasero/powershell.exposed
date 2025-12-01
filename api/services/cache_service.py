@@ -143,7 +143,7 @@ def should_cache_result(analysis_result: Dict[str, Any]) -> bool:
     for sig in detected_signatures:
         
         if sig.get("is_premium_indicator", False):
-            print(f"🚫 Not caching result - premium indicator detected: {sig.get('name')}")
+            print(f"[CACHE] Not caching result - premium indicator detected")
             return False
     
    

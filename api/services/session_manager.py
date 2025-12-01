@@ -71,11 +71,8 @@ def get_supabase_client_with_user_context(access_token: str = None) -> Client:
     
     if not SUPABASE_URL or not SUPABASE_ANON_KEY:
         raise ValueError("SUPABASE_URL e SUPABASE_ANON_KEY devem estar configurados")
-    
    
-    if access_token:
-        print(f"🔧 Access token: {access_token[:20]}...")
-    
+    # SECURITY: Do not log access tokens
     client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
     
     if access_token:

@@ -127,12 +127,12 @@ async def get_user_api_key(user_id: str, access_token: str = None) -> Optional[D
                     "is_active": profile["api_key_is_active"]
                 }
             else:
-                print(f"{user_id}")
+                print(f"[API KEY] No active key found for user")
         
         return None
         
     except Exception as error:
-        print(f"{error}")
+        print(f"[API KEY] Get key error: {type(error).__name__}")
         return None
 
 
@@ -174,7 +174,7 @@ async def validate_api_key(api_key: str) -> Optional[Dict[str, Any]]:
         }
         
     except Exception as error:
-        print(f"{error}")
+        print(f"[API KEY] Validation error: {type(error).__name__}")
         return None
 
 
@@ -187,7 +187,7 @@ async def update_api_key_usage(api_key: str):
         supabase.rpc('increment_api_key_usage_count', {'api_key_param': api_key}).execute()
             
     except Exception as error:
-        print(f" {error}")
+        print(f"[API KEY] Usage update error: {type(error).__name__}")
 
 
 async def revoke_user_api_key(user_id: str, access_token: str = None) -> bool:
@@ -213,15 +213,14 @@ async def revoke_user_api_key(user_id: str, access_token: str = None) -> bool:
             .execute()
         
         if response.data and len(response.data) > 0:
-            print(f"✅ API Key completamente removida para usuário {user_id}")
-            print(f"📊 Dados atualizados: {response.data}")
+            print(f"[API KEY] Key revoked successfully")
             return True
         else:
-            print(f"⚠️ Nenhum registro encontrado para usuário {user_id}")
+            print(f"[API KEY] No record found for revocation")
             return False
         
     except Exception as error:
-        print(f"❌ Erro ao revogar API Key: {error}")
+        print(f"[API KEY] Error revoking key: {type(error).__name__}")
         return False
 
 
@@ -235,5 +234,5 @@ async def regenerate_user_api_key(user_id: str, access_token: str = None) -> Opt
         return await create_user_api_key(user_id, "Regenerated API Key", access_token)
         
     except Exception as error:
-        print(f"❌ Erro ao regenerar API Key: {error}")
+        print(f"[API KEY] Error regenerating key: {type(error).__name__}")
         return None

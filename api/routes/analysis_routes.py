@@ -65,8 +65,8 @@ async def analyze_command_endpoint(
                 status_code=400
             )
         
-     
-        print(f"Length: {len(command)}, Content: '{command[:100]}'")
+        # Log only metadata, not command content for security
+        print(f"[ANALYZE] Command length: {len(command)} chars")
 
         
         global_rate_limit_info = check_global_rate_limit()
@@ -226,13 +226,13 @@ async def analyze_command_endpoint(
             if not decode_info["can_decode"]:
                 if decoded_cmd:
                     decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
-                    print(f"🚫 [MASKING] decoded_command masked")
+                    print(f"[MASKING] decoded_command masked")
                 if double_decoded_cmd:
                     double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
-                    print(f"🚫 [MASKING] double_decoded_command masked")
+                    print(f"[MASKING] double_decoded_command masked")
                 if deobfuscated_cmd:
                     deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
-                    print(f"🚫 [MASKING] deobfuscated_command masked")
+                    print(f"[MASKING] deobfuscated_command masked")
                 
                 # ✅ FIX: Mask matched_text in signatures to prevent leak
                 signatures_detected = results_blob.get("signatures_detected", [])
@@ -338,7 +338,7 @@ async def analyze_command_endpoint(
         # ✅ FIX: Use centralized plan service for ALL users (including anonymous)
         decode_info = await can_user_decode_commands(user_id, session_id=session_id)
         
-        print(f" User: {user_id[:8] if user_id else 'ANONYMOUS'} | Session: {session_id[:8] if session_id else 'NONE'} | Can decode: {decode_info['can_decode']} | Usage: {decode_info['current_usage']}/{decode_info['limit']}")
+        print(f"[DECODE CHECK] User: {user_id[:8] if user_id else 'ANON'}... | Can decode: {decode_info['can_decode']} | Usage: {decode_info['current_usage']}/{decode_info['limit']}")
         
         # Mask content for users without decode permission
         decode_limit_reached = False
@@ -347,13 +347,13 @@ async def analyze_command_endpoint(
                 
             if decoded_cmd:
                 decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
-                print(f" [MASKING] decoded_command masked")
+                print(f"[MASKING] decoded_command masked")
             if double_decoded_cmd:
                 double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
-                print(f" [MASKING] double_decoded_command masked")
+                print(f"[MASKING] double_decoded_command masked")
             if deobfuscated_cmd:
                 deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
-                print(f" [MASKING] deobfuscated_command masked")
+                print(f"[MASKING] deobfuscated_command masked")
 
             # ✅ FIX: Mask matched_text in signatures to prevent leak
             for signature in analysis_result["detected_signatures"]:
@@ -418,20 +418,26 @@ async def get_user_analyses_endpoint(
     Suporta paginação com limit e offset
     """
     try:
-        # Pagination params
+        # Pagination params with safe validation
         limit_param = request.query_params.get("limit")
         offset_param = request.query_params.get("offset")
         
-        limit = int(limit_param) if limit_param else 50
-        offset = int(offset_param) if offset_param else 0
+        try:
+            limit = int(limit_param) if limit_param else 50
+        except (ValueError, TypeError):
+            limit = 50
         
-        # Max limit protection
-        if limit > 100:
-            limit = 100
-            
-        user_id_from_query = request.query_params.get("user_id")
+        try:
+            offset = int(offset_param) if offset_param else 0
+        except (ValueError, TypeError):
+            offset = 0
         
-        user_id = current_user["id"] if current_user else user_id_from_query
+        # Bounds protection
+        limit = max(1, min(limit, 100))
+        offset = max(0, offset)
+        
+        # SECURITY: Only use authenticated user's ID, never from query params
+        user_id = current_user["id"] if current_user else None
         session_id = request.cookies.get("session_id")
         if not session_id:
             session_id = request.headers.get("X-Session-ID")
@@ -530,7 +536,7 @@ async def get_user_analyses_endpoint(
             })
             
     except Exception as error:
-        print(f"❌ Error fetching user analyses: {error}")
+        print(f"[ERROR] Error fetching user analyses: {type(error).__name__}")
         return JSONResponse(
             {
                 "error": {
@@ -552,8 +558,23 @@ async def get_analysis_by_id_endpoint(
     Permite acesso público para análises compartilháveis
     """
     try:
+        # Sanitize analysis_id input
+        if not analysis_id or len(analysis_id) > 50:
+            return JSONResponse(
+                {
+                    "error": {
+                        "code": "InvalidArgumentError",
+                        "message": "Some of the provided arguments are incorrect.",
+                        "details": "Invalid analysis ID format"
+                    }
+                },
+                status_code=400
+            )
+        
+        analysis_id = analysis_id.strip()
         supabase = get_supabase_client()
         
+        # Short ID format: 8 alphanumeric characters
         if len(analysis_id) == 8 and analysis_id.isalnum():
             response = supabase.table('powershell_analyses').select('*').eq('short_id', analysis_id).single().execute()
             
@@ -678,7 +699,7 @@ async def get_analysis_by_id_endpoint(
             }
         })
     except Exception as error:
-        print(f"❌ [GET ANALYSIS ERROR] {error}")
+        print(f"[ERROR] GET ANALYSIS: {type(error).__name__}")
         import traceback
         traceback.print_exc()
         return JSONResponse(
@@ -728,7 +749,7 @@ async def delete_user_analysis_endpoint(
         })
         
     except Exception as error:
-        print(f"Error deleting analysis: {error}")
+        print(f"[ERROR] Deleting analysis: {type(error).__name__}")
         return JSONResponse(
             {"error": f"Failed to delete analysis: {str(error)}"},
             status_code=500
@@ -875,7 +896,7 @@ async def get_user_command_evaluations_endpoint(
             })
             
     except Exception as error:
-        print(f"Error fetching user command evaluations: {error}")
+        print(f"[ERROR] Fetching command evaluations: {type(error).__name__}")
         return JSONResponse(
             {"error": f"Failed to fetch command evaluations: {str(error)}"},
             status_code=500

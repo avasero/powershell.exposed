@@ -41,7 +41,7 @@ async def check_session_rate_limit_from_db(
         result = query.execute()
         current_count = result.count or 0
         
-        print(f" Session: {session_id[:8]} | Count: {current_count}/{limit_per_hour}")
+        print(f"[RATE LIMIT] Session: {session_id[:8] if session_id else 'NONE'}... | Count: {current_count}/{limit_per_hour}")
         
         within_limit = current_count < limit_per_hour
         
@@ -78,7 +78,7 @@ async def check_session_rate_limit_from_db(
         }
         
     except Exception as e:
-        print(f"❌ [DB RATE LIMIT] Error: {e}")
+        print(f"[ERROR] DB Rate limit check: {type(e).__name__}")
         import traceback
         traceback.print_exc()
         # Fallback: deny access on error
@@ -142,7 +142,7 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
         
     except Exception as e:
         
-        print(f"   Exception type: {type(e).__name__}")
+        # Log only error type, not full details
         import traceback
         traceback.print_exc()
         # Return free plan as fallback
@@ -292,7 +292,7 @@ async def get_plan_by_name(plan_name: str) -> Optional[Dict[str, Any]]:
         return response.data if response.data else None
         
     except Exception as e:
-        print(f"❌ Error fetching plan: {e}")
+        print(f"[ERROR] Fetching plan: {type(e).__name__}")
         return None
 
 
@@ -314,5 +314,5 @@ async def get_all_plans() -> list:
         return response.data if response.data else []
         
     except Exception as e:
-        print(f"❌ Error fetching plans: {e}")
+        print(f"[ERROR] Fetching plans: {type(e).__name__}")
         return []

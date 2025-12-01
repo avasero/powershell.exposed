@@ -46,10 +46,10 @@ async def get_current_user_optional(
         return user
         
     except AuthenticationError as e:
-        print(f"Authentication error in optional auth: {e}")
+        print(f"[AUTH] Error in optional auth: {type(e).__name__}")
         return None
     except Exception as e:
-        print(f"Unexpected error in optional auth: {e}")
+        print(f"[AUTH] Unexpected error: {type(e).__name__}")
         return None
 
 
@@ -166,7 +166,7 @@ async def get_user_from_request_headers(request: Request) -> Optional[Dict[str, 
                         "usage_count": api_key_data["usage_count"]
                     }
             except Exception as e:
-                print(f"API Key validation error in middleware: {e}")
+                print(f"[AUTH] API Key validation error: {type(e).__name__}")
                 return None
         
       
@@ -176,13 +176,13 @@ async def get_user_from_request_headers(request: Request) -> Optional[Dict[str, 
             user["auth_type"] = "jwt"
             return user
         except AuthenticationError as e:
-            print(f"JWT authentication error in middleware: {e}")
+            print(f"[AUTH] JWT error: {type(e).__name__}")
             return None
         except Exception as e:
-            print(f"Unexpected JWT auth error in middleware: {e}")
+            print(f"[AUTH] Unexpected JWT error: {type(e).__name__}")
             return None
     except Exception as e:
-        print(f"Error in auth middleware: {e}")
+        print(f"[AUTH] Error in middleware: {type(e).__name__}")
         return None
 
 

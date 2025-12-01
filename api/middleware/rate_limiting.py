@@ -56,8 +56,7 @@ def check_global_rate_limit() -> dict:
         oldest_request = min(global_request_timestamps)
         reset_time = oldest_request + GLOBAL_RATE_LIMIT_WINDOW
         seconds_until_reset = max(0, int(reset_time - current_time))
-        print(f"🌍 Rate limit global atingido: {global_request_count}/{GLOBAL_RATE_LIMIT_REQUESTS}")
-        print(f"🌍 Reset em: {seconds_until_reset} segundos")
+        print(f"[RATE LIMIT] Global limit reached: {global_request_count}/{GLOBAL_RATE_LIMIT_REQUESTS}")
     
     return {
         "within_limit": global_request_count < GLOBAL_RATE_LIMIT_REQUESTS,
@@ -175,7 +174,7 @@ def check_decode_limit(user_id: str, plan_name: str = "free", session_id: str = 
             # we should NOT use a shared key.
             import uuid
             target_id = f"anon_fallback:{uuid.uuid4()}" 
-            print(f"⚠️ [RATE_LIMIT] No session_id for anonymous user in check_decode_limit! Generated temp ID: {target_id}")
+            print(f"[RATE LIMIT] Warning: No session_id for anonymous user")
     else:
         # Authenticated user - use user_id
         target_id = f"user:{user_id}"
@@ -188,7 +187,7 @@ def check_decode_limit(user_id: str, plan_name: str = "free", session_id: str = 
     within_limit = decode_count < FREE_DECODE_LIMIT
     
     if not within_limit:
-        print(f"🚫 [RATE_LIMIT] Decode limit reached for {target_id}: {decode_count}/{FREE_DECODE_LIMIT}")
+        print(f"[RATE LIMIT] Decode limit reached: {decode_count}/{FREE_DECODE_LIMIT}")
     
     return {
         "within_limit": within_limit,
@@ -209,7 +208,7 @@ def increment_decode_usage(user_id: str, session_id: str = None):
             # ⚠️ Fallback: Same logic as check_decode_limit
             import uuid
             target_id = f"anon_fallback:{uuid.uuid4()}"
-            print(f"⚠️ [RATE_LIMIT] No session_id for anonymous user in increment_decode_usage! Generated temp ID: {target_id}")
+            print(f"[RATE LIMIT] Warning: No session_id for anonymous user")
     else:
         # Authenticated user - use user_id
         target_id = f"user:{user_id}"

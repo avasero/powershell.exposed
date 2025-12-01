@@ -28,7 +28,7 @@ async def get_supabase_public_key():
                 if jwks_data.get("keys"):
                     return jwks_data["keys"][0]
     except Exception as e:
-        print(f"Error fetching Supabase public key: {e}")
+        print(f"[AUTH] Error fetching Supabase public key: {type(e).__name__}")
     return None
 
 
@@ -112,6 +112,6 @@ async def get_user_from_supabase(user_id: str) -> Optional[Dict[str, Any]]:
             return response.data
         
     except Exception as e:
-        print(f"Error fetching user from Supabase: {e}")
+        print(f"[AUTH] Error fetching user from Supabase: {type(e).__name__}")
     
     return None

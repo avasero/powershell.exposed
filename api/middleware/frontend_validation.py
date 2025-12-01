@@ -114,7 +114,8 @@ async def validate_anonymous_access(request: Request, call_next):
                     try:
                         api_key_data = await validate_api_key(token)
                         if api_key_data:
-                            print(f"- USER: {api_key_data['user_id']}")
+                            # API key validated successfully
+                            pass
                         else:
                         
                             return JSONResponse(
@@ -141,8 +142,7 @@ async def validate_anonymous_access(request: Request, call_next):
                         # print(f"✅ Token JWT do frontend - permitindo validação pelo auth_middleware")
                         pass
                     else:
-                        print(f"❌ Token presente mas não é uma API Key válida - BLOQUEANDO")
-                        print(f"   Token: {token[:20]}... (Para uso externo, apenas API Keys são permitidas)")
+                        print(f"[SECURITY] Invalid token type - blocking external request")
                         
                         return JSONResponse(
                             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -154,11 +154,7 @@ async def validate_anonymous_access(request: Request, call_next):
             else:
                 
                 if not is_request_from_frontend(request):
-                    print(f"🚫 BLOQUEANDO acesso anônimo - Path: {request.url.path}")
-                    print(f"   Origin: {origin}")
-                    print(f"   Referer: {referer}")
-                    print(f"   User-Agent: {user_agent_info['user_agent'][:100]}")
-                    print(f"   IP: {request.client.host if request.client else 'Unknown'}")
+                    print(f"[SECURITY] Blocking anonymous access - Path: {request.url.path}")
                     
                     return JSONResponse(
                         status_code=status.HTTP_403_FORBIDDEN,
@@ -169,14 +165,14 @@ async def validate_anonymous_access(request: Request, call_next):
                         },
                     )
                 else:
-                    print(f"✅ Acesso anônimo AUTORIZADO do frontend - Origin: {origin}")
+                    # Anonymous access from frontend allowed
+                    pass
         
         response = await call_next(request)
         return response
         
     except Exception as e:
-        print(f"❌ Erro no middleware de validação: {e}")
-        print(f"   Tipo: {type(e).__name__}")
+        print(f"[ERROR] Middleware validation: {type(e).__name__}")
         raise
 
 

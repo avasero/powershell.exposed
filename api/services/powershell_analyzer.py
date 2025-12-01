@@ -110,7 +110,7 @@ async def load_signatures_from_db(user_id: str = None) -> list:
             return []
             
     except Exception as error:
-        print(f"Error loading signatures from database!: {error}")
+        print(f"[ERROR] Loading signatures: {type(error).__name__}")
         return []
 
 
@@ -193,7 +193,8 @@ def deobfuscate_powershell(command: str) -> tuple:
                 if not has_more:
                     break
                 else:
-                    print(f"[DEBUG] Found nested -EncodedCommand! Continuing...")
+                    # Found nested encoding, continue decoding
+                    pass
             else:
                 iteration -= 1
                 break
@@ -643,7 +644,7 @@ async def save_analysis_to_db(
             return {"success": False, "error": "Failed to save analysis"}
             
     except Exception as db_error:
-        print(f"❌ Database error: {db_error}")
+        print(f"[ERROR] Database error: {type(db_error).__name__}")
         return {"success": False, "error": str(db_error)}
 
 
