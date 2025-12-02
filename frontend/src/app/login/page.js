@@ -41,16 +41,34 @@ export default function LoginPage() {
     }
   };
 
-  // Get user's IP address
+  // Get user's IP address with fallback APIs
   const getIpAddress = async () => {
-    try {
-      const response = await fetch('https://api.ipify.org?format=json');
-      if (response.ok) {
-        const data = await response.json();
-        return data.ip;
+    const apis = [
+      { url: 'https://api.ipify.org?format=json', parser: (data) => data.ip },
+      { url: 'https://ipinfo.io/json', parser: (data) => data.ip },
+      { url: 'https://api.ip.sb/ip', parser: (text) => text.trim(), isText: true }
+    ];
+    
+    for (const api of apis) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
+        const response = await fetch(api.url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          if (api.isText) {
+            const text = await response.text();
+            return api.parser(text);
+          }
+          const data = await response.json();
+          return api.parser(data);
+        }
+      } catch (err) {
+        // Try next API
+        continue;
       }
-    } catch (err) {
-      console.error('Failed to get IP:', err);
     }
     return null;
   };
