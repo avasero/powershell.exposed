@@ -43,13 +43,27 @@ export default function RegisterPage() {
     }
   };
 
+  // Get user's IP address
+  const getIpAddress = async () => {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      if (response.ok) {
+        const data = await response.json();
+        return data.ip;
+      }
+    } catch (err) {
+      console.error('Failed to get IP:', err);
+    }
+    return null;
+  };
+
   // Record signup attempt in Supabase
-  const recordSignupAttempt = async (email) => {
+  const recordSignupAttempt = async (email, ipAddress) => {
     try {
       await supabase.rpc('record_login_attempt', {
         p_email: email,
         p_attempt_type: 'signup',
-        p_ip_address: null,
+        p_ip_address: ipAddress,
         p_user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null
       });
     } catch (err) {
@@ -86,11 +100,14 @@ export default function RegisterPage() {
     }
 
     try {
-      // Usar signUpWithMagicLink corretamente para novo usuário
-      const { data, error } = await signUpWithMagicLink(email, username);
+      // Get IP address in parallel with the magic link request
+      const [ipAddress, { data, error }] = await Promise.all([
+        getIpAddress(),
+        signUpWithMagicLink(email, username)
+      ]);
       
       // Record the attempt regardless of outcome
-      await recordSignupAttempt(email);
+      await recordSignupAttempt(email, ipAddress);
       
       if (error) {
         if (error.message.includes('Invalid email')) {
