@@ -449,10 +449,23 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     
     
     commands_to_analyze = [original_command]
-    if decode_iterations >= 1 and deobfuscated_command != command:
+    
+    # Add base64 decoded command from deobfuscate_powershell
+    if decode_iterations >= 1 and deobfuscated_command and deobfuscated_command != command:
         commands_to_analyze.append(deobfuscated_command)
-    elif custom_deobfuscated != command:
-        commands_to_analyze.append(custom_deobfuscated)    
+    
+    # Add decoded_command from detect_encoded_command (may be different/more complete)
+    if decoded_command and decoded_command != command and decoded_command not in commands_to_analyze:
+        commands_to_analyze.append(decoded_command)
+    
+    # Add custom deobfuscated (format strings, etc)
+    if custom_deobfuscated != command and custom_deobfuscated not in commands_to_analyze:
+        commands_to_analyze.append(custom_deobfuscated)
+    
+    # Add double decoded if available
+    if double_decoded_command and double_decoded_command not in commands_to_analyze:
+        commands_to_analyze.append(double_decoded_command)
+        
     for signature in signatures:
         if signature.get("name") in ["Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected"]:
             continue
@@ -465,7 +478,8 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         matched_in_decoded = False
         
         for cmd_to_test in commands_to_analyze:
-            is_decoded_version = (cmd_to_test == custom_deobfuscated and custom_deobfuscated != command)
+            # Mark as decoded if it's any version other than the original
+            is_decoded_version = (cmd_to_test != original_command)
             
             for pattern in signature["patterns"]:
                 try:
