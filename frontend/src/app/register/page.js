@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { ErrorMessage, InfoMessage } from '../components/Messages';
 import FormInput from '../components/FormInput';
@@ -20,6 +21,42 @@ export default function RegisterPage() {
   const { signUpWithMagicLink, signInWithMagicLink, checkEmailExists } = useAuth();
   const router = useRouter();
 
+  // Check rate limit using Supabase function
+  const checkRateLimit = async (email) => {
+    try {
+      const { data, error } = await supabase.rpc('check_login_rate_limit', {
+        p_email: email,
+        p_attempt_type: 'signup',
+        p_window_minutes: 3
+      });
+      
+      if (error) {
+        console.error('Rate limit check error:', error);
+        // On error, allow the attempt (fail open for UX)
+        return { allowed: true, seconds_remaining: 0 };
+      }
+      
+      return data;
+    } catch (err) {
+      console.error('Rate limit check exception:', err);
+      return { allowed: true, seconds_remaining: 0 };
+    }
+  };
+
+  // Record signup attempt in Supabase
+  const recordSignupAttempt = async (email) => {
+    try {
+      await supabase.rpc('record_login_attempt', {
+        p_email: email,
+        p_attempt_type: 'signup',
+        p_ip_address: null,
+        p_user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null
+      });
+    } catch (err) {
+      console.error('Failed to record signup attempt:', err);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -32,9 +69,28 @@ export default function RegisterPage() {
       return;
     }
 
+    // Check rate limit from Supabase
+    const rateLimit = await checkRateLimit(email);
+    
+    if (!rateLimit.allowed) {
+      const minutes = Math.ceil(rateLimit.seconds_remaining / 60);
+      const seconds = rateLimit.seconds_remaining % 60;
+      
+      if (minutes > 0) {
+        setError(`Please wait ${minutes} minute(s) and ${seconds} second(s) before trying again.`);
+      } else {
+        setError(`Please wait ${seconds} second(s) before trying again.`);
+      }
+      setLoading(false);
+      return;
+    }
+
     try {
       // Usar signUpWithMagicLink corretamente para novo usuário
       const { data, error } = await signUpWithMagicLink(email, username);
+      
+      // Record the attempt regardless of outcome
+      await recordSignupAttempt(email);
       
       if (error) {
         if (error.message.includes('Invalid email')) {
