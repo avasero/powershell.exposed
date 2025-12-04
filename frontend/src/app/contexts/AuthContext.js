@@ -87,7 +87,7 @@ const ensureUserProfile = async (user) => {
     // Verificar se perfil já existe
     const fetchProfilePromise = supabase
       .from('profiles')
-      .select('id')
+      .select('id, notify_user')
       .eq('id', user.id)
       .single();
 
@@ -96,7 +96,26 @@ const ensureUserProfile = async (user) => {
       timeoutPromise
     ]);
 
+    // Se o perfil existe, verificar se precisamos atualizar notify_user
     if (existingProfile) {
+      const notifyUserFromMetadata = user.user_metadata?.notify_user || false;
+      
+      // Atualizar notify_user se o valor do metadata for true e o perfil tiver false
+      if (notifyUserFromMetadata && !existingProfile.notify_user) {
+        const updatePromise = supabase
+          .from('profiles')
+          .update({ notify_user: true })
+          .eq('id', user.id);
+
+        const { error: updateError } = await Promise.race([
+          updatePromise,
+          timeoutPromise
+        ]);
+
+        if (updateError) {
+          console.error('❌ Erro ao atualizar notify_user:', updateError);
+        }
+      }
       return;
     }
 
