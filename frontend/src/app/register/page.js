@@ -128,6 +128,16 @@ export default function RegisterPage() {
     try {
       console.log('📝 Chamando signUpWithMagicLink com notifyPremium:', notifyPremium);
       
+      // Salvar preferência no localStorage para recuperar após confirmação
+      if (notifyPremium) {
+        localStorage.setItem('pending_notify_user', JSON.stringify({
+          email: email,
+          notify_user: true,
+          timestamp: Date.now()
+        }));
+        console.log('📝 Preferência salva no localStorage');
+      }
+      
       // Get IP address in parallel with the magic link request
       const [ipAddress, { data, error }] = await Promise.all([
         getIpAddress(),
@@ -142,6 +152,9 @@ export default function RegisterPage() {
       await recordSignupAttempt(email, ipAddress);
       
       if (error) {
+        // Limpar localStorage em caso de erro
+        localStorage.removeItem('pending_notify_user');
+        
         if (error.message.includes('Invalid email')) {
           setError('Please enter a valid email address.');
         } else if (error.message.includes('rate limit')) {
@@ -158,6 +171,7 @@ export default function RegisterPage() {
         setMessage('Registration link sent! Check your email to complete the sign up.');
       }
     } catch (err) {
+      localStorage.removeItem('pending_notify_user');
       setError('Unexpected error during registration');
       console.error('Registration error:', err);
     } finally {

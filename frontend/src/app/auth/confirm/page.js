@@ -24,6 +24,10 @@ export default function ConfirmPage() {
         const type = searchParams.get('type');
         const next = searchParams.get('next') || '/';
 
+        console.log('🔐 AUTH CONFIRM - Iniciando');
+        console.log('🔐 token_hash:', token_hash ? 'presente' : 'ausente');
+        console.log('🔐 type:', type);
+        console.log('🔐 next:', next);
 
         if (!token_hash || !type) {
           throw new Error('Missing required parameters in URL');
@@ -33,10 +37,15 @@ export default function ConfirmPage() {
         setIsSignUp(type === 'signup' || type === 'magiclink');
 
         // Verificar o OTP/token
+        console.log('🔐 Chamando verifyOtp...');
         const { data, error } = await supabase.auth.verifyOtp({
           token_hash,
           type: type,
         });
+
+        console.log('🔐 Resultado verifyOtp:');
+        console.log('🔐 data:', JSON.stringify(data, null, 2));
+        console.log('🔐 error:', error);
 
         if (error) {
           console.error('❌ Erro na verificação:', error);
@@ -44,6 +53,12 @@ export default function ConfirmPage() {
         }
 
         if (data.user) {
+          console.log('🔐 USER CONFIRMADO:');
+          console.log('🔐 user.id:', data.user.id);
+          console.log('🔐 user.email:', data.user.email);
+          console.log('🔐 user.user_metadata:', JSON.stringify(data.user.user_metadata, null, 2));
+          console.log('🔐 user.user_metadata.notify_user:', data.user.user_metadata?.notify_user);
+          
           setSuccess(true);
           
           // Redirecionar mais rapidamente para melhor UX
