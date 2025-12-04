@@ -96,6 +96,13 @@ export default function RegisterPage() {
     setError('');
     setMessage('');
 
+    console.log('📝 FORM SUBMIT');
+    console.log('📝 email:', email);
+    console.log('📝 username:', username);
+    console.log('📝 acceptedTerms:', acceptedTerms);
+    console.log('📝 notifyPremium:', notifyPremium);
+    console.log('📝 notifyPremium tipo:', typeof notifyPremium);
+
     if (!acceptedTerms) {
       setError('You must accept the Terms & Conditions to create an account.');
       setLoading(false);
@@ -119,11 +126,17 @@ export default function RegisterPage() {
     }
 
     try {
+      console.log('📝 Chamando signUpWithMagicLink com notifyPremium:', notifyPremium);
+      
       // Get IP address in parallel with the magic link request
       const [ipAddress, { data, error }] = await Promise.all([
         getIpAddress(),
         signUpWithMagicLink(email, username, notifyPremium)
       ]);
+      
+      console.log('📝 Resultado do signUpWithMagicLink:');
+      console.log('📝 data:', data);
+      console.log('📝 error:', error);
       
       // Record the attempt regardless of outcome
       await recordSignupAttempt(email, ipAddress);

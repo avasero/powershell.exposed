@@ -77,6 +77,13 @@ const createUserSession = async (userId) => {
 
 // Função para garantir que o perfil do usuário existe
 const ensureUserProfile = async (user) => {
+  console.log('🔵 ensureUserProfile INICIADO');
+  console.log('🔵 User ID:', user.id);
+  console.log('🔵 User Email:', user.email);
+  console.log('🔵 User Metadata COMPLETO:', JSON.stringify(user.user_metadata, null, 2));
+  console.log('🔵 notify_user no metadata:', user.user_metadata?.notify_user);
+  console.log('🔵 Tipo do notify_user:', typeof user.user_metadata?.notify_user);
+  
   try {
 
     // Timeout de 10 segundos para operações do Supabase
@@ -85,9 +92,10 @@ const ensureUserProfile = async (user) => {
     );
 
     // Verificar se perfil já existe
+    console.log('🔵 Buscando perfil existente...');
     const fetchProfilePromise = supabase
       .from('profiles')
-      .select('id, notify_user')
+      .select('id, notify_user, email')
       .eq('id', user.id)
       .single();
 
@@ -96,25 +104,49 @@ const ensureUserProfile = async (user) => {
       timeoutPromise
     ]);
 
+    console.log('🔵 Resultado da busca:');
+    console.log('🔵 existingProfile:', JSON.stringify(existingProfile, null, 2));
+    console.log('🔵 fetchError:', fetchError);
+
     // Se o perfil existe, verificar se precisamos atualizar notify_user
     if (existingProfile) {
-      const notifyUserFromMetadata = user.user_metadata?.notify_user || false;
+      console.log('🟡 Perfil JÁ EXISTE!');
+      console.log('🟡 notify_user atual no banco:', existingProfile.notify_user);
+      console.log('🟡 notify_user tipo no banco:', typeof existingProfile.notify_user);
+      
+      const notifyUserFromMetadata = user.user_metadata?.notify_user;
+      console.log('🟡 notifyUserFromMetadata (raw):', notifyUserFromMetadata);
+      console.log('🟡 notifyUserFromMetadata tipo:', typeof notifyUserFromMetadata);
+      
+      const shouldUpdate = notifyUserFromMetadata === true && existingProfile.notify_user !== true;
+      console.log('🟡 Deve atualizar? notifyUserFromMetadata === true:', notifyUserFromMetadata === true);
+      console.log('🟡 Deve atualizar? existingProfile.notify_user !== true:', existingProfile.notify_user !== true);
+      console.log('🟡 Deve atualizar (final):', shouldUpdate);
       
       // Atualizar notify_user se o valor do metadata for true e o perfil tiver false
-      if (notifyUserFromMetadata && !existingProfile.notify_user) {
+      if (shouldUpdate) {
+        console.log('🟢 ATUALIZANDO notify_user para TRUE...');
         const updatePromise = supabase
           .from('profiles')
           .update({ notify_user: true })
           .eq('id', user.id);
 
-        const { error: updateError } = await Promise.race([
+        const { data: updateData, error: updateError } = await Promise.race([
           updatePromise,
           timeoutPromise
         ]);
 
+        console.log('🟢 Resultado do UPDATE:');
+        console.log('🟢 updateData:', updateData);
+        console.log('🟢 updateError:', updateError);
+
         if (updateError) {
           console.error('❌ Erro ao atualizar notify_user:', updateError);
+        } else {
+          console.log('✅ notify_user ATUALIZADO COM SUCESSO!');
         }
+      } else {
+        console.log('🟡 NÃO vai atualizar - condições não atendidas');
       }
       return;
     }
@@ -125,26 +157,35 @@ const ensureUserProfile = async (user) => {
     }
 
     // Criar perfil se não existe
+    console.log('🟢 Perfil NÃO existe, criando novo...');
 
     const profileData = {
       id: user.id,
       username: user.user_metadata?.username || user.email,
       full_name: user.user_metadata?.full_name || user.user_metadata?.username || user.email,
       avatar_url: user.user_metadata?.avatar_url || null,
-      notify_user: user.user_metadata?.notify_user || false,
+      notify_user: user.user_metadata?.notify_user === true,
     };
+
+    console.log('🟢 Dados do perfil a criar:', JSON.stringify(profileData, null, 2));
 
     const insertProfilePromise = supabase
       .from('profiles')
       .insert(profileData);
 
-    const { error: insertError } = await Promise.race([
+    const { data: insertData, error: insertError } = await Promise.race([
       insertProfilePromise,
       timeoutPromise
     ]);
 
+    console.log('🟢 Resultado do INSERT:');
+    console.log('🟢 insertData:', insertData);
+    console.log('🟢 insertError:', insertError);
+
     if (insertError) {
       console.error('❌ Erro ao criar perfil:', insertError);
+    } else {
+      console.log('✅ Perfil CRIADO COM SUCESSO!');
     }
 
   } catch (error) {
@@ -354,8 +395,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signUpWithMagicLink = async (email, username, notifyUser = false) => {
+    console.log('🔷 signUpWithMagicLink CHAMADO');
+    console.log('🔷 email:', email);
+    console.log('🔷 username:', username);
+    console.log('🔷 notifyUser:', notifyUser);
+    console.log('🔷 notifyUser tipo:', typeof notifyUser);
+    
     try {
-      const { data, error } = await supabase.auth.signInWithOtp({
+      const options = {
         email,
         options: {
           data: {
@@ -365,11 +412,20 @@ export const AuthProvider = ({ children }) => {
           },
           shouldCreateUser: true
         }
-      });
+      };
+      
+      console.log('🔷 Options para signInWithOtp:', JSON.stringify(options, null, 2));
+      
+      const { data, error } = await supabase.auth.signInWithOtp(options);
+
+      console.log('🔷 Resultado signInWithOtp:');
+      console.log('🔷 data:', JSON.stringify(data, null, 2));
+      console.log('🔷 error:', error);
 
       if (error) throw error;
       return { data, error: null };
     } catch (error) {
+      console.error('🔷 ERRO em signUpWithMagicLink:', error);
       return { data: null, error };
     }
   };
