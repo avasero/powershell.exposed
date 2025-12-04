@@ -77,22 +77,13 @@ const createUserSession = async (userId) => {
 
 // Função para garantir que o perfil do usuário existe
 const ensureUserProfile = async (user) => {
-  console.log('🔵 ensureUserProfile INICIADO');
-  console.log('🔵 User ID:', user.id);
-  console.log('🔵 User Email:', user.email);
-  console.log('🔵 User Metadata COMPLETO:', JSON.stringify(user.user_metadata, null, 2));
-  console.log('🔵 notify_user no metadata:', user.user_metadata?.notify_user);
-  console.log('🔵 Tipo do notify_user:', typeof user.user_metadata?.notify_user);
-  
   try {
-
     // Timeout de 10 segundos para operações do Supabase
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('Profile check timeout')), 10000)
     );
 
     // Verificar se perfil já existe
-    console.log('🔵 Buscando perfil existente...');
     const fetchProfilePromise = supabase
       .from('profiles')
       .select('id, notify_user, email')
@@ -104,61 +95,29 @@ const ensureUserProfile = async (user) => {
       timeoutPromise
     ]);
 
-    console.log('🔵 Resultado da busca:');
-    console.log('🔵 existingProfile:', JSON.stringify(existingProfile, null, 2));
-    console.log('🔵 fetchError:', fetchError);
-
     // Se o perfil existe, verificar se precisamos atualizar notify_user
     if (existingProfile) {
-      console.log('🟡 Perfil JÁ EXISTE!');
-      console.log('🟡 notify_user atual no banco:', existingProfile.notify_user);
-      console.log('🟡 notify_user tipo no banco:', typeof existingProfile.notify_user);
-      
       const notifyUserFromMetadata = user.user_metadata?.notify_user;
-      console.log('🟡 notifyUserFromMetadata (raw):', notifyUserFromMetadata);
-      console.log('🟡 notifyUserFromMetadata tipo:', typeof notifyUserFromMetadata);
-      
       const shouldUpdate = notifyUserFromMetadata === true && existingProfile.notify_user !== true;
-      console.log('🟡 Deve atualizar? notifyUserFromMetadata === true:', notifyUserFromMetadata === true);
-      console.log('🟡 Deve atualizar? existingProfile.notify_user !== true:', existingProfile.notify_user !== true);
-      console.log('🟡 Deve atualizar (final):', shouldUpdate);
       
       // Atualizar notify_user se o valor do metadata for true e o perfil tiver false
       if (shouldUpdate) {
-        console.log('🟢 ATUALIZANDO notify_user para TRUE...');
         const updatePromise = supabase
           .from('profiles')
           .update({ notify_user: true })
           .eq('id', user.id);
 
-        const { data: updateData, error: updateError } = await Promise.race([
-          updatePromise,
-          timeoutPromise
-        ]);
-
-        console.log('🟢 Resultado do UPDATE:');
-        console.log('🟢 updateData:', updateData);
-        console.log('🟢 updateError:', updateError);
-
-        if (updateError) {
-          console.error('❌ Erro ao atualizar notify_user:', updateError);
-        } else {
-          console.log('✅ notify_user ATUALIZADO COM SUCESSO!');
-        }
-      } else {
-        console.log('🟡 NÃO vai atualizar - condições não atendidas');
+        await Promise.race([updatePromise, timeoutPromise]);
       }
       return;
     }
 
     if (fetchError && fetchError.code !== 'PGRST116') {
-      console.error('❌ Erro ao verificar perfil:', fetchError);
+      console.error('Erro ao verificar perfil:', fetchError);
       return;
     }
 
     // Criar perfil se não existe
-    console.log('🟢 Perfil NÃO existe, criando novo...');
-
     const profileData = {
       id: user.id,
       username: user.user_metadata?.username || user.email,
@@ -167,29 +126,21 @@ const ensureUserProfile = async (user) => {
       notify_user: user.user_metadata?.notify_user === true,
     };
 
-    console.log('🟢 Dados do perfil a criar:', JSON.stringify(profileData, null, 2));
-
     const insertProfilePromise = supabase
       .from('profiles')
       .insert(profileData);
 
-    const { data: insertData, error: insertError } = await Promise.race([
+    const { error: insertError } = await Promise.race([
       insertProfilePromise,
       timeoutPromise
     ]);
 
-    console.log('🟢 Resultado do INSERT:');
-    console.log('🟢 insertData:', insertData);
-    console.log('🟢 insertError:', insertError);
-
     if (insertError) {
-      console.error('❌ Erro ao criar perfil:', insertError);
-    } else {
-      console.log('✅ Perfil CRIADO COM SUCESSO!');
+      console.error('Erro ao criar perfil:', insertError);
     }
 
   } catch (error) {
-    console.error('❌ Erro ao garantir perfil:', error);
+    console.error('Erro ao garantir perfil:', error);
   }
 };
 
@@ -259,63 +210,40 @@ const migrateAnonymousAnalyses = async (userId) => {
 
 // Função para verificar e aplicar preferência de notify_user do localStorage
 const checkAndApplyPendingNotifyUser = async (user) => {
-  console.log('🟣 checkAndApplyPendingNotifyUser INICIADO');
-  
   try {
     const pendingData = localStorage.getItem('pending_notify_user');
-    console.log('🟣 pendingData do localStorage:', pendingData);
     
     if (!pendingData) {
-      console.log('🟣 Nenhuma preferência pendente no localStorage');
       return;
     }
     
     const parsed = JSON.parse(pendingData);
-    console.log('🟣 Dados parseados:', JSON.stringify(parsed, null, 2));
     
     // Verificar se o email corresponde e se não expirou (24 horas)
     const isExpired = Date.now() - parsed.timestamp > 24 * 60 * 60 * 1000;
     const emailMatches = parsed.email?.toLowerCase() === user.email?.toLowerCase();
     
-    console.log('🟣 Email do user:', user.email);
-    console.log('🟣 Email no localStorage:', parsed.email);
-    console.log('🟣 Email corresponde:', emailMatches);
-    console.log('🟣 Expirado:', isExpired);
-    
     if (isExpired) {
-      console.log('🟣 Preferência expirada, removendo...');
       localStorage.removeItem('pending_notify_user');
       return;
     }
     
     if (!emailMatches) {
-      console.log('🟣 Email não corresponde, ignorando...');
       return;
     }
     
     if (parsed.notify_user === true) {
-      console.log('🟣 Atualizando notify_user para TRUE no banco...');
-      
-      const { data, error } = await supabase
+      await supabase
         .from('profiles')
         .update({ notify_user: true })
         .eq('id', user.id);
-      
-      console.log('🟣 Resultado do UPDATE:', { data, error });
-      
-      if (error) {
-        console.error('❌ Erro ao atualizar notify_user:', error);
-      } else {
-        console.log('✅ notify_user atualizado com sucesso via localStorage!');
-      }
     }
     
     // Limpar o localStorage após processar
     localStorage.removeItem('pending_notify_user');
-    console.log('🟣 localStorage limpo');
     
   } catch (error) {
-    console.error('❌ Erro ao processar pending_notify_user:', error);
+    console.error('Erro ao processar pending_notify_user:', error);
     localStorage.removeItem('pending_notify_user');
   }
 };
@@ -386,29 +314,16 @@ export const AuthProvider = ({ children }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔴 onAuthStateChange DISPARADO');
-        console.log('🔴 event:', event);
-        console.log('🔴 session presente:', !!session);
-        
-        if (session) {
-          console.log('🔴 session.user.id:', session.user.id);
-          console.log('🔴 session.user.email:', session.user.email);
-          console.log('🔴 session.user.user_metadata:', JSON.stringify(session.user.user_metadata, null, 2));
-          console.log('🔴 notify_user no session:', session.user.user_metadata?.notify_user);
-        }
-        
         if (event === 'SIGNED_IN' && session) {
           setUser(session.user);
 
           // Executar operações em background sem bloquear o loading
           (async () => {
             try {
-              console.log('🔴 Chamando ensureUserProfile...');
               // Garantir que o perfil existe (fallback caso o trigger não funcione)
               await ensureUserProfile(session.user);
               
               // Verificar e aplicar preferência de notify_user do localStorage
-              console.log('🔴 Chamando checkAndApplyPendingNotifyUser...');
               await checkAndApplyPendingNotifyUser(session.user);
 
               // Criar nova sessão para o usuário logado APENAS SE AINDA NÃO FOI CRIADA
@@ -420,8 +335,8 @@ export const AuthProvider = ({ children }) => {
                 await migrateAnonymousAnalyses(session.user.id);
               }
             } catch (error) {
-              console.error('❌ Erro em operações pós-login:', error);
-              sessionCreatedRef.current = false; // Reset em caso de erro para tentar novamente
+              console.error('Erro em operações pós-login:', error);
+              sessionCreatedRef.current = false;
             }
           })();
         } else if (event === 'SIGNED_OUT') {
@@ -474,14 +389,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signUpWithMagicLink = async (email, username, notifyUser = false) => {
-    console.log('🔷 signUpWithMagicLink CHAMADO');
-    console.log('🔷 email:', email);
-    console.log('🔷 username:', username);
-    console.log('🔷 notifyUser:', notifyUser);
-    console.log('🔷 notifyUser tipo:', typeof notifyUser);
-    
     try {
-      const options = {
+      const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
           data: {
@@ -491,20 +400,11 @@ export const AuthProvider = ({ children }) => {
           },
           shouldCreateUser: true
         }
-      };
-      
-      console.log('🔷 Options para signInWithOtp:', JSON.stringify(options, null, 2));
-      
-      const { data, error } = await supabase.auth.signInWithOtp(options);
-
-      console.log('🔷 Resultado signInWithOtp:');
-      console.log('🔷 data:', JSON.stringify(data, null, 2));
-      console.log('🔷 error:', error);
+      });
 
       if (error) throw error;
       return { data, error: null };
     } catch (error) {
-      console.error('🔷 ERRO em signUpWithMagicLink:', error);
       return { data: null, error };
     }
   };

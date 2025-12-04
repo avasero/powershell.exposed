@@ -96,13 +96,6 @@ export default function RegisterPage() {
     setError('');
     setMessage('');
 
-    console.log('📝 FORM SUBMIT');
-    console.log('📝 email:', email);
-    console.log('📝 username:', username);
-    console.log('📝 acceptedTerms:', acceptedTerms);
-    console.log('📝 notifyPremium:', notifyPremium);
-    console.log('📝 notifyPremium tipo:', typeof notifyPremium);
-
     if (!acceptedTerms) {
       setError('You must accept the Terms & Conditions to create an account.');
       setLoading(false);
@@ -126,8 +119,6 @@ export default function RegisterPage() {
     }
 
     try {
-      console.log('📝 Chamando signUpWithMagicLink com notifyPremium:', notifyPremium);
-      
       // Salvar preferência no localStorage para recuperar após confirmação
       if (notifyPremium) {
         localStorage.setItem('pending_notify_user', JSON.stringify({
@@ -135,7 +126,6 @@ export default function RegisterPage() {
           notify_user: true,
           timestamp: Date.now()
         }));
-        console.log('📝 Preferência salva no localStorage');
       }
       
       // Get IP address in parallel with the magic link request
@@ -143,10 +133,6 @@ export default function RegisterPage() {
         getIpAddress(),
         signUpWithMagicLink(email, username, notifyPremium)
       ]);
-      
-      console.log('📝 Resultado do signUpWithMagicLink:');
-      console.log('📝 data:', data);
-      console.log('📝 error:', error);
       
       // Record the attempt regardless of outcome
       await recordSignupAttempt(email, ipAddress);
