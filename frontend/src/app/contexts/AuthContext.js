@@ -112,6 +112,7 @@ const ensureUserProfile = async (user) => {
       username: user.user_metadata?.username || user.email,
       full_name: user.user_metadata?.full_name || user.user_metadata?.username || user.email,
       avatar_url: user.user_metadata?.avatar_url || null,
+      notify_user: user.user_metadata?.notify_user || false,
     };
 
     const insertProfilePromise = supabase
@@ -333,14 +334,15 @@ export const AuthProvider = ({ children }) => {
     return { exists: null, error: null };
   };
 
-  const signUpWithMagicLink = async (email, username) => {
+  const signUpWithMagicLink = async (email, username, notifyUser = false) => {
     try {
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
           data: {
             username: username,
-            full_name: username
+            full_name: username,
+            notify_user: notifyUser
           },
           shouldCreateUser: true
         }

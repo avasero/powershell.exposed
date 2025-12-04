@@ -13,6 +13,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [notifyPremium, setNotifyPremium] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -121,7 +122,7 @@ export default function RegisterPage() {
       // Get IP address in parallel with the magic link request
       const [ipAddress, { data, error }] = await Promise.all([
         getIpAddress(),
-        signUpWithMagicLink(email, username)
+        signUpWithMagicLink(email, username, notifyPremium)
       ]);
       
       // Record the attempt regardless of outcome
@@ -204,6 +205,27 @@ export default function RegisterPage() {
                   >
                     Terms & Conditions
                   </Link>
+                </label>
+              </div>
+
+              <div className="flex items-start space-x-2">
+                <input
+                  type="checkbox"
+                  id="notify-premium"
+                  checked={notifyPremium}
+                  onChange={(e) => setNotifyPremium(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border cursor-pointer"
+                  style={{
+                    accentColor: 'var(--accent)',
+                    borderColor: 'var(--border-color)'
+                  }}
+                />
+                <label 
+                  htmlFor="notify-premium" 
+                  className="text-sm font-mono cursor-pointer"
+                  style={{color: 'var(--muted-foreground)'}}
+                >
+                  Premium features coming soon, notify me when available
                 </label>
               </div>
 
