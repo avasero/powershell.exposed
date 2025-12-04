@@ -7,6 +7,71 @@ import { ErrorMessage, InfoMessage } from '../../components/Messages';
 import ThemedButton from '../../components/ThemedButton';
 import Link from 'next/link';
 
+// Função para aplicar notify_user do localStorage
+const applyPendingNotifyUser = async (user) => {
+  console.log('🟣 applyPendingNotifyUser INICIADO na página de confirm');
+  console.log('🟣 user.id:', user.id);
+  console.log('🟣 user.email:', user.email);
+  
+  try {
+    const pendingData = localStorage.getItem('pending_notify_user');
+    console.log('🟣 pendingData do localStorage:', pendingData);
+    
+    if (!pendingData) {
+      console.log('🟣 Nenhuma preferência pendente no localStorage');
+      return;
+    }
+    
+    const parsed = JSON.parse(pendingData);
+    console.log('🟣 Dados parseados:', JSON.stringify(parsed, null, 2));
+    
+    // Verificar se o email corresponde e se não expirou (24 horas)
+    const isExpired = Date.now() - parsed.timestamp > 24 * 60 * 60 * 1000;
+    const emailMatches = parsed.email?.toLowerCase() === user.email?.toLowerCase();
+    
+    console.log('🟣 Email do user:', user.email);
+    console.log('🟣 Email no localStorage:', parsed.email);
+    console.log('🟣 Email corresponde:', emailMatches);
+    console.log('🟣 Expirado:', isExpired);
+    
+    if (isExpired) {
+      console.log('🟣 Preferência expirada, removendo...');
+      localStorage.removeItem('pending_notify_user');
+      return;
+    }
+    
+    if (!emailMatches) {
+      console.log('🟣 Email não corresponde, ignorando...');
+      return;
+    }
+    
+    if (parsed.notify_user === true) {
+      console.log('🟣 Atualizando notify_user para TRUE no banco...');
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ notify_user: true })
+        .eq('id', user.id);
+      
+      console.log('🟣 Resultado do UPDATE:', { data, error });
+      
+      if (error) {
+        console.error('❌ Erro ao atualizar notify_user:', error);
+      } else {
+        console.log('✅ notify_user atualizado com sucesso via localStorage na página confirm!');
+      }
+    }
+    
+    // Limpar o localStorage após processar
+    localStorage.removeItem('pending_notify_user');
+    console.log('🟣 localStorage limpo');
+    
+  } catch (error) {
+    console.error('❌ Erro ao processar pending_notify_user:', error);
+    localStorage.removeItem('pending_notify_user');
+  }
+};
+
 export default function ConfirmPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -58,6 +123,10 @@ export default function ConfirmPage() {
           console.log('🔐 user.email:', data.user.email);
           console.log('🔐 user.user_metadata:', JSON.stringify(data.user.user_metadata, null, 2));
           console.log('🔐 user.user_metadata.notify_user:', data.user.user_metadata?.notify_user);
+          
+          // APLICAR NOTIFY_USER DO LOCALSTORAGE IMEDIATAMENTE
+          console.log('🔐 Chamando applyPendingNotifyUser...');
+          await applyPendingNotifyUser(data.user);
           
           setSuccess(true);
           
