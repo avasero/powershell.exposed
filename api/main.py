@@ -71,7 +71,7 @@ app.add_middleware(
         "https://ps.exposed"
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
 )
 
@@ -95,7 +95,12 @@ try:
         analyze_command_endpoint, get_user_analyses_endpoint, 
         get_analysis_by_id_endpoint
     )
-    from routes.user_routes import create_user_session_endpoint
+    from routes.user_routes import (
+        create_user_session_endpoint,
+        get_user_profile_endpoint,
+        update_user_profile_endpoint,
+        get_user_statistics_endpoint
+    )
     
     app.get("/", include_in_schema=False)(root_endpoint)
     app.get("/health", include_in_schema=False)(health_check_endpoint)
@@ -110,6 +115,9 @@ try:
     app.get("/user-analyses", tags=["User Data"], summary="Get User Analyses", include_in_schema=False)(get_user_analyses_endpoint)
     app.get("/analysis/{analysis_id}", tags=["Command Analysis"], summary="Get Analysis by ID", include_in_schema=False)(get_analysis_by_id_endpoint)
     app.post("/create-user-session", tags=["Session Management"], summary="Create User Session", include_in_schema=False)(create_user_session_endpoint)
+    app.get("/user/profile", tags=["User Data"], summary="Get User Profile", include_in_schema=False)(get_user_profile_endpoint)
+    app.patch("/user/profile", tags=["User Data"], summary="Update User Profile", include_in_schema=False)(update_user_profile_endpoint)
+    app.get("/user/statistics", tags=["User Data"], summary="Get User Statistics", include_in_schema=False)(get_user_statistics_endpoint)
     
    
     

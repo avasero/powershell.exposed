@@ -97,13 +97,15 @@ async def get_user_profile_endpoint(
         
         if response.data:
             profile = response.data
+            print(f"DEBUG: Profile data from DB: {profile}")
             safe_profile = {
                 "id": profile.get("id"),
                 "username": profile.get("email"),
                 "full_name": profile.get("full_name"),
                 "avatar_url": profile.get("avatar_url"),
                 "created_at": profile.get("created_at"),
-                "updated_at": profile.get("updated_at")
+                "updated_at": profile.get("updated_at"),
+                "notify_user": profile.get("notify_user", False)
             }
             
             return JSONResponse({
@@ -138,8 +140,9 @@ async def update_user_profile_endpoint(
     """
     try:
         body = await request.json()
+        print(f"[PROFILE UPDATE] User: {user['id']} | Request body: {body}")
         
-        allowed_fields = ["username", "full_name", "avatar_url"]
+        allowed_fields = ["username", "full_name", "avatar_url", "notify_user"]
         update_data = {}
         
         for field in allowed_fields:
@@ -152,24 +155,31 @@ async def update_user_profile_endpoint(
                 status_code=400
             )
         
+        print(f"[PROFILE UPDATE] Updating fields: {update_data}")
+        
         supabase = get_supabase_client()
         
         response = supabase.table('profiles').update(update_data).eq('id', user["id"]).execute()
+        
+        print(f"[PROFILE UPDATE] Supabase response: {response.data}")
         
         if response.data:
             return JSONResponse({
                 "success": True,
                 "message": "Profile updated successfully",
-                "updated_fields": list(update_data.keys())
+                "updated_fields": list(update_data.keys()),
+                "new_values": update_data
             })
         else:
             return JSONResponse(
-                {"error": "Failed to update profile"},
+                {"error": "Failed to update profile - no data returned"},
                 status_code=500
             )
             
     except Exception as error:
-        print(f"[ERROR] Updating user profile: {type(error).__name__}")
+        print(f"[ERROR] Updating user profile: {type(error).__name__}: {error}")
+        import traceback
+        traceback.print_exc()
         return JSONResponse(
             {"error": f"Failed to update profile: {str(error)}"},
             status_code=500

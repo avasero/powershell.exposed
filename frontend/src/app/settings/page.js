@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,14 +10,24 @@ export default function SettingsPage() {
   const router = useRouter();
   const [plan, setPlan] = useState(null);
   const [loadingPlan, setLoadingPlan] = useState(true);
+  const [notifyUser, setNotifyUser] = useState(false);
+  const [updatingNotify, setUpdatingNotify] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const hasFetched = useRef(false);
 
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push('/login');
-    } else {
-      fetchUserPlan();
+      return;
     }
-  }, [isAuthenticated, router]);
+    
+    // Only fetch once per mount
+    if (!hasFetched.current) {
+      hasFetched.current = true;
+      fetchUserPlan();
+      fetchUserProfile();
+    }
+  }, [isAuthenticated]);
 
   const fetchUserPlan = async () => {
     try {
@@ -36,6 +46,57 @@ export default function SettingsPage() {
       console.error('Error fetching plan:', error);
     } finally {
       setLoadingPlan(false);
+    }
+  };
+
+  const fetchUserProfile = async () => {
+    setLoadingProfile(true);
+    try {
+      const { makeAuthenticatedRequest } = await import('../../lib/api');
+      const response = await makeAuthenticatedRequest('/user/profile', {
+        method: 'GET'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.profile) {
+          setNotifyUser(data.profile.notify_user === true);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  const handleNotifyToggle = async (e) => {
+    const newValue = e.target.checked;
+    const previousValue = notifyUser;
+    
+    setNotifyUser(newValue); // Optimistic update
+    setUpdatingNotify(true);
+
+    try {
+      const { makeAuthenticatedRequest } = await import('../../lib/api');
+      const response = await makeAuthenticatedRequest('/user/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({ notify_user: newValue })
+      });
+
+      const data = await response.json();
+      console.log('Update response:', data);
+
+      if (!response.ok || !data.success) {
+        // Revert on error
+        setNotifyUser(previousValue);
+        console.error('Failed to update notification setting:', data);
+      }
+    } catch (error) {
+      setNotifyUser(previousValue);
+      console.error('Error updating notification setting:', error);
+    } finally {
+      setUpdatingNotify(false);
     }
   };
 
@@ -133,7 +194,32 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
+
+
+          <div className="mt-6 pt-6 border-t border-white/10">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-mono text-sm font-semibold text-white">Premium Notifications</h3>
+                <p className="font-mono text-xs text-white/50">Receive updates about new premium features</p>
+              </div>
+              {loadingProfile ? (
+                <div className="w-11 h-6 bg-white/10 animate-pulse rounded-full"></div>
+              ) : (
+                <label className={`relative inline-flex items-center ${updatingNotify ? 'cursor-wait opacity-70' : 'cursor-pointer'}`}>
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={notifyUser}
+                    onChange={handleNotifyToggle}
+                    disabled={updatingNotify || loadingProfile}
+                  />
+                  <div className={`w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 ${updatingNotify ? 'opacity-50' : ''}`}></div>
+                </label>
+              )}
+            </div>
+          </div>
         </div>
+
 
         {/* API Key Management */}
         <div className="mb-6">
