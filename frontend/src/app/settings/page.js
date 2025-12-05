@@ -67,32 +67,27 @@ export default function SettingsPage() {
     }
   };
 
-  const handleNotifyToggle = async (e) => {
-    const newValue = e.target.checked;
-    const previousValue = notifyUser;
-    
-    setNotifyUser(newValue); // Optimistic update
+  const handleNotifyToggle = async (subscribe) => {
     setUpdatingNotify(true);
 
     try {
       const { makeAuthenticatedRequest } = await import('../../lib/api');
       const response = await makeAuthenticatedRequest('/user/profile', {
         method: 'PATCH',
-        body: JSON.stringify({ notify_user: newValue })
+        body: JSON.stringify({ notify_user: subscribe })
       });
 
       const data = await response.json();
-      console.log('Update response:', data);
 
-      if (!response.ok || !data.success) {
-        // Revert on error
-        setNotifyUser(previousValue);
+      if (response.ok && data.success) {
+        // Reload the page to fetch fresh state from DB
+        window.location.reload();
+      } else {
         console.error('Failed to update notification setting:', data);
+        setUpdatingNotify(false);
       }
     } catch (error) {
-      setNotifyUser(previousValue);
       console.error('Error updating notification setting:', error);
-    } finally {
       setUpdatingNotify(false);
     }
   };
@@ -200,18 +195,37 @@ export default function SettingsPage() {
                 <p className="font-mono text-xs text-white/50">Receive updates about new premium features</p>
               </div>
               {notifyUser === null ? (
-                <div className="w-11 h-6 bg-white/10 animate-pulse rounded-full"></div>
-              ) : (
-                <label className={`relative inline-flex items-center ${updatingNotify ? 'cursor-wait opacity-70' : 'cursor-pointer'}`}>
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={notifyUser}
-                    onChange={handleNotifyToggle}
+                <div className="w-32 h-9 bg-white/10 animate-pulse rounded-lg"></div>
+              ) : notifyUser ? (
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-600/20 border border-green-500/30">
+                    <span className="text-green-400 text-sm">✓</span>
+                    <span className="font-mono text-xs text-green-400">Subscribed</span>
+                  </div>
+                  <button
+                    onClick={() => handleNotifyToggle(false)}
                     disabled={updatingNotify}
-                  />
-                  <div className={`w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 ${updatingNotify ? 'opacity-50' : ''}`}></div>
-                </label>
+                    className={`px-3 py-2 rounded-lg border font-mono text-xs transition-all ${
+                      updatingNotify 
+                        ? 'bg-white/5 border-white/20 text-white/50 cursor-wait' 
+                        : 'bg-red-600/10 border-red-500/30 text-red-400 hover:bg-red-600/20 hover:border-red-500/50'
+                    }`}
+                  >
+                    {updatingNotify ? 'Updating...' : 'Unsubscribe'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => handleNotifyToggle(true)}
+                  disabled={updatingNotify}
+                  className={`px-4 py-2 rounded-lg border font-mono text-xs transition-all ${
+                    updatingNotify 
+                      ? 'bg-white/5 border-white/20 text-white/50 cursor-wait' 
+                      : 'bg-green-600/10 border-green-500/50 text-green-400 hover:bg-green-600/20 hover:border-green-500'
+                  }`}
+                >
+                  {updatingNotify ? 'Subscribing...' : 'Notify Me'}
+                </button>
               )}
             </div>
           </div>
