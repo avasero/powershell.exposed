@@ -191,8 +191,8 @@ export default function SettingsPage() {
           <div className="mt-6 pt-6 border-t border-white/10">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-mono text-sm font-semibold text-white">Premium Notifications</h3>
-                <p className="font-mono text-xs text-white/50">Receive updates about new premium features</p>
+                <h3 className="font-mono text-sm font-semibold text-white">Email updates</h3>
+                <p className="font-mono text-xs text-white/50">Stay ahead of new features, coverage improvements, and important product changes.</p>
               </div>
               {notifyUser === null ? (
                 <div className="w-32 h-9 bg-white/10 animate-pulse rounded-lg"></div>
