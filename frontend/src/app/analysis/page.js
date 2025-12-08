@@ -191,22 +191,65 @@ export default function AnalysisPage() {
           method: 'POST',
           body: JSON.stringify(requestData)
         }).then(async response => {
+          console.log('🔍 [RATE LIMIT DEBUG] Response status:', response.status);
           const data = await response.json();
+          console.log('🔍 [RATE LIMIT DEBUG] Response data:', data);
+
+          // ✅ FIX: Handle 429 Rate Limit explicitly
+          if (response.status === 429) {
+            console.log('🚫 [RATE LIMIT DEBUG] 429 detected - setting error and stopping loading');
+            // ✅ Extract error message from object structure
+            let errorMessage = "Rate limit exceeded. Please try again later.";
+            if (data.error) {
+              if (typeof data.error === 'string') {
+                errorMessage = data.error;
+              } else if (data.error.message) {
+                errorMessage = data.error.message;
+              } else if (data.error.details) {
+                errorMessage = data.error.details;
+              }
+            } else if (data.message) {
+              errorMessage = data.message;
+            }
+            setError(errorMessage);
+            setFreshAnalysisLoading(false);
+            setLoading(false);
+            setContentReady(true);
+            console.log('🚫 [RATE LIMIT DEBUG] State updated - error:', errorMessage, 'loading:', false, 'contentReady:', true);
+            return null; // Return null to indicate rate limit was hit
+          }
 
           const isFromCache = data.from_cache === true;
 
           if (isFromCache) {
             setFreshAnalysisLoading(false);
           } else {
-
-
             setFreshAnalysisLoading(true);
           }
 
           const needsHandling = handleRateLimitResponse(response, data);
+          console.log('🔍 [RATE LIMIT DEBUG] handleRateLimitResponse returned:', needsHandling);
 
           if (needsHandling) {
-            throw new Error('Rate limit excedido');
+            console.log('🚫 [RATE LIMIT DEBUG] Rate limit needs handling - setting error and stopping loading');
+            // ✅ Don't redirect - stay on current page and show rate limit UI
+            // ✅ Extract proper error message
+            let errorMessage = "Rate limit reached. Please wait for the timer to reset.";
+            if (data.error) {
+              if (typeof data.error === 'string') {
+                errorMessage = data.error;
+              } else if (data.error.message) {
+                errorMessage = data.error.message;
+              } else if (data.error.details) {
+                errorMessage = data.error.details;
+              }
+            }
+            setError(errorMessage);
+            setFreshAnalysisLoading(false);
+            setLoading(false);
+            setContentReady(true);
+            console.log('🚫 [RATE LIMIT DEBUG] State updated after handleRateLimitResponse');
+            return null; // Return null to indicate rate limit was hit
           }
 
           if (!response.ok) {
@@ -215,20 +258,29 @@ export default function AnalysisPage() {
 
           return data;
         }).catch(error => {
+          console.error('❌ [RATE LIMIT DEBUG] Error in analysisPromise catch:', error.message);
           // ✅ FIX: Stop loading when error occurs
           setFreshAnalysisLoading(false);
-          if (error.message === 'Rate limit excedido') {
-            throw error;
-          }
+          setLoading(false);
+          setContentReady(true);
+          console.log('❌ [RATE LIMIT DEBUG] Loading stopped in catch block');
           throw new Error(`Erro da API: ${error.message}`);
         });
 
         let response;
         try {
+          console.log('⏳ [RATE LIMIT DEBUG] Awaiting analysisPromise...');
           response = await analysisPromise;
+          console.log('✅ [RATE LIMIT DEBUG] analysisPromise resolved:', response ? 'success' : 'null (rate limited)');
         } catch (error) {
-
+          console.error('❌ [RATE LIMIT DEBUG] Error awaiting analysisPromise:', error.message);
           throw error;
+        }
+
+        // ✅ Check if response is null (rate limit was hit)
+        if (response === null) {
+          console.log('🚫 [RATE LIMIT DEBUG] Response is null - rate limit was hit, exiting early');
+          return; // Exit early, don't process further
         }
 
         if (response.success) {
@@ -293,21 +345,15 @@ export default function AnalysisPage() {
         }
       } catch (err) {
         console.error('[ANALYSIS ERROR]', err);
-        
-        if (err.message === 'Rate limit excedido') {
-          // ✅ Don't set an error message, the rate limit UI will show
-          setLoading(false);
-          setFreshAnalysisLoading(false);
-          setContentReady(true);
-          return;
-        }
-
+        console.log('❌ [RATE LIMIT DEBUG] Error caught:', err.message);
         setError(err.message);
         setResult(null);
         setContentReady(true);
       } finally {
+        console.log('🏁 [RATE LIMIT DEBUG] Finally block - setting loading states to false');
         setLoading(false);
         setFreshAnalysisLoading(false);
+        console.log('🏁 [RATE LIMIT DEBUG] Loading states set to false');
       }
     },
     [
@@ -327,9 +373,18 @@ export default function AnalysisPage() {
   const handleNewAnalysis = async () => {
     // ✅ FIX: Enviar comando raw sem validação de trim
     if (newCommand.length > 0) {
+      // ✅ CRITICAL: Check rate limit BEFORE starting loading or making request
       if (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit) {
-        setError("Rate limit reached. Please wait for the timer to reset.");
-        return;
+        console.log('🚫 [RATE LIMIT DEBUG] Rate limit already reached - NOT starting loading');
+        // ✅ Extract proper error message from rate_limit_info if available
+        let errorMessage = "Rate limit reached. Please wait for the timer to reset.";
+        if (rateLimitInfo.seconds_until_reset) {
+          const minutes = Math.ceil(rateLimitInfo.seconds_until_reset / 60);
+          errorMessage = `You have made ${rateLimitInfo.current_count} searches in this session. Please wait ${minutes} minutes before trying again.`;
+        }
+        setError(errorMessage);
+        setContentReady(true); // ✅ Show content (rate limit UI)
+        return; // ✅ EXIT - don't proceed with analysis
       }
 
       // ✅ Clear state immediately to prevent flicker
@@ -383,7 +438,8 @@ export default function AnalysisPage() {
 
   const totalScore = result ? result.score : 0;
 
-  if (loading && freshAnalysisLoading && !contentReady) {
+  // ✅ Only show full page loading spinner on initial page load, not on new analysis
+  if (loading && !result && !contentReady) {
     return <LoadingSpinner />;
   }
 
@@ -434,7 +490,10 @@ export default function AnalysisPage() {
             {freshAnalysisLoading ? 'Analyzing...' : 'Evaluate'}
           </ThemedButton>
         </div>
-          <InfoMessage
+
+        <ErrorMessage message={error} />
+
+        <InfoMessage
           message={!error && newCommand.length === 0 ? EXAMPLE_COMMAND_DESCRIPTION : ""}
           clickable={!error && newCommand.length === 0}
           onClick={() => setNewCommand(EXAMPLE_ENCODED_COMMAND)}

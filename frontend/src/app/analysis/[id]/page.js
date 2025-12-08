@@ -210,8 +210,30 @@ export default function AnalysisDetailsPage() {
         }
       });
 
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const analysisData = await res.json();
+
+      // ✅ FIX: Handle 429 Rate Limit explicitly for loadAnalysis
+      if (res.status === 429) {
+        // ✅ Extract error message from object structure
+        let errorMessage = "Rate limit exceeded. Please try again later.";
+        if (analysisData.error) {
+          if (typeof analysisData.error === 'string') {
+            errorMessage = analysisData.error;
+          } else if (analysisData.error.message) {
+            errorMessage = analysisData.error.message;
+          } else if (analysisData.error.details) {
+            errorMessage = analysisData.error.details;
+          }
+        } else if (analysisData.message) {
+          errorMessage = analysisData.message;
+        }
+        setError(errorMessage);
+        setLoading(false);
+        setContentReady(true);
+        return;
+      }
+
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
       const loadTime = performance.now() - loadStartTime;
 
@@ -297,16 +319,40 @@ export default function AnalysisDetailsPage() {
 
       const { makeAuthenticatedRequest } = await import('../../../lib/api');
 
+      console.log('🔍 [RATE LIMIT DEBUG - ID] Making request to /evaluate...');
       const response = await makeAuthenticatedRequest('/evaluate', {
         method: 'POST',
         body: JSON.stringify(requestData)
       });
 
+      console.log('🔍 [RATE LIMIT DEBUG - ID] Response status:', response.status);
       const data = await response.json();
-
+      console.log('🔍 [RATE LIMIT DEBUG - ID] Response data:', data);
 
       const responseTime = performance.now() - startTime;
 
+      // ✅ FIX: Handle 429 Rate Limit explicitly
+      if (response.status === 429) {
+        console.log('🚫 [RATE LIMIT DEBUG - ID] 429 detected - setting error and stopping loading');
+        // ✅ Extract error message from object structure
+        let errorMessage = "Rate limit exceeded. Please try again later.";
+        if (data.error) {
+          if (typeof data.error === 'string') {
+            errorMessage = data.error;
+          } else if (data.error.message) {
+            errorMessage = data.error.message;
+          } else if (data.error.details) {
+            errorMessage = data.error.details;
+          }
+        } else if (data.message) {
+          errorMessage = data.message;
+        }
+        setError(errorMessage);
+        setNewAnalysisLoading(false);
+        setContentReady(true);
+        console.log('🚫 [RATE LIMIT DEBUG - ID] State updated - error:', errorMessage, 'loading:', false, 'contentReady:', true);
+        return;
+      }
 
       const isCacheHit = data.from_cache === true || data.analysis?.cache_info?.cache_hit === true;
 
@@ -314,12 +360,28 @@ export default function AnalysisDetailsPage() {
         setCacheHit(true);
       }
 
-
       const needsHandling = handleRateLimitResponse(response, data);
+      console.log('🔍 [RATE LIMIT DEBUG - ID] handleRateLimitResponse returned:', needsHandling);
 
       if (needsHandling) {
+        console.log('🚫 [RATE LIMIT DEBUG - ID] Rate limit needs handling - setting error and stopping loading');
+        // ✅ Don't redirect - just stop loading and show rate limit UI
+        // ✅ Extract proper error message
+        let errorMessage = "Rate limit reached. Please wait for the timer to reset.";
+        if (data.error) {
+          if (typeof data.error === 'string') {
+            errorMessage = data.error;
+          } else if (data.error.message) {
+            errorMessage = data.error.message;
+          } else if (data.error.details) {
+            errorMessage = data.error.details;
+          }
+        }
+        setError(errorMessage);
         setNewAnalysisLoading(false);
-        return;
+        setContentReady(true);
+        console.log('🚫 [RATE LIMIT DEBUG - ID] State updated after handleRateLimitResponse');
+        return; // ✅ Exit early without redirecting
       }
 
       if (!response.ok) {
@@ -400,26 +462,32 @@ export default function AnalysisDetailsPage() {
       }
     } catch (err) {
       console.error('[ANALYSIS ERROR]', err);
-      
-      if (err.message === 'Rate limit excedido') {
-        // ✅ Don't set an error message, the rate limit UI will show
-        setNewAnalysisLoading(false);
-        return;
-      }
-
+      console.log('❌ [RATE LIMIT DEBUG - ID] Error caught:', err.message);
       setError(err.message);
       setResult(null);
+      setContentReady(true);
     } finally {
+      console.log('🏁 [RATE LIMIT DEBUG - ID] Finally block - setting loading to false');
       setNewAnalysisLoading(false);
+      console.log('🏁 [RATE LIMIT DEBUG - ID] Loading state set to false');
     }
   };
 
   const handleNewAnalysis = async () => {
     // ✅ FIX: Enviar comando raw sem validação de trim
     if (newCommand.length > 0) {
+      // ✅ CRITICAL: Check rate limit BEFORE starting loading or making request
       if (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit) {
-        setError("Rate limit reached. Please wait for the timer to reset.");
-        return;
+        console.log('🚫 [RATE LIMIT DEBUG - ID] Rate limit already reached - NOT starting loading');
+        // ✅ Extract proper error message from rate_limit_info if available
+        let errorMessage = "Rate limit reached. Please wait for the timer to reset.";
+        if (rateLimitInfo.seconds_until_reset) {
+          const minutes = Math.ceil(rateLimitInfo.seconds_until_reset / 60);
+          errorMessage = `You have made ${rateLimitInfo.current_count} searches in this session. Please wait ${minutes} minutes before trying again.`;
+        }
+        setError(errorMessage);
+        setContentReady(true); // ✅ Show content (rate limit UI)
+        return; // ✅ EXIT - don't proceed with analysis
       }
 
       // ✅ Clear state immediately to prevent flicker
@@ -439,13 +507,13 @@ export default function AnalysisDetailsPage() {
 
   const totalScore = result ? result.score : 0;
 
+  // ✅ Don't show full page loading spinner - content should always be visible
+  // if (loading) {
+  //   return <LoadingSpinner />;
+  // }
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
-  if (!contentReady) {
-    return null; // Or a minimal placeholder if needed
+  if (!contentReady && loading) {
+    return <LoadingSpinner />; // Only show on initial page load
   }
 
   // ✅ Verificar se o indicador de obfuscação foi detectado
@@ -496,13 +564,11 @@ export default function AnalysisDetailsPage() {
           </ThemedButton>
         </div>
 
-        {/* Loading overlay for new analysis */}
-        {newAnalysisLoading && (
-          <div className="mt-4 p-4 rounded-lg border bg-black/80 border-green-500/30 text-center">
-            <LoadingSpinner />
-          </div>
-        )}
-          <InfoMessage
+        {/* ✅ Removed full-page LoadingSpinner overlay - only show button loading state */}
+
+        <ErrorMessage message={error} />
+
+        <InfoMessage
           message={!error && newCommand.length === 0 ? EXAMPLE_COMMAND_DESCRIPTION : ""}
           clickable={!error && newCommand.length === 0}
           onClick={() => setNewCommand(EXAMPLE_ENCODED_COMMAND)}
