@@ -170,9 +170,7 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
         Dictionary with decode permission and usage details
     """
     
-    # ✅ If this is the example command, always allow decode without counting
     if command and command.strip() == EXAMPLE_ENCODED_COMMAND.strip():
-        print(f"[DECODE CHECK] 🎯 EXAMPLE COMMAND DETECTED - Free decode granted!")
         return {
             "can_decode": True,
             "current_usage": 0,

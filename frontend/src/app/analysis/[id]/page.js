@@ -399,8 +399,10 @@ export default function AnalysisDetailsPage() {
         throw new Error(response.error || 'Analysis failed');
       }
     } catch (err) {
-
+      console.error('[ANALYSIS ERROR]', err);
+      
       if (err.message === 'Rate limit excedido') {
+        // ✅ Don't set an error message, the rate limit UI will show
         setNewAnalysisLoading(false);
         return;
       }
@@ -420,8 +422,13 @@ export default function AnalysisDetailsPage() {
         return;
       }
 
+      // ✅ Clear state immediately to prevent flicker
       analysisExecutedRef.current = false;
       setError("");
+      setResult(null);  // ✅ Clear old results immediately
+      setDecodeInfo(null);  // ✅ Clear decode info
+      setContentReady(false);  // ✅ Hide content
+      setLoading(true);  // ✅ Show loading state
 
       // ✅ FIX: Enviar comando raw sem trim ou validação
       await performAnalysis(newCommand);
