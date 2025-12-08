@@ -98,14 +98,22 @@ IEX([System.Text.Encoding]::Unicode.GetString($payload))
 };
 
 const DecodeUsageBadge = ({ decodeInfo }) => {
-  if (!decodeInfo) return null;
+  console.log('🔍 [DecodeUsageBadge - ID] Received decodeInfo:', decodeInfo);
+  
+  if (!decodeInfo) {
+    console.log('🔍 [DecodeUsageBadge - ID] No decodeInfo provided');
+    return null;
+  }
 
   console.log("🔍 [DecodeUsageBadge] decodeInfo:", decodeInfo);
   console.log("🔍 [DecodeUsageBadge] limit:", decodeInfo.limit, "Type:", typeof decodeInfo.limit);
   console.log("🔍 [DecodeUsageBadge] isUnlimited check:", decodeInfo.limit === null);
 
   // ✅ Check if this is an example command (is_example flag from backend)
+  console.log('🔍 [DecodeUsageBadge - ID] is_example flag:', decodeInfo.is_example);
+  
   if (decodeInfo.is_example) {
+    console.log('✅ [DecodeUsageBadge - ID] SHOWING EXAMPLE BADGE');
     return (
       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-blue-400 border-blue-500/30 bg-blue-500/10 mb-4">
         <span className="text-xs font-mono font-bold">

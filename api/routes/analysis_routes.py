@@ -348,6 +348,7 @@ async def analyze_command_endpoint(
         
         # ✅ decode_info already fetched in parallel above
         print(f"[DECODE CHECK] User: {user_id[:8] if user_id else 'ANON'}... | Can decode: {decode_info['can_decode']} | Usage: {decode_info['current_usage']}/{decode_info['limit']}")
+        print(f"[DECODE CHECK] ✅ decode_info being sent to frontend: {decode_info}")
         
         # Mask content for users without decode permission
         decode_limit_reached = False

