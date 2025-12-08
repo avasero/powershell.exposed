@@ -25,9 +25,11 @@ ALLOWED_ORIGINS = [
     "https://api.powershell.exposed",
     "https://www.powershell.exposed",
     "https://www.ps.exposed",
-    "https://ps.exposed",
-    "https://71273716925639avasero.powershell.exposed"
+    "https://ps.exposed"
 ]
+
+# ✅ Regex pattern for Vercel preview deployments (any subdomain)
+ALLOWED_ORIGIN_REGEX = r"https://.*\.powershell\.exposed"
 
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")

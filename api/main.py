@@ -68,9 +68,9 @@ app.add_middleware(
         "https://powershell.exposed",
         "https://www.powershell.exposed",
         "https://www.ps.exposed",
-        "https://ps.exposed",
-        "https://71273716925639avasero.powershell.exposed"
+        "https://ps.exposed"
     ],
+    allow_origin_regex=r"https://.*\.powershell\.exposed",  # ✅ Aceita qualquer subdomínio
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
