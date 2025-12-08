@@ -26,7 +26,8 @@ ALLOWED_ORIGINS = [
     "https://www.powershell.exposed",
     "https://www.ps.exposed",
     "https://ps.exposed",
-    "https://71273716925639avasero.powershell.exposed"
+    "https://71273716925639avasero.powershell.exposed",
+    "https://api-test-81273633351825.powershell.exposed"
 ]
 
 
