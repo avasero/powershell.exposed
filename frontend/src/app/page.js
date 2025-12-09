@@ -2,6 +2,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { IoClose } from "react-icons/io5";
 import ThemedButton from "./components/ThemedButton";
 import { useAuth } from "./contexts/AuthContext";
 
@@ -20,10 +21,7 @@ export default function LandingPage() {
         const errorDescription = params.get('error_description');
         
         if (error === 'access_denied' && errorCode === 'otp_expired') {
-          setAuthError({
-            title: 'Login Link Expired',
-            message: decodeURIComponent(errorDescription || 'Your login link has expired. Please request a new one.')
-          });
+          setAuthError(decodeURIComponent(errorDescription || 'Your login link has expired. Please request a new one.'));
           // Clean the URL hash
           window.history.replaceState(null, '', window.location.pathname);
         }
@@ -35,30 +33,19 @@ export default function LandingPage() {
     <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center px-4 py-8 sm:px-6 sm:py-12 md:px-8 md:py-16 overflow-x-hidden">
       {/* Auth Error Banner - Bottom notification */}
       {authError && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-4">
-          <div className="max-w-2xl mx-auto rounded-lg border-2 border-red-500/50 bg-black/95 p-4">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-center sm:text-left">
-                <span className="font-mono font-bold text-red-500">{authError.title}: </span>
-                <span className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                  {authError.message}
-                </span>
-              </div>
-              <div className="flex gap-3 shrink-0">
-                <Link href="/login">
-                  <ThemedButton size="sm">
-                    Login Again
-                  </ThemedButton>
-                </Link>
-                <button
-                  onClick={() => setAuthError(null)}
-                  className="px-3 py-1 font-mono text-xs border border-gray-600 rounded hover:bg-gray-800 transition-colors"
-                  style={{ color: 'var(--muted-foreground)' }}
-                >
-                  Dismiss
-                </button>
-              </div>
+        <div className="fixed bottom-4 left-4  z-50">
+          <div className="max-w-2xl mx-auto relative">
+            <div className="text-xs sm:text-sm font-mono text-red-400 bg-red-900/20 border border-red-500/30 rounded p-2 pr-6">
+              {authError}
             </div>
+            <span
+              onClick={() => setAuthError(null)}
+              className="absolute top-1 right-1 p-0.5 text-red-400/30 hover:text-red-400/70 transition-colors cursor-pointer"
+              role="button"
+              aria-label="Dismiss"
+            >
+              <IoClose size={14} />
+            </span>
           </div>
         </div>
       )}
