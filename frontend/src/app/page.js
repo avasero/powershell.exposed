@@ -33,29 +33,29 @@ export default function LandingPage() {
   
   return (
     <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center px-4 py-8 sm:px-6 sm:py-12 md:px-8 md:py-16 overflow-x-hidden">
-      {/* Auth Error Popup */}
+      {/* Auth Error Banner - Bottom notification */}
       {authError && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-          <div className="bg-black border border-red-500/50 rounded-lg p-6 max-w-md mx-4 shadow-xl">
-            <div className="text-center">
-              <h2 className="text-xl font-mono font-bold text-red-500 mb-4">
-                {authError.title}
-              </h2>
-              <p className="font-mono text-sm mb-6" style={{ color: 'var(--muted-foreground)' }}>
-                {authError.message}
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-4">
+          <div className="max-w-2xl mx-auto rounded-lg border-2 border-red-500/50 bg-black/95 p-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-center sm:text-left">
+                <span className="font-mono font-bold text-red-500">{authError.title}: </span>
+                <span className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                  {authError.message}
+                </span>
+              </div>
+              <div className="flex gap-3 shrink-0">
                 <Link href="/login">
-                  <ThemedButton className="w-full sm:w-auto">
+                  <ThemedButton size="sm">
                     Login Again
                   </ThemedButton>
                 </Link>
                 <button
                   onClick={() => setAuthError(null)}
-                  className="px-4 py-2 font-mono text-sm border border-gray-600 rounded hover:bg-gray-800 transition-colors"
+                  className="px-3 py-1 font-mono text-xs border border-gray-600 rounded hover:bg-gray-800 transition-colors"
                   style={{ color: 'var(--muted-foreground)' }}
                 >
-                  Close
+                  Dismiss
                 </button>
               </div>
             </div>
