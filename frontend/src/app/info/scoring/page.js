@@ -66,7 +66,7 @@ export default function ScoringInfoPage() {
               </div>
               <div>
                 <p className="font-mono text-sm font-bold mb-2" style={{color: 'var(--foreground)'}}>
-                  ⭐ Premium Tier
+                  Premium Tier
                 </p>
                 <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
                   Besides testing payloads against a wider range of indicators (regex plus behavioral/anomaly), the scoring is based on a weighted model which also outputs a severity label.

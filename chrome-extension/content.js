@@ -1,4 +1,4 @@
-// Content script for PowerShell.exposed Extension
+// Content script for powerphell.exposed Extension
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "ANALYSIS_START") {
@@ -44,7 +44,7 @@ function showLoading() {
   const m = createModal();
   m.innerHTML = `
     <div style="padding: 20px; text-align: center;">
-      <div style="color: #1CC76D; font-weight: bold; margin-bottom: 10px;">PowerShell.exposed</div>
+      <div style="color: #1CC76D; font-weight: bold; margin-bottom: 10px;">powershell.exposed</div>
       <div>Analyzing...</div>
     </div>
   `;

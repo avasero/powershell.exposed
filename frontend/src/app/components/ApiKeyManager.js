@@ -161,7 +161,7 @@ export default function ApiKeyManager() {
            API Key Management
         </h2>
         <p className="mt-2 font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-          Use your API Key to access the PowerShell.exposed API from external tools like Postman
+          Use your API Key to access the powershell.exposed API from external tools like Postman
         </p>
       </div>
 
@@ -245,7 +245,7 @@ export default function ApiKeyManager() {
                   No API Key Found
                 </h3>
                 <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-                  Create an API Key to access the PowerShell.exposed API from external tools
+                  Create an API Key to access the powershell.exposed API from external tools
                 </p>
                 <ThemedButton
                   onClick={createApiKey}

@@ -597,7 +597,6 @@ export default function AnalysisDetailsPage() {
               <div>
                 <div className="text-center mb-6">
                   <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border-2 border-red-500 bg-black/80 border-green-500/30">
-                    <span className="text-2xl">🚫</span>
                     <span className="font-mono font-bold text-red-500">Rate limit reached</span>
                   </div>
                 </div>
@@ -605,7 +604,6 @@ export default function AnalysisDetailsPage() {
                 {isTimerActive && timeLeft > 0 && (
                   <div className="text-center">
                     <div className="inline-block p-6 rounded-xl border-2 bg-black/80 border-green-500/30">
-                      <div className="text-4xl mb-3">⏰</div>
 
                       <div className="font-mono font-bold text-xl mb-3" style={{ color: 'var(--accent)' }}>
                         Wait for reset: {Math.ceil(timeLeft / 60)} minutes
@@ -697,7 +695,7 @@ export default function AnalysisDetailsPage() {
           <div className="border rounded-lg p-4 bg-black/80 border-purple-500/30">
             <div className="flex justify-between items-center mb-3">
               <div className="font-mono text-sm font-bold" style={{ color: 'var(--accent)' }}>
-                🔓 Deobfuscated Command
+                Deobfuscated Command
               </div>
               <DecodeUsageBadge decodeInfo={decodeInfo} />
             </div>

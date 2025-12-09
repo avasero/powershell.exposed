@@ -203,28 +203,29 @@ export default function EvaluatePage() {
       <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden relative z-10">
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <form onSubmit={handleAnalyze}>
-            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
-              <div className="flex-1">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center px-2 flex items-center justify-center gap-3" style={{ color: 'var(--accent)' }}>
-                  <svg
-                    viewBox="0 0 256 256"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-label="powershell.exposed icon: ! >"
-                    className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12"
-                  >
-                    <defs>
-                      <mask id="cut3">
-                        <rect x="24" y="24" width="208" height="208" rx="28" fill="white" />
-                        <line x1="86" y1="92" x2="86" y2="148" stroke="black" strokeWidth="20" strokeLinecap="round" />
-                        <circle cx="86" cy="170" r="10" fill="black" />
-                        <polyline points="120,100 172,128 120,156" fill="none"
-                          stroke="black" strokeWidth="24" strokeLinecap="round" strokeLinejoin="round" />
-                      </mask>
-                    </defs>
-                    <rect x="24" y="24" width="208" height="208" rx="28" fill="#1CC76D" mask="url(#cut3)" />
-                  </svg>
-                  powershell.exposed
-                </h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-6 sm:mb-8 text-center px-2 flex items-center justify-center gap-3" style={{ color: 'var(--accent)' }}>
+              <svg
+                viewBox="0 0 256 256"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-label="powershell.exposed icon: ! >"
+                className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12"
+              >
+                <defs>
+                  <mask id="cut3">
+                    <rect x="24" y="24" width="208" height="208" rx="28" fill="white" />
+                    <line x1="86" y1="92" x2="86" y2="148" stroke="black" strokeWidth="20" strokeLinecap="round" />
+                    <circle cx="86" cy="170" r="10" fill="black" />
+                    <polyline points="120,100 172,128 120,156" fill="none"
+                      stroke="black" strokeWidth="24" strokeLinecap="round" strokeLinejoin="round" />
+                  </mask>
+                </defs>
+                <rect x="24" y="24" width="208" height="208" rx="28" fill="#1CC76D" mask="url(#cut3)" />
+              </svg>
+              powershell.exposed
+            </h1>
+            
+            <div className="flex flex-col sm:flex-row gap-3 w-full items-center">
+              <div className="flex-1 min-w-0">
                 <CommandInput
                   value={command}
                   onChange={handleCommandChange}
@@ -233,12 +234,11 @@ export default function EvaluatePage() {
                   error={error}
                 />
               </div>
-
-              <div className="flex-shrink-0 flex items-center md:pt-20">
+              <div className="flex-shrink-0">
                 <ThemedButton
                   type="submit"
                   disabled={command.length === 0 || loading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
-                  className="w-full md:w-auto px-6 py-3"
+                  className="w-full sm:w-auto px-6 py-3"
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">
@@ -254,8 +254,16 @@ export default function EvaluatePage() {
 
             <ErrorMessage message={error} />
 
+            <div className="w-full">
+              <InfoMessage
+                message={!error && command.length === 0 ? EXAMPLE_COMMAND_DESCRIPTION : ""}
+                clickable={!error && command.length === 0}
+                onClick={() => setCommand(EXAMPLE_ENCODED_COMMAND)}
+              />
+            </div>
+
             {rateLimitInfo && (
-              <div className="mt-4 rounded-lg border-2 bg-black/80 border-green-500/30">
+              <div className="mt-4 rounded-lg border-2 bg-black/80 border-green-500/30 w-full">
                 <div className="p-4">
                   <div className="text-center mb-4">
                     <div className="font-mono text-sm mb-2" style={{ color: 'var(--muted-foreground)' }}>
@@ -267,7 +275,6 @@ export default function EvaluatePage() {
                     <div>
                       <div className="text-center mb-6">
                         <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border-2 border-red-500" style={{ backgroundColor: 'var(--background)' }}>
-                          <span className="text-2xl">🚫</span>
                           <span className="font-mono font-bold text-red-500">Rate limit reached</span>
                         </div>
                       </div>
@@ -275,7 +282,6 @@ export default function EvaluatePage() {
                       {isTimerActive && timeLeft > 0 && (
                         <div className="text-center">
                           <div className="inline-block p-6 rounded-xl border-2" style={{ backgroundColor: 'var(--background)', borderColor: 'var(--accent)' }}>
-                            <div className="text-4xl mb-3">⏰</div>
                             <div className="font-mono font-bold text-xl mb-3" style={{ color: 'var(--accent)' }}>
                               Wait for reset: {Math.ceil(timeLeft / 60)} minutes
                             </div>
@@ -294,7 +300,7 @@ export default function EvaluatePage() {
                                 className="h-2 rounded-full transition-all duration-1000"
                                 style={{
                                   backgroundColor: 'var(--accent)',
-                                  width: `${Math.max(0, (timeLeft / 3600) * 100)}%`  // ✅ FIX: Use 3600 (1 hour) instead of 60
+                                  width: `${Math.max(0, (timeLeft / 3600) * 100)}%`
                                 }}
                               ></div>
                             </div>
@@ -306,12 +312,6 @@ export default function EvaluatePage() {
                 </div>
               </div>
             )}
-
-            <InfoMessage
-              message={!error && command.length === 0 ? EXAMPLE_COMMAND_DESCRIPTION : ""}
-              clickable={!error && command.length === 0}
-              onClick={() => setCommand(EXAMPLE_ENCODED_COMMAND)}
-            />
           </form>
         </div>
       </div>

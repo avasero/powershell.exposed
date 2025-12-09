@@ -99,7 +99,6 @@ export default function CommandInput({
       
       {showCharacterWarning && (
         <div className="mt-2 text-sm font-mono flex items-center gap-2" style={{color: 'var(--warning)'}}>
-          <span>⚠️</span>
           <span>
             {value.length >= CHARACTER_LIMIT 
               ? "Your search is capped at 5000 characters" 

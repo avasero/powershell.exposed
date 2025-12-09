@@ -249,7 +249,7 @@ export default function HistoryPage() {
           {isRestricted
             ? "History is available for upgraded plans only"
             : isAuthenticated()
-              ? `View all your saved analyses (${analyses.length} total)`
+              ? `View all your saved analyses`
               : `Anonymous analyses stored locally (${analyses.length} of 10)`}
         </p>
       </div>

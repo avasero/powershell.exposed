@@ -37,8 +37,8 @@ SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 
 
-API_TITLE = "PowerShell.exposed API"
-API_DESCRIPTION = "API para análise de comandos PowerShell"
+API_TITLE = "powerShell.exposed API"
+API_DESCRIPTION = "API para análise de comandos powerShell"
 API_VERSION = "1.0.0"
 
 

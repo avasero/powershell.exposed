@@ -327,7 +327,7 @@ export default function DashboardPage() {
                             className="px-2 py-1 rounded text-xs font-mono bg-green-900/30 text-green-400 border border-green-800"
                             title={`Country: ${analysis.ip_country}`}
                           >
-                            🏳️ {analysis.ip_country}
+                            {analysis.ip_country}
                           </span>
                         )}
                         
@@ -336,7 +336,7 @@ export default function DashboardPage() {
                             className="px-2 py-1 rounded text-xs font-mono bg-green-900/30 text-green-400 border border-green-800"
                             title={`City: ${analysis.ip_city}`}
                           >
-                            🏙️ {analysis.ip_city}
+                            {analysis.ip_city}
                           </span>
                         )}
                         
@@ -345,7 +345,7 @@ export default function DashboardPage() {
                             className="px-2 py-1 rounded text-xs font-mono bg-purple-900/30 text-purple-400 border border-purple-800"
                             title={`Region: ${analysis.ip_region}`}
                           >
-                            🗺️ {analysis.ip_region}
+                            {analysis.ip_region}
                           </span>
                         )}
                         
@@ -354,7 +354,7 @@ export default function DashboardPage() {
                             className="px-2 py-1 rounded text-xs font-mono bg-orange-900/30 text-orange-400 border border-orange-800"
                             title={`Timezone: ${analysis.ip_timezone}`}
                           >
-                            🕐 {analysis.ip_timezone}
+                            {analysis.ip_timezone}
                           </span>
                         )}
                       </div>

@@ -1,4 +1,4 @@
-// Background script for PowerShell.exposed Extension
+// Background script for powerShell.exposed Extension
 
 const API_URL = "https://api.powershell.exposed/evaluate";
 const WEB_URL = "https://powershell.exposed/evaluate"; // Or localhost: http://localhost:3000/evaluate
@@ -7,7 +7,7 @@ const WEB_URL = "https://powershell.exposed/evaluate"; // Or localhost: http://l
 chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
         id: "pse_root",
-        title: "Analyze with PowerShell.exposed",
+        title: "Analyze with powerShell.exposed",
         contexts: ["selection"]
     });
 
@@ -46,7 +46,7 @@ async function handleQuickAnalyze(text, tabId) {
             // Notify user to set API key
             chrome.scripting.executeScript({
                 target: { tabId: tabId },
-                func: () => alert("Please set your PowerShell.exposed API Key in the extension settings first.")
+                func: () => alert("Please set your powerShell.exposed API Key in the extension settings first.")
             });
             return;
         }

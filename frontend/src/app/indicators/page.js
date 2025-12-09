@@ -2,6 +2,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ThemedButton from "../components/ThemedButton";
 import { ErrorMessage } from "../components/Messages";
@@ -96,7 +97,7 @@ export default function IndicatorsPage() {
       let aValue, bValue;
       
       switch (field) {
-        case "label":
+        case "name":
           aValue = (a.name || "").toLowerCase();
           bValue = (b.name || "").toLowerCase();
           break;
@@ -228,7 +229,7 @@ export default function IndicatorsPage() {
                     setPageSize(e.target.value === "All" ? "All" : parseInt(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="appearance-none px-4 py-3 pr-10 rounded border font-mono text-sm min-w-[120px] cursor-pointer hover:bg-opacity-80 transition-all"
+                  className="appearance-none px-4 py-3 pr-10 rounded border font-mono text-sm min-w-[120px] cursor-pointer hover:bg-opacity-80 transition-all focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500"
                   style={{
                     backgroundColor: 'var(--card-bg)',
                     borderColor: 'var(--border-color)',
@@ -261,17 +262,70 @@ export default function IndicatorsPage() {
             )}
           </div>
 
-          {/* Stats */}
+          {/* Stats and Pagination */}
           {pagination.total > 0 && (
-            <div className="flex flex-wrap gap-4 text-sm font-mono mb-4" style={{color: 'var(--muted-foreground)'}}>
-              <span>Total: <strong style={{color: 'var(--accent)'}}>{pagination.total}</strong> indicators</span>
-              {pageSize !== "All" ? (
-                <>
-                  <span>Showing: <strong style={{color: 'var(--accent)'}}>{((pagination.page - 1) * pageSize) + 1}</strong> - <strong style={{color: 'var(--accent)'}}>{Math.min(pagination.page * pageSize, pagination.total)}</strong></span>
-                  <span>Page: <strong style={{color: 'var(--accent)'}}>{pagination.page}</strong> of <strong style={{color: 'var(--accent)'}}>{pagination.totalPages}</strong></span>
-                </>
-              ) : (
-                <span>Showing: <strong style={{color: 'var(--accent)'}}>All {pagination.total}</strong> indicators</span>
+            <div className="flex flex-wrap items-center justify-between gap-4 text-sm font-mono mb-4">
+              <div className="flex flex-wrap gap-4" style={{color: 'var(--muted-foreground)'}}>
+                <span>Total: <strong style={{color: 'var(--accent)'}}>{pagination.total}</strong> indicators</span>
+                {pageSize !== "All" ? (
+                  <>
+                    <span>Showing: <strong style={{color: 'var(--accent)'}}>{((pagination.page - 1) * pageSize) + 1}</strong> - <strong style={{color: 'var(--accent)'}}>{Math.min(pagination.page * pageSize, pagination.total)}</strong></span>
+                    <span>Page: <strong style={{color: 'var(--accent)'}}>{pagination.page}</strong> of <strong style={{color: 'var(--accent)'}}>{pagination.totalPages}</strong></span>
+                  </>
+                ) : (
+                  <span>Showing: <strong style={{color: 'var(--accent)'}}>All {pagination.total}</strong> indicators</span>
+                )}
+              </div>
+              
+              {/* Pagination Controls */}
+              {pagination.totalPages > 1 && pageSize !== "All" && (
+                <div className="flex items-center gap-2">
+                  <FiChevronLeft
+                    onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
+                    className={`w-5 h-5 transition-all ${currentPage <= 1 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer hover:opacity-70'}`}
+                    style={{color: 'var(--accent)'}}
+                  />
+                  
+                  <div className="flex gap-1">
+                    {[...Array(pagination.totalPages)].map((_, i) => {
+                      const pageNum = i + 1;
+                      if (
+                        pageNum === 1 ||
+                        pageNum === pagination.totalPages ||
+                        (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                      ) {
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`px-2 py-1 rounded font-mono text-xs transition-all ${
+                              currentPage === pageNum
+                                ? 'bg-green-500/20 border-2 border-green-500/50 font-bold'
+                                : 'border border-green-500/30 hover:bg-green-500/10'
+                            }`}
+                            style={{
+                              color: currentPage === pageNum ? 'var(--accent)' : 'var(--muted-foreground)'
+                            }}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      } else if (
+                        pageNum === currentPage - 2 ||
+                        pageNum === currentPage + 2
+                      ) {
+                        return <span key={pageNum} className="px-1" style={{color: 'var(--muted-foreground)'}}>...</span>;
+                      }
+                      return null;
+                    })}
+                  </div>
+                  
+                  <FiChevronRight
+                    onClick={() => currentPage < pagination.totalPages && setCurrentPage(currentPage + 1)}
+                    className={`w-5 h-5 transition-all ${currentPage >= pagination.totalPages ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer hover:opacity-70'}`}
+                    style={{color: 'var(--accent)'}}
+                  />
+                </div>
               )}
             </div>
           )}
@@ -301,46 +355,46 @@ export default function IndicatorsPage() {
                 <thead className="border-b border-green-500/30">
                   <tr className="bg-black/40">
                     <th 
-                      onClick={() => sortIndicators("label")}
+                      onClick={() => sortIndicators("name")}
                       className="px-4 py-3 text-left font-mono text-sm font-bold cursor-pointer hover:bg-green-500/10 transition-colors" 
                       style={{color: 'var(--accent)'}}
                     >
-                      Label <SortIcon field="label" />
+                      <span className="inline-flex items-center">Name<SortIcon field="name" /></span>
                     </th>
                     <th 
                       onClick={() => sortIndicators("severity")}
                       className="px-4 py-3 text-left font-mono text-sm font-bold cursor-pointer hover:bg-green-500/10 transition-colors" 
                       style={{color: 'var(--accent)'}}
                     >
-                      Severity <SortIcon field="severity" />
+                      <span className="inline-flex items-center">Severity<SortIcon field="severity" /></span>
                     </th>
                     <th 
                       onClick={() => sortIndicators("basescore")}
                       className="px-4 py-3 text-left font-mono text-sm font-bold cursor-pointer hover:bg-green-500/10 transition-colors" 
                       style={{color: 'var(--accent)'}}
                     >
-                      Base Score <SortIcon field="basescore" />
+                      <span className="inline-flex items-center">Base Score<SortIcon field="basescore" /></span>
                     </th>
                     <th 
                       onClick={() => sortIndicators("description")}
                       className="px-4 py-3 text-left font-mono text-sm font-bold cursor-pointer hover:bg-green-500/10 transition-colors" 
                       style={{color: 'var(--accent)'}}
                     >
-                      Description <SortIcon field="description" />
+                      <span className="inline-flex items-center">Description<SortIcon field="description" /></span>
                     </th>
                     <th 
                       onClick={() => sortIndicators("last_modified_by")}
                       className="px-4 py-3 text-left font-mono text-sm font-bold cursor-pointer hover:bg-green-500/10 transition-colors" 
                       style={{color: 'var(--accent)'}}
                     >
-                      Last Modified By <SortIcon field="last_modified_by" />
+                      <span className="inline-flex items-center">Last Modified By<SortIcon field="last_modified_by" /></span>
                     </th>
                     <th 
                       onClick={() => sortIndicators("last_modification")}
                       className="px-4 py-3 text-left font-mono text-sm font-bold cursor-pointer hover:bg-green-500/10 transition-colors" 
                       style={{color: 'var(--accent)'}}
                     >
-                      Updated At <SortIcon field="last_modification" />
+                      <span className="inline-flex items-center">Updated At<SortIcon field="last_modification" /></span>
                     </th>
                   </tr>
                 </thead>
@@ -501,63 +555,6 @@ export default function IndicatorsPage() {
               ))}
             </div>
 
-            {/* Pagination */}
-            {pagination.totalPages > 1 && pageSize !== "All" && (
-              <div className="flex justify-center items-center gap-4 mt-6">
-                <ThemedButton
-                  variant="ghost"
-                  size="sm"
-                  disabled={currentPage <= 1}
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                >
-                  ← Previous
-                </ThemedButton>
-                
-                <div className="flex gap-2">
-                  {[...Array(pagination.totalPages)].map((_, i) => {
-                    const pageNum = i + 1;
-                    // Show first, last, current, and pages around current
-                    if (
-                      pageNum === 1 ||
-                      pageNum === pagination.totalPages ||
-                      (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
-                    ) {
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => setCurrentPage(pageNum)}
-                          className={`px-3 py-1 rounded font-mono text-sm transition-all ${
-                            currentPage === pageNum
-                              ? 'bg-green-500/20 border-2 border-green-500/50 font-bold'
-                              : 'border border-green-500/30 hover:bg-green-500/10'
-                          }`}
-                          style={{
-                            color: currentPage === pageNum ? 'var(--accent)' : 'var(--muted-foreground)'
-                          }}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    } else if (
-                      pageNum === currentPage - 2 ||
-                      pageNum === currentPage + 2
-                    ) {
-                      return <span key={pageNum} className="px-2" style={{color: 'var(--muted-foreground)'}}>...</span>;
-                    }
-                    return null;
-                  })}
-                </div>
-                
-                <ThemedButton
-                  variant="ghost"
-                  size="sm"
-                  disabled={currentPage >= pagination.totalPages}
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                >
-                  Next →
-                </ThemedButton>
-              </div>
-            )}
           </>
         )}
       </div>

@@ -1,14 +1,68 @@
 // eslint-disable-line react-hooks/exhaustive-deps
 "use client";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import ThemedButton from "./components/ThemedButton";
 import { useAuth } from "./contexts/AuthContext";
 
 export default function LandingPage() {
   const { isAuthenticated } = useAuth();
+  const [authError, setAuthError] = useState(null);
+  
+  // Check for auth errors in URL hash (e.g., expired magic links)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash;
+      if (hash && hash.includes('error=')) {
+        const params = new URLSearchParams(hash.substring(1));
+        const error = params.get('error');
+        const errorCode = params.get('error_code');
+        const errorDescription = params.get('error_description');
+        
+        if (error === 'access_denied' && errorCode === 'otp_expired') {
+          setAuthError({
+            title: 'Login Link Expired',
+            message: decodeURIComponent(errorDescription || 'Your login link has expired. Please request a new one.')
+          });
+          // Clean the URL hash
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+      }
+    }
+  }, []);
   
   return (
     <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center px-4 py-8 sm:px-6 sm:py-12 md:px-8 md:py-16 overflow-x-hidden">
+      {/* Auth Error Popup */}
+      {authError && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+          <div className="bg-black border border-red-500/50 rounded-lg p-6 max-w-md mx-4 shadow-xl">
+            <div className="text-center">
+              <h2 className="text-xl font-mono font-bold text-red-500 mb-4">
+                {authError.title}
+              </h2>
+              <p className="font-mono text-sm mb-6" style={{ color: 'var(--muted-foreground)' }}>
+                {authError.message}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link href="/login">
+                  <ThemedButton className="w-full sm:w-auto">
+                    Login Again
+                  </ThemedButton>
+                </Link>
+                <button
+                  onClick={() => setAuthError(null)}
+                  className="px-4 py-2 font-mono text-sm border border-gray-600 rounded hover:bg-gray-800 transition-colors"
+                  style={{ color: 'var(--muted-foreground)' }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="w-full max-w-4xl text-center space-y-6 sm:space-y-8 md:space-y-10">
        
         <div className="space-y-3 sm:space-y-4">
@@ -16,7 +70,7 @@ export default function LandingPage() {
             powershell.exposed
           </h1>
           <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-mono px-2" style={{color: 'var(--muted-foreground)'}}>
-            Suspicious PowerShell Detection Engine.
+            Suspicious PowerShell Detection Engine
           </p>
         </div>
 

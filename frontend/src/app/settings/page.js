@@ -285,7 +285,7 @@ export default function SettingsPage() {
             href="/"
             className="inline-flex items-center gap-2 font-mono text-sm text-white/50 hover:text-green-400 transition-colors"
           >
-            ← Return to PowerShell.exposed
+            ← Return to powershell.exposed
           </Link>
         </div>
       </div>
