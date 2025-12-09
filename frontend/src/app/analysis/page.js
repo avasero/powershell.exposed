@@ -21,20 +21,21 @@ import { saveAnonymousAnalysis } from "../../utils/cookies";
 import { getOrCreateSession, saveSessionFromBackend } from "../../utils/session";
 
 // Score-based color system (5 bins from 1-10)
+// 1.0-1.99: Informational (Blue), 2.0-4.99: Low (Green), 5.0-7.99: Medium (Yellow), 8.0-9.99: High (Orange), 10.0+: Critical (Red)
 function getScoreColor(score) {
   if (score >= 10) return "border-red-600 text-red-600";           // Critical: 10.0+
-  if (score >= 8) return "border-orange-400 text-orange-400";      // High: 8.0+
-  if (score >= 5) return "border-yellow-400 text-yellow-400";      // Medium: 5.0+
-  if (score >= 2) return "border-green-400 text-green-400";        // Low: 2.0+
-  return "border-green-400 text-green-400";                          // Informational: 1.0
+  if (score >= 8) return "border-orange-400 text-orange-400";      // High: 8.0-9.99
+  if (score >= 5) return "border-yellow-400 text-yellow-400";      // Medium: 5.0-7.99
+  if (score >= 2) return "border-green-400 text-green-400";        // Low: 2.0-4.99
+  return "border-blue-400 text-blue-400";                          // Informational: 1.0-1.99
 }
 
 function getScoreLabel(score) {
-  if (score >= 10) return "CRITICAL";
-  if (score >= 8) return "HIGH";
-  if (score >= 5) return "MEDIUM";
-  if (score >= 2) return "LOW";
-  return "INFORMATIONAL";
+  if (score >= 10) return "CRITICAL";    // 10.0+
+  if (score >= 8) return "HIGH";         // 8.0-9.99
+  if (score >= 5) return "MEDIUM";       // 5.0-7.99
+  if (score >= 2) return "LOW";          // 2.0-4.99
+  return "INFORMATIONAL";                // 1.0-1.99
 }
 
 // ✅ Componente com DEBUG

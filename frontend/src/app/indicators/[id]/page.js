@@ -48,7 +48,8 @@ export default function IndicatorDetailPage() {
       case 'HIGH': return 'text-orange-400 bg-orange-900/30 border-orange-800';
       case 'MEDIUM': return 'text-yellow-400 bg-yellow-900/30 border-yellow-800';
       case 'LOW': return 'text-green-400 bg-green-900/30 border-green-800';
-      default: return 'text-gray-400 bg-gray-900/30 border-gray-800';
+      case 'INFORMATIONAL': return 'text-blue-400 bg-blue-900/30 border-blue-800';
+      default: return 'text-blue-400 bg-blue-900/30 border-blue-800';
     }
   };
 

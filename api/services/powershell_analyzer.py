@@ -590,15 +590,22 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
 
 
 def calculate_severity_and_risk(total_score: float) -> str:
-    """Calcula severidade baseado no score total"""
-    severity = "very_low"
-    if total_score >= 8.1:
+    """Calcula severidade baseado no score total
+    Score Ranges:
+    - 10.0+: Critical (Red) - Extremely notable, likely suspicious activity
+    - 8.0 - 9.99: High (Orange) - Highly notable activity
+    - 5.0 - 7.99: Medium (Yellow) - Fairly notable activity
+    - 2.0 - 4.99: Low (Green) - Relevant activity
+    - 1.0 - 1.99: Informational (Blue) - Extremely common, benign behavior
+    """
+    severity = "informational"
+    if total_score >= 10:
         severity = "critical"
-    elif total_score >= 6.1:
+    elif total_score >= 8:
         severity = "high"
-    elif total_score >= 4.1:
+    elif total_score >= 5:
         severity = "medium"
-    elif total_score >= 2.1:
+    elif total_score >= 2:
         severity = "low"
     return severity
 

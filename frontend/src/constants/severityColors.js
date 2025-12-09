@@ -1,5 +1,11 @@
 /**
  * Severity color definitions used consistently across the application
+ * Score Ranges:
+ * 1.0 - 1.99: Informational (Blue) - Extremely common, benign behavior
+ * 2.0 - 4.99: Low (Green) - Relevant activity
+ * 5.0 - 7.99: Medium (Yellow) - Fairly notable activity
+ * 8.0 - 9.99: High (Orange) - Highly notable activity
+ * 10.0+: Critical (Red) - Extremely notable, likely suspicious activity
  */
 
 export const SEVERITY_COLORS = {
@@ -22,6 +28,12 @@ export const SEVERITY_COLORS = {
     accent: '#eab308'
   },
   LOW: {
+    text: 'text-green-400',
+    bg: 'bg-green-400/10',
+    border: 'border-green-400/30',
+    accent: '#4ade80'
+  },
+  INFORMATIONAL: {
     text: 'text-blue-400',
     bg: 'bg-blue-400/10',
     border: 'border-blue-400/30',
@@ -36,7 +48,7 @@ export const SEVERITY_COLORS = {
 };
 
 export const getSeverityColor = (severity) => {
-  if (!severity) return SEVERITY_COLORS.VERY_LOW;
+  if (!severity) return SEVERITY_COLORS.INFORMATIONAL;
   
   const normalizedSeverity = severity.toUpperCase().replace(/_/g, '');
   
@@ -49,10 +61,12 @@ export const getSeverityColor = (severity) => {
       return SEVERITY_COLORS.MEDIUM;
     case 'LOW':
       return SEVERITY_COLORS.LOW;
+    case 'INFORMATIONAL':
+      return SEVERITY_COLORS.INFORMATIONAL;
     case 'VERYLOW':
       return SEVERITY_COLORS.VERY_LOW;
     default:
-      return SEVERITY_COLORS.VERY_LOW;
+      return SEVERITY_COLORS.INFORMATIONAL;
   }
 };
 

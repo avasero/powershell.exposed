@@ -139,10 +139,6 @@ async def test_4th_decode_allowed():
     # Verificar após 4 decodes
     result_4th = await can_user_decode_commands(user_id=None, session_id=test_session)
     
-    print(f"\n📊 Status após 4 decodes:")
-    print(f"   - Can decode: {result_4th['can_decode']}")
-    print(f"   - Current usage: {result_4th['current_usage']}/{result_4th['limit']}")
-    print(f"   - Remaining: {result_4th['remaining']}")
     
     assert result_4th['can_decode'] == True, "❌ ERRO: 4º decode deveria ser permitido"
     assert result_4th['current_usage'] == 4, f"❌ ERRO: Usage deveria ser 4, mas é {result_4th['current_usage']}"
@@ -170,12 +166,6 @@ async def test_4th_decode_allowed():
     
     # Verificar após 5 decodes
     result_5th = await can_user_decode_commands(user_id=None, session_id=test_session)
-    
-    print(f"\n📊 Status após 5 decodes:")
-    print(f"   - Can decode: {result_5th['can_decode']}")
-    print(f"   - Current usage: {result_5th['current_usage']}/{result_5th['limit']}")
-    print(f"   - Remaining: {result_5th['remaining']}")
-    print(f"   - Reset in: {result_5th['seconds_until_reset'] // 60 if result_5th['seconds_until_reset'] else 0} min")
     
     assert result_5th['can_decode'] == False, "❌ ERRO: 5º decode deveria ser bloqueado"
     assert result_5th['current_usage'] == 5, f"❌ ERRO: Usage deveria ser 5, mas é {result_5th['current_usage']}"
