@@ -166,14 +166,15 @@ async def analyze_command_endpoint(
         # ✅ Keep global rate limit
         add_global_request()
         
-        if not country and ip_address:
+        # ✅ OPTIMIZATION: Check cache BEFORE expensive geolocation
+        phash = generate_phash(command)
+        cached_result = await check_cache(phash)
+        
+        # ✅ Only do geolocation if NOT cached (saves API call)
+        if not cached_result and not country and ip_address:
             location_data = await get_ip_location(ip_address)
             if location_data:
                 country = location_data.get("country")
-        
-        phash = generate_phash(command)
-        
-        cached_result = await check_cache(phash)
         
         # ✅ Cache hit now properly counted in DB
         if cached_result:
@@ -219,8 +220,8 @@ async def analyze_command_endpoint(
             double_decoded_cmd = results_blob.get("double_decoded_command")
             deobfuscated_cmd = results_blob.get("deobfuscated_command")
             
-            # ✅ Check decode permission
-            decode_info = await can_user_decode_commands(user_id, session_id=session_id)
+            # ✅ Check decode permission (pass command to detect example)
+            decode_info = await can_user_decode_commands(user_id, session_id=session_id, command=command)
             
             
             if not decode_info["can_decode"]:
@@ -271,7 +272,8 @@ async def analyze_command_endpoint(
                     "current_usage": decode_info["current_usage"],
                     "limit": decode_info["limit"],
                     "remaining": decode_info["remaining"],
-                    "seconds_until_reset": decode_info["seconds_until_reset"]
+                    "seconds_until_reset": decode_info["seconds_until_reset"],
+                    "is_example": decode_info.get("is_example", False)
                 },
                 "rate_limit_info": rate_limit_info
             })
@@ -310,7 +312,11 @@ async def analyze_command_endpoint(
             
             cache_saved = await save_to_cache(phash, indicators_matched, cache_compatible_result)
         
-        db_result = await save_analysis_to_db(
+        # ✅ OPTIMIZATION: Prepare decode check in parallel with DB save
+        import asyncio
+        
+        # Start DB save and decode check in parallel
+        db_task = asyncio.create_task(save_analysis_to_db(
             command=command,
             analysis_result=analysis_result,
             user_id=user_id,
@@ -320,9 +326,14 @@ async def analyze_command_endpoint(
             search_type=search_type,
             user_agent=user_agent,
             is_cache=False
-        )
+        ))
         
-        # Check if user is premium
+        decode_task = asyncio.create_task(can_user_decode_commands(user_id, session_id=session_id, command=command))
+        
+        # Wait for both operations
+        db_result, decode_info = await asyncio.gather(db_task, decode_task)
+        
+        # Remove old sequential code
         is_premium_user = False
         if user_id:
             supabase = get_supabase_client()
@@ -335,10 +346,9 @@ async def analyze_command_endpoint(
         double_decoded_cmd = analysis_result.get("double_decoded_command")
         deobfuscated_cmd = analysis_result.get("deobfuscated_command")
         
-        # ✅ FIX: Use centralized plan service for ALL users (including anonymous)
-        decode_info = await can_user_decode_commands(user_id, session_id=session_id)
-        
+        # ✅ decode_info already fetched in parallel above
         print(f"[DECODE CHECK] User: {user_id[:8] if user_id else 'ANON'}... | Can decode: {decode_info['can_decode']} | Usage: {decode_info['current_usage']}/{decode_info['limit']}")
+        print(f"[DECODE CHECK] ✅ decode_info being sent to frontend: {decode_info}")
         
         # Mask content for users without decode permission
         decode_limit_reached = False
@@ -392,7 +402,8 @@ async def analyze_command_endpoint(
                 "current_usage": decode_info["current_usage"],
                 "limit": decode_info["limit"],
                 "remaining": decode_info["remaining"],
-                "seconds_until_reset": decode_info["seconds_until_reset"]
+                "seconds_until_reset": decode_info["seconds_until_reset"],
+                "is_example": decode_info.get("is_example", False)
             },
             "rate_limit_info": rate_limit_info
         })
@@ -645,8 +656,11 @@ async def get_analysis_by_id_endpoint(
         user_id = current_user.get("id") if current_user else None
         session_id = request.headers.get("X-Session-ID") or request.cookies.get("session_id")
         
-        # ✅ FIX: Get decode_info BEFORE using it
-        decode_info = await can_user_decode_commands(user_id, session_id=session_id)
+        # ✅ Get command to check if it's the example
+        command = analysis_data.get("command", "")
+        
+        # ✅ FIX: Get decode_info BEFORE using it (pass command to detect example)
+        decode_info = await can_user_decode_commands(user_id, session_id=session_id, command=command)
         
         decoded_cmd = analysis_data.get("decoded_command")
         double_decoded_cmd = analysis_data.get("double_decoded_command")
@@ -695,7 +709,8 @@ async def get_analysis_by_id_endpoint(
                 "current_usage": decode_info["current_usage"],
                 "limit": decode_info["limit"],
                 "remaining": decode_info["remaining"],
-                "seconds_until_reset": decode_info["seconds_until_reset"]
+                "seconds_until_reset": decode_info["seconds_until_reset"],
+                "is_example": decode_info.get("is_example", False)
             }
         })
     except Exception as error:

