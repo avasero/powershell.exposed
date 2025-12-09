@@ -4,23 +4,23 @@ import ThemedButton from "../../components/ThemedButton";
 
 const SCORE_RANGES = {
   informational: {
-    label: "1.0",
+    label: "1.0 - 1.99",
     description: "Informational: Extremely common, benign behavior",
   },
   low: {
-    label: "2.0 - 4.0", 
+    label: "2.0 - 4.99", 
     description: "Low: Relevant activity",
   },
   medium: {
-    label: "5.0 - 7.0",
+    label: "5.0 - 7.99",
     description: "Medium: Fairly notable activity",
   },
   high: {
-    label: "8.0 - 9.0",
+    label: "8.0 - 9.99",
     description: "High: Highly notable activity",
   },
   critical: {
-    label: "10.0",
+    label: "10.0+",
     description: "Critical: Extremely notable, likely suspicious activity",
   },
 };
@@ -58,7 +58,7 @@ export default function ScoringInfoPage() {
             <div className="space-y-4">
               <div>
                 <p className="font-mono text-sm font-bold mb-2" style={{color: 'var(--foreground)'}}>
-                  📊 Basic Tier
+                  Basic Tier
                 </p>
                 <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
                   Matches against a limited set of indicators, mostly pattern/regex based and only enables simple, aggregated score.
@@ -66,7 +66,7 @@ export default function ScoringInfoPage() {
               </div>
               <div>
                 <p className="font-mono text-sm font-bold mb-2" style={{color: 'var(--foreground)'}}>
-                  ⭐ Premium Tier
+                  Premium Tier
                 </p>
                 <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
                   Besides testing payloads against a wider range of indicators (regex plus behavioral/anomaly), the scoring is based on a weighted model which also outputs a severity label.

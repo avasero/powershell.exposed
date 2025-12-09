@@ -20,7 +20,6 @@ export default function ApiKeysPage() {
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
       <div className="w-full max-w-md space-y-6 text-center">
-        <div className="text-6xl mb-4">⚙️</div>
         <h1 className="text-2xl sm:text-3xl font-mono font-bold" style={{color: 'var(--accent)'}}>
           Redirecting...
         </h1>

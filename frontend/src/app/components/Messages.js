@@ -31,8 +31,8 @@ export function InfoMessage({ message, className = "", onClick, clickable = fals
   
   return (
     <div 
-      className={`mt-2 text-xs font-mono px-2 ${clickable ? 'cursor-pointer hover:opacity-100 transition-all duration-200 hover:bg-green-500/10 rounded' : ''} ${className}`} 
-      style={{color: 'var(--accent)', opacity: clickable ? 0.9 : 0.7}}
+      className={`mt-2 text-xs font-mono px-2 break-all ${clickable ? 'cursor-pointer hover:opacity-100 transition-all duration-200 hover:bg-green-500/10 rounded' : ''} ${className}`} 
+      style={{color: 'var(--accent)', opacity: clickable ? 0.9 : 0.7, overflowWrap: 'break-word', wordBreak: 'break-all'}}
       onClick={handleClick}
       title={clickable ? "Click to use this example" : ""}
     >

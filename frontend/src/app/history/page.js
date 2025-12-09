@@ -8,7 +8,7 @@ import { getAnonymousAnalyses } from "../../utils/cookies";
 import SeverityBadge from "../components/SeverityBadge";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ThemedButton from "../components/ThemedButton";
-import { FaSortAmountDown, FaSortAmountUp, FaFilter, FaSearch, FaCalendarAlt, FaExclamationTriangle, FaTerminal } from "react-icons/fa";
+import { FaSortAmountDown, FaSortAmountUp, FaFilter, FaCalendarAlt, FaExclamationTriangle, FaTerminal } from "react-icons/fa";
 
 export default function HistoryPage() {
   const { isAuthenticated, user } = useAuth();
@@ -249,7 +249,7 @@ export default function HistoryPage() {
           {isRestricted
             ? "History is available for upgraded plans only"
             : isAuthenticated()
-              ? `View all your saved analyses (${analyses.length} total)`
+              ? `View all your saved analyses`
               : `Anonymous analyses stored locally (${analyses.length} of 10)`}
         </p>
       </div>
@@ -259,7 +259,6 @@ export default function HistoryPage() {
 
         <div className="flex-1 max-w-md relative">
           <div className="absolute inset-y-0  flex items-center pointer-events-none">
-            <FaSearch className="text-gray-500" />
           </div>
           <input
             type="text"
@@ -326,13 +325,13 @@ export default function HistoryPage() {
               Please upgrade your plan to view your past analyses.
             </p>
             <ThemedButton onClick={() => router.push('/settings')}>
-              View Plans
+              Login to see history
             </ThemedButton>
           </div>
         ) : filteredAndSortedAnalyses.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center">
             <div className="text-center max-w-md">
-              <div className="text-6xl mb-4">📊</div>
+              <div className="text-6xl mb-4"></div>
               <h2 className="font-mono text-xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
                 {filterTerm ? 'No results found' : 'No analyses found'}
               </h2>

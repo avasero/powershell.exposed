@@ -237,42 +237,6 @@ export default function SettingsPage() {
           <ApiKeyManager />
         </div>
 
-        {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="group relative p-6 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-green-500/50 transition-all duration-200 cursor-default overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-green-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-
-            <h3 className="font-mono font-semibold text-white mb-2">
-              Unlimited Analyses
-            </h3>
-            <p className="font-mono text-xs text-white/50">
-              Run as many evaluations as you need
-            </p>
-          </div>
-
-          <div className="group relative p-6 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-green-500/50 transition-all duration-200 cursor-default overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-green-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-
-            <h3 className="font-mono font-semibold text-white mb-2">
-              API Access
-            </h3>
-            <p className="font-mono text-xs text-white/50">
-              Generate and manage API keys
-            </p>
-          </div>
-
-          <div className="group relative p-6 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-green-500/50 transition-all duration-200 cursor-default overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-green-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-
-            <h3 className="font-mono font-semibold text-white mb-2">
-              History Saved
-            </h3>
-            <p className="font-mono text-xs text-white/50">
-              All analyses automatically stored
-            </p>
-          </div>
-        </div>
-
         {/* Quick Actions */}
         <div className="p-6 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm mb-6">
           <h3 className="font-mono font-bold text-lg mb-4 text-white">
@@ -321,7 +285,7 @@ export default function SettingsPage() {
             href="/"
             className="inline-flex items-center gap-2 font-mono text-sm text-white/50 hover:text-green-400 transition-colors"
           >
-            ← Return to PowerShell.exposed
+            ← Return to powershell.exposed
           </Link>
         </div>
       </div>

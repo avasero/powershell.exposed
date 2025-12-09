@@ -21,20 +21,21 @@ import { saveAnonymousAnalysis } from "../../utils/cookies";
 import { getOrCreateSession, saveSessionFromBackend } from "../../utils/session";
 
 // Score-based color system (5 bins from 1-10)
+// 1.0-1.99: Informational (Blue), 2.0-4.99: Low (Green), 5.0-7.99: Medium (Yellow), 8.0-9.99: High (Orange), 10.0+: Critical (Red)
 function getScoreColor(score) {
   if (score >= 10) return "border-red-600 text-red-600";           // Critical: 10.0+
-  if (score >= 8) return "border-orange-400 text-orange-400";      // High: 8.0+
-  if (score >= 5) return "border-yellow-400 text-yellow-400";      // Medium: 5.0+
-  if (score >= 2) return "border-green-400 text-green-400";        // Low: 2.0+
-  return "border-green-400 text-green-400";                          // Informational: 1.0
+  if (score >= 8) return "border-orange-400 text-orange-400";      // High: 8.0-9.99
+  if (score >= 5) return "border-yellow-400 text-yellow-400";      // Medium: 5.0-7.99
+  if (score >= 2) return "border-green-400 text-green-400";        // Low: 2.0-4.99
+  return "border-blue-400 text-blue-400";                          // Informational: 1.0-1.99
 }
 
 function getScoreLabel(score) {
-  if (score >= 10) return "CRITICAL";
-  if (score >= 8) return "HIGH";
-  if (score >= 5) return "MEDIUM";
-  if (score >= 2) return "LOW";
-  return "INFORMATIONAL";
+  if (score >= 10) return "CRITICAL";    // 10.0+
+  if (score >= 8) return "HIGH";         // 8.0-9.99
+  if (score >= 5) return "MEDIUM";       // 5.0-7.99
+  if (score >= 2) return "LOW";          // 2.0-4.99
+  return "INFORMATIONAL";                // 1.0-1.99
 }
 
 // ✅ Componente com DEBUG
@@ -521,7 +522,6 @@ export default function AnalysisPage() {
               <div>
                 <div className="text-center mb-6">
                   <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border-2 border-red-500 bg-black/80 border-green-500/30">
-                    <span className="text-2xl">🚫</span>
                     <span className="font-mono font-bold text-red-500">Rate limit reached</span>
                   </div>
                 </div>
@@ -529,7 +529,6 @@ export default function AnalysisPage() {
                 {isTimerActive && timeLeft > 0 && (
                   <div className="text-center">
                     <div className="inline-block p-6 rounded-xl border-2 bg-black/80 border-green-500/30">
-                      <div className="text-4xl mb-3">⏰</div>
 
                       <div className="font-mono font-bold text-xl mb-3" style={{ color: 'var(--accent)' }}>
                         Wait for reset: {Math.ceil(timeLeft / 60)} minutes
@@ -608,7 +607,7 @@ export default function AnalysisPage() {
           <div className="border rounded-lg p-4 bg-black/80 border-purple-500/30">
             <div className="flex justify-between items-center mb-3">
               <div className="font-mono text-sm font-bold" style={{ color: 'var(--accent)' }}>
-                🔓 Deobfuscated Command
+                Deobfuscated Command
               </div>
               <DecodeUsageBadge decodeInfo={decodeInfo} />
             </div>
