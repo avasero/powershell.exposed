@@ -129,7 +129,7 @@ except ImportError as e:
     @app.get("/")
     async def root_fallback():
         return JSONResponse({
-            "message": "PowerShell.exposed API (fallback mode)",
+            "message": "powerShell.exposed API (fallback mode)",
             "status": "limited",
             "version": API_VERSION
         })
