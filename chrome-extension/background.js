@@ -46,7 +46,7 @@ async function handleQuickAnalyze(text, tabId) {
             // Notify user to set API key
             chrome.scripting.executeScript({
                 target: { tabId: tabId },
-                func: () => alert("Please set your powerShell.exposed API Key in the extension settings first.")
+                func: () => alert("Please set your powershell.exposed API Key in the extension settings first.")
             });
             return;
         }

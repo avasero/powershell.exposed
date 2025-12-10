@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "PowerShell.exposed Analyzer",
+    "name": "powershell.exposed Analyzer",
     "version": "1.0",
-    "description": "Analyze PowerShell commands directly from your browser.",
+    "description": "Analyze powershell commands directly from your browser.",
     "permissions": [
         "contextMenus",
         "storage",
@@ -17,7 +17,7 @@
     },
     "action": {
         "default_popup": "popup.html",
-        "default_title": "PowerShell.exposed Settings"
+        "default_title": "powershell.exposed Settings"
     },
     "content_scripts": [
         {

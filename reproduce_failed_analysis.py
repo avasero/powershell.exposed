@@ -24,11 +24,11 @@ except ImportError:
     RateLimitResponse = dict
     UserCommandEvaluationsResponse = dict
 
-API_TITLE = "PowerShell.exposed API"
+API_TITLE = "powerShell.exposed API"
 API_DESCRIPTION = \"\"\"
 ## PowerShell Security Analysis API
 
-A comprehensive REST API for analyzing PowerShell commands and detecting potential security threats.
+A comprehensive REST API for analyzing powerShell commands and detecting potential security threats.
 \"\"\"
 API_VERSION = "1.0.0"
 
