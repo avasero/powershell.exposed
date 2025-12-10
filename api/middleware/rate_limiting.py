@@ -11,7 +11,7 @@ from config.settings import (
 # Rate Limit Constants
 FREE_REQUEST_LIMIT = 10
 FREE_DECODE_LIMIT = 5
-LIMIT_WINDOW = 3600  # 1 hour
+LIMIT_WINDOW = 60  # 1 minute
 
 # Storage
 request_counts = defaultdict(list)
@@ -74,14 +74,14 @@ def add_global_request():
     global_request_timestamps.append(current_time)
 
 
-def check_rate_limit(session_id: str, plan_name: str = "free", limit_per_hour: int = 10) -> dict:
+def check_rate_limit(session_id: str, plan_name: str = "free", limit_per_minute: int = 10) -> dict:
     """
     Checks if the session is within the rate limit based on plan
     
     Args:
         session_id: Session ID to check
         plan_name: User's plan name (free, premium, enterprise)
-        limit_per_hour: Dynamic limit from DB
+        limit_per_minute: Dynamic limit from DB
     """
     current_time = time.time()
     
@@ -90,7 +90,7 @@ def check_rate_limit(session_id: str, plan_name: str = "free", limit_per_hour: i
     # If limit is None (unlimited) or plan is premium/enterprise (legacy fallback)
     # Note: We should rely on limit_per_hour being None for unlimited
     # If limit is None (unlimited)
-    if limit_per_hour is None:
+    if limit_per_minute is None:
         return {
             "within_limit": True,
             "current_count": 0,
@@ -102,9 +102,9 @@ def check_rate_limit(session_id: str, plan_name: str = "free", limit_per_hour: i
     
     if not session_id:
         # Fallback for no session ID (shouldn't happen in normal flow)
-        limit = limit_per_hour if limit_per_hour else FREE_REQUEST_LIMIT
+        limit = limit_per_minute if limit_per_minute else FREE_REQUEST_LIMIT
     else:
-        limit = limit_per_hour
+        limit = limit_per_minute
     
     current_requests = [req_time for req_time in request_counts[session_id] 
                        if current_time - req_time < LIMIT_WINDOW]

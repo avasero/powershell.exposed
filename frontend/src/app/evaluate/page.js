@@ -266,7 +266,7 @@ export default function EvaluatePage() {
                 <div className="p-4">
                   <div className="text-center mb-4">
                     <div className="font-mono text-sm mb-2" style={{ color: 'var(--muted-foreground)' }}>
-                      <strong>Notice:</strong> You have made <span style={{ color: 'var(--accent)' }}>{rateLimitInfo.current_count}</span> of <span style={{ color: 'var(--accent)' }}>{rateLimitInfo.limit}</span> allowed searches in 1 hour.
+                      <strong>Notice:</strong> You have made <span style={{ color: 'var(--accent)' }}>{rateLimitInfo.current_count}</span> of <span style={{ color: 'var(--accent)' }}>{rateLimitInfo.limit}</span> allowed searches in 1 minute.
                     </div>
                   </div>
 

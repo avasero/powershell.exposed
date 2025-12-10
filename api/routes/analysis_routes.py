@@ -137,7 +137,7 @@ async def analyze_command_endpoint(
             rate_limit_info = await check_session_rate_limit_from_db(
                 session_id=session_id,
                 user_id=user_id,
-                limit_per_hour=request_limit
+                limit_per_minute=request_limit
             )
             
             if not rate_limit_info["within_limit"]:
@@ -147,7 +147,7 @@ async def analyze_command_endpoint(
                     {
                         "error": {
                             "code": "QuotaExceededError",
-                            "message": "You have exceeded one of your quotas (minute, daily or monthly). Daily quotas are reset every day at 00:00 UTC.",
+                            "message": "You have exceeded your quota (per minute evaluation limit). Please wait a while.",
                             "details": f"You have made {rate_limit_info['current_count']} searches in this session. Please wait {minutes_until_reset} minutes before trying again."
                         },
                         "rate_limit_info": rate_limit_info,
@@ -212,7 +212,7 @@ async def analyze_command_endpoint(
                 rate_limit_info = await check_session_rate_limit_from_db(
                     session_id=session_id,
                     user_id=user_id,
-                    limit_per_hour=request_limit
+                    limit_per_minute=request_limit
                 )
             
             # ✅ FIX: Extract decoded variables BEFORE decode check

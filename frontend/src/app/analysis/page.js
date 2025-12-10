@@ -74,7 +74,7 @@ IEX([System.Text.Encoding]::Unicode.GetString($payload))
               Decode Limit Reached
             </span>
             <span className="text-sm text-gray-300 text-center leading-relaxed font-mono px-4">
-              Your {decodeInfo?.limit || 5} decodes/hour limit was reached and it will reset in the next cycle.
+              Your {decodeInfo?.limit || 5} decodes/minute limit was reached and it will reset in the next cycle.
             </span>
             <span className="text-xs text-gray-400 text-center font-mono mt-2">
               Upgrade to Premium for unlimited decodes
@@ -95,7 +95,7 @@ IEX([System.Text.Encoding]::Unicode.GetString($payload))
 
 const DecodeUsageBadge = ({ decodeInfo }) => {
   console.log('🔍 [DecodeUsageBadge] Received decodeInfo:', decodeInfo);
-  
+
   if (!decodeInfo) {
     console.log('🔍 [DecodeUsageBadge] No decodeInfo provided');
     return null;
@@ -103,7 +103,7 @@ const DecodeUsageBadge = ({ decodeInfo }) => {
 
   // ✅ Check if this is an example command (is_example flag from backend)
   console.log('🔍 [DecodeUsageBadge] is_example flag:', decodeInfo.is_example);
-  
+
   if (decodeInfo.is_example) {
     console.log('✅ [DecodeUsageBadge] SHOWING EXAMPLE BADGE');
     return (

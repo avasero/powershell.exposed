@@ -217,7 +217,7 @@ class RateLimitResponse(BaseModel):
             "example": {
                 "error": {
                     "code": "QuotaExceededError",
-                    "message": "You have exceeded one of your quotas (minute, daily or monthly). Daily quotas are reset every day at 00:00 UTC."                },
+                    "message": "You have exceeded your quota (per minute evaluation limit). Please wait a while."                },
                 "rate_limit_info": {
                     "current_count": 11,
                     "limit": 10,
