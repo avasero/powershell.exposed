@@ -223,8 +223,8 @@ export default function EvaluatePage() {
               </svg>
               powershell.exposed
             </h1>
-            
-            <div className="flex flex-col sm:flex-row gap-3 w-full items-center">
+
+            <div className="flex flex-col sm:flex-row gap-3 w-full items-start">
               <div className="flex-1 min-w-0">
                 <CommandInput
                   value={command}
@@ -232,6 +232,11 @@ export default function EvaluatePage() {
                   onSubmit={() => handleAnalyze({ preventDefault: () => { } })}
                   placeholder="Type or paste a PS payload..."
                   error={error}
+                />
+                <InfoMessage
+                  message={!error && command.length === 0 ? EXAMPLE_COMMAND_DESCRIPTION : ""}
+                  clickable={!error && command.length === 0}
+                  onClick={() => setCommand(EXAMPLE_ENCODED_COMMAND)}
                 />
               </div>
               <div className="flex-shrink-0">
@@ -254,13 +259,7 @@ export default function EvaluatePage() {
 
             <ErrorMessage message={error} />
 
-            <div className="w-full">
-              <InfoMessage
-                message={!error && command.length === 0 ? EXAMPLE_COMMAND_DESCRIPTION : ""}
-                clickable={!error && command.length === 0}
-                onClick={() => setCommand(EXAMPLE_ENCODED_COMMAND)}
-              />
-            </div>
+
 
             {rateLimitInfo && (
               <div className="mt-4 rounded-lg border-2 bg-black/80 border-green-500/30 w-full">
