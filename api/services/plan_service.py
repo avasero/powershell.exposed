@@ -12,7 +12,7 @@ EXAMPLE_ENCODED_COMMAND = 'powershell -EncodedCommand SQBFAFgAKABOAGUAdwAtAE8AYg
 async def check_session_rate_limit_from_db(
     session_id: str,
     user_id: Optional[str] = None,
-    limit_per_hour: int = 10
+    limit_per_minute: int = 10
 ) -> Dict[str, Any]:
     """
     Check rate limit based on actual database records
@@ -20,7 +20,7 @@ async def check_session_rate_limit_from_db(
     Args:
         session_id: Session ID to check
         user_id: Optional user ID for authenticated users
-        limit_per_hour: Maximum requests per hour
+        limit_per_minute: Maximum requests per minute
         
     Returns:
         Dictionary with rate limit status
@@ -28,10 +28,10 @@ async def check_session_rate_limit_from_db(
     try:
         supabase = get_supabase_client()
         
-        # Calculate time window (last hour)
-        window_start = datetime.utcnow() - timedelta(hours=1)
+        # Calculate time window (last minute)
+        window_start = datetime.utcnow() - timedelta(minutes=1)
         
-        # Query for analyses in the last hour
+        # Query for analyses in the last minute
         query = supabase.table('powershell_analyses')\
             .select('id, created_at', count='exact')\
             .eq('session_id', session_id)\
@@ -44,9 +44,9 @@ async def check_session_rate_limit_from_db(
         result = query.execute()
         current_count = result.count or 0
         
-        print(f"[RATE LIMIT] Session: {session_id[:8] if session_id else 'NONE'}... | Count: {current_count}/{limit_per_hour}")
+        print(f"[RATE LIMIT] Session: {session_id[:8] if session_id else 'NONE'}... | Count: {current_count}/{limit_per_minute}")
         
-        within_limit = current_count < limit_per_hour
+        within_limit = current_count < limit_per_minute
         
         # Calculate seconds until reset
         seconds_until_reset = None
@@ -67,15 +67,15 @@ async def check_session_rate_limit_from_db(
             if oldest_result.data and len(oldest_result.data) > 0:
                 oldest_created_at = oldest_result.data[0]['created_at']
                 oldest_time = datetime.fromisoformat(oldest_created_at.replace('Z', '+00:00'))
-                reset_time = oldest_time + timedelta(hours=1)
+                reset_time = oldest_time + timedelta(minutes=1)
                 current_time = datetime.now(reset_time.tzinfo)
                 seconds_until_reset = max(0, int((reset_time - current_time).total_seconds()))
         
         return {
             "within_limit": within_limit,
             "current_count": current_count,
-            "limit": limit_per_hour,
-            "window_seconds": 3600,
+            "limit": limit_per_minute,
+            "window_seconds": 60,
             "seconds_until_reset": seconds_until_reset,
             "reset_time": None
         }
@@ -88,9 +88,9 @@ async def check_session_rate_limit_from_db(
         return {
             "within_limit": False,
             "current_count": 0,
-            "limit": limit_per_hour,
-            "window_seconds": 3600,
-            "seconds_until_reset": 3600,
+            "limit": limit_per_minute,
+            "window_seconds": 60,
+            "seconds_until_reset": 60,
             "reset_time": None
         }
 
@@ -125,8 +125,8 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
             return {
                 "plan_name": "free",
                 "can_decode_commands": False,
-                "request_limit_per_hour": 10,
-                "decode_limit_per_hour": 5
+                "request_limit_per_minute": 10,
+                "decode_limit_per_minute": 5
             }
         
         plan_data = response.data.get('plans', {})
@@ -135,8 +135,8 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
         result = {
             "plan_name": plan_data.get('name', 'free'),
             "can_decode_commands": plan_data.get('can_decode_commands', False),
-            "request_limit_per_hour": plan_data.get('request_limit_per_hour', 10),
-            "decode_limit_per_hour": plan_data.get('decode_limit_per_hour', 5)
+            "request_limit_per_minute": plan_data.get('request_limit_per_hour', 10),
+            "decode_limit_per_minute": plan_data.get('decode_limit_per_hour', 5)
         }
         
        
@@ -152,8 +152,8 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
         return {
             "plan_name": "free",
             "can_decode_commands": False,
-            "request_limit_per_hour": 10,
-            "decode_limit_per_hour": 5
+            "request_limit_per_minute": 10,
+            "decode_limit_per_minute": 5
         }
 
 
@@ -199,14 +199,14 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
         plan_features = await get_user_plan_features(user_id)
         plan_name = plan_features.get("plan_name", "free")
         can_decode_unlimited_flag = plan_features.get("can_decode_commands", False)
-        decode_limit = plan_features.get("decode_limit_per_hour", 5)
+        decode_limit = plan_features.get("decode_limit_per_minute", 5)
     else:
         # For anonymous users, check the 'guest' plan configuration from DB
         plan_name = "guest"
         guest_plan = await get_plan_by_name("guest")
         if guest_plan:
             can_decode_unlimited_flag = guest_plan.get("can_decode_commands", False)
-            decode_limit = guest_plan.get("decode_limit_per_hour", 5)
+            decode_limit = guest_plan.get("decode_limit_per_hour", 5)  # DB column still has old name
         else:
             can_decode_unlimited_flag = False
             decode_limit = 5
@@ -232,7 +232,7 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
     # Calculate current usage
     from datetime import datetime, timedelta
     
-    window_start = datetime.utcnow() - timedelta(hours=1)
+    window_start = datetime.utcnow() - timedelta(minutes=1)
     supabase = get_supabase_client()
     
     # Query for analyses with decoded content (has_decoded_content = true)
@@ -281,12 +281,12 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
         if records_result.data and len(records_result.data) > 0:
             oldest_created_at = records_result.data[0]['created_at']
             oldest_time = datetime.fromisoformat(oldest_created_at.replace('Z', '+00:00'))
-            reset_time = oldest_time + timedelta(hours=1)
+            reset_time = oldest_time + timedelta(minutes=1)
             current_time = datetime.now(reset_time.tzinfo)
             seconds_until_reset = max(0, int((reset_time - current_time).total_seconds()))
         else:
             # Fallback: If no records but limit reached (edge case)
-            seconds_until_reset = 3600
+            seconds_until_reset = 60
     
     print(f"[DECODE_CHECK] {target_id} | Plan: {plan_name} | Can decode: {can_decode} | Used (DB): {current_usage}/{limit} | Reset in: {seconds_until_reset}s")
     
