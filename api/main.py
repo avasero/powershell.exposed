@@ -17,7 +17,7 @@ except ImportError:
     RateLimitResponse = dict
     UserCommandEvaluationsResponse = dict
 
-API_TITLE = "PowerShell.exposed API"
+API_TITLE = "powershell.exposed API"
 API_DESCRIPTION = """
 ## PowerShell Security Analysis API
 
@@ -129,7 +129,7 @@ except ImportError as e:
     @app.get("/")
     async def root_fallback():
         return JSONResponse({
-            "message": "powerShell.exposed API (fallback mode)",
+            "message": "powershell.exposed API (fallback mode)",
             "status": "limited",
             "version": API_VERSION
         })
