@@ -19,7 +19,7 @@ export default function SettingsPage() {
       router.push('/login');
       return;
     }
-    
+
     // Only fetch once per mount
     if (!hasFetched.current) {
       hasFetched.current = true;
@@ -180,7 +180,13 @@ export default function SettingsPage() {
                   <div className="h-5 w-20 bg-white/10 animate-pulse rounded"></div>
                 ) : (
                   <span className="font-mono text-sm font-bold text-green-400 uppercase">
-                    {plan?.plan_name || 'Free'}
+                    {(() => {
+                      const lowerName = (plan?.plan_name || 'free').toLowerCase();
+                      if (lowerName === 'free') return 'Basic';
+                      if (lowerName === 'standard') return 'Pro';
+                      if (lowerName === 'premium') return 'Enterprise';
+                      return plan?.plan_name || 'Basic';
+                    })()}
                   </span>
                 )}
               </div>
@@ -205,11 +211,10 @@ export default function SettingsPage() {
                   <button
                     onClick={() => handleNotifyToggle(false)}
                     disabled={updatingNotify}
-                    className={`px-3 py-2 rounded-lg border font-mono text-xs transition-all ${
-                      updatingNotify 
-                        ? 'bg-white/5 border-white/20 text-white/50 cursor-wait' 
-                        : 'bg-red-600/10 border-red-500/30 text-red-400 hover:bg-red-600/20 hover:border-red-500/50'
-                    }`}
+                    className={`px-3 py-2 rounded-lg border font-mono text-xs transition-all ${updatingNotify
+                      ? 'bg-white/5 border-white/20 text-white/50 cursor-wait'
+                      : 'bg-red-600/10 border-red-500/30 text-red-400 hover:bg-red-600/20 hover:border-red-500/50'
+                      }`}
                   >
                     {updatingNotify ? 'Updating...' : 'Unsubscribe'}
                   </button>
@@ -218,11 +223,10 @@ export default function SettingsPage() {
                 <button
                   onClick={() => handleNotifyToggle(true)}
                   disabled={updatingNotify}
-                  className={`px-4 py-2 rounded-lg border font-mono text-xs transition-all ${
-                    updatingNotify 
-                      ? 'bg-white/5 border-white/20 text-white/50 cursor-wait' 
-                      : 'bg-green-600/10 border-green-500/50 text-green-400 hover:bg-green-600/20 hover:border-green-500'
-                  }`}
+                  className={`px-4 py-2 rounded-lg border font-mono text-xs transition-all ${updatingNotify
+                    ? 'bg-white/5 border-white/20 text-white/50 cursor-wait'
+                    : 'bg-green-600/10 border-green-500/50 text-green-400 hover:bg-green-600/20 hover:border-green-500'
+                    }`}
                 >
                   {updatingNotify ? 'Subscribing...' : 'Notify Me'}
                 </button>
