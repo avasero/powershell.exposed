@@ -27,7 +27,7 @@ export async function GET(request) {
     
     // Build query base
     let query = supabase
-      .from('powershell_signatures')
+      .from('public_indicators')
       .select(`
         id,
         name,
@@ -42,6 +42,7 @@ export async function GET(request) {
         is_active,
         max_match,
         link,
+        file_path,
         last_modified_by,
         last_modified_by_avatar,
         is_premium_indicator
@@ -77,7 +78,7 @@ export async function GET(request) {
     
     // Get total count for pagination
     let countQuery = supabase
-      .from('powershell_signatures')
+      .from('public_indicators')
       .select('*', { count: 'exact', head: true })
       .eq('is_active', true)
     

@@ -5,7 +5,7 @@ export async function GET(request, { params }) {
     const { id } = params
     
     const { data: indicator, error } = await supabase
-      .from('powershell_signatures')
+      .from('public_indicators')
       .select(`
         id,
         name,
@@ -20,8 +20,10 @@ export async function GET(request, { params }) {
         is_active,
         max_match,
         link,
+        file_path,
         last_modified_by,
-        last_modified_by_avatar
+        last_modified_by_avatar,
+        is_premium_indicator
       `)
       .eq('id', id)
       .single()
