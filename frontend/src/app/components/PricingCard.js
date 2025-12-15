@@ -8,8 +8,10 @@ const PricingCard = ({
     buttonAction,
     isPopular,
     features,
-    buttonVariant = 'default'
+    buttonVariant = 'default',
+    isUserAuthenticated = false
 }) => {
+    const isSignupButton = buttonText === 'Signup Now';
     return (
         <div className={`relative flex flex-col p-6 rounded-lg border bg-black/80 h-full transition-all duration-300 ${isPopular
             ? 'border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.1)]'
@@ -38,17 +40,24 @@ const PricingCard = ({
             </div>
 
             <div className="mb-8">
-                <button
-                    onClick={buttonAction}
-                    className={`w-full py-2 px-4 rounded font-mono font-bold uppercase tracking-wider transition-all duration-300 ${buttonVariant === 'primary' // Keeping logic but using generic button styles if needed, or keeping this custom one as it matches the theme roughly. 
-                        // Actually, let's use the exact style from ThemedButton if possible or mimic it. 
-                        // The landing page uses 'ThemedButton'. I should probably stick to this style but ensure it looks good.
-                        ? 'bg-green-600/20 border border-green-500 text-green-400 hover:bg-green-600 hover:text-black shadow-[0_0_15px_rgba(34,197,94,0.2)]'
-                        : 'bg-transparent border border-green-500/50 text-green-500/70 hover:border-green-500 hover:text-green-400'
-                        }`}
-                >
-                    {buttonText}
-                </button>
+                {isSignupButton && isUserAuthenticated ? (
+                    <button
+                        disabled
+                        className="w-full py-2 px-4 rounded font-mono font-bold uppercase tracking-wider transition-all duration-300 bg-gray-600/20 border border-gray-500/50 text-gray-500 cursor-not-allowed opacity-60"
+                    >
+                        Active
+                    </button>
+                ) : (
+                    <button
+                        onClick={buttonAction}
+                        className={`w-full py-2 px-4 rounded font-mono font-bold uppercase tracking-wider transition-all duration-300 ${buttonVariant === 'primary'
+                            ? 'bg-green-600/20 border border-green-500 text-green-400 hover:bg-green-600 hover:text-black shadow-[0_0_15px_rgba(34,197,94,0.2)]'
+                            : 'bg-transparent border border-green-500/50 text-green-500/70 hover:border-green-500 hover:text-green-400'
+                            }`}
+                    >
+                        {buttonText}
+                    </button>
+                )}
             </div>
 
             {features && features.length > 0 && (

@@ -2,8 +2,10 @@
 
 import React from 'react';
 import PricingCard from '../components/PricingCard';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function PricingPage() {
+    const { isAuthenticated } = useAuth();
     const tiers = [
         {
             id: 'guest',
@@ -107,7 +109,8 @@ export default function PricingPage() {
                     <PricingCard
                         key={tier.id}
                         {...tier}
-                        features={tier.summaryFeatures} 
+                        features={tier.summaryFeatures}
+                        isUserAuthenticated={isAuthenticated()}
                     />
                 ))}
             </div>
