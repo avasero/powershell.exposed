@@ -30,12 +30,12 @@ export default function CookieBanner() {
       boxShadow: '0 4px 20px rgba(0, 0, 0, 0.8)'
     }}>
       <div className="flex flex-col gap-3">
-        {/* Cookie Info Text */}
+        
         <div className="font-mono text-sm mb-3" style={{color: 'var(--foreground)'}}>
           We use cookies on this website.
         </div>
 
-        {/* Action Buttons */}
+        
         <div className="flex flex-col gap-2">
           <ThemedButton
             onClick={handleAccept}

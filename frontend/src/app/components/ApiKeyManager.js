@@ -260,7 +260,7 @@ export default function ApiKeyManager() {
         )}
       </div>
 
-      {/* Usage Instructions */}
+      
       <div className="p-4 rounded-lg border" style={{backgroundColor: 'var(--muted)', borderColor: 'var(--border-color)'}}>
         <h3 className="font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
           How to Use Your API Key
@@ -280,7 +280,7 @@ export default function ApiKeyManager() {
         </div>
       </div>
 
-      {/* Modal to reveal complete API Key */}
+      
       {showRevealModal && (
         <ApiKeyRevealModal
           apiKey={newApiKey}

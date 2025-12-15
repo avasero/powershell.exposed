@@ -598,10 +598,9 @@ export default function AnalysisPage() {
         </div>
       )}
 
-      {/* ❌ REMOVER COMPLETAMENTE - NÃO DEIXAR COMENTADO */}
-      {/* NÃO DEIXE NENHUM BLOCO ANTIGO AQUI */}
+     
 
-      {/* ✅ BLOCO 1: Deobfuscated (PRIMEIRO - aparece APENAS se indicador estiver presente) */}
+     
       {result && result.deobfuscated && hasObfuscationIndicator && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-purple-500/30">
@@ -619,7 +618,7 @@ export default function AnalysisPage() {
         </div>
       )}
 
-      {/* ✅ BLOCO 2: First Decoded Layer (double-encoded) */}
+      
       {result && result.decoded && result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
@@ -637,7 +636,7 @@ export default function AnalysisPage() {
         </div>
       )}
 
-      {/* ✅ BLOCO 3: Decoded Command (single-encoded) */}
+    
       {result && result.decoded && !result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
@@ -655,7 +654,7 @@ export default function AnalysisPage() {
         </div>
       )}
 
-      {/* ✅ BLOCO 4: Final Decoded (doubleDecoded) */}
+      
       {result && result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-yellow-500/30">
@@ -692,7 +691,7 @@ export default function AnalysisPage() {
 
             return (
               <>
-                {/* ✅ NOVO: Tabela de resumo */}
+                
                 {realSignatures.length > 0 && (
                   <IndicatorsSummaryTable signatures={realSignatures} />
                 )}

@@ -99,7 +99,7 @@ const ensureUserProfile = async (user) => {
     if (existingProfile) {
       const notifyUserFromMetadata = user.user_metadata?.notify_user;
       const shouldUpdate = notifyUserFromMetadata === true && existingProfile.notify_user !== true;
-      
+
       // Atualizar notify_user se o valor do metadata for true e o perfil tiver false
       if (shouldUpdate) {
         const updatePromise = supabase
@@ -212,36 +212,36 @@ const migrateAnonymousAnalyses = async (userId) => {
 const checkAndApplyPendingNotifyUser = async (user) => {
   try {
     const pendingData = localStorage.getItem('pending_notify_user');
-    
+
     if (!pendingData) {
       return;
     }
-    
+
     const parsed = JSON.parse(pendingData);
-    
+
     // Verificar se o email corresponde e se não expirou (24 horas)
     const isExpired = Date.now() - parsed.timestamp > 24 * 60 * 60 * 1000;
     const emailMatches = parsed.email?.toLowerCase() === user.email?.toLowerCase();
-    
+
     if (isExpired) {
       localStorage.removeItem('pending_notify_user');
       return;
     }
-    
+
     if (!emailMatches) {
       return;
     }
-    
+
     if (parsed.notify_user === true) {
       await supabase
         .from('profiles')
         .update({ notify_user: true })
         .eq('id', user.id);
     }
-    
+
     // Limpar o localStorage após processar
     localStorage.removeItem('pending_notify_user');
-    
+
   } catch (error) {
     console.error('Erro ao processar pending_notify_user:', error);
     localStorage.removeItem('pending_notify_user');
@@ -261,6 +261,7 @@ export const AuthProvider = ({ children }) => {
     '/register',
     '/signatures',
     '/landing',
+    '/pricing',
     '/analysis',
     '/auth/confirm',
     '/history',
@@ -322,7 +323,7 @@ export const AuthProvider = ({ children }) => {
             try {
               // Garantir que o perfil existe (fallback caso o trigger não funcione)
               await ensureUserProfile(session.user);
-              
+
               // Verificar e aplicar preferência de notify_user do localStorage
               await checkAndApplyPendingNotifyUser(session.user);
 

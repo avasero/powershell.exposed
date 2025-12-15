@@ -120,7 +120,7 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-black">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
 
-        {/* Header */}
+       
         <div className="mb-8">
           <Link
             href="/"
@@ -139,7 +139,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Account Overview Card */}
+      
         <div className="mb-6 p-6 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm hover:bg-white/10 hover:border-green-500/50 transition-all duration-200">
           <div className="flex items-center gap-4 mb-4">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-2xl font-bold text-black">
@@ -236,12 +236,11 @@ export default function SettingsPage() {
         </div>
 
 
-        {/* API Key Management */}
+       
         <div className="mb-6">
           <ApiKeyManager />
         </div>
 
-        {/* Quick Actions */}
         <div className="p-6 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm mb-6">
           <h3 className="font-mono font-bold text-lg mb-4 text-white">
             Quick Actions
@@ -283,7 +282,6 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Footer Navigation */}
         <div className="text-center">
           <Link
             href="/"

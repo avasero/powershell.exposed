@@ -8,7 +8,7 @@ export default function Footer() {
   return (
     <footer className="w-full py-4 border-t font-mono text-sm bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center px-4 sm:px-6">
-        {/* Left side - Copyright and Avasero */}
+        
         <div className="text-center md:text-left">
           <div style={{ color: 'var(--foreground)' }}>
             &copy; {new Date().getFullYear()} <span style={{ color: 'var(--accent)' }}>powershell.exposed</span>, All Rights Reserved
@@ -18,7 +18,7 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Right side - Links */}
+        
         <div className="mt-2 md:mt-0 text-center md:text-right" style={{ color: 'var(--muted-foreground)' }}>
           <Link href="mailto:hi@powershell.exposed" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>
             Get in Touch

@@ -120,7 +120,7 @@ export default function IndicatorDetailPage() {
   return (
     <div className="flex-1 p-4 sm:p-6 md:p-8">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
+      
         <div className="mb-6">
           <ThemedButton 
             variant="ghost" 
@@ -161,9 +161,9 @@ export default function IndicatorDetailPage() {
           </div>
         </div>
 
-        {/* Main Content */}
+        
         <div className="grid gap-6">
-          {/* Description */}
+          
           {indicator.description && (
             <div 
               className="p-6 rounded-lg border"
@@ -178,7 +178,7 @@ export default function IndicatorDetailPage() {
             </div>
           )}
 
-          {/* MITRE ATT&CK Tactics */}
+         
           {indicator.tactics && indicator.tactics.length > 0 && (
             <div 
               className="p-6 rounded-lg border"
@@ -200,7 +200,7 @@ export default function IndicatorDetailPage() {
             </div>
           )}
 
-          {/* MITRE ATT&CK Techniques */}
+          
           {indicator.techniques && indicator.techniques.length > 0 && (
             <div 
               className="p-6 rounded-lg border"
@@ -222,7 +222,7 @@ export default function IndicatorDetailPage() {
             </div>
           )}
 
-          {/* References */}
+          
           {indicator.reference && indicator.reference.length > 0 && (
             <div 
               className="p-6 rounded-lg border"
@@ -254,7 +254,7 @@ export default function IndicatorDetailPage() {
             </div>
           )}
 
-          {/* Additional Link */}
+         
           {indicator.link && (
             <div 
               className="p-6 rounded-lg border"
@@ -280,7 +280,7 @@ export default function IndicatorDetailPage() {
             </div>
           )}
 
-          {/* Metadata */}
+        
           <div 
             className="p-6 rounded-lg border"
             style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}
