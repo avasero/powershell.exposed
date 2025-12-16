@@ -11,36 +11,36 @@ import Link from 'next/link';
 const applyPendingNotifyUser = async (user) => {
   try {
     const pendingData = localStorage.getItem('pending_notify_user');
-    
+
     if (!pendingData) {
       return;
     }
-    
+
     const parsed = JSON.parse(pendingData);
-    
+
     // Verificar se o email corresponde e se não expirou (24 horas)
     const isExpired = Date.now() - parsed.timestamp > 24 * 60 * 60 * 1000;
     const emailMatches = parsed.email?.toLowerCase() === user.email?.toLowerCase();
-    
+
     if (isExpired) {
       localStorage.removeItem('pending_notify_user');
       return;
     }
-    
+
     if (!emailMatches) {
       return;
     }
-    
+
     if (parsed.notify_user === true) {
       await supabase
         .from('profiles')
         .update({ notify_user: true })
         .eq('id', user.id);
     }
-    
+
     // Limpar o localStorage após processar
     localStorage.removeItem('pending_notify_user');
-    
+
   } catch (error) {
     console.error('Erro ao processar pending_notify_user:', error);
     localStorage.removeItem('pending_notify_user');
@@ -52,7 +52,7 @@ export default function ConfirmPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-  
+
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -84,9 +84,9 @@ export default function ConfirmPage() {
         if (data.user) {
           // Aplicar notify_user do localStorage imediatamente
           await applyPendingNotifyUser(data.user);
-          
+
           setSuccess(true);
-          
+
           // Redirecionar para melhor UX
           setTimeout(() => {
             if (next === '/' || next === '/landing') {
@@ -129,10 +129,10 @@ export default function ConfirmPage() {
       <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
         <div className="w-full max-w-md space-y-6 text-center">
           <LoadingSpinner />
-          <h1 className="text-2xl font-mono font-bold" style={{color: 'var(--accent)'}}>
+          <h1 className="text-2xl font-mono font-bold" style={{ color: 'var(--accent)' }}>
             Confirming your authentication...
           </h1>
-          <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+          <p className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
             Please wait while we verify your magic link.
           </p>
         </div>
@@ -147,20 +147,20 @@ export default function ConfirmPage() {
           {success ? (
             <>
               <div className="text-6xl mb-4">✅</div>
-              <h1 className="text-2xl sm:text-3xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
+              <h1 className="text-2xl sm:text-3xl font-mono font-bold mb-4" style={{ color: 'var(--accent)' }}>
                 Welcome to powershell.exposed!
               </h1>
-              <p className="font-mono text-sm mb-6" style={{color: 'var(--muted-foreground)'}}>
+              <p className="font-mono text-sm mb-6" style={{ color: 'var(--muted-foreground)' }}>
                 Authentication successful! You are now logged in and can access all features.
               </p>
             </>
           ) : (
             <>
               <div className="text-6xl mb-4">❌</div>
-              <h1 className="text-2xl sm:text-3xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
+              <h1 className="text-2xl sm:text-3xl font-mono font-bold mb-4" style={{ color: 'var(--accent)' }}>
                 Authentication Failed
               </h1>
-              <p className="font-mono text-sm mb-6" style={{color: 'var(--muted-foreground)'}}>
+              <p className="font-mono text-sm mb-6" style={{ color: 'var(--muted-foreground)' }}>
                 There was a problem with your magic link.
               </p>
             </>
@@ -168,19 +168,19 @@ export default function ConfirmPage() {
         </div>
 
         {error && (
-          <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
+          <div className="p-6 rounded-lg border" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
             <ErrorMessage message={error} />
-            
+
             <div className="mt-4 space-y-3">
               <Link href="/login">
                 <ThemedButton className="w-full">
                   Try Login Again
                 </ThemedButton>
               </Link>
-              
+
               <Link href="/register">
-                <ThemedButton 
-                  variant="outline" 
+                <ThemedButton
+                  variant="outline"
                   className="w-full"
                   style={{
                     borderColor: 'var(--accent)',
@@ -190,7 +190,7 @@ export default function ConfirmPage() {
                   Sign Up Instead
                 </ThemedButton>
               </Link>
-              
+
               <Link href="/">
                 <ThemedButton variant="outline" className="w-full">
                   Continue Without Account
@@ -201,15 +201,15 @@ export default function ConfirmPage() {
         )}
 
         {success && (
-          <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
+          <div className="p-6 rounded-lg border" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
             <div className="text-center space-y-3">
-              <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+              <p className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
                 If you&apos;re not redirected automatically, click below:
               </p>
-              
+
               <Link href="/">
                 <ThemedButton className="w-full">
-                  Go to Dashboard
+                  Go to Dashboard !
                 </ThemedButton>
               </Link>
             </div>
