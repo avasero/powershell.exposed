@@ -93,16 +93,12 @@ export default function ConfirmPage() {
           // Aplicar notify_user do localStorage imediatamente
           await applyPendingNotifyUser(data.user);
 
-          setSuccess(true);
-
-          // Redirecionar para melhor UX
-          setTimeout(() => {
-            if (next === '/' || next === '/landing') {
-              router.push('/');
-            } else {
-              router.push(next);
-            }
-          }, 1500);
+          // Redirecionar IMEDIATAMENTE
+          if (next === '/' || next === '/landing') {
+            router.push('/evaluate');
+          } else {
+            router.push(next);
+          }
         } else {
           throw new Error('Authentication failed - no user returned');
         }
@@ -130,17 +126,13 @@ export default function ConfirmPage() {
       // Missing parameters case
       // If user is already logged in, we treat this as a success (user might be revisiting the link or refreshing)
       if (user) {
-        setSuccess(true);
-        setLoading(false);
-        // Redirect
+        // Redirect IMEDIATAMENTE
         const next = searchParams.get('next') || '/';
-        setTimeout(() => {
-          if (next === '/' || next === '/landing') {
-            router.push('/');
-          } else {
-            router.push(next);
-          }
-        }, 1500);
+        if (next === '/' || next === '/landing') {
+          router.push('/evaluate');
+        } else {
+          router.push(next);
+        }
       } else {
         setLoading(false);
         setError('Invalid authentication link. Missing required parameters.');
