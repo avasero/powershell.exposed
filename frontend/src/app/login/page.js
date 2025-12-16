@@ -15,7 +15,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [magicLinkSent, setMagicLinkSent] = useState(false);
-  
+
   const { signInWithMagicLink } = useAuth();
   const router = useRouter();
 
@@ -27,16 +27,16 @@ export default function LoginPage() {
         p_attempt_type: 'login',
         p_window_minutes: 3
       });
-      
+
       if (error) {
-        console.error('Rate limit check error:', error);
+        console.error('❌ Rate limit check error:', error);
         // On error, allow the attempt (fail open for UX)
         return { allowed: true, seconds_remaining: 0 };
       }
-      
+
       return data;
     } catch (err) {
-      console.error('Rate limit check exception:', err);
+      console.error('❌ Rate limit check exception:', err);
       return { allowed: true, seconds_remaining: 0 };
     }
   };
@@ -48,15 +48,15 @@ export default function LoginPage() {
       { url: 'https://ipinfo.io/json', parser: (data) => data.ip },
       { url: 'https://api.ip.sb/ip', parser: (text) => text.trim(), isText: true }
     ];
-    
+
     for (const api of apis) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
-        
+
         const response = await fetch(api.url, { signal: controller.signal });
         clearTimeout(timeoutId);
-        
+
         if (response.ok) {
           if (api.isText) {
             const text = await response.text();
@@ -83,7 +83,7 @@ export default function LoginPage() {
         p_user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null
       });
     } catch (err) {
-      console.error('Failed to record login attempt:', err);
+      console.error('❌ Failed to record login attempt:', err);
     }
   };
 
@@ -95,11 +95,11 @@ export default function LoginPage() {
 
     // Check rate limit from Supabase
     const rateLimit = await checkRateLimit(email);
-    
+
     if (!rateLimit.allowed) {
       const minutes = Math.ceil(rateLimit.seconds_remaining / 60);
       const seconds = rateLimit.seconds_remaining % 60;
-      
+
       if (minutes > 0) {
         setError(`Please wait ${minutes} minute(s) and ${seconds} second(s) before trying again.`);
       } else {
@@ -115,27 +115,27 @@ export default function LoginPage() {
         getIpAddress(),
         signInWithMagicLink(email)
       ]);
-      
+
       // Record the attempt regardless of outcome
       await recordLoginAttempt(email, ipAddress);
-      
+
       if (error) {
         if (error.message.includes('Invalid email')) {
           setError('Please enter a valid email address.');
         } else if (error.message.includes('rate limit')) {
           setError('Too many requests. Please wait a moment before trying again.');
         } else {
-          // For security reasons, don't reveal if email exists or not
-          setMagicLinkSent(true);
-          setMessage('Login link sent! Check your email to complete the login.');
+          // Show the actual error message for debugging purposes
+          console.error('Login Error Detail:', error);
+          setError(`Login failed: ${error.message || error.toString()}`);
         }
       } else {
         setMagicLinkSent(true);
         setMessage('Login link sent! Check your email to complete the login.');
       }
     } catch (err) {
-      setError('Unexpected error during login');
-      console.error('Login error:', err);
+      console.error('Unexpected login error:', err);
+      setError(`Unexpected error: ${err.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -145,10 +145,10 @@ export default function LoginPage() {
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl sm:text-3xl font-mono font-bold" style={{color: 'var(--accent)'}}>
+          <h1 className="text-2xl sm:text-3xl font-mono font-bold" style={{ color: 'var(--accent)' }}>
             Login
           </h1>
-          <p className="mt-2 font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+          <p className="mt-2 font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
             {magicLinkSent ? 'Check your email' : 'Enter your email to receive a login link'}
           </p>
         </div>
@@ -183,22 +183,22 @@ export default function LoginPage() {
             </form>
           ) : (
             <div className="space-y-4 text-center">
-              
-              <h2 className="text-xl font-mono font-bold" style={{color: 'var(--accent)'}}>
+
+              <h2 className="text-xl font-mono font-bold" style={{ color: 'var(--accent)' }}>
                 Login Link Sent!
               </h2>
-              <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
+              <p className="text-sm font-mono" style={{ color: 'var(--muted-foreground)' }}>
                 We&apos;ve sent a secure login link to <strong>{email}</strong>
               </p>
-              <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
+              <p className="text-sm font-mono" style={{ color: 'var(--muted-foreground)' }}>
                 Click the link in your email to complete the login process. This link is valid for 15 minutes.
               </p>
-              <p className="text-sm font-mono" style={{color: 'var(--accent)'}}>
+              <p className="text-sm font-mono" style={{ color: 'var(--accent)' }}>
                 If you&apos;ve not received a login link you probably have not signed up yet
               </p>
-              
+
               {message && <InfoMessage message={message} />}
-              
+
               <div className="pt-4">
                 <ThemedButton
                   onClick={() => {
@@ -220,24 +220,24 @@ export default function LoginPage() {
           )}
 
           <div className="mt-6 text-center">
-            <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+            <p className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
               Don&apos;t have an account?{' '}
-              <Link href="/register" className="font-semibold hover:underline" style={{color: 'var(--accent)'}}>
+              <Link href="/register" className="font-semibold hover:underline" style={{ color: 'var(--accent)' }}>
                 Sign up
               </Link>
             </p>
-            
-          
+
+
             <div className="my-4 flex items-center">
-              <div className="flex-1 border-t" style={{borderColor: 'var(--border-color)'}}></div>
-              <span className="px-3 font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>or</span>
-              <div className="flex-1 border-t" style={{borderColor: 'var(--border-color)'}}></div>
+              <div className="flex-1 border-t" style={{ borderColor: 'var(--border-color)' }}></div>
+              <span className="px-3 font-mono text-xs" style={{ color: 'var(--muted-foreground)' }}>or</span>
+              <div className="flex-1 border-t" style={{ borderColor: 'var(--border-color)' }}></div>
             </div>
-            
-          
+
+
             <Link href="/">
-              <ThemedButton 
-                variant="outline" 
+              <ThemedButton
+                variant="outline"
                 className="w-full"
               >
                 Evaluate Command Without Account
