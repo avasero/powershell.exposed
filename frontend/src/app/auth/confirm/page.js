@@ -1,4 +1,5 @@
 "use client";
+import { useAuth } from '../../../contexts/AuthContext'; // Import context
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
@@ -55,8 +56,15 @@ export default function ConfirmPage() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
+    // Wait for auth context to load
+    if (authLoading) return;
+
+    // Prevent re-running if already successful
+    if (success) return;
+
     const handleAuthConfirmation = async () => {
       try {
         // Extrair tokens dos parâmetros da URL
@@ -119,10 +127,26 @@ export default function ConfirmPage() {
     if (searchParams.get('token_hash') && searchParams.get('type')) {
       handleAuthConfirmation();
     } else {
-      setLoading(false);
-      setError('Invalid authentication link. Missing required parameters.');
+      // Missing parameters case
+      // If user is already logged in, we treat this as a success (user might be revisiting the link or refreshing)
+      if (user) {
+        setSuccess(true);
+        setLoading(false);
+        // Redirect
+        const next = searchParams.get('next') || '/';
+        setTimeout(() => {
+          if (next === '/' || next === '/landing') {
+            router.push('/');
+          } else {
+            router.push(next);
+          }
+        }, 1500);
+      } else {
+        setLoading(false);
+        setError('Invalid authentication link. Missing required parameters.');
+      }
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, user, authLoading, success]);
 
   if (loading) {
     return (
