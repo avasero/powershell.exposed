@@ -211,13 +211,13 @@ export default function Navbar() {
                 </div>
 
 
-                <a
-                  href="/login"
+                <ThemedButton
+                  onClick={() => router.push('/login')}
+                  size="sm"
                   className="font-mono text-sm hover:text-green-400 transition-colors"
-                  style={{ color: 'var(--foreground)' }}
                 >
                   Login
-                </a>
+                </ThemedButton>
               </>
             )}
           </div>
