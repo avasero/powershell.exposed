@@ -18,7 +18,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [magicLinkSent, setMagicLinkSent] = useState(false);
-  
+
   const { signUpWithMagicLink, signInWithMagicLink, checkEmailExists } = useAuth();
   const router = useRouter();
 
@@ -30,13 +30,13 @@ export default function RegisterPage() {
         p_attempt_type: 'signup',
         p_window_minutes: 3
       });
-      
+
       if (error) {
         console.error('Rate limit check error:', error);
         // On error, allow the attempt (fail open for UX)
         return { allowed: true, seconds_remaining: 0 };
       }
-      
+
       return data;
     } catch (err) {
       console.error('Rate limit check exception:', err);
@@ -51,15 +51,15 @@ export default function RegisterPage() {
       { url: 'https://ipinfo.io/json', parser: (data) => data.ip },
       { url: 'https://api.ip.sb/ip', parser: (text) => text.trim(), isText: true }
     ];
-    
+
     for (const api of apis) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
-        
+
         const response = await fetch(api.url, { signal: controller.signal });
         clearTimeout(timeoutId);
-        
+
         if (response.ok) {
           if (api.isText) {
             const text = await response.text();
@@ -104,11 +104,11 @@ export default function RegisterPage() {
 
     // Check rate limit from Supabase
     const rateLimit = await checkRateLimit(email);
-    
+
     if (!rateLimit.allowed) {
       const minutes = Math.ceil(rateLimit.seconds_remaining / 60);
       const seconds = rateLimit.seconds_remaining % 60;
-      
+
       if (minutes > 0) {
         setError(`Please wait ${minutes} minute(s) and ${seconds} second(s) before trying again.`);
       } else {
@@ -127,20 +127,20 @@ export default function RegisterPage() {
           timestamp: Date.now()
         }));
       }
-      
+
       // Get IP address in parallel with the magic link request
       const [ipAddress, { data, error }] = await Promise.all([
         getIpAddress(),
         signUpWithMagicLink(email, username, notifyPremium)
       ]);
-      
+
       // Record the attempt regardless of outcome
       await recordSignupAttempt(email, ipAddress);
-      
+
       if (error) {
         // Limpar localStorage em caso de erro
         localStorage.removeItem('pending_notify_user');
-        
+
         if (error.message.includes('Invalid email')) {
           setError('Please enter a valid email address.');
         } else if (error.message.includes('rate limit')) {
@@ -172,15 +172,15 @@ export default function RegisterPage() {
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl sm:text-3xl font-mono font-bold" style={{color: 'var(--accent)'}}>
+          <h1 className="text-2xl sm:text-3xl font-mono font-bold" style={{ color: 'var(--accent)' }}>
             Sign Up
           </h1>
-          <p className="mt-2 font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-            {magicLinkSent ? 'Check your email' : 'Create your account with magic link'}
+          <p className="mt-2 font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
+            {magicLinkSent ? 'Check your email' : 'Start using all Base tier features'}
           </p>
         </div>
 
-        <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
+        <div className="p-6 rounded-lg border" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
           {!magicLinkSent ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <FormInput
@@ -197,24 +197,28 @@ export default function RegisterPage() {
                   id="terms"
                   checked={acceptedTerms}
                   onChange={(e) => setAcceptedTerms(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border cursor-pointer"
+                  className="mt-0.5 rounded border cursor-pointer flex-shrink-0"
                   style={{
                     accentColor: 'var(--accent)',
-                    borderColor: 'var(--border-color)'
+                    borderColor: 'var(--border-color)',
+                    width: '16px',
+                    height: '16px',
+                    minWidth: '16px',
+                    minHeight: '16px'
                   }}
                   required
                 />
-                <label 
-                  htmlFor="terms" 
+                <label
+                  htmlFor="terms"
                   className="text-sm font-mono cursor-pointer"
-                  style={{color: 'var(--muted-foreground)'}}
+                  style={{ color: 'var(--muted-foreground)' }}
                 >
                   I agree to the{' '}
-                  <Link 
-                    href="/terms" 
+                  <Link
+                    href="/terms"
                     target="_blank"
-                    className="font-semibold hover:underline" 
-                    style={{color: 'var(--accent)'}}
+                    className="font-semibold hover:underline"
+                    style={{ color: 'var(--accent)' }}
                   >
                     Terms & Conditions
                   </Link>
@@ -227,18 +231,22 @@ export default function RegisterPage() {
                   id="notify-premium"
                   checked={notifyPremium}
                   onChange={(e) => setNotifyPremium(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border cursor-pointer"
+                  className="mt-0.5 rounded border cursor-pointer flex-shrink-0"
                   style={{
                     accentColor: 'var(--accent)',
-                    borderColor: 'var(--border-color)'
+                    borderColor: 'var(--border-color)',
+                    width: '16px',
+                    height: '16px',
+                    minWidth: '16px',
+                    minHeight: '16px'
                   }}
                 />
-                <label 
-                  htmlFor="notify-premium" 
+                <label
+                  htmlFor="notify-premium"
                   className="text-sm font-mono cursor-pointer"
-                  style={{color: 'var(--muted-foreground)'}}
+                  style={{ color: 'var(--muted-foreground)' }}
                 >
-                  Premium features coming soon, notify me when available
+                  Notify me of premium feature updates
                 </label>
               </div>
 
@@ -260,19 +268,19 @@ export default function RegisterPage() {
             </form>
           ) : (
             <div className="space-y-4 text-center">
-              <h2 className="text-xl font-mono font-bold" style={{color: 'var(--accent)'}}>
+              <h2 className="text-xl font-mono font-bold" style={{ color: 'var(--accent)' }}>
                 Registration Link Sent!
               </h2>
-              <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
+              <p className="text-sm font-mono" style={{ color: 'var(--muted-foreground)' }}>
                 We&apos;ve sent a secure registration link to <strong>{email}</strong>
               </p>
-              <p className="text-sm font-mono" style={{color: 'var(--muted-foreground)'}}>
+              <p className="text-sm font-mono" style={{ color: 'var(--muted-foreground)' }}>
                 Click the link in your email to complete your account creation. This link is valid for 15 minutes.
               </p>
-              <p className="text-sm font-mono" style={{color: 'var(--accent)'}}>
+              <p className="text-sm font-mono" style={{ color: 'var(--accent)' }}>
                 If you&apos;ve not received a registration link, please try again
               </p>
-              
+
               <div className="pt-4">
                 <ThemedButton
                   onClick={() => {
@@ -294,24 +302,24 @@ export default function RegisterPage() {
           )}
 
           <div className="mt-6 text-center">
-            <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+            <p className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
               Already have an account?{' '}
-              <Link href="/login" className="font-semibold hover:underline" style={{color: 'var(--accent)'}}>
+              <Link href="/login" className="font-semibold hover:underline" style={{ color: 'var(--accent)' }}>
                 Sign in
               </Link>
             </p>
-            
-         
+
+
             <div className="my-4 flex items-center">
-              <div className="flex-1 border-t" style={{borderColor: 'var(--border-color)'}}></div>
-              <span className="px-3 font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>or</span>
-              <div className="flex-1 border-t" style={{borderColor: 'var(--border-color)'}}></div>
+              <div className="flex-1 border-t" style={{ borderColor: 'var(--border-color)' }}></div>
+              <span className="px-3 font-mono text-xs" style={{ color: 'var(--muted-foreground)' }}>or</span>
+              <div className="flex-1 border-t" style={{ borderColor: 'var(--border-color)' }}></div>
             </div>
-            
-            
+
+
             <Link href="/">
-              <ThemedButton 
-                variant="outline" 
+              <ThemedButton
+                variant="outline"
                 className="w-full"
               >
                 Evaluate Command Without Account
