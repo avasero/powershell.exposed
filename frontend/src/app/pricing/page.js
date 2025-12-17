@@ -13,7 +13,7 @@ export default function PricingPage() {
             price: 'Free',
             subtitle: 'Enjoy as a guest',
             buttonText: 'Start Analysis',
-            buttonAction: () => window.location.href = '/',
+            buttonAction: () => window.location.href = '/evaluate',
             isPopular: false,
             summaryFeatures: [
                 'Full access to evaluation engine',
@@ -32,7 +32,7 @@ export default function PricingPage() {
             buttonText: 'Signup Now',
             buttonVariant: 'primary',
             buttonAction: () => window.location.href = '/register',
-            isPopular: false,
+            isPopular: true,
             summaryFeatures: [
                 'Full access to evaluation engine',
                 '- 10 Requests / Minute',
@@ -43,14 +43,16 @@ export default function PricingPage() {
                 'Standard email support'
             ]
         },
+        //comment pro category
+        /*
         {
             id: 'pro',
             title: 'Pro',
             price: '', // Shows 'Coming'
             subtitle: 'For ambitious power users',
             buttonText: 'Get notified',
-            buttonAction: () => { },
-            isPopular: true,
+            buttonAction: () => window.location.href = isAuthenticated() ? '/settings?notify=true' : '/register',
+            isPopular: false,
             summaryFeatures: [
                 'Full access to evaluation engine',
                 '- 100 Requests / Minute',
@@ -66,14 +68,16 @@ export default function PricingPage() {
                 'Standard email support'
             ]
         },
+*/
         {
             id: 'enterprise',
-            title: 'Enterprise',
+            title: 'Premium',
             price: '', // Shows 'Coming'
             subtitle: 'Secure your organization',
             buttonText: 'Get notified',
-            buttonAction: () => { },
+            buttonAction: () => window.location.href = isAuthenticated() ? '/settings?notify=true' : '/register',
             isPopular: false,
+            isPremium: true,
             summaryFeatures: [
                 'Full  access to evaluation engine',
                 ' - Unlimited',
@@ -95,7 +99,7 @@ export default function PricingPage() {
         <div className="min-h-[calc(100vh-80px)] pt-24 pb-12 px-4 md:px-8 max-w-7xl mx-auto font-mono flex flex-col justify-center">
             <div className="text-center mb-16 space-y-4">
                 <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold break-words" style={{ color: 'var(--accent)' }}>
-                    PRICING PLANS
+                    USAGE TIERS
                 </h1>
                 <p className="text-base sm:text-lg md:text-xl max-w-2xl mx-auto" style={{ color: 'var(--muted-foreground)' }}>
                     Choose the perfect plan for your PowerShell analysis needs.
@@ -103,8 +107,8 @@ export default function PricingPage() {
                 </p>
             </div>
 
-          
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
                 {tiers.map((tier) => (
                     <PricingCard
                         key={tier.id}

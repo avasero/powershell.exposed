@@ -95,20 +95,10 @@ const ensureUserProfile = async (user) => {
       timeoutPromise
     ]);
 
-    // Se o perfil existe, verificar se precisamos atualizar notify_user
+    // Se o perfil existe, não fazemos nada - o perfil já foi criado
+    // NÃO sincronizamos notify_user do metadata aqui, pois isso sobrescreve
+    // alterações manuais feitas pelo usuário na página de settings
     if (existingProfile) {
-      const notifyUserFromMetadata = user.user_metadata?.notify_user;
-      const shouldUpdate = notifyUserFromMetadata === true && existingProfile.notify_user !== true;
-
-      // Atualizar notify_user se o valor do metadata for true e o perfil tiver false
-      if (shouldUpdate) {
-        const updatePromise = supabase
-          .from('profiles')
-          .update({ notify_user: true })
-          .eq('id', user.id);
-
-        await Promise.race([updatePromise, timeoutPromise]);
-      }
       return;
     }
 

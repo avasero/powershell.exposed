@@ -159,16 +159,25 @@ async def update_user_profile_endpoint(
         
         supabase = get_supabase_client()
         
+        # First, get current value for debugging
+        current_profile = supabase.table('profiles').select('*').eq('id', user["id"]).single().execute()
+        print(f"[PROFILE UPDATE] Current profile BEFORE update: {current_profile.data}")
+        
         response = supabase.table('profiles').update(update_data).eq('id', user["id"]).execute()
         
-        print(f"[PROFILE UPDATE] Supabase response: {response.data}")
+        print(f"[PROFILE UPDATE] Supabase update response: {response.data}")
+        
+        # Verify the update actually persisted by re-reading
+        verify_profile = supabase.table('profiles').select('*').eq('id', user["id"]).single().execute()
+        print(f"[PROFILE UPDATE] Profile AFTER update: {verify_profile.data}")
         
         if response.data:
             return JSONResponse({
                 "success": True,
                 "message": "Profile updated successfully",
                 "updated_fields": list(update_data.keys()),
-                "new_values": update_data
+                "new_values": update_data,
+                "verified_profile": verify_profile.data if verify_profile.data else None
             })
         else:
             return JSONResponse(

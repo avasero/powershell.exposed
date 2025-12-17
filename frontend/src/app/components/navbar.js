@@ -66,12 +66,12 @@ export default function Navbar() {
           </Link>
         </div>
 
-      
+
         {!(pathname === '/' && !isAuthenticated()) && (
           <div className="hidden md:flex items-center flex-1 justify-between">
             {isAuthenticated() ? (
               <>
-                
+
                 <div className="flex items-center space-x-6 ml-10">
                   <Link
                     href="/evaluate"
@@ -99,7 +99,7 @@ export default function Navbar() {
                     className="font-mono text-sm hover:text-green-400 transition-colors"
                     style={{ color: pathname === '/pricing' ? 'var(--accent)' : 'var(--foreground)' }}
                   >
-                    Pricing
+                    Tiers
                   </Link>
                   <Link
                     href="/about"
@@ -110,7 +110,7 @@ export default function Navbar() {
                   </Link>
                 </div>
 
-               
+
                 <div
                   className="relative"
                   onMouseEnter={handleMouseEnter}
@@ -135,7 +135,7 @@ export default function Navbar() {
                     </svg>
                   </div>
 
-                
+
                   <div
                     className={`absolute right-0 mt-2 w-48 bg-black border border-green-500/30 rounded-md shadow-lg transition-all duration-200 z-50 ${isDropdownOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
                       }`}
@@ -178,7 +178,7 @@ export default function Navbar() {
               </>
             ) : (
               <>
-               
+
                 <div className="flex items-center space-x-6 ml-10">
                   <Link
                     href="/evaluate"
@@ -199,7 +199,7 @@ export default function Navbar() {
                     className="font-mono text-sm hover:text-green-400 transition-colors"
                     style={{ color: pathname === '/pricing' ? 'var(--accent)' : 'var(--foreground)' }}
                   >
-                    Pricing
+                    Tiers
                   </Link>
                   <Link
                     href="/about"
@@ -210,7 +210,7 @@ export default function Navbar() {
                   </Link>
                 </div>
 
-                
+
                 <a
                   href="/login"
                   className="font-mono text-sm hover:text-green-400 transition-colors"
@@ -223,9 +223,9 @@ export default function Navbar() {
           </div>
         )}
 
-        
+
         <div className="md:hidden flex items-center space-x-2">
-         
+
           {isAuthenticated() && pathname === '/' && (
             <a
               onClick={openAnalysisDrawer}
@@ -242,7 +242,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-  
+
       <SideDrawer />
 
 
