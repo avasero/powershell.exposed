@@ -22,7 +22,7 @@ export default function LandingPage() {
         
         if (error === 'access_denied' && errorCode === 'otp_expired') {
           setAuthError(decodeURIComponent(errorDescription || 'Your login link has expired. Please request a new one.'));
-          // Clean the URL hash
+         
           window.history.replaceState(null, '', window.location.pathname);
         }
       }
@@ -31,7 +31,7 @@ export default function LandingPage() {
   
   return (
     <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center px-4 py-8 sm:px-6 sm:py-12 md:px-8 md:py-16 overflow-x-hidden">
-      {/* Auth Error Banner - Bottom notification */}
+      
       {authError && (
         <div className="fixed bottom-4 left-4  z-50">
           <div className="max-w-2xl mx-auto relative">

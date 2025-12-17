@@ -195,7 +195,7 @@ export default function IndicatorsPage() {
             Browse and search detection indicators
           </p>
           
-          {/* Search Bar and Page Size Selector */}
+         
           <div className="flex gap-2 mb-4">
             <div className="flex-1 relative">
               <input
@@ -220,7 +220,7 @@ export default function IndicatorsPage() {
               )}
             </div>
             
-            {/* Page Size Selector */}
+           
             <div className="flex items-center gap-2">
               <div className="relative">
                 <select
@@ -240,7 +240,7 @@ export default function IndicatorsPage() {
                   <option value={50}>50 per page</option>
                   <option value="All">Show All</option>
                 </select>
-                {/* Custom dropdown arrow */}
+                
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{color: 'var(--muted-foreground)'}}>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -262,7 +262,7 @@ export default function IndicatorsPage() {
             )}
           </div>
 
-          {/* Stats and Pagination */}
+         
           {pagination.total > 0 && (
             <div className="flex flex-wrap items-center justify-between gap-4 text-sm font-mono mb-4">
               <div className="flex flex-wrap gap-4" style={{color: 'var(--muted-foreground)'}}>
@@ -277,7 +277,7 @@ export default function IndicatorsPage() {
                 )}
               </div>
               
-              {/* Pagination Controls */}
+              
               {pagination.totalPages > 1 && pageSize !== "All" && (
                 <div className="flex items-center gap-2">
                   <FiChevronLeft
@@ -349,7 +349,7 @@ export default function IndicatorsPage() {
           </div>
         ) : (
           <>
-            {/* Desktop Table */}
+            
             <div className="hidden md:block overflow-x-auto border rounded-lg bg-black/80 border-green-500/30">
               <table className="w-full">
                 <thead className="border-b border-green-500/30">
@@ -468,7 +468,7 @@ export default function IndicatorsPage() {
               </table>
             </div>
 
-            {/* Mobile Card View */}
+            
             <div className="md:hidden space-y-3">
               {indicators.map((indicator) => (
                 <div 
@@ -479,7 +479,7 @@ export default function IndicatorsPage() {
                     boxShadow: 'hover' ? '0 0 15px rgba(32, 224, 115, 0.1)' : 'none'
                   }}
                 >
-                  {/* Header: Name and Severity */}
+                 
                   <div className="flex items-start justify-between mb-3 gap-2">
                     <div className="flex-1 min-w-0">
                       <a
@@ -494,7 +494,7 @@ export default function IndicatorsPage() {
                     </span>
                   </div>
 
-                  {/* Base Score */}
+                
                   <div className="mb-3 flex items-center justify-between text-xs font-mono">
                     <span style={{color: 'var(--muted-foreground)'}}>Base Score:</span>
                     <span style={{color: 'var(--accent)'}} className="font-bold">
@@ -502,7 +502,7 @@ export default function IndicatorsPage() {
                     </span>
                   </div>
 
-                  {/* Description */}
+                 
                   {indicator.description && (
                     <div className="mb-3">
                       <p className="font-mono text-xs" style={{color: 'var(--muted-foreground)'}}>
@@ -511,7 +511,7 @@ export default function IndicatorsPage() {
                     </div>
                   )}
 
-                  {/* Footer: Last Modified Info */}
+                 
                   <div className="pt-3 border-t border-green-500/20 flex items-center justify-between text-xs font-mono">
                     <div className="flex items-center gap-2">
                       {indicator.last_modified_by ? (

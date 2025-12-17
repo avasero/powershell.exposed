@@ -1,9 +1,9 @@
-// Background script for powerShell.exposed Extension
+
 
 const API_URL = "https://api.powershell.exposed/evaluate";
 const WEB_URL = "https://powershell.exposed/evaluate"; // Or localhost: http://localhost:3000/evaluate
 
-// Initialize Context Menus
+
 chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
         id: "pse_root",
@@ -26,7 +26,7 @@ chrome.runtime.onInstalled.addListener(() => {
     });
 });
 
-// Handle Context Menu Clicks
+
 chrome.contextMenus.onClicked.addListener((info, tab) => {
     if (info.menuItemId === "pse_open_web") {
         const text = info.selectionText;
@@ -38,12 +38,12 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 async function handleQuickAnalyze(text, tabId) {
-    // Get API Key from storage
+   
     chrome.storage.sync.get(["apiKey"], async (result) => {
         const apiKey = result.apiKey;
 
         if (!apiKey) {
-            // Notify user to set API key
+           
             chrome.scripting.executeScript({
                 target: { tabId: tabId },
                 func: () => alert("Please set your powershell.exposed API Key in the extension settings first.")
@@ -52,7 +52,7 @@ async function handleQuickAnalyze(text, tabId) {
         }
 
         try {
-            // Show loading state (optional, via message to content script)
+            
             chrome.tabs.sendMessage(tabId, { type: "ANALYSIS_START" });
 
             const response = await fetch(API_URL, {

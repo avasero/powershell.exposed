@@ -573,7 +573,7 @@ export default function AnalysisDetailsPage() {
           </ThemedButton>
         </div>
 
-        {/* ✅ Removed full-page LoadingSpinner overlay - only show button loading state */}
+        
 
         <ErrorMessage message={error} />
 
@@ -673,23 +673,9 @@ export default function AnalysisDetailsPage() {
           </div>
         </div>
       )}
-      {/* {result && result.decoded && (
-        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-          <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
-            <div className="font-mono text-sm font-bold mb-3" style={{color: 'var(--accent)'}}>
-              {result.doubleDecoded ? "First Decoded Layer" : "Decodified Command"}
-            </div>
-            <div className="bg-black rounded p-3 border border-blue-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words" style={{color: 'var(--foreground)'}}>
-              <code>{result.decoded}</code>
-            </div>
-            <div className="text-xs font-mono mt-2" style={{color: 'var(--muted-foreground)'}}>
-              {result.doubleDecoded ? "First layer of decoding from Base64" : "This is the decoded/deobfuscated version of the command"}
-            </div>
-          </div>
-        </div>
-      )} */}
+     
 
-      {/* ✅ BLOCO 1: Deobfuscated (PRIMEIRO - aparece APENAS se indicador estiver presente) */}
+     
       {result && result.deobfuscated && hasObfuscationIndicator && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-purple-500/30">
@@ -707,7 +693,7 @@ export default function AnalysisDetailsPage() {
         </div>
       )}
 
-      {/* ✅ BLOCO 2: First Decoded Layer (double-encoded: decoded && doubleDecoded) */}
+      
       {result && result.decoded && result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
@@ -725,7 +711,7 @@ export default function AnalysisDetailsPage() {
         </div>
       )}
 
-      {/* ✅ BLOCO 3: Decoded Command (single-encoded: decoded && !doubleDecoded) */}
+      
       {result && result.decoded && !result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
@@ -743,7 +729,7 @@ export default function AnalysisDetailsPage() {
         </div>
       )}
 
-      {/* ✅ BLOCO 4: Final Decoded (doubleDecoded exists) */}
+      
       {result && result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-yellow-500/30">
@@ -780,7 +766,7 @@ export default function AnalysisDetailsPage() {
 
             return (
               <>
-                {/* ✅ NOVO: Tabela de resumo */}
+                
                 {realSignatures.length > 0 && (
                   <IndicatorsSummaryTable signatures={realSignatures} />
                 )}
@@ -819,8 +805,6 @@ export default function AnalysisDetailsPage() {
                     </div>
                   </div>
                 )}
-
-                {/* ...existing code for basicCmdlets... */}
               </>
             );
           })()}

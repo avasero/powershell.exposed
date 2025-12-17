@@ -35,10 +35,10 @@ export default function AnalysisSkeleton() {
         }
       `}</style>
 
-      {/* Title */}
+     
       <div className="h-8 sm:h-10 md:h-12 w-64 sm:w-80 md:w-96 shimmer rounded-lg mb-6 sm:mb-8"></div>
 
-      {/* Command input skeleton */}
+     
       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1 border rounded-lg p-4 bg-black/80 border-green-500/30">
@@ -51,7 +51,7 @@ export default function AnalysisSkeleton() {
         </div>
       </div>
 
-      {/* Score card skeleton */}
+      
       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
         <div className="p-4 sm:p-6 rounded-lg border-2 border-green-500/30 text-center bg-black/80">
           <div className="h-6 w-48 shimmer rounded-lg mb-3 mx-auto"></div>
@@ -60,7 +60,7 @@ export default function AnalysisSkeleton() {
         </div>
       </div>
 
-      {/* Decoded command skeleton */}
+     
       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
         <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
           <div className="h-4 w-32 shimmer rounded mb-3"></div>
@@ -73,7 +73,7 @@ export default function AnalysisSkeleton() {
         </div>
       </div>
 
-      {/* Summary table skeleton */}
+      
       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
         <div className="border rounded-lg bg-black/80 border-green-500/30 overflow-hidden">
           <div className="p-4 border-b border-green-500/30">
@@ -95,16 +95,16 @@ export default function AnalysisSkeleton() {
         </div>
       </div>
 
-      {/* Indicators breakdown title */}
+     
       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-4">
         <div className="h-6 w-48 shimmer rounded"></div>
       </div>
 
-      {/* Indicator cards skeleton */}
+     
       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8 space-y-4">
         {[1, 2].map((i) => (
           <div key={i} className="border rounded-lg p-4 sm:p-6 bg-black/80 border-green-500/30">
-            {/* Header */}
+            
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <div className="h-5 w-64 shimmer rounded mb-2"></div>
@@ -117,7 +117,6 @@ export default function AnalysisSkeleton() {
               </div>
             </div>
 
-            {/* Pattern section */}
             <div className="mb-4">
               <div className="h-4 w-32 shimmer rounded mb-2"></div>
               <div className="bg-black rounded p-3 border border-green-500/20">
@@ -125,7 +124,7 @@ export default function AnalysisSkeleton() {
               </div>
             </div>
 
-            {/* Tactics & Techniques */}
+           
             <div className="grid md:grid-cols-2 gap-4 mb-4">
               <div>
                 <div className="h-4 w-24 shimmer rounded mb-2"></div>
@@ -143,7 +142,7 @@ export default function AnalysisSkeleton() {
               </div>
             </div>
 
-            {/* Reference */}
+        
             <div>
               <div className="h-4 w-20 shimmer rounded mb-2"></div>
               <div className="h-3 w-full max-w-md shimmer rounded"></div>
@@ -152,7 +151,7 @@ export default function AnalysisSkeleton() {
         ))}
       </div>
 
-      {/* Buttons skeleton */}
+      
       <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
         <div className="h-10 w-48 shimmer rounded"></div>
         <div className="h-10 w-40 shimmer rounded"></div>

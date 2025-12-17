@@ -95,20 +95,10 @@ const ensureUserProfile = async (user) => {
       timeoutPromise
     ]);
 
-    // Se o perfil existe, verificar se precisamos atualizar notify_user
+    // Se o perfil existe, não fazemos nada - o perfil já foi criado
+    // NÃO sincronizamos notify_user do metadata aqui, pois isso sobrescreve
+    // alterações manuais feitas pelo usuário na página de settings
     if (existingProfile) {
-      const notifyUserFromMetadata = user.user_metadata?.notify_user;
-      const shouldUpdate = notifyUserFromMetadata === true && existingProfile.notify_user !== true;
-      
-      // Atualizar notify_user se o valor do metadata for true e o perfil tiver false
-      if (shouldUpdate) {
-        const updatePromise = supabase
-          .from('profiles')
-          .update({ notify_user: true })
-          .eq('id', user.id);
-
-        await Promise.race([updatePromise, timeoutPromise]);
-      }
       return;
     }
 
@@ -212,36 +202,36 @@ const migrateAnonymousAnalyses = async (userId) => {
 const checkAndApplyPendingNotifyUser = async (user) => {
   try {
     const pendingData = localStorage.getItem('pending_notify_user');
-    
+
     if (!pendingData) {
       return;
     }
-    
+
     const parsed = JSON.parse(pendingData);
-    
+
     // Verificar se o email corresponde e se não expirou (24 horas)
     const isExpired = Date.now() - parsed.timestamp > 24 * 60 * 60 * 1000;
     const emailMatches = parsed.email?.toLowerCase() === user.email?.toLowerCase();
-    
+
     if (isExpired) {
       localStorage.removeItem('pending_notify_user');
       return;
     }
-    
+
     if (!emailMatches) {
       return;
     }
-    
+
     if (parsed.notify_user === true) {
       await supabase
         .from('profiles')
         .update({ notify_user: true })
         .eq('id', user.id);
     }
-    
+
     // Limpar o localStorage após processar
     localStorage.removeItem('pending_notify_user');
-    
+
   } catch (error) {
     console.error('Erro ao processar pending_notify_user:', error);
     localStorage.removeItem('pending_notify_user');
@@ -261,6 +251,8 @@ export const AuthProvider = ({ children }) => {
     '/register',
     '/signatures',
     '/landing',
+    '/pricing',
+    '/about',
     '/analysis',
     '/auth/confirm',
     '/history',
@@ -322,7 +314,7 @@ export const AuthProvider = ({ children }) => {
             try {
               // Garantir que o perfil existe (fallback caso o trigger não funcione)
               await ensureUserProfile(session.user);
-              
+
               // Verificar e aplicar preferência de notify_user do localStorage
               await checkAndApplyPendingNotifyUser(session.user);
 
@@ -390,9 +382,18 @@ export const AuthProvider = ({ children }) => {
 
   const signUpWithMagicLink = async (email, username, notifyUser = false) => {
     try {
+      console.log('📧 Initiating Magic Link login for:', email);
+      // Determine the redirect URL based on the current environment
+      const redirectTo = typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/confirm`
+        : undefined;
+
+      console.log('🔗 Redirect URL set to:', redirectTo);
+
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
+          emailRedirectTo: redirectTo,
           data: {
             username: username,
             full_name: username,
@@ -402,25 +403,41 @@ export const AuthProvider = ({ children }) => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase Auth Error:', error);
+        throw error;
+      }
+
+      console.log('✅ Magic Link sent successfully:', data);
       return { data, error: null };
     } catch (error) {
+      console.error('❌ Login Exception:', error);
       return { data: null, error };
     }
   };
 
   const signInWithMagicLink = async (email) => {
     try {
+      console.log('📧 Initiating Magic Link login (signin-only) for:', email);
+      const redirectTo = typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/confirm`
+        : undefined;
+
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
+          emailRedirectTo: redirectTo,
           shouldCreateUser: true
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase Auth Error:', error);
+        throw error;
+      }
       return { data, error: null };
     } catch (error) {
+      console.error('❌ Login Exception:', error);
       return { data: null, error };
     }
   };

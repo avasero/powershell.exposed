@@ -50,7 +50,7 @@ export default function ScoringInfoPage() {
         </div>
 
         <div className="space-y-6">
-          {/* Tier Information */}
+         
           <div className="border rounded-lg p-6 bg-black/80 border-green-500/30">
             <h2 className="text-xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
               Scoring Tiers
@@ -75,7 +75,7 @@ export default function ScoringInfoPage() {
             </div>
           </div>
 
-          {/* How Scoring Works */}
+         
           <div className="border rounded-lg p-6 bg-black/80 border-green-500/30">
             <h2 className="text-xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
               A few notes on the simple, aggregated scoring
@@ -100,7 +100,7 @@ export default function ScoringInfoPage() {
             </ul>
           </div>
 
-          {/* Score Ranges */}
+        
           <div className="border rounded-lg p-6 bg-black/80 border-green-500/30">
             <h2 className="text-xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
               Score Ranges

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { ErrorMessage, InfoMessage } from './Messages';
 import ThemedButton from './ThemedButton';
@@ -14,9 +14,11 @@ export default function ApiKeyManager() {
   const [success, setSuccess] = useState('');
   const [showRevealModal, setShowRevealModal] = useState(false);
   const [newApiKey, setNewApiKey] = useState('');
+  const hasFetched = useRef(false);
 
   useEffect(() => {
-    if (isAuthenticated()) {
+    if (isAuthenticated() && !hasFetched.current) {
+      hasFetched.current = true;
       loadApiKey();
     }
   }, [user]);
@@ -51,7 +53,7 @@ export default function ApiKeyManager() {
       });
 
       if (response.success) {
-       
+
         setNewApiKey(response.api_key.api_key);
         setShowRevealModal(true);
         setApiKey(response.api_key);
@@ -80,7 +82,7 @@ export default function ApiKeyManager() {
       });
 
       if (response.success) {
-       
+
         setNewApiKey(response.api_key.api_key);
         setShowRevealModal(true);
         setApiKey(response.api_key);
@@ -126,7 +128,7 @@ export default function ApiKeyManager() {
 
   const maskApiKey = (key) => {
     if (!key) return '';
-  
+
     if (key.length <= 12) return key;
     const start = key.substring(0, 8);
     const end = key.substring(key.length - 4);
@@ -140,14 +142,14 @@ export default function ApiKeyManager() {
   };
 
   const handleModalCopy = () => {
-  
+
     console.log('API Key copied from modal');
   };
 
   if (!isAuthenticated()) {
     return (
-      <div className="p-4 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
-        <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+      <div className="p-4 rounded-lg border" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
+        <p className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
           Please log in to manage your API Key.
         </p>
       </div>
@@ -157,17 +159,17 @@ export default function ApiKeyManager() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-xl font-mono font-bold" style={{color: 'var(--accent)'}}>
-           API Key Management
+        <h2 className="text-xl font-mono font-bold" style={{ color: 'var(--accent)' }}>
+          API Key Management
         </h2>
-        <p className="mt-2 font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-          Use your API Key to access the powershell.exposed API from external tools like Postman
+        <p className="mt-2 font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
+          Use your API Key to access the powershell.exposed API from your http client.
         </p>
       </div>
 
-      <div className="p-6 rounded-lg border" style={{backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)'}}>
+      <div className="p-6 rounded-lg border" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
         {loading && <LoadingSpinner />}
-        
+
         {error && <ErrorMessage message={error} />}
         {success && <InfoMessage message={success} />}
 
@@ -176,11 +178,11 @@ export default function ApiKeyManager() {
             {apiKey ? (
               <div className="space-y-4">
                 <div>
-                  <label className="block font-mono text-sm font-medium mb-2" style={{color: 'var(--foreground)'}}>
+                  <label className="block font-mono text-sm font-medium mb-2" style={{ color: 'var(--foreground)' }}>
                     Your API Key:
                   </label>
                   <div className="flex items-center space-x-2">
-                    <code 
+                    <code
                       className="flex-1 p-3 rounded border font-mono text-sm break-all"
                       style={{
                         backgroundColor: 'var(--muted)',
@@ -191,27 +193,27 @@ export default function ApiKeyManager() {
                       {maskApiKey(apiKey.api_key)}
                     </code>
                   </div>
-                  <p className="text-xs font-mono mt-1" style={{color: 'var(--muted-foreground)'}}>
-                     The complete key is only shown once during creation for security
+                  <p className="text-xs font-mono mt-1" style={{ color: 'var(--muted-foreground)' }}>
+                    The complete key is only shown once during creation for security
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 text-sm font-mono">
                   <div>
-                    <span style={{color: 'var(--muted-foreground)'}}>Created:</span>
-                    <div style={{color: 'var(--foreground)'}}>{formatDate(apiKey.created_at)}</div>
+                    <span style={{ color: 'var(--muted-foreground)' }}>Created:</span>
+                    <div style={{ color: 'var(--foreground)' }}>{formatDate(apiKey.created_at)}</div>
                   </div>
                   <div>
-                    <span style={{color: 'var(--muted-foreground)'}}>Last Used:</span>
-                    <div style={{color: 'var(--foreground)'}}>{formatDate(apiKey.last_used_at)}</div>
+                    <span style={{ color: 'var(--muted-foreground)' }}>Last Used:</span>
+                    <div style={{ color: 'var(--foreground)' }}>{formatDate(apiKey.last_used_at)}</div>
                   </div>
                   <div>
-                    <span style={{color: 'var(--muted-foreground)'}}>Usage Count:</span>
-                    <div style={{color: 'var(--foreground)'}}>{apiKey.usage_count || 0} requests</div>
+                    <span style={{ color: 'var(--muted-foreground)' }}>Usage Count:</span>
+                    <div style={{ color: 'var(--foreground)' }}>{apiKey.usage_count || 0} requests</div>
                   </div>
                   <div>
-                    <span style={{color: 'var(--muted-foreground)'}}>Status:</span>
-                    <div style={{color: apiKey.is_active ? 'var(--success)' : 'var(--destructive)'}}>
+                    <span style={{ color: 'var(--muted-foreground)' }}>Status:</span>
+                    <div style={{ color: apiKey.is_active ? 'var(--success)' : 'var(--destructive)' }}>
                       {apiKey.is_active ? '✅ Active' : '❌ Inactive'}
                     </div>
                   </div>
@@ -223,7 +225,7 @@ export default function ApiKeyManager() {
                     variant="outline"
                     disabled={loading}
                   >
-                     Regenerate
+                    Regenerate
                   </ThemedButton>
                   <ThemedButton
                     onClick={revokeApiKey}
@@ -234,17 +236,17 @@ export default function ApiKeyManager() {
                       color: 'var(--destructive)'
                     }}
                   >
-                     Revoke
+                    Revoke
                   </ThemedButton>
                 </div>
               </div>
             ) : (
               <div className="text-center space-y-4">
                 <div className="text-6xl mb-4">🔑</div>
-                <h3 className="text-lg font-mono font-bold" style={{color: 'var(--accent)'}}>
+                <h3 className="text-lg font-mono font-bold" style={{ color: 'var(--accent)' }}>
                   No API Key Found
                 </h3>
-                <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+                <p className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
                   Create an API Key to access the powershell.exposed API from external tools
                 </p>
                 <ThemedButton
@@ -252,7 +254,7 @@ export default function ApiKeyManager() {
                   disabled={loading}
                   className="w-full"
                 >
-                   Create API Key
+                  Create API Key
                 </ThemedButton>
               </div>
             )}
@@ -260,14 +262,14 @@ export default function ApiKeyManager() {
         )}
       </div>
 
-      {/* Usage Instructions */}
-      <div className="p-4 rounded-lg border" style={{backgroundColor: 'var(--muted)', borderColor: 'var(--border-color)'}}>
-        <h3 className="font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
+
+      <div className="p-4 rounded-lg border" style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border-color)' }}>
+        <h3 className="font-mono font-bold mb-2" style={{ color: 'var(--accent)' }}>
           How to Use Your API Key
         </h3>
-        <div className="space-y-2 font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
+        <div className="space-y-2 font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
           <p><strong>1. Copy your API Key from the modal when creating</strong></p>
-          <p><strong>2. In Postman or any HTTP client:</strong></p>
+          <p><strong>2. In your HTTP client:</strong></p>
           <ul className="ml-4 space-y-1">
             <li>• Set Authorization to &quot;Bearer Token&quot;</li>
             <li>• Paste your API Key (starts with pse_)</li>
@@ -277,10 +279,21 @@ export default function ApiKeyManager() {
             <li>• <code>GET /user/command-evaluations</code> - Get your analyses</li>
             <li>• <code>POST /evaluate</code> - Analyze PowerShell commands</li>
           </ul>
+          <p className="pt-2">
+            <a
+              href="https://api.powershell.exposed/docs"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 hover:underline"
+              style={{ color: 'var(--accent)' }}
+            >
+              View Full API Documentation →
+            </a>
+          </p>
         </div>
       </div>
 
-      {/* Modal to reveal complete API Key */}
+
       {showRevealModal && (
         <ApiKeyRevealModal
           apiKey={newApiKey}
