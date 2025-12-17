@@ -252,6 +252,7 @@ export const AuthProvider = ({ children }) => {
     '/signatures',
     '/landing',
     '/pricing',
+    '/about',
     '/analysis',
     '/auth/confirm',
     '/history',
