@@ -102,7 +102,6 @@ export default function PricingPage() {
                     USAGE TIERS
                 </h1>
                 <p className="text-base sm:text-lg md:text-xl max-w-2xl mx-auto" style={{ color: 'var(--muted-foreground)' }}>
-                    Choose the perfect plan for your PowerShell analysis needs.
                     Scale your detection capabilities with our flexible tiers.
                 </p>
             </div>

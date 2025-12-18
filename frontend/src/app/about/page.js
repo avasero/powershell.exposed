@@ -48,7 +48,7 @@ export default function AboutPage() {
                     <p className="text-sm leading-relaxed mb-6" style={{ color: 'var(--muted-foreground)' }}>
                         Indicators are maintained in a public repository and shaped by the cybersecurity community. Contributions, improvements, and peer review are actively encouraged, ensuring the dataset evolves alongside real attacker techniques and defensive insights. Anyone with hands-on experience is invited to participate, review existing indicators, or contribute new findings.
                     </p>
-                    <Link href="https://github.com/avasero/powershell-indicators" target="_blank">
+                    <Link href="https://github.com/avasero/psexposed-public-indicators" target="_blank">
                         <ThemedButton className="gap-2">
                             <FaGithub size={18} />
                             Explore on GitHub
