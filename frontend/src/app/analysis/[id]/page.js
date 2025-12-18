@@ -176,6 +176,7 @@ export default function AnalysisDetailsPage() {
   const [cacheRedirectInfo, setCacheRedirectInfo] = useState(null);
   const [contentReady, setContentReady] = useState(false);
   const [decodeInfo, setDecodeInfo] = useState(null);
+  const [linkCopied, setLinkCopied] = useState(false);
   const analysisExecutedRef = useRef(false);
 
   useEffect(() => {
@@ -842,15 +843,26 @@ export default function AnalysisDetailsPage() {
         </ThemedButton>
         <ThemedButton
           variant="outline"
-          onClick={() => {
+          onClick={async () => {
             const baseUrl = window.location.origin;
             const shareUrl = result?.analysisId
               ? `${baseUrl}/analysis/${result.analysisId}`
               : window.location.href;
-            navigator.clipboard.writeText(shareUrl);
+            try {
+              await navigator.clipboard.writeText(shareUrl);
+              setLinkCopied(true);
+              setTimeout(() => setLinkCopied(false), 3000);
+            } catch (err) {
+              console.error('Failed to copy to clipboard:', err);
+            }
           }}
+          style={linkCopied ? {
+            backgroundColor: 'var(--success)',
+            color: 'var(--success-foreground)',
+            borderColor: 'var(--success)'
+          } : {}}
         >
-          Copy sharable link
+          {linkCopied ? 'Copied!' : 'Copy sharable link'}
         </ThemedButton>
       </div>
     </div>
