@@ -26,6 +26,7 @@ from services.cache_service import (
 from services.session_manager import get_or_create_session, get_supabase_client
 from utils.geolocation import get_ip_location, get_client_ip_from_request
 from services.plan_service import can_user_decode_commands, get_user_plan_features, get_plan_by_name, check_session_rate_limit_from_db
+from services.api_key_manager import update_api_key_usage
 
 async def analyze_command_endpoint(
     request: Request,
@@ -95,9 +96,15 @@ async def analyze_command_endpoint(
         country = request_data.country
         user_agent = request_data.user_agent or "FastAPI-Client"
         
+        # Track API key for usage increment (only increment once per request)
+        api_key_to_track = None
+        
         if current_user and current_user.get("auth_type") == "api_key":
-            
             search_type = "API"
+            # Get the API key from the request header for usage tracking
+            authorization = request.headers.get("Authorization", "")
+            if authorization.startswith("Bearer pse_"):
+                api_key_to_track = authorization[7:]  # Remove "Bearer " prefix
         elif current_user and current_user.get("auth_type") == "jwt":
             
             search_type = "WEB"
@@ -105,6 +112,10 @@ async def analyze_command_endpoint(
             search_type = request_data.search_type
         else:
             search_type = "API"
+        
+        # ✅ Increment API key usage ONCE at the start of the request
+        if api_key_to_track:
+            await update_api_key_usage(api_key_to_track)
         
         session_id = request_data.session_id
         

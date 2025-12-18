@@ -136,8 +136,15 @@ async def get_user_api_key(user_id: str, access_token: str = None) -> Optional[D
         return None
 
 
-async def validate_api_key(api_key: str) -> Optional[Dict[str, Any]]:
+async def validate_api_key(api_key: str, increment_usage: bool = False) -> Optional[Dict[str, Any]]:
+    """
+    Validate an API key and optionally increment usage counter.
     
+    Args:
+        api_key: The API key to validate
+        increment_usage: If True, increment the usage counter (default: False)
+                        Only set to True for actual API calls, not for validation-only checks
+    """
     try:
         if not api_key or not api_key.startswith("pse_"):
             return None
@@ -156,8 +163,9 @@ async def validate_api_key(api_key: str) -> Optional[Dict[str, Any]]:
         
         profile = response.data[0]
         
-        
-        await update_api_key_usage(api_key)
+        # Only increment usage when explicitly requested (for actual API calls)
+        if increment_usage:
+            await update_api_key_usage(api_key)
         
        
         return {
