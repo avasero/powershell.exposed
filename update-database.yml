@@ -60,8 +60,8 @@ jobs:
 
       - name: Update Supabase Database via Edge Function
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_EDGE_URL: ${{ secrets.SUPABASE_EDGE_URL }}
+          SUPABASE_EDGE_SECRET: ${{ secrets.SUPABASE_EDGE_SECRET }}
           CHANGED_FILES: ${{ needs.detect-changes.outputs.changed-files }}
         run: |
           echo "Calling Edge Function to update database..."
@@ -168,15 +168,28 @@ jobs:
           
           echo "Payload: $PAYLOAD"
           
-          RESPONSE=$(curl -s -X POST "$SUPABASE_URL/functions/v1/update-database" \
+          # Build the full URL - handle both cases where SUPABASE_EDGE_URL may or may not include /functions/v1
+          if [[ "$SUPABASE_EDGE_URL" == */functions/v1* ]]; then
+            FULL_URL="$SUPABASE_EDGE_URL/update-database"
+          else
+            FULL_URL="$SUPABASE_EDGE_URL/functions/v1/update-database"
+          fi
+          
+          echo "Calling URL: $FULL_URL"
+          
+          RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "$FULL_URL" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_EDGE_SECRET" \
             -d "$PAYLOAD")
           
-          echo "Response: $RESPONSE"
+          HTTP_CODE=$(echo "$RESPONSE" | grep "HTTP_CODE:" | cut -d: -f2)
+          RESPONSE_BODY=$(echo "$RESPONSE" | sed '/HTTP_CODE:/d')
+          
+          echo "HTTP Code: $HTTP_CODE"
+          echo "Response: $RESPONSE_BODY"
           
           # Check if successful
-          if echo "$RESPONSE" | jq -e '.success' > /dev/null; then
+          if [ "$HTTP_CODE" = "200" ] && echo "$RESPONSE_BODY" | jq -e '.success' > /dev/null; then
             echo "✅ Database updated successfully!"
             PROCESSED=$(echo "$RESPONSE" | jq -r '.indicators_processed // 0')
             echo "Processed $PROCESSED indicators"
