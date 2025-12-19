@@ -190,9 +190,9 @@ jobs:
           
           # Build the full URL - handle both cases where SUPABASE_EDGE_URL may or may not include /functions/v1
           if [[ "$SUPABASE_EDGE_URL" == */functions/v1* ]]; then
-            FULL_URL="$SUPABASE_EDGE_URL/update-database-public-indicators"
+            FULL_URL="$SUPABASE_EDGE_URL/function-to-update-private-repo"
           else
-            FULL_URL="$SUPABASE_EDGE_URL/functions/v1/update-database-public-indicators"
+            FULL_URL="$SUPABASE_EDGE_URL/functions/v1/function-to-update-private-repo"
           fi
           
           echo "Calling URL: $FULL_URL"
