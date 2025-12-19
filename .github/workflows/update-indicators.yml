@@ -1,12 +1,6 @@
 name: Update Public Indicators Database
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - 'indicators/**/*.yaml'
-      - 'indicators/**/*.yml'
-      - '.github/workflows/update-indicators.yml'
   push:
     branches:
       - main
@@ -34,30 +28,18 @@ jobs:
         id: check-changes
         run: |
           echo "Detecting indicator changes..."
+          echo "Checking last commit (merge to main)..."
           
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # For PRs, compare with base branch
-            BASE_BRANCH="${{ github.event.pull_request.base.ref }}"
-            echo "Comparing with base branch: $BASE_BRANCH"
-            
-            ADDED_FILES=$(git diff --name-status origin/$BASE_BRANCH...HEAD | grep '^A' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
-            MODIFIED_FILES=$(git diff --name-status origin/$BASE_BRANCH...HEAD | grep '^M' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
-            DELETED_FILES=$(git diff --name-status origin/$BASE_BRANCH...HEAD | grep '^D' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
+          # Fallback for first commit
+          if git rev-parse HEAD~1 >/dev/null 2>&1; then
+            ADDED_FILES=$(git diff --name-status HEAD~1 HEAD | grep '^A' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
+            MODIFIED_FILES=$(git diff --name-status HEAD~1 HEAD | grep '^M' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
+            DELETED_FILES=$(git diff --name-status HEAD~1 HEAD | grep '^D' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
           else
-            # For direct pushes, check changes in the last commit
-            echo "Checking last commit..."
-            
-            # Fallback for first commit
-            if git rev-parse HEAD~1 >/dev/null 2>&1; then
-              ADDED_FILES=$(git diff --name-status HEAD~1 HEAD | grep '^A' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
-              MODIFIED_FILES=$(git diff --name-status HEAD~1 HEAD | grep '^M' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
-              DELETED_FILES=$(git diff --name-status HEAD~1 HEAD | grep '^D' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
-            else
-              echo "First commit - listing all files as added"
-              ADDED_FILES=$(find indicators -name "*.yaml" -o -name "*.yml" 2>/dev/null || true)
-              MODIFIED_FILES=""
-              DELETED_FILES=""
-            fi
+            echo "First commit - listing all files as added"
+            ADDED_FILES=$(find indicators -name "*.yaml" -o -name "*.yml" 2>/dev/null || true)
+            MODIFIED_FILES=""
+            DELETED_FILES=""
           fi
           
           # Debug output
@@ -227,61 +209,3 @@ jobs:
             cat response.txt
             exit 1
           fi
-
-      - name: Comment on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const addedFiles = JSON.parse('${{ needs.detect-changes.outputs.added-files }}' || '[]');
-            const modifiedFiles = JSON.parse('${{ needs.detect-changes.outputs.modified-files }}' || '[]');
-            const deletedFiles = JSON.parse('${{ needs.detect-changes.outputs.deleted-files }}' || '[]');
-            
-            let body = `## Public Indicators Database Updated\n\n`;
-            
-            if (addedFiles.length > 0) {
-              body += `### Added Indicators (${addedFiles.length})\n`;
-              addedFiles.forEach(f => body += `- \`${f}\`\n`);
-              body += '\n';
-            }
-            
-            if (modifiedFiles.length > 0) {
-              body += `### Modified Indicators (${modifiedFiles.length})\n`;
-              modifiedFiles.forEach(f => body += `- \`${f}\`\n`);
-              body += '\n';
-            }
-            
-            if (deletedFiles.length > 0) {
-              body += `### Removed Indicators (${deletedFiles.length})\n`;
-              deletedFiles.forEach(f => body += `- \`${f}\`\n`);
-              body += '\n';
-            }
-            
-            body += `\n---\n*Automatically updated by GitHub Actions*`;
-            
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-            
-            const botComment = comments.find(comment => 
-              comment.user.type === 'Bot' && 
-              comment.body.includes('Public Indicators Database')
-            );
-            
-            if (botComment) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body: body
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: body
-              });
-            }
