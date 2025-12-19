@@ -71,7 +71,7 @@ function showResult(data) {
     <div style="padding: 15px;">
       <div style="margin-bottom: 10px;">
         <span style="color: #888; font-size: 12px;">Risk Score</span>
-        <div style="font-size: 24px; font-weight: bold; color: ${color};">${analysis.risk_score} / 10</div>
+        <div style="font-size: 24px; font-weight: bold; color: ${color};">${analysis.risk_score}</div>
       </div>
       <div style="margin-bottom: 10px;">
         <span style="color: #888; font-size: 12px;">Severity</span>
