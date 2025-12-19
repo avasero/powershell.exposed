@@ -188,12 +188,21 @@ jobs:
           
           echo "Sending payload to Edge Function..."
           
+          # Build the full URL - handle both cases where SUPABASE_EDGE_URL may or may not include /functions/v1
+          if [[ "$SUPABASE_EDGE_URL" == */functions/v1* ]]; then
+            FULL_URL="$SUPABASE_EDGE_URL/update-database-public-indicators"
+          else
+            FULL_URL="$SUPABASE_EDGE_URL/functions/v1/update-database-public-indicators"
+          fi
+          
+          echo "Calling URL: $FULL_URL"
+          
           # Send to Edge Function
           HTTP_CODE=$(curl -s -o response.txt -w "%{http_code}" -X POST \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $SUPABASE_EDGE_SECRET" \
             -d "$PAYLOAD" \
-            "$SUPABASE_EDGE_URL")
+            "$FULL_URL")
           
           echo "HTTP Code: $HTTP_CODE"
           echo "Response:"
