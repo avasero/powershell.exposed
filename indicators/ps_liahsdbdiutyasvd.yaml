@@ -1,0 +1,9 @@
+name: TESTPRIVATE
+description: TEST.
+regex: TEST
+basescore: 9.9
+tactic: TEST
+technique: [T1059.001, T1069.002, T1087]
+reference:
+  - https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1069.002/T1069.002.md
+  - https://www.ired.team/offensive-security-experiments/active-directory-kerberos-abuse/using-dsacls-to-check-ad-object-permissions
