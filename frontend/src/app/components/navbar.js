@@ -85,7 +85,7 @@ export default function Navbar() {
                     className="font-mono text-sm hover:text-green-400 transition-colors"
                     style={{ color: pathname === '/indicators' ? 'var(--accent)' : 'var(--foreground)' }}
                   >
-                    Indicators
+                    Community
                   </Link>
                   <Link
                     href="/history"
@@ -192,7 +192,7 @@ export default function Navbar() {
                     className="font-mono text-sm hover:text-green-400 transition-colors"
                     style={{ color: pathname === '/indicators' ? 'var(--accent)' : 'var(--foreground)' }}
                   >
-                    Indicators
+                      Community
                   </Link>
                   <Link
                     href="/pricing"

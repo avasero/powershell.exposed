@@ -7,7 +7,8 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import ThemedButton from "../components/ThemedButton";
 import { ErrorMessage } from "../components/Messages";
 import { getSeverityColor as getColorObject } from "../../constants/severityColors";
-
+import Link from "next/link";
+import { FaGithub } from 'react-icons/fa';
 export default function IndicatorsPage() {
   const [indicators, setIndicators] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -189,13 +190,20 @@ export default function IndicatorsPage() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-2" style={{color: 'var(--accent)'}}>
-            PowerShell Indicators
+            Community Indicators
           </h1>
-          <p className="font-mono text-sm mb-6" style={{color: 'var(--muted-foreground)'}}>
-            Browse and search detection indicators
-          </p>
+          <div className="flex justify-between items-center">
+            <p className="font-mono text-sm mb-4" style={{color: 'var(--muted-foreground)'}}>
+              Browse and search detection public indicators
+            </p>
+            <Link href="https://github.com/avasero/psexposed-public-indicators" target="_blank">
+              <ThemedButton className="gap-2 mb-4">
+                <FaGithub size={18} />
+                Explore on GitHub
+              </ThemedButton>
+            </Link>
+          </div>
           
-         
           <div className="flex gap-2 mb-4">
             <div className="flex-1 relative">
               <input
