@@ -574,7 +574,7 @@ export default function AnalysisDetailsPage() {
           </ThemedButton>
         </div>
 
-        
+
 
         <ErrorMessage message={error} />
 
@@ -674,9 +674,9 @@ export default function AnalysisDetailsPage() {
           </div>
         </div>
       )}
-     
 
-     
+
+
       {result && result.deobfuscated && hasObfuscationIndicator && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-purple-500/30">
@@ -694,7 +694,7 @@ export default function AnalysisDetailsPage() {
         </div>
       )}
 
-      
+
       {result && result.decoded && result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
@@ -712,7 +712,7 @@ export default function AnalysisDetailsPage() {
         </div>
       )}
 
-      
+
       {result && result.decoded && !result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
@@ -730,7 +730,7 @@ export default function AnalysisDetailsPage() {
         </div>
       )}
 
-      
+
       {result && result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-yellow-500/30">
@@ -767,7 +767,7 @@ export default function AnalysisDetailsPage() {
 
             return (
               <>
-                
+
                 {realSignatures.length > 0 && (
                   <IndicatorsSummaryTable signatures={realSignatures} />
                 )}
@@ -794,6 +794,7 @@ export default function AnalysisDetailsPage() {
                           technique={signature.techniques || signature.technique || []}
                           reference={signature.reference || ''}
                           link={signature.link || null}
+                          indicatorType={signature.indicator_type} // ✅ Passar indicatorType
                           matchesInfo={{
                             matchesFound: signature.matches_found || 1,
                             baseScore: signature.base_score || signature.score || 0,

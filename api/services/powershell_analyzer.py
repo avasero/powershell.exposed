@@ -87,10 +87,18 @@ async def load_signatures_from_db(user_id: str = None) -> list:
         response = query.order('basescore', desc=True).execute()
         
         if response.data:
+            # ✅ Fetch public indicator names for cross-referencing
+            public_indicators_response = supabase.table('public_indicators').select('name').execute()
+            public_indicator_names = {item['name'] for item in public_indicators_response.data} if public_indicators_response.data else set()
+
             converted_signatures = []
             for sig in response.data:
+                # determine indicator type
+                sig_name = sig.get("name", "Unknown")
+                indicator_type = "community" if sig_name in public_indicator_names else "private"
+                
                 converted_signatures.append({
-                    "name": sig.get("name", "Unknown"),
+                    "name": sig_name,
                     "patterns": sig.get("patterns", []) if isinstance(sig.get("patterns"), list) else [],
                     "severity": sig.get("severity", "unknown"),
                     "tactics": sig.get("tactics", []) if isinstance(sig.get("tactics"), list) else [],
@@ -100,7 +108,8 @@ async def load_signatures_from_db(user_id: str = None) -> list:
                     "reference": sig.get("reference", []) if isinstance(sig.get("reference"), list) else [],
                     "max_match": int(sig.get("max_match", 1)),
                     "link": sig.get("link") if sig.get("link") else None,
-                    "is_premium_indicator": sig.get("is_premium_indicator", False)
+                    "is_premium_indicator": sig.get("is_premium_indicator", False),
+                    "indicator_type": indicator_type 
                 })
             
             
@@ -367,6 +376,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                 "reference": obfuscation_sig.get("reference", []),
                 "link": obfuscation_sig.get("link"),
                 "is_premium_indicator": obfuscation_sig.get("is_premium_indicator", False),
+                "indicator_type": obfuscation_sig.get("indicator_type", "community"),
                 "found_in_deobfuscated": False
             }
             
@@ -403,6 +413,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                 "reference": double_encoded_sig.get("reference", []),
                 "link": double_encoded_sig.get("link"),
                 "is_premium_indicator": False,
+                "indicator_type": double_encoded_sig.get("indicator_type", "community"),
                 "found_in_deobfuscated": False
             })
             
@@ -439,6 +450,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                 "reference": encoded_sig.get("reference", []),
                 "link": encoded_sig.get("link"),
                 "is_premium_indicator": False,
+                "indicator_type": encoded_sig.get("indicator_type", "community"),
                 "found_in_deobfuscated": False
             })
             
@@ -567,6 +579,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                 "reference": signature.get("reference", []),
                 "link": signature.get("link"),
                 "is_premium_indicator": signature.get("is_premium_indicator", False),
+                "indicator_type": signature.get("indicator_type", "community"),
                 "found_in_deobfuscated": matched_in_decoded
             }
             
