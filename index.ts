@@ -1,5 +1,5 @@
-// Edge Function: update-private-indicators
-// Sincroniza indicadores YAML com a tabela powershell_signatures no Supabase
+// Edge Function: update-public-indicators
+// Synchronizes YAML indicators with the public_indicators table in Supabase
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -55,7 +55,7 @@ interface DatabaseIndicator {
 }
 
 /**
- * Calcula a severidade baseada no basescore
+ * Calculates severity based on basescore
  */
 function calculateSeverity(basescore: number): string {
   if (basescore >= 9.0) return "critical";
@@ -65,7 +65,7 @@ function calculateSeverity(basescore: number): string {
 }
 
 /**
- * Converte valor para array de strings
+ * Converts value to string array
  */
 function toStringArray(value: unknown): string[] {
   if (!value) return [];
@@ -77,23 +77,21 @@ function toStringArray(value: unknown): string[] {
 }
 
 /**
- * Filtra padrões regex válidos (remove URLs e strings vazias)
+ * Filters valid regex patterns (removes URLs and empty strings)
  */
-function filterValidPatterns(patterns: string[], filePath: string): string[] {
+function filterValidPatterns(patterns: string[]): string[] {
   return patterns.filter((pattern) => {
     if (!pattern || pattern.trim().length === 0) return false;
-    // URLs generally start with http:// or https://
-    if (pattern.startsWith("http://") || pattern.startsWith("https://")) {
-      console.log(`⚠️ [${filePath}] Regex pattern rejected (appears to be a URL): ${pattern}`);
+    // URLs usually start with http:// or https://
+    if (pattern.startsWith("http://") || pattern.startsWith("https://"))
       return false;
-    }
     return true;
   });
 }
 
 /**
- * Faz o parse do conteúdo YAML e retorna um indicador formatado para o banco
- * Retorna um objeto com sucesso ou erro detalhado
+ * Parses YAML content and returns a formatted indicator for the database
+ * Returns an object with success or detailed error
  */
 function parseYamlContent(
   content: string,
@@ -112,31 +110,31 @@ function parseYamlContent(
       return { indicator: null, error };
     }
 
-    // Campos obrigatórios
+    // Mandatory fields
     const name = yamlData.name?.trim();
     if (!name) {
-      const error = `Mandatory 'name' field not found: ${filePath}`;
+      const error = `Mandatory field 'name' not found: ${filePath}`;
       console.log(`❌ ${error}`);
       return { indicator: null, error };
     }
 
-    // Processar description
+    // Process description
     const description = yamlData.description?.trim() || null;
 
-    // Processar patterns (regex)
+    // Process patterns (regex)
     let patterns = toStringArray(yamlData.regex);
-    patterns = filterValidPatterns(patterns, filePath);
+    patterns = filterValidPatterns(patterns);
 
     if (patterns.length === 0) {
       console.log(
-        `⚠️ No valid regex patterns in ${filePath}, using default pattern`
+        `⚠️ No valid regex pattern in ${filePath}, using default pattern`
       );
       patterns = [".*"];
     }
 
     console.log(`🔍 Patterns extracted for ${name}: ${JSON.stringify(patterns)}`);
 
-    // Processar basescore
+    // Process basescore
     let basescore = 5.0;
     if (yamlData.basescore !== undefined) {
       const parsed =
@@ -146,28 +144,24 @@ function parseYamlContent(
 
       if (!isNaN(parsed)) {
         // Limit to valid range (DECIMAL 3,1 = max 99.9)
-        const originalBaseScore = parsed;
         basescore = Math.max(0, Math.min(99.9, parsed));
-        if (basescore !== originalBaseScore) {
-          console.log(`⚠️ [${filePath}] Basescore clamped from ${originalBaseScore} to ${basescore}`);
-        }
       }
     }
 
-    // Calcular severity
+    // Calculate severity
     const severity = calculateSeverity(basescore);
 
-    // Processar tactics
+    // Process tactics
     const tactics = toStringArray(yamlData.tactic);
 
-    // Processar techniques
+    // Process techniques
     const techniques = toStringArray(yamlData.technique);
 
-    // Processar references
+    // Process references
     const reference = toStringArray(yamlData.reference);
 
-    // Processar max_match
-    let maxMatch = 3; // Valor padrão da tabela
+    // Process max_match
+    let maxMatch = 3; // Default table value
     if (yamlData.max_match !== undefined) {
       const parsed =
         typeof yamlData.max_match === "string"
@@ -196,7 +190,7 @@ function parseYamlContent(
       is_premium_indicator: false,
     };
 
-    // Adicionar campos opcionais
+    // Add optional fields
     if (link) {
       indicator.link = link;
     }
@@ -208,31 +202,25 @@ function parseYamlContent(
     }
 
     return { indicator };
-  } catch (error: any) {
-    let errorDetail = `Error parsing YAML ${filePath}: ${error.message}`;
-    if (error && typeof error === 'object' && error.mark) {
-      errorDetail += `\n   -> Line: ${error.mark.line + 1}, Column: ${error.mark.column + 1}`;
-      if (error.mark.snippet) {
-        errorDetail += `\n   -> Snippet:\n${error.mark.snippet}`;
-      }
-    }
+  } catch (error) {
+    const errorDetail = `Error parsing YAML ${filePath}: ${error.message}`;
     console.log(`❌ ${errorDetail}`);
-    console.log(`📄 YAML content context: ${content.substring(0, 1000)}`);
+    console.log(`📄 YAML content (first 500 chars): ${content.substring(0, 500)}`);
     return { indicator: null, error: errorDetail };
   }
 }
 
 /**
- * Insere ou atualiza um indicador no banco de dados
+ * Inserts or updates an indicator in the database
  */
 async function upsertIndicator(
   supabase: ReturnType<typeof createClient>,
   indicator: DatabaseIndicator
 ): Promise<{ success: boolean; error?: string; isNew?: boolean }> {
   try {
-    // Verificar se já existe pelo file_path
+    // Check if exists by file_path
     const { data: existing, error: selectError } = await supabase
-      .from("powershell_signatures")
+      .from("public_indicators")
       .select("id, name")
       .eq("file_path", indicator.file_path)
       .single();
@@ -242,9 +230,9 @@ async function upsertIndicator(
     }
 
     if (existing) {
-      // Atualizar indicador existente
+      // Update existing indicator
       const { error: updateError } = await supabase
-        .from("powershell_signatures")
+        .from("public_indicators")
         .update({
           name: indicator.name,
           description: indicator.description,
@@ -272,9 +260,9 @@ async function upsertIndicator(
 
       return { success: true, isNew: false };
     } else {
-      // Inserir novo indicador
+      // Insert new indicator
       const { error: insertError } = await supabase
-        .from("powershell_signatures")
+        .from("public_indicators")
         .insert({
           ...indicator,
           created_at: new Date().toISOString(),
@@ -286,28 +274,24 @@ async function upsertIndicator(
       console.log(`✅ Inserted: ${indicator.name} (${indicator.file_path})`);
       return { success: true, isNew: true };
     }
-  } catch (error: any) {
+  } catch (error) {
     const errorMsg = `Error processing ${indicator.name} (${indicator.file_path}): ${error.message}`;
     console.log(`❌ ${errorMsg}`);
-    if (error.details || error.hint || error.code) {
-      console.log(`   -> DB Error Details: Code=${error.code}, Details=${error.details}, Hint=${error.hint}`);
-      console.log(`   -> Full Payload: ${JSON.stringify(indicator, null, 2)}`);
-    }
     return { success: false, error: errorMsg };
   }
 }
 
 /**
- * Remove um indicador do banco de dados pelo file_path
+ * Removes an indicator from the database by file_path
  */
 async function deleteIndicator(
   supabase: ReturnType<typeof createClient>,
   filePath: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Verificar se existe
+    // Check if exists
     const { data: existing, error: selectError } = await supabase
-      .from("powershell_signatures")
+      .from("public_indicators")
       .select("id, name")
       .eq("file_path", filePath)
       .single();
@@ -315,14 +299,14 @@ async function deleteIndicator(
     if (selectError) {
       if (selectError.code === "PGRST116") {
         console.log(`⚠️ Indicator not found for deletion: ${filePath}`);
-        return { success: true }; // Não é um erro se já não existe
+        return { success: true }; // Not an error if it doesn't exist
       }
       throw selectError;
     }
 
-    // Deletar
+    // Delete
     const { error: deleteError } = await supabase
-      .from("powershell_signatures")
+      .from("public_indicators")
       .delete()
       .eq("id", existing.id);
 
@@ -351,9 +335,9 @@ serve(async (req) => {
   }
 
   try {
-    console.log("🚀 Starting update of powershell_signatures table...");
+    console.log("🚀 Starting public_indicators table update...");
 
-    // Conectar ao Supabase
+    // Connect to Supabase
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -364,7 +348,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     console.log("✅ Connected to Supabase");
 
-    // Parse do request body
+    // Parse request body
     const payload: RequestPayload = await req.json();
 
     if (!payload.indicators || !Array.isArray(payload.indicators)) {
@@ -390,7 +374,7 @@ serve(async (req) => {
 
     for (const item of payload.indicators) {
       if (item.action === "delete") {
-        // Processar deleção
+        // Process deletion
         const result = await deleteIndicator(supabase, item.file_path);
         if (result.success) {
           deletedCount++;
@@ -398,7 +382,7 @@ serve(async (req) => {
           errors.push(result.error);
         }
       } else if (item.action === "upsert" && item.content) {
-        // Parse do YAML e upsert
+        // Parse YAML and upsert
         const parseResult = parseYamlContent(
           item.content,
           item.file_path,
