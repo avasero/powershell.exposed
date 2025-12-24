@@ -1,5 +1,5 @@
-// Edge Function: update-public-indicators
-// Sincroniza indicadores YAML com a tabela public_indicators no Supabase
+// Edge Function: update-private-indicators
+// Sincroniza indicadores YAML com a tabela powershell_signatures no Supabase
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -79,12 +79,14 @@ function toStringArray(value: unknown): string[] {
 /**
  * Filtra padrões regex válidos (remove URLs e strings vazias)
  */
-function filterValidPatterns(patterns: string[]): string[] {
+function filterValidPatterns(patterns: string[], filePath: string): string[] {
   return patterns.filter((pattern) => {
     if (!pattern || pattern.trim().length === 0) return false;
-    // URLs geralmente começam com http:// ou https://
-    if (pattern.startsWith("http://") || pattern.startsWith("https://"))
+    // URLs generally start with http:// or https://
+    if (pattern.startsWith("http://") || pattern.startsWith("https://")) {
+      console.log(`⚠️ [${filePath}] Regex pattern rejected (appears to be a URL): ${pattern}`);
       return false;
+    }
     return true;
   });
 }
@@ -101,11 +103,11 @@ function parseYamlContent(
   lastModifiedByAvatar?: string
 ): { indicator: DatabaseIndicator | null; error?: string } {
   try {
-    console.log(`🔄 Iniciando parse de: ${filePath}`);
+    console.log(`🔄 Starting parse of: ${filePath}`);
     const yamlData = yaml.load(content) as YamlIndicator;
 
     if (!yamlData) {
-      const error = `YAML vazio ou inválido: ${filePath}`;
+      const error = `Empty or invalid YAML: ${filePath}`;
       console.log(`❌ ${error}`);
       return { indicator: null, error };
     }
@@ -113,7 +115,7 @@ function parseYamlContent(
     // Campos obrigatórios
     const name = yamlData.name?.trim();
     if (!name) {
-      const error = `Campo 'name' obrigatório não encontrado: ${filePath}`;
+      const error = `Mandatory 'name' field not found: ${filePath}`;
       console.log(`❌ ${error}`);
       return { indicator: null, error };
     }
@@ -123,16 +125,16 @@ function parseYamlContent(
 
     // Processar patterns (regex)
     let patterns = toStringArray(yamlData.regex);
-    patterns = filterValidPatterns(patterns);
+    patterns = filterValidPatterns(patterns, filePath);
 
     if (patterns.length === 0) {
       console.log(
-        `⚠️ Nenhum padrão regex válido em ${filePath}, usando padrão default`
+        `⚠️ No valid regex patterns in ${filePath}, using default pattern`
       );
       patterns = [".*"];
     }
 
-    console.log(`🔍 Padrões extraídos para ${name}: ${JSON.stringify(patterns)}`);
+    console.log(`🔍 Patterns extracted for ${name}: ${JSON.stringify(patterns)}`);
 
     // Processar basescore
     let basescore = 5.0;
@@ -143,8 +145,12 @@ function parseYamlContent(
           : yamlData.basescore;
 
       if (!isNaN(parsed)) {
-        // Limitar ao range válido (DECIMAL 3,1 = máximo 99.9)
+        // Limit to valid range (DECIMAL 3,1 = max 99.9)
+        const originalBaseScore = parsed;
         basescore = Math.max(0, Math.min(99.9, parsed));
+        if (basescore !== originalBaseScore) {
+          console.log(`⚠️ [${filePath}] Basescore clamped from ${originalBaseScore} to ${basescore}`);
+        }
       }
     }
 
@@ -173,7 +179,7 @@ function parseYamlContent(
       }
     }
 
-    console.log(`🎯 Max_match configurado para ${name}: ${maxMatch}`);
+    console.log(`🎯 Max_match configured for ${name}: ${maxMatch}`);
 
     const indicator: DatabaseIndicator = {
       name,
@@ -202,10 +208,16 @@ function parseYamlContent(
     }
 
     return { indicator };
-  } catch (error) {
-    const errorDetail = `Erro ao fazer parse do YAML ${filePath}: ${error.message}`;
+  } catch (error: any) {
+    let errorDetail = `Error parsing YAML ${filePath}: ${error.message}`;
+    if (error && typeof error === 'object' && error.mark) {
+      errorDetail += `\n   -> Line: ${error.mark.line + 1}, Column: ${error.mark.column + 1}`;
+      if (error.mark.snippet) {
+        errorDetail += `\n   -> Snippet:\n${error.mark.snippet}`;
+      }
+    }
     console.log(`❌ ${errorDetail}`);
-    console.log(`📄 Conteúdo do YAML (primeiros 500 chars): ${content.substring(0, 500)}`);
+    console.log(`📄 YAML content context: ${content.substring(0, 1000)}`);
     return { indicator: null, error: errorDetail };
   }
 }
@@ -220,7 +232,7 @@ async function upsertIndicator(
   try {
     // Verificar se já existe pelo file_path
     const { data: existing, error: selectError } = await supabase
-      .from("public_indicators")
+      .from("powershell_signatures")
       .select("id, name")
       .eq("file_path", indicator.file_path)
       .single();
@@ -232,7 +244,7 @@ async function upsertIndicator(
     if (existing) {
       // Atualizar indicador existente
       const { error: updateError } = await supabase
-        .from("public_indicators")
+        .from("powershell_signatures")
         .update({
           name: indicator.name,
           description: indicator.description,
@@ -254,8 +266,7 @@ async function upsertIndicator(
 
       const nameChanged = existing.name !== indicator.name;
       console.log(
-        `✅ Atualizado: ${indicator.name} (${indicator.file_path})${
-          nameChanged ? ` [nome alterado de "${existing.name}"]` : ""
+        `✅ Updated: ${indicator.name} (${indicator.file_path})${nameChanged ? ` [name changed from "${existing.name}"]` : ""
         }`
       );
 
@@ -263,7 +274,7 @@ async function upsertIndicator(
     } else {
       // Inserir novo indicador
       const { error: insertError } = await supabase
-        .from("public_indicators")
+        .from("powershell_signatures")
         .insert({
           ...indicator,
           created_at: new Date().toISOString(),
@@ -272,12 +283,16 @@ async function upsertIndicator(
 
       if (insertError) throw insertError;
 
-      console.log(`✅ Inserido: ${indicator.name} (${indicator.file_path})`);
+      console.log(`✅ Inserted: ${indicator.name} (${indicator.file_path})`);
       return { success: true, isNew: true };
     }
-  } catch (error) {
-    const errorMsg = `Erro ao processar ${indicator.name} (${indicator.file_path}): ${error.message}`;
+  } catch (error: any) {
+    const errorMsg = `Error processing ${indicator.name} (${indicator.file_path}): ${error.message}`;
     console.log(`❌ ${errorMsg}`);
+    if (error.details || error.hint || error.code) {
+      console.log(`   -> DB Error Details: Code=${error.code}, Details=${error.details}, Hint=${error.hint}`);
+      console.log(`   -> Full Payload: ${JSON.stringify(indicator, null, 2)}`);
+    }
     return { success: false, error: errorMsg };
   }
 }
@@ -292,14 +307,14 @@ async function deleteIndicator(
   try {
     // Verificar se existe
     const { data: existing, error: selectError } = await supabase
-      .from("public_indicators")
+      .from("powershell_signatures")
       .select("id, name")
       .eq("file_path", filePath)
       .single();
 
     if (selectError) {
       if (selectError.code === "PGRST116") {
-        console.log(`⚠️ Indicador não encontrado para deleção: ${filePath}`);
+        console.log(`⚠️ Indicator not found for deletion: ${filePath}`);
         return { success: true }; // Não é um erro se já não existe
       }
       throw selectError;
@@ -307,16 +322,16 @@ async function deleteIndicator(
 
     // Deletar
     const { error: deleteError } = await supabase
-      .from("public_indicators")
+      .from("powershell_signatures")
       .delete()
       .eq("id", existing.id);
 
     if (deleteError) throw deleteError;
 
-    console.log(`🗑️ Deletado: ${existing.name} (${filePath})`);
+    console.log(`🗑️ Deleted: ${existing.name} (${filePath})`);
     return { success: true };
   } catch (error) {
-    const errorMsg = `Erro ao deletar ${filePath}: ${error.message}`;
+    const errorMsg = `Error deleting ${filePath}: ${error.message}`;
     console.log(`❌ ${errorMsg}`);
     return { success: false, error: errorMsg };
   }
@@ -336,18 +351,18 @@ serve(async (req) => {
   }
 
   try {
-    console.log("🚀 Iniciando atualização da tabela public_indicators...");
+    console.log("🚀 Starting update of powershell_signatures table...");
 
     // Conectar ao Supabase
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error("Configuração do Supabase não encontrada");
+      throw new Error("Supabase configuration not found");
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    console.log("✅ Conectado ao Supabase");
+    console.log("✅ Connected to Supabase");
 
     // Parse do request body
     const payload: RequestPayload = await req.json();
@@ -355,7 +370,7 @@ serve(async (req) => {
     if (!payload.indicators || !Array.isArray(payload.indicators)) {
       return new Response(
         JSON.stringify({
-          error: "Campo 'indicators' não fornecido ou formato inválido",
+          error: "'indicators' field not provided or invalid format",
           success: false,
         }),
         {
@@ -365,7 +380,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`📊 Processando ${payload.indicators.length} indicadores...`);
+    console.log(`📊 Processing ${payload.indicators.length} indicators...`);
 
     const errors: string[] = [];
     let processedCount = 0;
@@ -405,16 +420,16 @@ serve(async (req) => {
             errors.push(result.error);
           }
         } else {
-          errors.push(parseResult.error || `Falha ao fazer parse do YAML: ${item.file_path}`);
+          errors.push(parseResult.error || `Failed to parse YAML: ${item.file_path}`);
         }
       } else {
-        console.log(`⚠️ Ação inválida ou conteúdo ausente: ${item.file_path}`);
+        console.log(`⚠️ Invalid action or missing content: ${item.file_path}`);
       }
     }
 
     const response = {
       success: true,
-      message: `Banco de dados atualizado! ${processedCount} processados, ${deletedCount} deletados.`,
+      message: `Database updated! ${processedCount} processed, ${deletedCount} deleted.`,
       indicators_processed: processedCount,
       indicators_inserted: insertedCount,
       indicators_updated: updatedCount,
@@ -430,7 +445,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("❌ Erro:", error.message);
+    console.error("❌ Error:", error.message);
     return new Response(
       JSON.stringify({
         error: error.message,
