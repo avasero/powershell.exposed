@@ -5,4 +5,4 @@ basescore: 6.8
 tactic: TA0002
 technique: [T1059.001, T1204]
 reference:
-  - https://infosecwriteups.com/threat-hunting-series-the-threat-hunting-process-f76583f2475b
+  - https://infosecwriteups.com/threat-hunting-series-the-threat-hunting-process-f76583f2475b
