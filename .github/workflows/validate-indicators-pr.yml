@@ -18,7 +18,7 @@ jobs:
   # ============================================================================
   # STEP 1: Detect Changed Files in PR
   # ============================================================================
-  detect-changes:
+  step-1-detect-changes:
     name: "Step 1: Detect Changes"
     runs-on: ubuntu-latest
     outputs:
@@ -36,16 +36,12 @@ jobs:
         id: check-changes
         run: |
           echo "╔══════════════════════════════════════════════════════════════╗"
-          echo "║         PULL REQUEST VALIDATION - STEP 1: DETECT             ║"
+          echo "║         PULL REQUEST - STEP 1: DETECT CHANGES                ║"
           echo "╚══════════════════════════════════════════════════════════════╝"
           echo ""
           
-          # Get files changed in this PR
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-          
-          echo "📊 Comparing: $BASE_SHA...$HEAD_SHA"
-          echo ""
           
           CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- 'indicators/*.yaml' 'indicators/*.yml' || true)
           
@@ -53,144 +49,282 @@ jobs:
             echo "has_changes=false" >> $GITHUB_OUTPUT
             echo "changed_files=[]" >> $GITHUB_OUTPUT
             echo "total_files=0" >> $GITHUB_OUTPUT
-            echo "ℹ️ No indicator files changed in this PR"
+            echo "ℹ️ No indicator files changed"
           else
             TOTAL=$(echo "$CHANGED_FILES" | wc -l)
-            echo "📁 Changed indicator files ($TOTAL):"
+            echo "📁 Changed files ($TOTAL):"
             echo "$CHANGED_FILES" | sed 's/^/   • /'
-            echo ""
             
-            # Convert to JSON array (compact, single line)
             CHANGED_JSON=$(echo "$CHANGED_FILES" | jq -R -c . | jq -s -c '.')
             
             echo "has_changes=true" >> $GITHUB_OUTPUT
             echo "changed_files=$CHANGED_JSON" >> $GITHUB_OUTPUT
             echo "total_files=$TOTAL" >> $GITHUB_OUTPUT
-            
-            echo "✅ Found $TOTAL indicator file(s) to validate"
           fi
 
   # ============================================================================
-  # STEP 2-5: Validate All Changed Indicators
+  # STEP 2: YAML Syntax Validation
   # ============================================================================
-  validate-indicators:
-    name: "Step 2-5: Validate Indicators"
-    needs: detect-changes
-    if: needs.detect-changes.outputs.has-changes == 'true'
+  step-2-yaml-syntax:
+    name: "Step 2: YAML Syntax"
+    needs: step-1-detect-changes
+    if: needs.step-1-detect-changes.outputs.has-changes == 'true'
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Run Validation Pipeline
-        id: validate
+      - name: Validate YAML Syntax
         env:
-          CHANGED_FILES: ${{ needs.detect-changes.outputs.changed-files }}
+          CHANGED_FILES: ${{ needs.step-1-detect-changes.outputs.changed-files }}
         run: |
           echo "╔══════════════════════════════════════════════════════════════╗"
-          echo "║         PULL REQUEST VALIDATION - STEPS 2-5                  ║"
+          echo "║             STEP 2: YAML SYNTAX VALIDATION                   ║"
           echo "╚══════════════════════════════════════════════════════════════╝"
           echo ""
           
-          # Run validation script
-          deno run --allow-read --allow-write --allow-env \
-            scripts/validate-indicators.ts \
-            $(echo "$CHANGED_FILES" | jq -r '.[]')
-
-      - name: Post Success Comment
-        if: success()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const total = ${{ needs.detect-changes.outputs.total-files }};
-            const body = `## ✅ Indicator Validation Passed
-            
-            All **${total}** indicator file(s) passed validation!
-            
-            | Step | Status |
-            |------|--------|
-            | YAML Syntax | ✅ Pass |
-            | Required Fields | ✅ Pass |
-            | Data Types | ✅ Pass |
-            | Regex Patterns | ✅ Pass |
-            | Business Rules | ✅ Pass |
-            
-            This PR is ready to be merged.`;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            });
-
-      - name: Post Failure Comment
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const body = `## ❌ Indicator Validation Failed
-            
-            One or more indicator files failed validation.
-            
-            **Please check the workflow logs for details:**
-            [View Logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-            
-            Common issues:
-            - Missing required fields (name, description, regex, basescore, tactic, technique, reference)
-            - Invalid regex patterns
-            - Wrong data types
-            
-            📖 See [CONTRIBUTING.md](../blob/main/indicators/CONTRIBUTING.md) for the correct format.`;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            });
+          ERRORS=0
+          for file in $(echo "$CHANGED_FILES" | jq -r '.[]'); do
+            [ ! -f "$file" ] && continue
+            echo "📄 $file"
+            if ! python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>/dev/null; then
+              echo "   ❌ YAML syntax error"
+              python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>&1 | head -5
+              ERRORS=$((ERRORS + 1))
+            else
+              echo "   ✅ Valid"
+            fi
+          done
+          
+          [ $ERRORS -gt 0 ] && echo "❌ $ERRORS file(s) failed" && exit 1
+          echo "✅ All YAML valid"
 
   # ============================================================================
-  # Summary Check
+  # STEP 3: Required Fields Validation
+  # ============================================================================
+  step-3-required-fields:
+    name: "Step 3: Required Fields"
+    needs: [step-1-detect-changes, step-2-yaml-syntax]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Required Fields
+        env:
+          CHANGED_FILES: ${{ needs.step-1-detect-changes.outputs.changed-files }}
+        run: |
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║           STEP 3: REQUIRED FIELDS VALIDATION                 ║"
+          echo "╚══════════════════════════════════════════════════════════════╝"
+          echo ""
+          
+          REQUIRED="name description regex basescore tactic technique reference"
+          ERRORS=0
+          
+          for file in $(echo "$CHANGED_FILES" | jq -r '.[]'); do
+            [ ! -f "$file" ] && continue
+            echo "📄 $file"
+            MISSING=""
+            for field in $REQUIRED; do
+              grep -q "^${field}:" "$file" || MISSING="$MISSING $field"
+            done
+            
+            if [ -n "$MISSING" ]; then
+              echo "   ❌ Missing:$MISSING"
+              ERRORS=$((ERRORS + 1))
+            else
+              echo "   ✅ All present"
+            fi
+          done
+          
+          [ $ERRORS -gt 0 ] && echo "❌ $ERRORS file(s) missing fields" && exit 1
+          echo "✅ All fields present"
+
+  # ============================================================================
+  # STEP 4: Data Type Validation
+  # ============================================================================
+  step-4-data-types:
+    name: "Step 4: Data Types"
+    needs: [step-1-detect-changes, step-3-required-fields]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate Data Types
+        env:
+          CHANGED_FILES: ${{ needs.step-1-detect-changes.outputs.changed-files }}
+        run: |
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║            STEP 4: DATA TYPE VALIDATION                      ║"
+          echo "╚══════════════════════════════════════════════════════════════╝"
+          echo ""
+          
+          ERRORS=0
+          for file in $(echo "$CHANGED_FILES" | jq -r '.[]'); do
+            [ ! -f "$file" ] && continue
+            echo "📄 $file"
+            
+            python3 << EOF
+import yaml
+import sys
+
+with open('$file') as f:
+    data = yaml.safe_load(f)
+
+errors = 0
+
+# Check basescore
+bs = data.get('basescore')
+try:
+    val = float(bs)
+    if not (0 <= val <= 10):
+        print(f"   ❌ basescore must be 0-10, got: {bs}")
+        errors += 1
+except:
+    print(f"   ❌ basescore must be a number, got: {bs}")
+    errors += 1
+
+# Check references are URLs
+refs = data.get('reference', [])
+if isinstance(refs, str):
+    refs = [refs]
+for ref in refs:
+    if not (ref.startswith('http://') or ref.startswith('https://')):
+        print(f"   ❌ Invalid URL: {ref}")
+        errors += 1
+
+if errors == 0:
+    print("   ✅ Valid")
+sys.exit(errors)
+EOF
+            [ $? -ne 0 ] && ERRORS=$((ERRORS + 1))
+          done
+          
+          [ $ERRORS -gt 0 ] && exit 1
+          echo "✅ All types valid"
+
+  # ============================================================================
+  # STEP 5: Regex Pattern Validation
+  # ============================================================================
+  step-5-regex-patterns:
+    name: "Step 5: Regex Patterns"
+    needs: [step-1-detect-changes, step-4-data-types]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate Regex
+        env:
+          CHANGED_FILES: ${{ needs.step-1-detect-changes.outputs.changed-files }}
+        run: |
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║           STEP 5: REGEX PATTERN VALIDATION                   ║"
+          echo "╚══════════════════════════════════════════════════════════════╝"
+          echo ""
+          
+          ERRORS=0
+          for file in $(echo "$CHANGED_FILES" | jq -r '.[]'); do
+            [ ! -f "$file" ] && continue
+            echo "📄 $file"
+            
+            python3 << EOF
+import yaml
+import re
+import sys
+
+with open('$file') as f:
+    data = yaml.safe_load(f)
+
+patterns = data.get('regex', [])
+if isinstance(patterns, str):
+    patterns = [patterns]
+
+errors = 0
+for p in patterns:
+    if p.startswith('http://') or p.startswith('https://'):
+        print(f"   ❌ URL in regex field: {p[:50]}")
+        errors += 1
+        continue
+    try:
+        re.compile(p)
+    except re.error as e:
+        print(f"   ❌ Invalid regex: {e}")
+        errors += 1
+
+if errors == 0:
+    print("   ✅ Valid")
+sys.exit(errors)
+EOF
+            [ $? -ne 0 ] && ERRORS=$((ERRORS + 1))
+          done
+          
+          [ $ERRORS -gt 0 ] && exit 1
+          echo "✅ All regex valid"
+
+  # ============================================================================
+  # Summary + PR Comment
   # ============================================================================
   validation-summary:
-    name: "PR Validation Status"
-    needs: [detect-changes, validate-indicators]
+    name: "Validation Summary"
+    needs: [step-1-detect-changes, step-2-yaml-syntax, step-3-required-fields, step-4-data-types, step-5-regex-patterns]
     if: always()
     runs-on: ubuntu-latest
     
     steps:
-      - name: Check Results
+      - name: Post PR Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const steps = {
+              'Step 1 - Detect Changes': '${{ needs.step-1-detect-changes.result }}',
+              'Step 2 - YAML Syntax': '${{ needs.step-2-yaml-syntax.result }}',
+              'Step 3 - Required Fields': '${{ needs.step-3-required-fields.result }}',
+              'Step 4 - Data Types': '${{ needs.step-4-data-types.result }}',
+              'Step 5 - Regex Patterns': '${{ needs.step-5-regex-patterns.result }}'
+            };
+            
+            const allPassed = Object.values(steps).every(r => r === 'success' || r === 'skipped');
+            const icon = allPassed ? '✅' : '❌';
+            const title = allPassed ? 'Indicator Validation Passed' : 'Indicator Validation Failed';
+            
+            let table = '| Step | Status |\n|------|--------|\n';
+            for (const [step, result] of Object.entries(steps)) {
+              const emoji = result === 'success' ? '✅' : result === 'skipped' ? '⏭️' : '❌';
+              table += `| ${step} | ${emoji} ${result} |\n`;
+            }
+            
+            let body = `## ${icon} ${title}\n\n${table}\n`;
+            
+            if (!allPassed) {
+              body += `\n**Check the [workflow logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.**\n`;
+              body += `\n📖 See [CONTRIBUTING.md](../blob/main/indicators/CONTRIBUTING.md) for format requirements.`;
+            } else {
+              body += `\nThis PR is ready to merge! 🚀`;
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Final Status
         run: |
           echo ""
-          echo "╔══════════════════════════════════════════════════════════════╗"
-          echo "║              PULL REQUEST VALIDATION SUMMARY                 ║"
-          echo "╚══════════════════════════════════════════════════════════════╝"
-          echo ""
+          echo "Step 1: ${{ needs.step-1-detect-changes.result }}"
+          echo "Step 2: ${{ needs.step-2-yaml-syntax.result }}"
+          echo "Step 3: ${{ needs.step-3-required-fields.result }}"
+          echo "Step 4: ${{ needs.step-4-data-types.result }}"
+          echo "Step 5: ${{ needs.step-5-regex-patterns.result }}"
           
-          if [ "${{ needs.detect-changes.outputs.has-changes }}" != "true" ]; then
-            echo "ℹ️ No indicator files changed - nothing to validate"
-            exit 0
-          fi
-          
-          echo "📋 Validation Results:"
-          echo "   • Detect Changes: ${{ needs.detect-changes.result }}"
-          echo "   • Validate:       ${{ needs.validate-indicators.result }}"
-          echo ""
-          
-          if [ "${{ needs.validate-indicators.result }}" == "success" ]; then
-            echo "✅ ALL VALIDATIONS PASSED"
-            echo "   This PR can be safely merged."
-          elif [ "${{ needs.validate-indicators.result }}" == "failure" ]; then
-            echo "❌ VALIDATION FAILED"
-            echo "   Please fix the errors before merging."
+          if [ "${{ needs.step-5-regex-patterns.result }}" != "success" ] && [ "${{ needs.step-5-regex-patterns.result }}" != "skipped" ]; then
             exit 1
-          else
-            echo "⚠️ Validation was skipped or cancelled"
           fi
