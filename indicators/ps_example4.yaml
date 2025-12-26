@@ -1,6 +1,6 @@
-name: example ( integration working )
-description: example indicator
-regex: example
+name: example ( integration working ) 4
+description: example indicator 4
+regex: example 4
 max_match: 9
 basescore: 4.0
 tactic: 
