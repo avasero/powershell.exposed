@@ -1,0 +1,10 @@
+name: example 2 ( integration working )
+description: example indicator 2
+regex: example 2
+maxmatch: 7
+basescore: 4.0
+tactic: Execution
+technique: T1059.001
+reference:
+  - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/powershell/powershell_script/posh_ps_susp_keywords.yml
+  - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/powershell/powershell_script/posh_ps_malicious_keywords.yml
