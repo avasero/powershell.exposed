@@ -1,4 +1,5 @@
 // Edge Function: update-public-indicators
+//PUBLIC INDICATORS
 // Synchronizes YAML indicators with the public_indicators table in Supabase
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";

@@ -154,7 +154,7 @@ export default function AnalysisCard({
                   }`}
                 title={indicatorType === 'community' ? 'Community indicator' : 'Private indicator'}
               >
-                {indicatorType === 'community' ? 'COMMUNITY' : 'PRIVATE'}
+                {indicatorType === 'community' ? 'COMMUNITY' : 'PREMIUM'}
               </span>
             )}
 
