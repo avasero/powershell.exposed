@@ -10,13 +10,20 @@ on:
       - 'indicators/**/*.yml'
 
 jobs:
+  # ============================================================================
+  # STEP 1: Detect Changed Files
+  # ============================================================================
   detect-changes:
+    name: "Step 1: Detect Changes"
     runs-on: ubuntu-latest
     outputs:
       has-changes: ${{ steps.check-changes.outputs.has_changes }}
       added-files: ${{ steps.check-changes.outputs.added_files }}
       modified-files: ${{ steps.check-changes.outputs.modified_files }}
       deleted-files: ${{ steps.check-changes.outputs.deleted_files }}
+      upsert-files: ${{ steps.check-changes.outputs.upsert_files }}
+      total-upsert: ${{ steps.check-changes.outputs.total_upsert }}
+      total-deleted: ${{ steps.check-changes.outputs.total_deleted }}
     
     steps:
       - name: Checkout code
@@ -27,8 +34,10 @@ jobs:
       - name: Check for indicator changes
         id: check-changes
         run: |
-          echo "Detecting indicator changes..."
-          echo "Checking last commit (merge to main)..."
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║               STEP 1: DETECTING CHANGES                      ║"
+          echo "╚══════════════════════════════════════════════════════════════╝"
+          echo ""
           
           # Fallback for first commit
           if git rev-parse HEAD~1 >/dev/null 2>&1; then
@@ -36,69 +45,154 @@ jobs:
             MODIFIED_FILES=$(git diff --name-status HEAD~1 HEAD | grep '^M' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
             DELETED_FILES=$(git diff --name-status HEAD~1 HEAD | grep '^D' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
           else
-            echo "First commit - listing all files as added"
+            echo "⚠️ First commit - listing all files as added"
             ADDED_FILES=$(find indicators -name "*.yaml" -o -name "*.yml" 2>/dev/null || true)
             MODIFIED_FILES=""
             DELETED_FILES=""
           fi
           
-          # Debug output
-          echo "Added files:"
-          echo "$ADDED_FILES"
-          echo "Modified files:"
-          echo "$MODIFIED_FILES"
-          echo "Deleted files:"
-          echo "$DELETED_FILES"
+          # Count files
+          ADDED_COUNT=$(echo "$ADDED_FILES" | grep -c . || echo "0")
+          MODIFIED_COUNT=$(echo "$MODIFIED_FILES" | grep -c . || echo "0")
+          DELETED_COUNT=$(echo "$DELETED_FILES" | grep -c . || echo "0")
+          
+          echo "📊 CHANGE SUMMARY:"
+          echo "   ➕ Added files:    $ADDED_COUNT"
+          echo "   ✏️  Modified files: $MODIFIED_COUNT"
+          echo "   🗑️  Deleted files:  $DELETED_COUNT"
+          echo ""
+          
+          if [ -n "$ADDED_FILES" ]; then
+            echo "📁 Added files:"
+            echo "$ADDED_FILES" | sed 's/^/   • /'
+            echo ""
+          fi
+          
+          if [ -n "$MODIFIED_FILES" ]; then
+            echo "📁 Modified files:"
+            echo "$MODIFIED_FILES" | sed 's/^/   • /'
+            echo ""
+          fi
+          
+          if [ -n "$DELETED_FILES" ]; then
+            echo "📁 Deleted files:"
+            echo "$DELETED_FILES" | sed 's/^/   • /'
+            echo ""
+          fi
           
           # Check if there are any changes
           if [ -n "$ADDED_FILES" ] || [ -n "$MODIFIED_FILES" ] || [ -n "$DELETED_FILES" ]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
             
-            # Convert line breaks to JSON arrays (compact, single line)
+            # Convert to JSON arrays
             ADDED_JSON=$(echo "$ADDED_FILES" | grep -v '^$' | jq -R . | jq -sc . || echo "[]")
             MODIFIED_JSON=$(echo "$MODIFIED_FILES" | grep -v '^$' | jq -R . | jq -sc . || echo "[]")
             DELETED_JSON=$(echo "$DELETED_FILES" | grep -v '^$' | jq -R . | jq -sc . || echo "[]")
             
+            # Combine added and modified for upsert
+            UPSERT_JSON=$(echo "$ADDED_JSON $MODIFIED_JSON" | jq -s 'add | unique')
+            TOTAL_UPSERT=$(echo "$UPSERT_JSON" | jq 'length')
+            TOTAL_DELETED=$(echo "$DELETED_JSON" | jq 'length')
+            
             echo "added_files=$ADDED_JSON" >> $GITHUB_OUTPUT
             echo "modified_files=$MODIFIED_JSON" >> $GITHUB_OUTPUT
             echo "deleted_files=$DELETED_JSON" >> $GITHUB_OUTPUT
+            echo "upsert_files=$UPSERT_JSON" >> $GITHUB_OUTPUT
+            echo "total_upsert=$TOTAL_UPSERT" >> $GITHUB_OUTPUT
+            echo "total_deleted=$TOTAL_DELETED" >> $GITHUB_OUTPUT
             
-            echo "Changes detected!"
+            echo "✅ Changes detected! Proceeding to validation..."
           else
             echo "has_changes=false" >> $GITHUB_OUTPUT
             echo "added_files=[]" >> $GITHUB_OUTPUT
             echo "modified_files=[]" >> $GITHUB_OUTPUT
             echo "deleted_files=[]" >> $GITHUB_OUTPUT
-            echo "No indicator changes detected"
+            echo "upsert_files=[]" >> $GITHUB_OUTPUT
+            echo "total_upsert=0" >> $GITHUB_OUTPUT
+            echo "total_deleted=0" >> $GITHUB_OUTPUT
+            echo "ℹ️ No indicator changes detected"
           fi
 
-  update-database:
+  # ============================================================================
+  # STEP 2-5: Validate Indicators
+  # ============================================================================
+  validate-indicators:
+    name: "Step 2-5: Validate Indicators"
     needs: detect-changes
-    if: needs.detect-changes.outputs.has-changes == 'true'
+    if: needs.detect-changes.outputs.has-changes == 'true' && needs.detect-changes.outputs.total-upsert != '0'
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run Validation Pipeline
+        env:
+          UPSERT_FILES: ${{ needs.detect-changes.outputs.upsert-files }}
+        run: |
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║           STEPS 2-5: VALIDATING INDICATORS                   ║"
+          echo "╚══════════════════════════════════════════════════════════════╝"
+          echo ""
+          echo "📋 Files to validate: $UPSERT_FILES"
+          echo ""
+          
+          # Run validation script
+          # The script will exit with code 1 if any validation fails
+          deno run --allow-read --allow-write --allow-env \
+            scripts/validate-indicators.ts \
+            $(echo "$UPSERT_FILES" | jq -r '.[]')
+          
+          # If we get here, validation passed
+          echo ""
+          echo "✅ All indicators validated successfully!"
+
+  # ============================================================================
+  # STEP 6: Update Database
+  # ============================================================================
+  update-database:
+    name: "Step 6: Update Database"
+    needs: [detect-changes, validate-indicators]
+    if: |
+      always() && 
+      needs.detect-changes.outputs.has-changes == 'true' &&
+      (needs.validate-indicators.result == 'success' || needs.validate-indicators.result == 'skipped')
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Validation Result
+        if: needs.validate-indicators.result == 'failure'
+        run: |
+          echo "❌ PIPELINE STOPPED"
+          echo ""
+          echo "Validation failed. The database will NOT be updated."
+          echo "Please fix the validation errors and push again."
+          exit 1
+
       - name: Process and Send Indicators to Supabase
         env:
           SUPABASE_EDGE_URL: ${{ secrets.SUPABASE_EDGE_URL }}
           SUPABASE_EDGE_SECRET: ${{ secrets.SUPABASE_EDGE_SECRET }}
-          ADDED_FILES: ${{ needs.detect-changes.outputs.added-files }}
-          MODIFIED_FILES: ${{ needs.detect-changes.outputs.modified-files }}
+          UPSERT_FILES: ${{ needs.detect-changes.outputs.upsert-files }}
           DELETED_FILES: ${{ needs.detect-changes.outputs.deleted-files }}
           GITHUB_ACTOR: ${{ github.actor }}
         run: |
-          echo "Starting database update..."
-          echo "Author: $GITHUB_ACTOR"
-          
-          # Process added and modified files
-          UPSERT_FILES=$(echo "$ADDED_FILES $MODIFIED_FILES" | jq -s 'add | unique')
-          echo "Files to upsert: $UPSERT_FILES"
-          
-          # Process deleted files
-          echo "Files to delete: $DELETED_FILES"
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║             STEP 6: UPDATING DATABASE                        ║"
+          echo "╚══════════════════════════════════════════════════════════════╝"
+          echo ""
+          echo "👤 Author: $GITHUB_ACTOR"
+          echo "📊 Files to upsert: $(echo "$UPSERT_FILES" | jq 'length')"
+          echo "🗑️  Files to delete: $(echo "$DELETED_FILES" | jq 'length')"
+          echo ""
           
           # Prepare payload with all data
           INDICATORS_DATA="[]"
@@ -106,7 +200,7 @@ jobs:
           # Process each file for upsert
           for file in $(echo "$UPSERT_FILES" | jq -r '.[]'); do
             if [ -f "$file" ]; then
-              echo "Processing: $file"
+              echo "📄 Processing: $file"
               
               # Generate link and avatar
               LINK="https://github.com/${{ github.repository }}/blob/main/$file"
@@ -130,14 +224,14 @@ jobs:
               
               INDICATORS_DATA=$(echo "$INDICATORS_DATA" | jq ". += [$INDICATOR_JSON]")
             else
-              echo "Warning: File not found: $file"
+              echo "⚠️ Warning: File not found: $file"
             fi
           done
           
           # Add deleted files to payload
           for file in $(echo "$DELETED_FILES" | jq -r '.[]'); do
             if [ -n "$file" ]; then
-              echo "Marking for deletion: $file"
+              echo "🗑️ Marking for deletion: $file"
               
               DELETE_JSON=$(jq -n \
                 --arg file_path "$file" \
@@ -153,11 +247,12 @@ jobs:
           # Check if there is data to send
           TOTAL_ITEMS=$(echo "$INDICATORS_DATA" | jq 'length')
           if [ "$TOTAL_ITEMS" -eq 0 ]; then
-            echo "No indicators to process"
+            echo "ℹ️ No indicators to process"
             exit 0
           fi
           
-          echo "Total indicators to process: $TOTAL_ITEMS"
+          echo ""
+          echo "📤 Sending $TOTAL_ITEMS indicator(s) to database..."
           
           # Create final payload
           PAYLOAD=$(jq -n \
@@ -168,16 +263,12 @@ jobs:
               github_actor: $github_actor
             }')
           
-          echo "Sending payload to Edge Function..."
-          
-          # Build the full URL - handle both cases where SUPABASE_EDGE_URL may or may not include /functions/v1
+          # Build the full URL
           if [[ "$SUPABASE_EDGE_URL" == */functions/v1* ]]; then
             FULL_URL="$SUPABASE_EDGE_URL/function-to-update-private-repo"
           else
             FULL_URL="$SUPABASE_EDGE_URL/functions/v1/function-to-update-private-repo"
           fi
-          
-          echo "Calling URL: $FULL_URL"
           
           # Send to Edge Function
           HTTP_CODE=$(curl -s -o response.txt -w "%{http_code}" -X POST \
@@ -186,26 +277,81 @@ jobs:
             -d "$PAYLOAD" \
             "$FULL_URL")
           
-          echo "HTTP Code: $HTTP_CODE"
-          echo "Response:"
-          cat response.txt
+          echo ""
+          echo "🔗 Response (HTTP $HTTP_CODE):"
+          cat response.txt | jq . 2>/dev/null || cat response.txt
           echo ""
           
           # Check response
           if [ "$HTTP_CODE" -eq 200 ]; then
             SUCCESS=$(cat response.txt | jq -r '.success // false')
             if [ "$SUCCESS" = "true" ]; then
-              echo "Database updated successfully!"
-              PROCESSED=$(cat response.txt | jq -r '.indicators_processed // 0')
+              echo "╔══════════════════════════════════════════════════════════════╗"
+              echo "║                    ✅ SUCCESS                                ║"
+              echo "╚══════════════════════════════════════════════════════════════╝"
+              echo ""
+              INSERTED=$(cat response.txt | jq -r '.indicators_inserted // 0')
+              UPDATED=$(cat response.txt | jq -r '.indicators_updated // 0')
               DELETED=$(cat response.txt | jq -r '.indicators_deleted // 0')
-              echo "Processed: $PROCESSED | Deleted: $DELETED"
+              echo "   📊 Summary:"
+              echo "   • Inserted: $INSERTED"
+              echo "   • Updated:  $UPDATED"
+              echo "   • Deleted:  $DELETED"
+              
+              # Check for any errors in the response
+              ERRORS=$(cat response.txt | jq -r '.errors // empty')
+              if [ -n "$ERRORS" ] && [ "$ERRORS" != "null" ]; then
+                echo ""
+                echo "   ⚠️ Some items had issues:"
+                echo "$ERRORS" | jq -r '.[]' | sed 's/^/      /'
+              fi
             else
-              echo "Failed to update database"
+              echo "❌ Failed to update database"
               cat response.txt | jq -r '.error // "Unknown error"'
               exit 1
             fi
           else
-            echo "HTTP Error: $HTTP_CODE"
+            echo "❌ HTTP Error: $HTTP_CODE"
             cat response.txt
             exit 1
+          fi
+
+  # ============================================================================
+  # SUMMARY: Pipeline Result
+  # ============================================================================
+  summary:
+    name: "Pipeline Summary"
+    needs: [detect-changes, validate-indicators, update-database]
+    if: always()
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Display Summary
+        run: |
+          echo ""
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║                   PIPELINE SUMMARY                           ║"
+          echo "╚══════════════════════════════════════════════════════════════╝"
+          echo ""
+          echo "📋 Step Results:"
+          echo "   1. Detect Changes:     ${{ needs.detect-changes.result }}"
+          echo "   2-5. Validation:       ${{ needs.validate-indicators.result }}"
+          echo "   6. Update Database:    ${{ needs.update-database.result }}"
+          echo ""
+          
+          if [ "${{ needs.update-database.result }}" == "success" ]; then
+            echo "✅ PIPELINE COMPLETED SUCCESSFULLY"
+          elif [ "${{ needs.validate-indicators.result }}" == "failure" ]; then
+            echo "❌ PIPELINE FAILED: Validation errors found"
+            echo ""
+            echo "   Please check the 'Step 2-5: Validate Indicators' job for details."
+            echo "   Fix the errors and push again."
+            exit 1
+          elif [ "${{ needs.update-database.result }}" == "failure" ]; then
+            echo "❌ PIPELINE FAILED: Database update failed"
+            exit 1
+          elif [ "${{ needs.detect-changes.outputs.has-changes }}" == "false" ]; then
+            echo "ℹ️ PIPELINE SKIPPED: No indicator changes detected"
+          else
+            echo "⚠️ PIPELINE STATUS UNKNOWN"
           fi
