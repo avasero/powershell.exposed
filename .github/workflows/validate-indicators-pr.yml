@@ -55,8 +55,8 @@ jobs:
             echo "$CHANGED_FILES" | sed 's/^/   • /'
             echo ""
             
-            # Convert to JSON array
-            CHANGED_JSON=$(echo "$CHANGED_FILES" | jq -R . | jq -sc .)
+            # Convert to JSON array (compact, single line)
+            CHANGED_JSON=$(echo "$CHANGED_FILES" | jq -R -c . | jq -s -c '.')
             
             echo "has_changes=true" >> $GITHUB_OUTPUT
             echo "changed_files=$CHANGED_JSON" >> $GITHUB_OUTPUT
