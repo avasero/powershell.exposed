@@ -10,88 +10,61 @@ on:
       - 'indicators/**/*.yml'
 
 jobs:
-  # ============================================================================
-  # STEP 1: Detect Changed Files
-  # ============================================================================
   step-1-detect-changes:
     name: "Step 1: Detect Changes"
     runs-on: ubuntu-latest
     outputs:
       has-changes: ${{ steps.check-changes.outputs.has_changes }}
-      added-files: ${{ steps.check-changes.outputs.added_files }}
-      modified-files: ${{ steps.check-changes.outputs.modified_files }}
-      deleted-files: ${{ steps.check-changes.outputs.deleted_files }}
       upsert-files: ${{ steps.check-changes.outputs.upsert_files }}
+      deleted-files: ${{ steps.check-changes.outputs.deleted_files }}
       total-upsert: ${{ steps.check-changes.outputs.total_upsert }}
       total-deleted: ${{ steps.check-changes.outputs.total_deleted }}
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Check for indicator changes
+      - name: Check changes
         id: check-changes
         run: |
-          echo "╔══════════════════════════════════════════════════════════════╗"
-          echo "║               STEP 1: DETECTING CHANGES                      ║"
-          echo "╚══════════════════════════════════════════════════════════════╝"
-          echo ""
+          echo "=== STEP 1: DETECT CHANGES ==="
           
           if git rev-parse HEAD~1 >/dev/null 2>&1; then
-            ADDED_FILES=$(git diff --name-status HEAD~1 HEAD | grep '^A' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
-            MODIFIED_FILES=$(git diff --name-status HEAD~1 HEAD | grep '^M' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
-            DELETED_FILES=$(git diff --name-status HEAD~1 HEAD | grep '^D' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
+            ADDED=$(git diff --name-status HEAD~1 HEAD | grep '^A' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
+            MODIFIED=$(git diff --name-status HEAD~1 HEAD | grep '^M' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
+            DELETED=$(git diff --name-status HEAD~1 HEAD | grep '^D' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
           else
-            echo "⚠️ First commit - listing all files as added"
-            ADDED_FILES=$(find indicators -name "*.yaml" -o -name "*.yml" 2>/dev/null || true)
-            MODIFIED_FILES=""
-            DELETED_FILES=""
+            echo "First commit"
+            ADDED=$(find indicators -name "*.yaml" -o -name "*.yml" 2>/dev/null || true)
+            MODIFIED=""
+            DELETED=""
           fi
           
-          ADDED_COUNT=$(echo "$ADDED_FILES" | grep -c . || echo "0")
-          MODIFIED_COUNT=$(echo "$MODIFIED_FILES" | grep -c . || echo "0")
-          DELETED_COUNT=$(echo "$DELETED_FILES" | grep -c . || echo "0")
+          echo "Added: $(echo "$ADDED" | grep -c . || echo 0)"
+          echo "Modified: $(echo "$MODIFIED" | grep -c . || echo 0)"
+          echo "Deleted: $(echo "$DELETED" | grep -c . || echo 0)"
           
-          echo "📊 CHANGE SUMMARY:"
-          echo "   ➕ Added:    $ADDED_COUNT"
-          echo "   ✏️  Modified: $MODIFIED_COUNT"
-          echo "   🗑️  Deleted:  $DELETED_COUNT"
-          echo ""
-          
-          [ -n "$ADDED_FILES" ] && echo "$ADDED_FILES" | sed 's/^/   • /'
-          [ -n "$MODIFIED_FILES" ] && echo "$MODIFIED_FILES" | sed 's/^/   • /'
-          [ -n "$DELETED_FILES" ] && echo "$DELETED_FILES" | sed 's/^/   • /'
-          
-          if [ -n "$ADDED_FILES" ] || [ -n "$MODIFIED_FILES" ] || [ -n "$DELETED_FILES" ]; then
+          if [ -n "$ADDED" ] || [ -n "$MODIFIED" ] || [ -n "$DELETED" ]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
             
-            ADDED_JSON=$(echo "$ADDED_FILES" | grep -v '^$' | jq -R -c . | jq -s -c '.' || echo "[]")
-            MODIFIED_JSON=$(echo "$MODIFIED_FILES" | grep -v '^$' | jq -R -c . | jq -s -c '.' || echo "[]")
-            DELETED_JSON=$(echo "$DELETED_FILES" | grep -v '^$' | jq -R -c . | jq -s -c '.' || echo "[]")
+            ADDED_JSON=$(echo "$ADDED" | grep -v '^$' | jq -R -c . | jq -s -c '.' || echo "[]")
+            MODIFIED_JSON=$(echo "$MODIFIED" | grep -v '^$' | jq -R -c . | jq -s -c '.' || echo "[]")
+            DELETED_JSON=$(echo "$DELETED" | grep -v '^$' | jq -R -c . | jq -s -c '.' || echo "[]")
             UPSERT_JSON=$(echo "$ADDED_JSON $MODIFIED_JSON" | jq -s -c 'add | unique')
             
-            echo "added_files=$ADDED_JSON" >> $GITHUB_OUTPUT
-            echo "modified_files=$MODIFIED_JSON" >> $GITHUB_OUTPUT
-            echo "deleted_files=$DELETED_JSON" >> $GITHUB_OUTPUT
             echo "upsert_files=$UPSERT_JSON" >> $GITHUB_OUTPUT
+            echo "deleted_files=$DELETED_JSON" >> $GITHUB_OUTPUT
             echo "total_upsert=$(echo "$UPSERT_JSON" | jq 'length')" >> $GITHUB_OUTPUT
             echo "total_deleted=$(echo "$DELETED_JSON" | jq 'length')" >> $GITHUB_OUTPUT
-            
-            echo "✅ Changes detected!"
           else
             echo "has_changes=false" >> $GITHUB_OUTPUT
             echo "upsert_files=[]" >> $GITHUB_OUTPUT
             echo "deleted_files=[]" >> $GITHUB_OUTPUT
             echo "total_upsert=0" >> $GITHUB_OUTPUT
             echo "total_deleted=0" >> $GITHUB_OUTPUT
-            echo "ℹ️ No indicator changes"
           fi
 
-  # ============================================================================
-  # STEP 2: YAML Syntax Validation
-  # ============================================================================
   step-2-yaml-syntax:
     name: "Step 2: YAML Syntax"
     needs: step-1-detect-changes
@@ -99,238 +72,179 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Validate YAML Syntax
+      - name: Validate YAML
         env:
           UPSERT_FILES: ${{ needs.step-1-detect-changes.outputs.upsert-files }}
         run: |
-          echo "╔══════════════════════════════════════════════════════════════╗"
-          echo "║             STEP 2: YAML SYNTAX VALIDATION                   ║"
-          echo "╚══════════════════════════════════════════════════════════════╝"
-          echo ""
-          
+          echo "=== STEP 2: YAML SYNTAX ==="
           ERRORS=0
           for file in $(echo "$UPSERT_FILES" | jq -r '.[]'); do
-            echo "📄 Checking: $file"
-            if ! python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>/dev/null; then
-              echo "   ❌ YAML syntax error!"
-              python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>&1 | head -10
-              ERRORS=$((ERRORS + 1))
+            echo "Checking: $file"
+            if python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>/dev/null; then
+              echo "  OK"
             else
-              echo "   ✅ Valid YAML"
+              echo "  YAML ERROR"
+              python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>&1 || true
+              ERRORS=$((ERRORS + 1))
             fi
           done
-          
-          echo ""
-          if [ $ERRORS -gt 0 ]; then
-            echo "❌ $ERRORS file(s) have YAML syntax errors"
-            exit 1
-          fi
-          echo "✅ All files have valid YAML syntax"
+          [ $ERRORS -gt 0 ] && exit 1
+          echo "All valid"
 
-  # ============================================================================
-  # STEP 3: Required Fields Validation
-  # ============================================================================
   step-3-required-fields:
     name: "Step 3: Required Fields"
     needs: [step-1-detect-changes, step-2-yaml-syntax]
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Check Required Fields
+      - name: Check fields
         env:
           UPSERT_FILES: ${{ needs.step-1-detect-changes.outputs.upsert-files }}
         run: |
-          echo "╔══════════════════════════════════════════════════════════════╗"
-          echo "║           STEP 3: REQUIRED FIELDS VALIDATION                 ║"
-          echo "╚══════════════════════════════════════════════════════════════╝"
-          echo ""
-          
-          REQUIRED_FIELDS="name description regex basescore tactic technique reference"
+          echo "=== STEP 3: REQUIRED FIELDS ==="
+          REQUIRED="name description regex basescore tactic technique reference"
           ERRORS=0
           
           for file in $(echo "$UPSERT_FILES" | jq -r '.[]'); do
-            echo "📄 Checking: $file"
+            echo "Checking: $file"
             MISSING=""
-            
-            for field in $REQUIRED_FIELDS; do
-              if ! grep -q "^${field}:" "$file"; then
-                MISSING="$MISSING $field"
-              fi
+            for field in $REQUIRED; do
+              grep -q "^${field}:" "$file" || MISSING="$MISSING $field"
             done
             
             if [ -n "$MISSING" ]; then
-              echo "   ❌ Missing fields:$MISSING"
+              echo "  MISSING:$MISSING"
               ERRORS=$((ERRORS + 1))
             else
-              echo "   ✅ All required fields present"
+              echo "  OK"
             fi
           done
           
-          echo ""
-          if [ $ERRORS -gt 0 ]; then
-            echo "❌ $ERRORS file(s) missing required fields"
-            echo ""
-            echo "Required fields: $REQUIRED_FIELDS"
-            exit 1
-          fi
-          echo "✅ All files have required fields"
+          [ $ERRORS -gt 0 ] && exit 1
+          echo "All fields present"
 
-  # ============================================================================
-  # STEP 4: Data Type Validation
-  # ============================================================================
   step-4-data-types:
     name: "Step 4: Data Types"
     needs: [step-1-detect-changes, step-3-required-fields]
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Validate Data Types
+      - name: Validate types
         env:
           UPSERT_FILES: ${{ needs.step-1-detect-changes.outputs.upsert-files }}
         run: |
-          echo "╔══════════════════════════════════════════════════════════════╗"
-          echo "║            STEP 4: DATA TYPE VALIDATION                      ║"
-          echo "╚══════════════════════════════════════════════════════════════╝"
-          echo ""
-          
+          echo "=== STEP 4: DATA TYPES ==="
           ERRORS=0
           
+          cat > /tmp/validate.py << 'PYSCRIPT'
+          import yaml
+          import sys
+          
+          filepath = sys.argv[1]
+          with open(filepath) as f:
+              data = yaml.safe_load(f)
+          
+          errors = 0
+          
+          bs = data.get('basescore')
+          try:
+              val = float(bs)
+              if not (0 <= val <= 10):
+                  print(f"  basescore must be 0-10, got: {bs}")
+                  errors += 1
+          except:
+              print(f"  basescore must be number, got: {bs}")
+              errors += 1
+          
+          refs = data.get('reference', [])
+          if isinstance(refs, str):
+              refs = [refs]
+          for ref in refs:
+              if not (ref.startswith('http://') or ref.startswith('https://')):
+                  print(f"  Invalid URL: {ref}")
+                  errors += 1
+          
+          if errors == 0:
+              print("  OK")
+          sys.exit(errors)
+          PYSCRIPT
+          
           for file in $(echo "$UPSERT_FILES" | jq -r '.[]'); do
-            echo "📄 Checking: $file"
-            FILE_ERRORS=0
-            
-            # Check basescore is a number between 0-10
-            BASESCORE=$(python3 -c "import yaml; d=yaml.safe_load(open('$file')); print(d.get('basescore', ''))" 2>/dev/null)
-            if ! python3 -c "x=float('$BASESCORE'); assert 0<=x<=10" 2>/dev/null; then
-              echo "   ❌ basescore must be 0.0-10.0, got: $BASESCORE"
-              FILE_ERRORS=$((FILE_ERRORS + 1))
-            fi
-            
-            # Check reference URLs
-            python3 << 'EOF'
-import yaml
-import sys
-
-with open('$file') as f:
-    data = yaml.safe_load(f)
-
-refs = data.get('reference', [])
-if isinstance(refs, str):
-    refs = [refs]
-
-for ref in refs:
-    if not (ref.startswith('http://') or ref.startswith('https://')):
-        print(f"   ❌ Invalid reference URL: {ref}")
-        sys.exit(1)
-EOF
-            if [ $? -ne 0 ]; then
-              FILE_ERRORS=$((FILE_ERRORS + 1))
-            fi
-            
-            if [ $FILE_ERRORS -eq 0 ]; then
-              echo "   ✅ Data types valid"
-            else
-              ERRORS=$((ERRORS + FILE_ERRORS))
-            fi
+            echo "Checking: $file"
+            python3 /tmp/validate.py "$file" || ERRORS=$((ERRORS + 1))
           done
           
-          echo ""
-          if [ $ERRORS -gt 0 ]; then
-            echo "❌ Data type validation failed"
-            exit 1
-          fi
-          echo "✅ All data types valid"
+          [ $ERRORS -gt 0 ] && exit 1
+          echo "All valid"
 
-  # ============================================================================
-  # STEP 5: Regex Pattern Validation
-  # ============================================================================
   step-5-regex-patterns:
     name: "Step 5: Regex Patterns"
     needs: [step-1-detect-changes, step-4-data-types]
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Validate Regex Patterns
+      - name: Validate regex
         env:
           UPSERT_FILES: ${{ needs.step-1-detect-changes.outputs.upsert-files }}
         run: |
-          echo "╔══════════════════════════════════════════════════════════════╗"
-          echo "║           STEP 5: REGEX PATTERN VALIDATION                   ║"
-          echo "╚══════════════════════════════════════════════════════════════╝"
-          echo ""
-          
+          echo "=== STEP 5: REGEX PATTERNS ==="
           ERRORS=0
           
+          cat > /tmp/validate_regex.py << 'PYSCRIPT'
+          import yaml
+          import re
+          import sys
+          
+          filepath = sys.argv[1]
+          with open(filepath) as f:
+              data = yaml.safe_load(f)
+          
+          patterns = data.get('regex', [])
+          if isinstance(patterns, str):
+              patterns = [patterns]
+          
+          errors = 0
+          for p in patterns:
+              if p.startswith('http://') or p.startswith('https://'):
+                  print(f"  URL in regex: {p[:50]}")
+                  errors += 1
+                  continue
+              try:
+                  re.compile(p)
+              except re.error as e:
+                  print(f"  Invalid regex: {e}")
+                  errors += 1
+          
+          if errors == 0:
+              print("  OK")
+          sys.exit(errors)
+          PYSCRIPT
+          
           for file in $(echo "$UPSERT_FILES" | jq -r '.[]'); do
-            echo "📄 Checking: $file"
-            
-            python3 << EOF
-import yaml
-import re
-import sys
-
-with open('$file') as f:
-    data = yaml.safe_load(f)
-
-patterns = data.get('regex', [])
-if isinstance(patterns, str):
-    patterns = [patterns]
-
-errors = 0
-for pattern in patterns:
-    # Check if it looks like a URL
-    if pattern.startswith('http://') or pattern.startswith('https://'):
-        print(f"   ❌ Pattern looks like URL: {pattern}")
-        errors += 1
-        continue
-    
-    # Try to compile regex
-    try:
-        re.compile(pattern)
-        print(f"   ✅ Valid regex: {pattern[:50]}{'...' if len(pattern) > 50 else ''}")
-    except re.error as e:
-        print(f"   ❌ Invalid regex '{pattern}': {e}")
-        errors += 1
-
-sys.exit(errors)
-EOF
-            if [ $? -ne 0 ]; then
-              ERRORS=$((ERRORS + 1))
-            fi
+            echo "Checking: $file"
+            python3 /tmp/validate_regex.py "$file" || ERRORS=$((ERRORS + 1))
           done
           
-          echo ""
-          if [ $ERRORS -gt 0 ]; then
-            echo "❌ Regex pattern validation failed"
-            exit 1
-          fi
-          echo "✅ All regex patterns valid"
+          [ $ERRORS -gt 0 ] && exit 1
+          echo "All valid"
 
-  # ============================================================================
-  # STEP 6: Update Database
-  # ============================================================================
   step-6-update-database:
     name: "Step 6: Update Database"
     needs: [step-1-detect-changes, step-5-regex-patterns]
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Send Indicators to Supabase
+      - name: Send to Supabase
         env:
           SUPABASE_EDGE_URL: ${{ secrets.SUPABASE_EDGE_URL }}
           SUPABASE_EDGE_SECRET: ${{ secrets.SUPABASE_EDGE_SECRET }}
@@ -338,28 +252,24 @@ EOF
           DELETED_FILES: ${{ needs.step-1-detect-changes.outputs.deleted-files }}
           GITHUB_ACTOR: ${{ github.actor }}
         run: |
-          echo "╔══════════════════════════════════════════════════════════════╗"
-          echo "║             STEP 6: UPDATING DATABASE                        ║"
-          echo "╚══════════════════════════════════════════════════════════════╝"
-          echo ""
-          echo "👤 Author: $GITHUB_ACTOR"
-          echo ""
+          echo "=== STEP 6: UPDATE DATABASE ==="
+          echo "Author: $GITHUB_ACTOR"
           
           INDICATORS_DATA="[]"
           
           for file in $(echo "$UPSERT_FILES" | jq -r '.[]'); do
             if [ -f "$file" ]; then
-              echo "📄 Processing: $file"
+              echo "Processing: $file"
               LINK="https://github.com/${{ github.repository }}/blob/main/$file"
-              GITHUB_AVATAR="https://github.com/${GITHUB_ACTOR}.png"
+              AVATAR="https://github.com/${GITHUB_ACTOR}.png"
               
               INDICATOR_JSON=$(jq -n \
-                --arg file_path "$file" \
-                --arg link "$LINK" \
-                --arg last_modified_by "$GITHUB_ACTOR" \
-                --arg last_modified_by_avatar "$GITHUB_AVATAR" \
-                --rawfile content "$file" \
-                '{file_path: $file_path, content: $content, link: $link, last_modified_by: $last_modified_by, last_modified_by_avatar: $last_modified_by_avatar, action: "upsert"}')
+                --arg fp "$file" \
+                --arg lk "$LINK" \
+                --arg mb "$GITHUB_ACTOR" \
+                --arg av "$AVATAR" \
+                --rawfile ct "$file" \
+                '{file_path:$fp,content:$ct,link:$lk,last_modified_by:$mb,last_modified_by_avatar:$av,action:"upsert"}')
               
               INDICATORS_DATA=$(echo "$INDICATORS_DATA" | jq ". += [$INDICATOR_JSON]")
             fi
@@ -367,51 +277,39 @@ EOF
           
           for file in $(echo "$DELETED_FILES" | jq -r '.[]'); do
             if [ -n "$file" ]; then
-              echo "🗑️ Deleting: $file"
-              DELETE_JSON=$(jq -n --arg file_path "$file" '{file_path: $file_path, action: "delete"}')
-              INDICATORS_DATA=$(echo "$INDICATORS_DATA" | jq ". += [$DELETE_JSON]")
+              echo "Deleting: $file"
+              DEL_JSON=$(jq -n --arg fp "$file" '{file_path:$fp,action:"delete"}')
+              INDICATORS_DATA=$(echo "$INDICATORS_DATA" | jq ". += [$DEL_JSON]")
             fi
           done
           
           TOTAL=$(echo "$INDICATORS_DATA" | jq 'length')
-          [ "$TOTAL" -eq 0 ] && echo "ℹ️ No indicators to process" && exit 0
+          [ "$TOTAL" -eq 0 ] && echo "Nothing to process" && exit 0
           
-          echo ""
-          echo "📤 Sending $TOTAL indicator(s)..."
+          echo "Sending $TOTAL indicator(s)..."
           
-          PAYLOAD=$(jq -n --argjson indicators "$INDICATORS_DATA" --arg github_actor "$GITHUB_ACTOR" '{indicators: $indicators, github_actor: $github_actor}')
+          PAYLOAD=$(jq -n --argjson ind "$INDICATORS_DATA" --arg ga "$GITHUB_ACTOR" '{indicators:$ind,github_actor:$ga}')
           
           if [[ "$SUPABASE_EDGE_URL" == */functions/v1* ]]; then
-            FULL_URL="$SUPABASE_EDGE_URL/function-to-update-private-repo"
+            URL="$SUPABASE_EDGE_URL/function-to-update-private-repo"
           else
-            FULL_URL="$SUPABASE_EDGE_URL/functions/v1/function-to-update-private-repo"
+            URL="$SUPABASE_EDGE_URL/functions/v1/function-to-update-private-repo"
           fi
           
-          HTTP_CODE=$(curl -s -o response.txt -w "%{http_code}" -X POST \
+          HTTP=$(curl -s -o resp.txt -w "%{http_code}" -X POST \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $SUPABASE_EDGE_SECRET" \
-            -d "$PAYLOAD" "$FULL_URL")
+            -d "$PAYLOAD" "$URL")
           
-          echo ""
-          cat response.txt | jq . 2>/dev/null || cat response.txt
-          echo ""
+          cat resp.txt | jq . 2>/dev/null || cat resp.txt
           
-          if [ "$HTTP_CODE" -eq 200 ]; then
-            SUCCESS=$(cat response.txt | jq -r '.success // false')
-            if [ "$SUCCESS" = "true" ]; then
-              echo "✅ Database updated successfully!"
-            else
-              echo "❌ Database update failed"
-              exit 1
-            fi
+          if [ "$HTTP" -eq 200 ]; then
+            [ "$(cat resp.txt | jq -r '.success')" = "true" ] && echo "Success!" || exit 1
           else
-            echo "❌ HTTP Error: $HTTP_CODE"
+            echo "HTTP Error: $HTTP"
             exit 1
           fi
 
-  # ============================================================================
-  # Pipeline Summary
-  # ============================================================================
   pipeline-summary:
     name: "Pipeline Summary"
     needs: [step-1-detect-changes, step-2-yaml-syntax, step-3-required-fields, step-4-data-types, step-5-regex-patterns, step-6-update-database]
@@ -421,22 +319,12 @@ EOF
     steps:
       - name: Summary
         run: |
-          echo ""
-          echo "╔══════════════════════════════════════════════════════════════╗"
-          echo "║                   PIPELINE SUMMARY                           ║"
-          echo "╚══════════════════════════════════════════════════════════════╝"
-          echo ""
-          echo "Step 1 - Detect Changes:    ${{ needs.step-1-detect-changes.result }}"
-          echo "Step 2 - YAML Syntax:       ${{ needs.step-2-yaml-syntax.result }}"
-          echo "Step 3 - Required Fields:   ${{ needs.step-3-required-fields.result }}"
-          echo "Step 4 - Data Types:        ${{ needs.step-4-data-types.result }}"
-          echo "Step 5 - Regex Patterns:    ${{ needs.step-5-regex-patterns.result }}"
-          echo "Step 6 - Update Database:   ${{ needs.step-6-update-database.result }}"
-          echo ""
+          echo "=== PIPELINE SUMMARY ==="
+          echo "Step 1: ${{ needs.step-1-detect-changes.result }}"
+          echo "Step 2: ${{ needs.step-2-yaml-syntax.result }}"
+          echo "Step 3: ${{ needs.step-3-required-fields.result }}"
+          echo "Step 4: ${{ needs.step-4-data-types.result }}"
+          echo "Step 5: ${{ needs.step-5-regex-patterns.result }}"
+          echo "Step 6: ${{ needs.step-6-update-database.result }}"
           
-          if [ "${{ needs.step-6-update-database.result }}" == "success" ]; then
-            echo "✅ PIPELINE COMPLETED SUCCESSFULLY"
-          else
-            echo "❌ PIPELINE FAILED"
-            exit 1
-          fi
+          [ "${{ needs.step-6-update-database.result }}" = "success" ] && echo "SUCCESS" || exit 1
