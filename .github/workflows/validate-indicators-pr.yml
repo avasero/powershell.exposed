@@ -9,6 +9,11 @@ on:
       - 'indicators/**/*.yaml'
       - 'indicators/**/*.yml'
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   # ============================================================================
   # STEP 1: Detect Changed Files in PR
