@@ -84,16 +84,17 @@ jobs:
           if [ -n "$ADDED_FILES" ] || [ -n "$MODIFIED_FILES" ] || [ -n "$DELETED_FILES" ]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
             
-            # Convert to JSON arrays
-            ADDED_JSON=$(echo "$ADDED_FILES" | grep -v '^$' | jq -R . | jq -sc . || echo "[]")
-            MODIFIED_JSON=$(echo "$MODIFIED_FILES" | grep -v '^$' | jq -R . | jq -sc . || echo "[]")
-            DELETED_JSON=$(echo "$DELETED_FILES" | grep -v '^$' | jq -R . | jq -sc . || echo "[]")
+            # Convert to JSON arrays (compact, single line)
+            ADDED_JSON=$(echo "$ADDED_FILES" | grep -v '^$' | jq -R -c . | jq -s -c '.' || echo "[]")
+            MODIFIED_JSON=$(echo "$MODIFIED_FILES" | grep -v '^$' | jq -R -c . | jq -s -c '.' || echo "[]")
+            DELETED_JSON=$(echo "$DELETED_FILES" | grep -v '^$' | jq -R -c . | jq -s -c '.' || echo "[]")
             
-            # Combine added and modified for upsert
-            UPSERT_JSON=$(echo "$ADDED_JSON $MODIFIED_JSON" | jq -s 'add | unique')
+            # Combine added and modified for upsert (compact)
+            UPSERT_JSON=$(echo "$ADDED_JSON $MODIFIED_JSON" | jq -s -c 'add | unique')
             TOTAL_UPSERT=$(echo "$UPSERT_JSON" | jq 'length')
             TOTAL_DELETED=$(echo "$DELETED_JSON" | jq 'length')
             
+            # Write to output (single line values)
             echo "added_files=$ADDED_JSON" >> $GITHUB_OUTPUT
             echo "modified_files=$MODIFIED_JSON" >> $GITHUB_OUTPUT
             echo "deleted_files=$DELETED_JSON" >> $GITHUB_OUTPUT
