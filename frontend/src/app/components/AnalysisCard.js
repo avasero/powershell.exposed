@@ -144,17 +144,24 @@ export default function AnalysisCard({
           </div>
           <div className="flex items-center gap-2 mt-2 sm:mt-0 sm:ml-4">
             {/* Indicator Type Badge */}
-            {(indicatorType === 'community' || indicatorType === 'private') && (
-              <span
-                className={`text-xs font-mono px-2 py-1 rounded border ${indicatorType === 'community'
-                  ? 'border-blue-500/30 text-blue-400 bg-blue-500/10'
-                  : 'bg-orange-500/20 text-orange-400 border-orange-500/50'
-                  }`}
-                title={indicatorType === 'community' ? 'Community indicator' : 'Private indicator'}
-              >
-                {indicatorType === 'community' ? 'COMMUNITY' : 'PREMIUM'}
-              </span>
-            )}
+            {(() => {
+              const type = indicatorType?.toLowerCase();
+              if (type === 'community' || type === 'private' || type === 'premium') {
+                const isCommunity = type === 'community';
+                return (
+                  <span
+                    className={`text-xs font-mono px-2 py-1 rounded border ${isCommunity
+                      ? 'border-blue-500/30 text-blue-400 bg-blue-500/10'
+                      : 'bg-orange-500/20 text-orange-400 border-orange-500/50'
+                      }`}
+                    title={isCommunity ? 'Community indicator' : 'Private/Premium indicator'}
+                  >
+                    {isCommunity ? 'COMMUNITY' : 'PREMIUM'}
+                  </span>
+                );
+              }
+              return null;
+            })()}
 
             <SeverityBadge severity={severity} score={score} />
           </div>
