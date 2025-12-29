@@ -18,7 +18,7 @@ export default function PricingPage() {
             summaryFeatures: [
                 'Full access to evaluation engine',
                 '- 5 Requests / Minute',
-                'Automated command decoding',
+                'Automated **command decoding**',
                 '- 1 Decode / Minute',
                 'Completely anonymous use',
                 'Standard email support'
@@ -36,10 +36,10 @@ export default function PricingPage() {
             summaryFeatures: [
                 'Full access to evaluation engine',
                 '- 10 Requests / Minute',
-                'Automated command decoding',
+                'Automated **command decoding**',
                 '- 5 Decodes / Minute',
-                'Complete search history',
-                'API Access (limits apply)',
+                '**Complete search history**',
+                '**API Access** (limits apply)',
                 'Standard email support'
             ]
         },
@@ -56,15 +56,15 @@ export default function PricingPage() {
             summaryFeatures: [
                 'Full access to evaluation engine',
                 '- 100 Requests / Minute',
-                'Automated command decoding',
+                'Automated **command decoding**',
                 '- 50 Decodes / Minute',
-                'Automated Deobfuscation',
+                'Automated **Deobfuscation**',
                 '- 10 Deobfuscation / Minute',
-                'Premium detection engine',
+                '**Premium detection engine**',
                 '- Contextual information over time',
                 '- Command prevalence',
-                'Complete search history',
-                'API Access (limits apply)',
+                '**Complete search history**',
+                '**API Access** (limits apply)',
                 'Standard email support'
             ]
         },
@@ -80,16 +80,16 @@ export default function PricingPage() {
             isPremium: true,
             summaryFeatures: [
                 'Full  access to evaluation engine',
-                ' - Unlimited',
-                'Automated command decoding',
-                ' - Unlimited',
-                'Automated Deobfuscation',
-                ' - Unlimited',
-                'Premium detection engine',
+                ' - **Unlimited**',
+                'Automated **command decoding**',
+                ' - **Unlimited**',
+                'Automated **Deobfuscation**',
+                ' - **Unlimited**',
+                '**Premium detection engine**',
                 ' - Contextual information over time',
                 ' - Command prevalence',
-                'Complete search history',
-                'API Access (limits apply)',
+                '**Complete search history**',
+                '**API Access** (limits apply)',
                 'Standard email support'
             ]
         }
