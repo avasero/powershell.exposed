@@ -224,7 +224,7 @@ export default function EvaluatePage() {
               powershell.exposed
             </h1>
 
-            <div className="flex flex-col sm:flex-row gap-3 w-full items-start">
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
               <div className="flex-1 min-w-0">
                 <CommandInput
                   value={command}
