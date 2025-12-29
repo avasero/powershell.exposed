@@ -8,7 +8,7 @@
   --primary-white: #FFFFFF;
   --primary-blue: #22C55E;
   --primary-yellow: #eab308;
-  
+
   --background: var(--primary-black);
   --foreground: var(--primary-white);
   --accent: var(--primary-green);
@@ -38,7 +38,7 @@ body::before {
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle at 50% 50%, rgba(34,197,94,0.1), transparent 70%);
+  background: radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.1), transparent 70%);
   pointer-events: none;
   z-index: -1;
 }
@@ -50,14 +50,17 @@ body::before {
 
 /* Hide scrollbar for textarea */
 .no-scrollbar {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* Internet Explorer 10+ */
 }
 
 .no-scrollbar::-webkit-scrollbar {
   width: 0;
   height: 0;
-  display: none; /* Chrome, Safari, Opera */
+  display: none;
+  /* Chrome, Safari, Opera */
 }
 
 /* Theme toggle button styles */
@@ -145,9 +148,40 @@ body::before {
   .navbar-mobile {
     padding: 0.75rem 1rem;
   }
-  
+
   .navbar-title {
     font-size: 1.125rem;
+  }
+}
+
+/* Mobile input stability - prevents input from shrinking/shifting when keyboard opens */
+@media (max-width: 768px) {
+
+  /* Prevent iOS zoom on input focus */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="url"],
+  input[type="tel"],
+  input[type="number"],
+  textarea {
+    font-size: 16px !important;
+    /* Prevents iOS zoom on focus */
+  }
+
+  /* Ensure textarea maintains full width on mobile */
+  textarea {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Prevent flex container from shrinking on keyboard open */
+  .flex-1 {
+    min-width: 0;
+    flex-shrink: 1;
   }
 }
 
@@ -421,31 +455,95 @@ textarea {
 }
 
 @keyframes glitch-before {
-  0% { transform: translate(0); }
-  10% { transform: translate(-2px, -1px); }
-  20% { transform: translate(2px, 1px); }
-  30% { transform: translate(-1px, 2px); }
-  40% { transform: translate(1px, -1px); }
-  50% { transform: translate(-1px, 1px); }
-  60% { transform: translate(2px, 1px); }
-  70% { transform: translate(-2px, -1px); }
-  80% { transform: translate(1px, -1px); }
-  90% { transform: translate(-1px, 2px); }
-  100% { transform: translate(0); }
+  0% {
+    transform: translate(0);
+  }
+
+  10% {
+    transform: translate(-2px, -1px);
+  }
+
+  20% {
+    transform: translate(2px, 1px);
+  }
+
+  30% {
+    transform: translate(-1px, 2px);
+  }
+
+  40% {
+    transform: translate(1px, -1px);
+  }
+
+  50% {
+    transform: translate(-1px, 1px);
+  }
+
+  60% {
+    transform: translate(2px, 1px);
+  }
+
+  70% {
+    transform: translate(-2px, -1px);
+  }
+
+  80% {
+    transform: translate(1px, -1px);
+  }
+
+  90% {
+    transform: translate(-1px, 2px);
+  }
+
+  100% {
+    transform: translate(0);
+  }
 }
 
 @keyframes glitch-after {
-  0% { transform: translate(0); }
-  10% { transform: translate(2px, 1px); }
-  20% { transform: translate(-2px, -1px); }
-  30% { transform: translate(1px, -2px); }
-  40% { transform: translate(-1px, 1px); }
-  50% { transform: translate(1px, -1px); }
-  60% { transform: translate(-2px, -1px); }
-  70% { transform: translate(2px, 1px); }
-  80% { transform: translate(-1px, 1px); }
-  90% { transform: translate(1px, -2px); }
-  100% { transform: translate(0); }
+  0% {
+    transform: translate(0);
+  }
+
+  10% {
+    transform: translate(2px, 1px);
+  }
+
+  20% {
+    transform: translate(-2px, -1px);
+  }
+
+  30% {
+    transform: translate(1px, -2px);
+  }
+
+  40% {
+    transform: translate(-1px, 1px);
+  }
+
+  50% {
+    transform: translate(1px, -1px);
+  }
+
+  60% {
+    transform: translate(-2px, -1px);
+  }
+
+  70% {
+    transform: translate(2px, 1px);
+  }
+
+  80% {
+    transform: translate(-1px, 1px);
+  }
+
+  90% {
+    transform: translate(1px, -2px);
+  }
+
+  100% {
+    transform: translate(0);
+  }
 }
 
 /* Hacker effect for PowerShell.exposed title */
@@ -458,7 +556,7 @@ textarea {
   letter-spacing: 0.1em;
   color: #00ff00;
   animation: hacker-glow 4s ease-in-out infinite;
-  text-shadow: 
+  text-shadow:
     0 0 10px rgba(0, 255, 0, 0.6),
     0 0 20px rgba(0, 255, 0, 0.4),
     0 0 30px rgba(0, 255, 0, 0.2);
@@ -489,20 +587,22 @@ textarea {
 }
 
 @keyframes hacker-glow {
-  0% { 
-    text-shadow: 
+  0% {
+    text-shadow:
       0 0 10px rgba(0, 255, 0, 0.6),
       0 0 20px rgba(0, 255, 0, 0.4),
       0 0 30px rgba(0, 255, 0, 0.2);
   }
-  50% { 
-    text-shadow: 
+
+  50% {
+    text-shadow:
       0 0 15px rgba(0, 255, 0, 0.8),
       0 0 30px rgba(0, 255, 0, 0.6),
       0 0 45px rgba(0, 255, 0, 0.4);
   }
-  100% { 
-    text-shadow: 
+
+  100% {
+    text-shadow:
       0 0 10px rgba(0, 255, 0, 0.6),
       0 0 20px rgba(0, 255, 0, 0.4),
       0 0 30px rgba(0, 255, 0, 0.2);
@@ -510,14 +610,27 @@ textarea {
 }
 
 @keyframes hacker-scan {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 @keyframes terminal-cursor {
-  0% { opacity: 1; }
-  50% { opacity: 0; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
 
 /* Matrix rain effect background */
@@ -546,6 +659,7 @@ textarea {
     transform: translateY(-100vh);
     opacity: 1;
   }
+
   100% {
     transform: translateY(100vh);
     opacity: 0;
