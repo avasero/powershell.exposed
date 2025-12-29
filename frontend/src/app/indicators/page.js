@@ -215,7 +215,7 @@ export default function IndicatorsPage() {
             <div className="flex-1 relative">
               <input
                 type="text"
-                placeholder="Search by name or description..."
+                placeholder="Search indicators (name, sev, score, description, author)..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
