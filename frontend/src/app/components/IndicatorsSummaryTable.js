@@ -35,37 +35,56 @@ export default function IndicatorsSummaryTable({ signatures }) {
 
   return (
     <div className="w-full mb-6">
-      <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{color: 'var(--foreground)'}}>
+      <h2 className="text-lg sm:text-xl font-mono font-bold mb-4" style={{ color: 'var(--foreground)' }}>
         Indicators Summary ({signatures.length})
       </h2>
-      
+
       <div className="border rounded-lg overflow-hidden bg-black/80 border-green-500/30">
         <div className="overflow-x-auto">
           <table className="w-full text-sm font-mono">
             <thead className="border-b border-green-500/30">
-              <tr style={{backgroundColor: 'var(--card-bg)'}}>
-                <th className="text-left p-3 font-bold" style={{color: 'var(--accent)'}}>#</th>
-                <th className="text-left p-3 font-bold" style={{color: 'var(--accent)'}}>Indicator Name</th>
-                <th className="text-left p-3 font-bold" style={{color: 'var(--accent)'}}>Severity</th>
-                <th className="text-left p-3 font-bold" style={{color: 'var(--accent)'}}>Score</th>
-                <th className="text-left p-3 font-bold" style={{color: 'var(--accent)'}}>Tactics</th>
-                <th className="text-left p-3 font-bold" style={{color: 'var(--accent)'}}>Techniques</th>
+              <tr style={{ backgroundColor: 'var(--card-bg)' }}>
+                <th className="text-left p-3 font-bold" style={{ color: 'var(--accent)' }}>#</th>
+                <th className="text-left p-3 font-bold" style={{ color: 'var(--accent)' }}>Indicator Name</th>
+                <th className="text-left p-3 font-bold" style={{ color: 'var(--accent)' }}>Severity</th>
+                <th className="text-left p-3 font-bold" style={{ color: 'var(--accent)' }}>Score</th>
+                <th className="text-left p-3 font-bold" style={{ color: 'var(--accent)' }}>Tactics</th>
+                <th className="text-left p-3 font-bold" style={{ color: 'var(--accent)' }}>Techniques</th>
               </tr>
             </thead>
             <tbody>
               {signatures.map((sig, index) => (
-                <tr 
+                <tr
                   key={index}
                   onClick={() => handleJumpToIndicator(index)}
                   className="border-b border-green-500/10 hover:bg-green-500/10 cursor-pointer transition-colors"
                   title="Click to jump to details"
                 >
-                  <td className="p-3" style={{color: 'var(--muted-foreground)'}}>
+                  <td className="p-3" style={{ color: 'var(--muted-foreground)' }}>
                     {index + 1}
                   </td>
-                  <td className="p-3 font-semibold" style={{color: 'var(--foreground)'}}>
-                    <div className="max-w-xs truncate" title={sig.name}>
-                      {sig.name}
+                  <td className="p-3 font-semibold" style={{ color: 'var(--foreground)' }}>
+                    <div className="flex flex-col gap-1">
+                      <div className="max-w-xs truncate" title={sig.name}>
+                        {sig.name}
+                      </div>
+                      {(() => {
+                        const type = sig.indicator_type?.toLowerCase();
+                        if (type === 'community' || type === 'private' || type === 'premium') {
+                          const isCommunity = type === 'community';
+                          return (
+                            <span
+                              className={`text-[10px] w-fit px-1.5 py-0.5 rounded border leading-none font-bold ${isCommunity
+                                ? 'border-blue-500/30 text-blue-400 bg-blue-500/10'
+                                : 'bg-orange-500/20 text-orange-400 border-orange-500/50'
+                                }`}
+                            >
+                              {isCommunity ? 'COMMUNITY' : 'PREMIUM'}
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </td>
                   <td className="p-3">
@@ -74,11 +93,11 @@ export default function IndicatorsSummaryTable({ signatures }) {
                     </span>
                   </td>
                   <td className="p-3">
-                    <span className="font-bold" style={{color: 'var(--accent)'}}>
+                    <span className="font-bold" style={{ color: 'var(--accent)' }}>
                       {(sig.total_score || sig.score || 0).toFixed(1)}
                     </span>
                     {sig.matches_found > 1 && (
-                      <span className="text-xs ml-1" style={{color: 'var(--muted-foreground)'}}>
+                      <span className="text-xs ml-1" style={{ color: 'var(--muted-foreground)' }}>
                         (×{sig.matches_found})
                       </span>
                     )}
@@ -86,7 +105,7 @@ export default function IndicatorsSummaryTable({ signatures }) {
                   <td className="p-3">
                     <div className="flex flex-wrap gap-1 max-w-xs">
                       {(sig.tactics || []).slice(0, 2).map((tactic, i) => (
-                        <span 
+                        <span
                           key={i}
                           className="px-1.5 py-0.5 rounded text-xs"
                           style={{
@@ -99,9 +118,9 @@ export default function IndicatorsSummaryTable({ signatures }) {
                         </span>
                       ))}
                       {(sig.tactics || []).length > 2 && (
-                        <span 
+                        <span
                           className="px-1.5 py-0.5 rounded text-xs"
-                          style={{color: 'var(--muted-foreground)'}}
+                          style={{ color: 'var(--muted-foreground)' }}
                         >
                           +{(sig.tactics || []).length - 2}
                         </span>
@@ -111,7 +130,7 @@ export default function IndicatorsSummaryTable({ signatures }) {
                   <td className="p-3">
                     <div className="flex flex-wrap gap-1 max-w-xs">
                       {(sig.techniques || []).slice(0, 3).map((tech, i) => (
-                        <span 
+                        <span
                           key={i}
                           className="px-1.5 py-0.5 rounded text-xs font-mono"
                           style={{
@@ -123,9 +142,9 @@ export default function IndicatorsSummaryTable({ signatures }) {
                         </span>
                       ))}
                       {(sig.techniques || []).length > 3 && (
-                        <span 
+                        <span
                           className="px-1.5 py-0.5 rounded text-xs"
-                          style={{color: 'var(--muted-foreground)'}}
+                          style={{ color: 'var(--muted-foreground)' }}
                         >
                           +{(sig.techniques || []).length - 3}
                         </span>

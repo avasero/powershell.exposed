@@ -25,10 +25,10 @@ export default function IndicatorTable({ signatures = [] }) {
     <div className="space-y-6">
       {signatures.length === 0 ? (
         <div className="border rounded-lg p-6 text-center bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
-          <h3 className="font-mono text-lg font-bold mb-2" style={{color: 'var(--accent)'}}>
+          <h3 className="font-mono text-lg font-bold mb-2" style={{ color: 'var(--accent)' }}>
             No Indicators Detected
           </h3>
-          <p className="font-mono text-sm" style={{color: 'var(--foreground)', opacity: 0.8}}>
+          <p className="font-mono text-sm" style={{ color: 'var(--foreground)', opacity: 0.8 }}>
             This command appears to be safe.
           </p>
         </div>
@@ -36,39 +36,58 @@ export default function IndicatorTable({ signatures = [] }) {
         <>
           <div className="border rounded-lg overflow-hidden bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
             <div className="p-4 border-b border-green-500/30">
-              <h3 className="font-mono text-lg font-bold" style={{color: 'var(--accent)'}}>
+              <h3 className="font-mono text-lg font-bold" style={{ color: 'var(--accent)' }}>
                 Detected Signatures ({signatures.length})
               </h3>
             </div>
           </div>
-          
+
           {signatures.map((sig, idx) => (
             <div key={idx} className="border rounded-lg overflow-hidden bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ">
-              <div className="p-4 border-b flex items-center justify-between border-green-500/30" style={{backgroundColor: 'rgba(156, 254, 65, 0.05)'}}>
-                <div className="flex items-center gap-3">
-                  <SeverityBadge score={sig.score} />
-                  <h4 className="font-mono text-lg font-bold" style={{color: 'var(--foreground)'}}>
-                    {sig.name}
-                  </h4>
+              <div className="p-4 border-b flex items-center justify-between border-green-500/30" style={{ backgroundColor: 'rgba(156, 254, 65, 0.05)' }}>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-3">
+                    <SeverityBadge score={sig.score} />
+                    <h4 className="font-mono text-lg font-bold" style={{ color: 'var(--foreground)' }}>
+                      {sig.name}
+                    </h4>
+                  </div>
+                  {(() => {
+                    const type = sig.indicator_type?.toLowerCase();
+                    if (type === 'community' || type === 'private' || type === 'premium') {
+                      const isCommunity = type === 'community';
+                      return (
+                        <span
+                          className={`text-[10px] w-fit px-1.5 py-0.5 rounded border leading-none font-bold ml-[44px] ${isCommunity
+                            ? 'border-blue-500/30 text-blue-400 bg-blue-500/10'
+                            : 'bg-orange-500/20 text-orange-400 border-orange-500/50'
+                            }`}
+                        >
+                          {isCommunity ? 'COMMUNITY' : 'PREMIUM'}
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
                 <div className="text-right">
-                  <div className="font-mono text-sm text-opacity-75" style={{color: 'var(--accent)'}}>Score</div>
-                  <div className="font-mono text-xl font-bold" style={{color: 'var(--accent)'}}>+{sig.score}</div>
+                  <div className="font-mono text-sm text-opacity-75" style={{ color: 'var(--accent)' }}>Score</div>
+                  <div className="font-mono text-xl font-bold" style={{ color: 'var(--accent)' }}>+{sig.score}</div>
                 </div>
               </div>
 
               <div className="p-4 space-y-4">
                 <div>
-                  <h5 className="font-mono text-sm font-bold mb-2" style={{color: 'var(--accent)'}}>Description:</h5>
-                  <p className="font-mono text-sm" style={{color: 'var(--foreground)', opacity: 0.9}}>
+                  <h5 className="font-mono text-sm font-bold mb-2" style={{ color: 'var(--accent)' }}>Description:</h5>
+                  <p className="font-mono text-sm" style={{ color: 'var(--foreground)', opacity: 0.9 }}>
                     {sig.description}
                   </p>
                 </div>
 
                 {(sig.matched_text || sig.keyword) && (
                   <div>
-                    <h5 className="font-mono text-sm font-bold mb-2" style={{color: 'var(--accent)'}}>Matched Pattern:</h5>
-                    <code className="font-mono text-xs p-2 rounded block" style={{backgroundColor: 'rgba(156, 254, 65, 0.1)', color: 'var(--accent)'}}>
+                    <h5 className="font-mono text-sm font-bold mb-2" style={{ color: 'var(--accent)' }}>Matched Pattern:</h5>
+                    <code className="font-mono text-xs p-2 rounded block" style={{ backgroundColor: 'rgba(156, 254, 65, 0.1)', color: 'var(--accent)' }}>
                       {highlightPatternWithMatch(sig.pattern || sig.keyword, sig.matched_text)}
                     </code>
                   </div>
@@ -77,11 +96,11 @@ export default function IndicatorTable({ signatures = [] }) {
                 <div className="grid md:grid-cols-2 gap-4">
                   {sig.tactic && sig.tactic.length > 0 && (
                     <div>
-                      <h5 className="font-mono text-sm font-bold mb-2" style={{color: 'var(--accent)'}}>MITRE Tactics:</h5>
+                      <h5 className="font-mono text-sm font-bold mb-2" style={{ color: 'var(--accent)' }}>MITRE Tactics:</h5>
                       <div className="flex flex-wrap gap-1">
                         {sig.tactic.map((tactic, tacticIdx) => (
-                          <span key={tacticIdx} className="font-mono text-xs px-2 py-1 rounded" 
-                                style={{backgroundColor: '#FFA500', color: 'white'}}>
+                          <span key={tacticIdx} className="font-mono text-xs px-2 py-1 rounded"
+                            style={{ backgroundColor: '#FFA500', color: 'white' }}>
                             {tactic}
                           </span>
                         ))}
@@ -91,11 +110,11 @@ export default function IndicatorTable({ signatures = [] }) {
 
                   {sig.technique && sig.technique.length > 0 && (
                     <div>
-                      <h5 className="font-mono text-sm font-bold mb-2" style={{color: 'var(--accent)'}}>MITRE Techniques:</h5>
+                      <h5 className="font-mono text-sm font-bold mb-2" style={{ color: 'var(--accent)' }}>MITRE Techniques:</h5>
                       <div className="flex flex-wrap gap-1">
                         {sig.technique.map((technique, techIdx) => (
-                          <span key={techIdx} className="font-mono text-xs px-2 py-1 rounded" 
-                                style={{backgroundColor: '#1E9CFD', color: 'white'}}>
+                          <span key={techIdx} className="font-mono text-xs px-2 py-1 rounded"
+                            style={{ backgroundColor: '#1E9CFD', color: 'white' }}>
                             {technique}
                           </span>
                         ))}
@@ -106,13 +125,13 @@ export default function IndicatorTable({ signatures = [] }) {
 
                 {sig.reference && sig.reference.length > 0 && (
                   <div>
-                    <h5 className="font-mono text-sm font-bold mb-2" style={{color: 'var(--accent)'}}>References:</h5>
+                    <h5 className="font-mono text-sm font-bold mb-2" style={{ color: 'var(--accent)' }}>References:</h5>
                     <ul className="space-y-1">
                       {sig.reference.map((ref, refIdx) => (
                         <li key={refIdx}>
-                          <a href={ref} target="_blank" rel="noopener noreferrer" 
-                             className="font-mono text-xs hover:underline break-all"
-                             style={{color: 'rgb(34, 197, 94)'}}>
+                          <a href={ref} target="_blank" rel="noopener noreferrer"
+                            className="font-mono text-xs hover:underline break-all"
+                            style={{ color: 'rgb(34, 197, 94)' }}>
                             {ref}
                           </a>
                         </li>

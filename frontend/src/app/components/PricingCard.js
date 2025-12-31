@@ -103,7 +103,17 @@ const PricingCard = ({
                                 ) : (
                                     <span className="text-gray-500 flex-shrink-0">-</span>
                                 )}
-                                <span className="whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>{displayFeature}</span>
+                                <span className="whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>
+                                    {(() => {
+                                        const parts = displayFeature.split(/(\*\*.*?\*\*)/g);
+                                        return parts.map((part, i) => {
+                                            if (part.startsWith('**') && part.endsWith('**')) {
+                                                return <strong key={i} className="font-extrabold transition-all">{part.slice(2, -2)}</strong>;
+                                            }
+                                            return part;
+                                        });
+                                    })()}
+                                </span>
                             </div>
                         );
                     })}
