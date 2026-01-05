@@ -1,8 +1,8 @@
 import re
 import base64
 
-
-ENCODED_COMMAND_PATTERN = r'[\u002D\u2013\u2014\u2015](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+["\']?\s*([a-z0-9+/]{20,}={0,2})'
+# Import pattern from central location
+from services.detectors.patterns import ENCODED_COMMAND_PATTERN
 
 
 def decode_base64_utf16(encoded_str: str) -> str:
