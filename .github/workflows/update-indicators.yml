@@ -251,9 +251,11 @@ jobs:
           UPSERT_FILES: ${{ needs.step-1-detect-changes.outputs.upsert-files }}
           DELETED_FILES: ${{ needs.step-1-detect-changes.outputs.deleted-files }}
           GITHUB_ACTOR: ${{ github.actor }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login || github.actor }}
         run: |
           echo "=== STEP 6: UPDATE DATABASE ==="
-          echo "Author: $GITHUB_ACTOR"
+          echo "Merger: $GITHUB_ACTOR"
+          echo "PR Author: $PR_AUTHOR"
           
           INDICATORS_DATA="[]"
           
@@ -261,7 +263,7 @@ jobs:
             if [ -f "$file" ]; then
               echo "Processing: $file"
               LINK="https://github.com/${{ github.repository }}/blob/main/$file"
-              AVATAR="https://github.com/${GITHUB_ACTOR}.png"
+              AVATAR="https://github.com/${PR_AUTHOR}.png"
               
               INDICATOR_JSON=$(jq -n \
                 --arg fp "$file" \
