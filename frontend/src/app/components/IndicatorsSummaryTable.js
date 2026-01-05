@@ -42,7 +42,7 @@ export default function IndicatorsSummaryTable({ signatures }) {
       <div className="border rounded-lg overflow-hidden bg-black/80 border-green-500/30">
         <div className="overflow-x-auto">
           <table className="w-full text-sm font-mono">
-            <thead className="border-b border-green-500/30">
+            <thead className="border-y border-green-500/10">
               <tr style={{ backgroundColor: 'var(--card-bg)' }}>
                 <th className="text-left p-3 font-bold" style={{ color: 'var(--accent)' }}>#</th>
                 <th className="text-left p-3 font-bold" style={{ color: 'var(--accent)' }}>Indicator Name</th>
@@ -57,7 +57,7 @@ export default function IndicatorsSummaryTable({ signatures }) {
                 <tr
                   key={index}
                   onClick={() => handleJumpToIndicator(index)}
-                  className="border-b border-green-500/10 hover:bg-green-500/10 cursor-pointer transition-colors"
+                  className="border border-green-500/10 hover:bg-green-500/10 hover:border-green-500/30 cursor-pointer transition-colors"
                   title="Click to jump to details"
                 >
                   <td className="p-3" style={{ color: 'var(--muted-foreground)' }}>
