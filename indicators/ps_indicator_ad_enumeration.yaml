@@ -1,5 +1,6 @@
 name: Active Directory enumeration activity
 description: Detects PowerShell usage of System.DirectoryServices and adsisearcher, which may indicate Active Directory enumeration via LDAP.
+regex: DirectoryServices\.|adsiSearcher
 basescore: 9.4
 tactic: [TA0007]
 technique: [T1059.001, T1087, T1069, T1018]
