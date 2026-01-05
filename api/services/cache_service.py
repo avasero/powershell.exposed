@@ -180,7 +180,8 @@ def create_cache_compatible_result(analysis_result: Dict[str, Any]) -> Dict[str,
             "reference": sig.get("reference", []),
             "link": sig.get("link"),
             "is_premium_indicator": sig.get("is_premium_indicator", False),
-            "found_in_deobfuscated": sig.get("found_in_deobfuscated", False)
+            "found_in_deobfuscated": sig.get("found_in_deobfuscated", False),
+            "indicator_type": sig.get("indicator_type", "community")
         }
         cleaned_signatures.append(cleaned_sig)
     
@@ -322,3 +323,95 @@ async def get_cache_status() -> Dict[str, Any]:
             "next_will_remove_oldest": False,
             "error": str(error)
         }
+
+
+async def update_cached_signatures_with_current_db_values(results_blob: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Update cached signatures with current values from the database.
+    This ensures max_match, base_score, and other editable fields are always current.
+    
+    Args:
+        results_blob: The cached results blob containing signatures_detected
+        
+    Returns:
+        Updated results_blob with current database values
+    """
+    try:
+        supabase = get_supabase_client()
+        
+        # Get all active signatures from DB
+        response = supabase.table('powershell_signatures') \
+            .select('name, max_match, basescore, severity, description, tactics, techniques, reference, link, is_premium_indicator') \
+            .eq('is_active', True) \
+            .execute()
+        
+        if not response.data:
+            return results_blob
+        
+        # Fetch public indicator names for indicator_type determination
+        public_indicators_response = supabase.table('public_indicators').select('name').execute()
+        public_indicator_names = {item['name'] for item in public_indicators_response.data} if public_indicators_response.data else set()
+        
+        # Create a lookup by name
+        db_signatures = {sig['name']: sig for sig in response.data}
+        
+        # Update signatures_detected with current DB values
+        signatures = results_blob.get("signatures_detected", [])
+        for sig in signatures:
+            sig_name = sig.get("name")
+            if sig_name and sig_name in db_signatures:
+                db_sig = db_signatures[sig_name]
+                
+                # Get current max_match from DB
+                current_max_match = int(db_sig.get("max_match", 1))
+                current_base_score = float(db_sig.get("basescore", 0))
+                
+                # Recalculate matches_found based on current max_match
+                original_matches_found = sig.get("matches_found", 1)
+                new_matches_found = min(original_matches_found, current_max_match)
+                
+                # Recalculate total_score
+                new_total_score = current_base_score * new_matches_found
+                
+                # Update the signature with current DB values
+                sig["max_match_allowed"] = current_max_match
+                sig["base_score"] = current_base_score
+                sig["matches_found"] = new_matches_found
+                sig["total_score"] = new_total_score
+                sig["severity"] = db_sig.get("severity", sig.get("severity"))
+                sig["description"] = db_sig.get("description", sig.get("description"))
+                sig["tactics"] = db_sig.get("tactics", sig.get("tactics", []))
+                sig["techniques"] = db_sig.get("techniques", sig.get("techniques", []))
+                sig["reference"] = db_sig.get("reference", sig.get("reference", []))
+                sig["link"] = db_sig.get("link", sig.get("link"))
+                sig["is_premium_indicator"] = db_sig.get("is_premium_indicator", sig.get("is_premium_indicator", False))
+                
+                # Update indicator_type based on public_indicators table
+                sig["indicator_type"] = "community" if sig_name in public_indicator_names else "private"
+                
+                # Trim matches_details if needed
+                if "matches_details" in sig and len(sig["matches_details"]) > new_matches_found:
+                    sig["matches_details"] = sig["matches_details"][:new_matches_found]
+        
+        # Recalculate total risk_score
+        total_score = sum(sig.get("total_score", 0) for sig in signatures)
+        results_blob["risk_score"] = total_score
+        results_blob["total_score"] = total_score
+        
+        # Recalculate severity based on new total_score
+        if total_score >= 30:
+            results_blob["severity"] = "critical"
+        elif total_score >= 20:
+            results_blob["severity"] = "high"
+        elif total_score >= 10:
+            results_blob["severity"] = "medium"
+        elif total_score >= 5:
+            results_blob["severity"] = "low"
+        else:
+            results_blob["severity"] = "very_low"
+        
+        return results_blob
+        
+    except Exception as error:
+        print(f"[CACHE] Error updating cached signatures: {error}")
+        return results_blob

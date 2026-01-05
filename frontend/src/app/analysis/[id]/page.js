@@ -717,7 +717,7 @@ export default function AnalysisDetailsPage() {
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
             <div className="flex justify-between items-center mb-3">
-              <div className="font-mono text-sm font-bold" style={{ color: 'var(--accent)' }}>
+              <div className="font-mono text-sm font-bold text-blue-400">
                 Decoded Command
               </div>
               <DecodeUsageBadge decodeInfo={decodeInfo} />

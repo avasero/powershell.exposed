@@ -21,7 +21,8 @@ from services.powershell_analyzer import (
 )
 from services.cache_service import (
     generate_phash, check_cache, save_to_cache, should_cache_result,
-    create_cache_compatible_result, extract_indicators_matched
+    create_cache_compatible_result, extract_indicators_matched,
+    update_cached_signatures_with_current_db_values
 )
 from services.session_manager import get_or_create_session, get_supabase_client
 from utils.geolocation import get_ip_location, get_client_ip_from_request
@@ -202,6 +203,9 @@ async def analyze_command_endpoint(
                 results_blob["double_decoded_command"] = None
             if "deobfuscated_command" not in results_blob:
                 results_blob["deobfuscated_command"] = None
+            
+            # ✅ Update cached signatures with current DB values (max_match, base_score, etc.)
+            results_blob = await update_cached_signatures_with_current_db_values(results_blob)
             
             # ✅ Save to DB (this increments the count)
             db_result = await save_analysis_to_db(

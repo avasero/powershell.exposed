@@ -80,6 +80,7 @@ class DetectedSignature(BaseModel):
     techniques: List[str]
     reference: List[str]
     link: Optional[str] = None
+    indicator_type: Optional[str] = "community"
 
 
 class CacheInfo(BaseModel):
@@ -124,7 +125,7 @@ class AnalyzeCommandResponse(BaseModel):
                             "base_score": 4.0,
                             "matches_found": 3,
                             "total_score": 12.0,
-                            "max_match_allowed": 3,
+                            "max_match_allowed": 1,
                             "matches_details": [
                                 {
                                     "pattern": "(?i)password|dump|reflection",
