@@ -1,4 +1,4 @@
-name: TcpListener Reference
+name: TcpListener reference
 description: Uses .NET TcpListener, commonly seen in PowerShell tunneling or bind shell patterns.
 regex: tcplistener
 basescore: 10
