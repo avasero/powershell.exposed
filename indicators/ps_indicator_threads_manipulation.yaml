@@ -1,5 +1,5 @@
-name: Threads Manipulation
-description: Creates or manipulates execution threads, often used for injection or evasion
+name: Threads manipulation
+description: Tracks the creation or manipulation of execution threads, often used for injection attacks or detection evasion.
 regex: createthread|threading\.thread
 basescore: 10
 tactic: TA0005
