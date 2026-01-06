@@ -1,5 +1,5 @@
-name: MS Defender Exclusion Path Creation
-description: Adds or modifies Microsoft Defender exclusion paths to avoid detection
+name: MS Defender exclusion path modification
+description: Detects attempts to add or modify Microsoft Defender exclusion paths.
 regex: (add|set)-MpPreference[\s\S]+ExclusionPath
 basescore: 9.4
 tactic: TA0005
