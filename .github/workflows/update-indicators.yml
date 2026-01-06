@@ -314,18 +314,45 @@ jobs:
           
           INDICATORS_DATA="[]"
           
+          # Create script to quote regex field in YAML content
+          cat > /tmp/quote_regex.py << 'PYSCRIPT'
+          import re
+          import sys
+          
+          content = sys.stdin.read()
+          
+          # Find regex line and quote it if not already quoted
+          def quote_regex(match):
+              prefix = match.group(1)  # "regex: " or "regex:"
+              value = match.group(2)   # the regex value
+              # Skip if already quoted
+              if (value.startswith("'") and value.endswith("'")) or \
+                 (value.startswith('"') and value.endswith('"')):
+                  return match.group(0)
+              # Escape single quotes in value and wrap in single quotes
+              escaped = value.replace("'", "''")
+              return f"{prefix}'{escaped}'"
+          
+          # Match regex: followed by value (not a list)
+          result = re.sub(r'^(regex:\s*)([^\n]+)$', quote_regex, content, flags=re.MULTILINE)
+          print(result, end='')
+          PYSCRIPT
+          
           for file in $(echo "$UPSERT_FILES" | jq -r '.[]'); do
             if [ -f "$file" ]; then
               echo "Processing: $file"
               LINK="https://github.com/${{ github.repository }}/blob/main/$file"
               AVATAR="https://github.com/${PR_AUTHOR}.png"
               
+              # Process content to quote regex field
+              PROCESSED_CONTENT=$(cat "$file" | python3 /tmp/quote_regex.py)
+              
               INDICATOR_JSON=$(jq -n \
                 --arg fp "$file" \
                 --arg lk "$LINK" \
                 --arg mb "$GITHUB_ACTOR" \
                 --arg av "$AVATAR" \
-                --rawfile ct "$file" \
+                --arg ct "$PROCESSED_CONTENT" \
                 '{file_path:$fp,content:$ct,link:$lk,last_modified_by:$mb,last_modified_by_avatar:$av,action:"upsert"}')
               
               INDICATORS_DATA=$(echo "$INDICATORS_DATA" | jq ". += [$INDICATOR_JSON]")
