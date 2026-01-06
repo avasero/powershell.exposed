@@ -1,4 +1,4 @@
-name: AD ServicePrincipalName enumeration
+name: AD Service Principal enumeration
 description: Potential Service Principal enumeration activity.
 regex: get-ad.+\s+ServicePrincipalName|servicePrincipalName=\*|\.DirectoryServices\.+principal|object.+serviceprincipalname
 basescore: 9.7
