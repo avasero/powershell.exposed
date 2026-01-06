@@ -1,5 +1,5 @@
-name: Named Pipe Activity
-description: .NET named pipes for inter-process communication, often used for C2 or pivoting
+name: Named pipe activity
+description: Spots .NET named pipes for inter-process communication, often used for C2 or pivoting.
 regex: AnonymousPipeClientStream|NamedPipeServerStream|System\.IO\.Pipes
 basescore: 10
 tactic: TA0011
