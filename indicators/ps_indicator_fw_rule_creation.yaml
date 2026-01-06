@@ -1,4 +1,4 @@
-name: Firewall Rule Creation
+name: Firewall rule creation
 description: Creation of Windows Firewall rules or filters via NetSecurity cmdlets.
 regex: new-netfirewall[\s\S]+(filter|rule)
 basescore: 8.7
