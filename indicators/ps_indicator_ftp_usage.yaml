@@ -1,0 +1,8 @@
+name: T/FTP Usage
+description: Use of FTP or TFTP url schemes for remote file transfer, indicating potential c2 or exfiltration
+regex: (t*ftp)://
+basescore: 10
+tactic: TA0011
+technique: [T1105, T1071, T1048.003, T1059.001]
+reference:
+  - https://attack.mitre.org/detectionstrategies/DET0416/
