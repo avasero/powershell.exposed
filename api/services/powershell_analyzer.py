@@ -33,8 +33,8 @@ try:
     PYMINUSONE_AVAILABLE = True
 except ImportError:
     try:
-        from services.deobfuscator import deobfuscate_powershell as pyminusone_deobfuscate
-        pyminusone = type('obj', (object,), {'deobfuscate_powershell': pyminusone_deobfuscate})()
+        from services.deobfuscator import decode_powershell as pyminusone_deobfuscate
+        pyminusone = type('obj', (object,), {'decode_powershell': pyminusone_deobfuscate})()
         PYMINUSONE_AVAILABLE = True
         
     except ImportError:
@@ -149,7 +149,7 @@ def decode_base64_utf16(encoded_str: str) -> str:
             return ""
 
 
-def deobfuscate_powershell(command: str) -> tuple:
+def decode_powershell(command: str) -> tuple:
    
     has_leading_ampersand = command.startswith('&')
     
@@ -223,7 +223,7 @@ def deobfuscate_powershell(command: str) -> tuple:
    
     if PYMINUSONE_AVAILABLE:
         try:
-            deobf = pyminusone.deobfuscate_powershell(command_to_process)
+            deobf = pyminusone.decode_powershell(command_to_process)
 
             if deobf and deobf != command_to_process:
                 cleaned = deobfuscate(deobf)
@@ -240,7 +240,7 @@ def deobfuscate_powershell(command: str) -> tuple:
                             break
                         
                         try:
-                            recursive_result = pyminusone.deobfuscate_powershell(current)
+                            recursive_result = pyminusone.decode_powershell(current)
                             recursive_cleaned = deobfuscate(recursive_result)
                             
                             if len(recursive_cleaned) < len(current) and recursive_cleaned != current:
@@ -329,7 +329,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     
     original_command = command
     
-    deobfuscated_command, decode_iterations, obfuscation_type, all_decoded_layers = deobfuscate_powershell(command)
+    deobfuscated_command, decode_iterations, obfuscation_type, all_decoded_layers = decode_powershell(command)
     has_deobfuscation = deobfuscated_command != command
     
     first_decoded_layer = None
@@ -471,7 +471,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     # ✅ OPTIMIZATION: Use set for O(1) lookup instead of list.contains
     commands_set = {original_command}
     
-    # Add base64 decoded command from deobfuscate_powershell
+    # Add base64 decoded command from decode_powershell
     if decode_iterations >= 1 and deobfuscated_command and deobfuscated_command != command:
         commands_set.add(deobfuscated_command)
     
