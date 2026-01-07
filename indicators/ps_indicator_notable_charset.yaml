@@ -1,5 +1,5 @@
 name: Notable charset observed
-description: The idea is to spot unexpected charsets in the PS command payload. Adjust to your needs. Template detects Cyrilic. In SPL, simply use \p{Cyrillic}. Please refer to FAQ 3.1 and reference below for other charset unicode ranges.
+description: The idea is to spot unexpected charsets in the PS command payload. Adjust to your needs. Template detects Cyrillic. In SPL, simply use \p{Cyrillic} or \x notation. Please refer to FAQ 3.1 and reference below for other charset unicode ranges.
 regex: [\u0400-\u04FF\u0500-\u052F]
 basescore: 10
 tactic: [TA0002, TA0005]
@@ -9,3 +9,4 @@ reference:
   - https://www.regular-expressions.info/unicode.html
   - https://www.compart.com/en/unicode/block/U+AC00 (Hangul)
   - https://www.compart.com/en/unicode/block/U+4E00 (Han, CJK)
+  - https://github.com/avasero/psexposed/blob/main/FAQ.md#31-a-few-notes-to-consider-when-using-regex-in-splunkspl
