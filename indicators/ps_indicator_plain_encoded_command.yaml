@@ -7,3 +7,4 @@ technique: [T1059.001, T1027]
 reference:
   - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/process_creation/proc_creation_win_powershell_base64_encoded_cmd_patterns.yml
   - https://detect.fyi/malicious-encoded-powershell-detecting-decoding-modeling-321fd322c6ec
+  - https://github.com/avasero/psexposed/blob/main/FAQ.md#31-a-few-notes-to-consider-when-using-regex-in-splunkspl
