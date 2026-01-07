@@ -97,6 +97,15 @@ async def load_signatures_from_db(user_id: str = None) -> list:
                 sig_name = sig.get("name", "Unknown")
                 indicator_type = "community" if sig_name in public_indicator_names else "private"
                 
+                # Construct dynamic GitHub link for community indicators
+                link = None
+                if indicator_type == "community":
+                    file_path = sig.get("file_path", "")
+                    # Extract filename from path (e.g., indicators/name.yaml -> name.yaml)
+                    if file_path:
+                        filename = file_path.split("/")[-1]
+                        link = f"https://github.com/avasero/psexposed/blob/main/indicators/{filename}"
+                
                 converted_signatures.append({
                     "name": sig_name,
                     "patterns": sig.get("patterns", []) if isinstance(sig.get("patterns"), list) else [],
@@ -107,7 +116,7 @@ async def load_signatures_from_db(user_id: str = None) -> list:
                     "description": sig.get("description", "No description available"),
                     "reference": sig.get("reference", []) if isinstance(sig.get("reference"), list) else [],
                     "max_match": int(sig.get("max_match", 1)),
-                    "link": sig.get("link") if sig.get("link") else None,
+                    "link": link,
                     "is_premium_indicator": sig.get("is_premium_indicator", False),
                     "indicator_type": indicator_type 
                 })

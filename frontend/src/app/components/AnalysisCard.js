@@ -20,15 +20,6 @@ function truncateRegexAroundMatch(pattern, matchedText, maxLength = 120) {
   return truncated;
 }
 
-// Function to generate YAML link
-function getYamlLink(signatureName) {
-  // Convert signature name to potential YAML filename
-  const filename = signatureName.toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .replace(/\s+/g, '-');
-  return `https://github.com/powershell-exposed/signatures/blob/main/${filename}.yml`;
-}
-
 // Function to truncate long text with ellipsis
 function truncateText(text, maxLength = 50) {
   if (!text || text.length <= maxLength) return text;
@@ -128,7 +119,7 @@ export default function AnalysisCard({
             <h4 className="font-mono font-bold text-base sm:text-lg mb-2 sm:mb-0" style={{ color: variantTitleColors[variant] }}>
               {title}
             </h4>
-            {link && (
+            {link && indicatorType?.toLowerCase() === 'community' && (
               <div className="mb-2">
                 <a
                   href={link}
@@ -315,7 +306,7 @@ export default function AnalysisCard({
                       <div className="text-xs text-white">
                         Pattern ({allMatches.length} match{allMatches.length !== 1 ? 'es' : ''})
                       </div>
-                      {link && (
+                      {link && indicatorType?.toLowerCase() === 'community' && (
                         <a
                           href={link}
                           target="_blank"

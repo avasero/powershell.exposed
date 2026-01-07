@@ -341,7 +341,7 @@ async def update_cached_signatures_with_current_db_values(results_blob: Dict[str
         
         # Get all active signatures from DB
         response = supabase.table('powershell_signatures') \
-            .select('name, max_match, basescore, severity, description, tactics, techniques, reference, link, is_premium_indicator') \
+            .select('name, max_match, basescore, severity, description, tactics, techniques, reference, link, file_path, is_premium_indicator') \
             .eq('is_active', True) \
             .execute()
         
@@ -387,7 +387,19 @@ async def update_cached_signatures_with_current_db_values(results_blob: Dict[str
                 sig["is_premium_indicator"] = db_sig.get("is_premium_indicator", sig.get("is_premium_indicator", False))
                 
                 # Update indicator_type based on public_indicators table
-                sig["indicator_type"] = "community" if sig_name in public_indicator_names else "private"
+                indicator_type = "community" if sig_name in public_indicator_names else "private"
+                sig["indicator_type"] = indicator_type
+                
+                # Update link for community indicators
+                if indicator_type == "community":
+                    file_path = db_sig.get("file_path", "")
+                    if file_path:
+                        filename = file_path.split("/")[-1]
+                        sig["link"] = f"https://github.com/avasero/psexposed/blob/main/indicators/{filename}"
+                    else:
+                        sig["link"] = None
+                else:
+                    sig["link"] = None
                 
                 # Trim matches_details if needed
                 if "matches_details" in sig and len(sig["matches_details"]) > new_matches_found:
