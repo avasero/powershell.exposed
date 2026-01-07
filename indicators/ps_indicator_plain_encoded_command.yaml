@@ -1,5 +1,10 @@
 name: Plain encoded command usage
-description: Detects the usage of encoded command in multiple forms, excluding advanced obfuscation. The multiple question marks are needed for disabling group matching. For SPL, replace the unicodes (\uNNNN) for \x{NNNN} format and refer to FAQ 3.1 entry.
+description: >
+  Detects the usage of encoded command in multiple forms, excluding advanced obfuscation.
+  The multiple question marks are needed for disabling group matching.
+
+  Note that the unicodes below refer to Hyphen-Minus (ASCII hyphen), En/m Dash and Horizontal Bar.
+  Refer to FAQ entry 3.1 in the reference to use those in Splunk/SPL.
 regex: [\u002D\u2013\u2014\u2015/](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+[\"']*\s*[a-z0-9+/]{20,}={0,2}
 basescore: 4.5
 tactic: TA0002
