@@ -1,4 +1,4 @@
-name: Notable charset observed
+name: Notable charset
 description: The idea is to spot unexpected charsets in the PS command payload. Adjust to your needs. Template detects Cyrillic. In SPL, simply use \p{Cyrillic} or \x notation. Please refer to FAQ 3.1 and reference below for other charset unicode ranges.
 regex: [\u0400-\u04FF\u0500-\u052F]
 basescore: 10
