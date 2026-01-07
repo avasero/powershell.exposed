@@ -3,7 +3,7 @@ description: This indicator is designed to capture up to 3 low-severity strings 
 regex: shell\.application|DisableRealtimeMonitoring|password|dump|Obfuscation|sploit|scanner|rundll|Reflection|icm\s+|base64|discover-|IsInRole|Get-WinSystemLocale|Set-Wallpaper|etsn\s+.+(ComputerName|TargetName)|(start|get)-Service.+(ComputerName|TargetName)|gsv\s+.+(ComputerName|TargetName)|get-Credential|(ps|Get-Process)\s+.+(ComputerName|TargetName)|(new|start)-ComplianceSearch|Get-Azure(user|group)|PasswordSettings|localadmin|downloaddata|get-\S+(credent|password)|System\.Convert|[^\.]+\.dll\b|InteropServices|Get-LocalUser|\b-useb\s|binPath|PowerUp|GetTempFileName|SecurityProtocol|get-netfirewall|winsystemlocale|RemoteConnection|Get-PSSnapin|AntiVirusProduct|ldap://|\s+(start-job|sajb)\s+|ActiveDirectory\.Domain|\b(tnc|Test-NetConnection|Test-Connection)\s+\S+\.\S+\s+[-]port\s+\d+|\bcmd(\.exe)*\s+/c\b|taskkill.+/f|[^\-]encoded|foreach\s[\s\S]+\-join\s|downloadfile|DomainRole|Win32_UserAccount|RunMRU|readAllBytes|Text\.Encoding|SecureString
 maxmatch: 3
 basescore: 4.0
-tactic: Execution
+tactic: TA0002
 technique: T1059.001
 reference:
   - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/powershell/powershell_script/posh_ps_susp_keywords.yml
