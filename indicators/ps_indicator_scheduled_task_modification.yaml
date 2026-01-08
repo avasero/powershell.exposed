@@ -1,6 +1,6 @@
 name: Scheduled Task modification
 description: Spots potential Windows Task creation/modification via the most common forms/cmdlets.
-regex: \bRegister-ScheduledTask|New-(ScheduledTaskTrigger|ScheduledTaskAction)|Win32_ScheduledJob.+create|schtasks[\s\S]+\s\/create|Schedule\.Service.+\.create
+regex: \bRegister-ScheduledTask|New-ScheduledTask(Trigger|Action|Setting)|Win32_ScheduledJob.+create|schtasks[\s\S]+\s/create|Schedule\.Service.+\.create
 basescore: 9.7
 tactic: [TA0003, TA0004]
 technique: [T1053.005, T1059.001]
