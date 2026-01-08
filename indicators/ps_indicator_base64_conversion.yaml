@@ -1,0 +1,10 @@
+name: Base64 conversion
+description: Detects explicit Base64 decoding via FromBase64String, a common obfuscation and payload-staging technique used in PowerShell to hide commands, scripts, or binaries prior to execution.
+regex: FromBase64String
+basescore: 9.3
+tactic: [TA0005]
+technique: [T1027]
+reference:
+  - https://attack.mitre.org/techniques/T1027/
+  - https://www.atomicredteam.io/atomic-red-team/atomics/T1027
+  - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/process_creation/proc_creation_win_powershell_base64_frombase64string.yml
