@@ -201,8 +201,6 @@ async def analyze_command_endpoint(
                 results_blob["decoded_command"] = None
             if "double_decoded_command" not in results_blob:
                 results_blob["double_decoded_command"] = None
-            if "deobfuscated_command" not in results_blob:
-                results_blob["deobfuscated_command"] = None
             
             # ✅ Update cached signatures with current DB values (max_match, base_score, etc.)
             results_blob = await update_cached_signatures_with_current_db_values(results_blob)
@@ -233,7 +231,6 @@ async def analyze_command_endpoint(
             # ✅ FIX: Extract decoded variables BEFORE decode check
             decoded_cmd = results_blob.get("decoded_command")
             double_decoded_cmd = results_blob.get("double_decoded_command")
-            deobfuscated_cmd = results_blob.get("deobfuscated_command")
             
             # ✅ Check decode permission (pass command to detect example)
             decode_info = await can_user_decode_commands(user_id, session_id=session_id, command=command)
@@ -246,9 +243,6 @@ async def analyze_command_endpoint(
                 if double_decoded_cmd:
                     double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
                     print(f"[MASKING] double_decoded_command masked")
-                if deobfuscated_cmd:
-                    deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
-                    print(f"[MASKING] deobfuscated_command masked")
                 
                 # ✅ FIX: Mask matched_text in signatures to prevent leak
                 signatures_detected = results_blob.get("signatures_detected", [])
@@ -271,7 +265,6 @@ async def analyze_command_endpoint(
                     "techniques": results_blob.get("techniques", []),
                     "decoded_command": decoded_cmd,
                     "double_decoded_command": double_decoded_cmd,
-                    "deobfuscated_command": deobfuscated_cmd,
                     "total_signatures_checked": results_blob.get("total_signatures_checked", 0),
                     "detected_count": results_blob.get("detected_count", 0),
                     "cache_info": {
@@ -359,7 +352,6 @@ async def analyze_command_endpoint(
         # Mask content for non-premium users
         decoded_cmd = analysis_result.get("decoded_command")
         double_decoded_cmd = analysis_result.get("double_decoded_command")
-        deobfuscated_cmd = analysis_result.get("deobfuscated_command")
         
         # ✅ decode_info already fetched in parallel above
         print(f"[DECODE CHECK] User: {user_id[:8] if user_id else 'ANON'}... | Can decode: {decode_info['can_decode']} | Usage: {decode_info['current_usage']}/{decode_info['limit']}")
@@ -376,9 +368,6 @@ async def analyze_command_endpoint(
             if double_decoded_cmd:
                 double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
                 print(f"[MASKING] double_decoded_command masked")
-            if deobfuscated_cmd:
-                deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
-                print(f"[MASKING] deobfuscated_command masked")
 
             # ✅ FIX: Mask matched_text in signatures to prevent leak
             for signature in analysis_result["detected_signatures"]:
@@ -399,7 +388,6 @@ async def analyze_command_endpoint(
                 "techniques": analysis_result["techniques"],
                 "decoded_command": decoded_cmd,
                 "double_decoded_command": double_decoded_cmd,
-                "deobfuscated_command": deobfuscated_cmd,
                 "decode_limit_reached": decode_limit_reached,
                 "total_signatures_checked": len(signatures),
                 "detected_count": len(analysis_result["detected_signatures"]),

@@ -180,7 +180,7 @@ def create_cache_compatible_result(analysis_result: Dict[str, Any]) -> Dict[str,
             "reference": sig.get("reference", []),
             "link": sig.get("link"),
             "is_premium_indicator": sig.get("is_premium_indicator", False),
-            "found_in_deobfuscated": sig.get("found_in_deobfuscated", False),
+            "found_in_decoded": sig.get("found_in_decoded", False),
             "indicator_type": sig.get("indicator_type", "community")
         }
         cleaned_signatures.append(cleaned_sig)
@@ -196,7 +196,6 @@ def create_cache_compatible_result(analysis_result: Dict[str, Any]) -> Dict[str,
         "techniques": analysis_result.get("techniques", []),
         "decoded_command": analysis_result.get("decoded_command"),
         "double_decoded_command": analysis_result.get("double_decoded_command"),
-        "deobfuscated_command": analysis_result.get("deobfuscated_command"),  # ✅ ADICIONAR
         "total_signatures_checked": analysis_result.get("total_signatures_checked", 0),
         "detected_count": analysis_result.get("detected_count", 0),
         "cached": True
