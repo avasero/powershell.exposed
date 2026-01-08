@@ -15,8 +15,7 @@ technique: [T1059.001, T1021.006]
 reference:
   - https://attack.mitre.org/techniques/T1021/006/
   - https://attack.mitre.org/techniques/T1059/001/
-  - https://detection.fyi/sigmahq/sigma/windows/powershell/powershell_script/posh_ps_invoke_command_remote/
-  - https://detection.fyi/sigmahq/sigma/windows/process_creation/proc_creation_win_winrm_remote_powershell_session_process/
+  - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/powershell/powershell_script/posh_ps_invoke_command_remote.yml
   - https://www.atomicredteam.io/atomic-red-team/atomics/T1021.006
   - https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1021.006/T1021.006.md
   - https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1021.006/T1021.006.yaml
