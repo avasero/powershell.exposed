@@ -1,7 +1,7 @@
 name: Long base64 string
-description: Identifies long Base64 blobs embedded in PowerShell commands, a common technique for hiding payloads, configuration data, or staged execution logic without relying on -EncodedCommand.
+description: Identifies long Base64 blobs embedded in PowerShell commands, a common technique for hiding payloads, configuration data, or staged execution logic without relying on -EncodedCommand. Make sure you disregard this one in case using detection modeling since the behavior might already be highlighted in another indicator.
 regex: [a-z0-9+/]{260,}={0,2}
-basescore: 7.0
+basescore: 9.3
 tactic: [TA0005, TA0002]
 technique: [T1027.001, T1059.001]
 reference:
