@@ -354,7 +354,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     
     commands_to_analyze = [raw_command]
     
-    # ✅ OPTIMIZATION: Use set for O(1) lookup instead of list.contains
+    
     commands_set = {raw_command}
     
     # Add base64 decoded command from decode_powershell
