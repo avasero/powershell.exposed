@@ -1,5 +1,5 @@
 name: Validate Indicators
-# Force rebuild: 2026-01-09
+# Force rebuild
 
 on:
   push:
