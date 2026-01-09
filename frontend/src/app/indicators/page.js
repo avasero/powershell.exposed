@@ -197,7 +197,7 @@ export default function IndicatorsPage() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-2" style={{ color: 'var(--accent)' }}>
-            Public Indicators
+            Community Indicators
           </h1>
           <div className="flex justify-between items-center">
             <p className="font-mono text-sm mb-4" style={{ color: 'var(--muted-foreground)' }}>

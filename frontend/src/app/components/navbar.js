@@ -154,7 +154,7 @@ export default function Navbar() {
                       <span>Settings</span>
                     </a>
                     <a
-                      href="/support"
+                      href="mailto:hi@powershell.exposed"
                       className="flex items-center space-x-3 px-4 py-2 text-sm font-mono hover:bg-green-500/10 transition-colors"
                       style={{ color: 'var(--foreground)' }}
                     >
