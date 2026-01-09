@@ -1,5 +1,4 @@
-name: Validate Indicators
-# Force rebuild
+name: Validate and Update Indicators
 
 on:
   push:
@@ -22,6 +21,8 @@ jobs:
     outputs:
       has-changes: ${{ steps.check-changes.outputs.has_changes }}
       changed-files: ${{ steps.check-changes.outputs.changed_files }}
+      upsert-files: ${{ steps.check-changes.outputs.upsert_files }}
+      deleted-files: ${{ steps.check-changes.outputs.deleted_files }}
       total-files: ${{ steps.check-changes.outputs.total_files }}
     
     steps:
@@ -43,11 +44,18 @@ jobs:
             HEAD_SHA="${{ github.event.pull_request.head.sha }}"
           fi
           
+          # Get file status (Added, Modified, Deleted)
+          ADDED=$(git diff --name-status --no-renames "$BASE_SHA" "$HEAD_SHA" | grep '^A' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
+          MODIFIED=$(git diff --name-status --no-renames "$BASE_SHA" "$HEAD_SHA" | grep '^M' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
+          DELETED=$(git diff --name-status --no-renames "$BASE_SHA" "$HEAD_SHA" | grep '^D' | awk '{print $2}' | grep '^indicators/.*\.ya\?ml$' || true)
+          
           CHANGED_FILES=$(git diff --name-only --no-renames "$BASE_SHA" "$HEAD_SHA" -- 'indicators/*.yaml' 'indicators/*.yml' || true)
           
           if [ -z "$CHANGED_FILES" ]; then
             echo "has_changes=false" >> $GITHUB_OUTPUT
             echo "changed_files=[]" >> $GITHUB_OUTPUT
+            echo "upsert_files=[]" >> $GITHUB_OUTPUT
+            echo "deleted_files=[]" >> $GITHUB_OUTPUT
             echo "total_files=0" >> $GITHUB_OUTPUT
             echo "No indicator files changed"
           else
@@ -57,8 +65,16 @@ jobs:
             
             CHANGED_JSON=$(echo "$CHANGED_FILES" | jq -R -c . | jq -s -c '.')
             
+            # Build upsert (added + modified) and deleted lists
+            ADDED_JSON=$(echo "$ADDED" | grep -v '^$' | jq -R -c . | jq -s -c '.' || echo "[]")
+            MODIFIED_JSON=$(echo "$MODIFIED" | grep -v '^$' | jq -R -c . | jq -s -c '.' || echo "[]")
+            DELETED_JSON=$(echo "$DELETED" | grep -v '^$' | jq -R -c . | jq -s -c '.' || echo "[]")
+            UPSERT_JSON=$(echo "$ADDED_JSON $MODIFIED_JSON" | jq -s -c 'add | unique')
+            
             echo "has_changes=true" >> $GITHUB_OUTPUT
             echo "changed_files=$CHANGED_JSON" >> $GITHUB_OUTPUT
+            echo "upsert_files=$UPSERT_JSON" >> $GITHUB_OUTPUT
+            echo "deleted_files=$DELETED_JSON" >> $GITHUB_OUTPUT
             echo "total_files=$TOTAL" >> $GITHUB_OUTPUT
           fi
 
@@ -285,9 +301,112 @@ jobs:
           [ $ERRORS -gt 0 ] && exit 1
           echo "All regex valid"
 
+  step-6-update-database:
+    name: "Step 6: Update Database"
+    needs: [step-1-detect-changes, step-5-regex-patterns]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Send to Supabase
+        env:
+          SUPABASE_EDGE_URL: ${{ secrets.SUPABASE_EDGE_URL }}
+          SUPABASE_EDGE_SECRET: ${{ secrets.SUPABASE_EDGE_SECRET }}
+          UPSERT_FILES: ${{ needs.step-1-detect-changes.outputs.upsert-files }}
+          DELETED_FILES: ${{ needs.step-1-detect-changes.outputs.deleted-files }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login || github.actor }}
+        run: |
+          echo "=== STEP 6: UPDATE DATABASE ==="
+          echo "Merger: $GITHUB_ACTOR"
+          echo "PR Author: $PR_AUTHOR"
+          
+          INDICATORS_DATA="[]"
+          
+          # Create script to quote regex field in YAML content
+          cat > /tmp/quote_regex.py << 'PYSCRIPT'
+          import re
+          import sys
+          
+          content = sys.stdin.read()
+          
+          # Find regex line and quote it if not already quoted
+          def quote_regex(match):
+              prefix = match.group(1)  # "regex: " or "regex:"
+              value = match.group(2)   # the regex value
+              # Skip if already quoted
+              if (value.startswith("'") and value.endswith("'")) or \
+                 (value.startswith('"') and value.endswith('"')):
+                  return match.group(0)
+              # Escape single quotes in value and wrap in single quotes
+              escaped = value.replace("'", "''")
+              return f"{prefix}'{escaped}'"
+          
+          # Match regex: followed by value (not a list)
+          result = re.sub(r'^(regex:\s*)([^\n]+)$', quote_regex, content, flags=re.MULTILINE)
+          print(result, end='')
+          PYSCRIPT
+          
+          for file in $(echo "$UPSERT_FILES" | jq -r '.[]'); do
+            if [ -f "$file" ]; then
+              echo "Processing: $file"
+              LINK="https://github.com/${{ github.repository }}/blob/main/$file"
+              AVATAR="https://github.com/${PR_AUTHOR}.png"
+              
+              # Process content to quote regex field
+              PROCESSED_CONTENT=$(cat "$file" | python3 /tmp/quote_regex.py)
+              
+              INDICATOR_JSON=$(jq -n \
+                --arg fp "$file" \
+                --arg lk "$LINK" \
+                --arg mb "$GITHUB_ACTOR" \
+                --arg av "$AVATAR" \
+                --arg ct "$PROCESSED_CONTENT" \
+                '{file_path:$fp,content:$ct,link:$lk,last_modified_by:$mb,last_modified_by_avatar:$av,action:"upsert"}')
+              
+              INDICATORS_DATA=$(echo "$INDICATORS_DATA" | jq ". += [$INDICATOR_JSON]")
+            fi
+          done
+          
+          for file in $(echo "$DELETED_FILES" | jq -r '.[]'); do
+            if [ -n "$file" ]; then
+              echo "Deleting: $file"
+              DEL_JSON=$(jq -n --arg fp "$file" '{file_path:$fp,action:"delete"}')
+              INDICATORS_DATA=$(echo "$INDICATORS_DATA" | jq ". += [$DEL_JSON]")
+            fi
+          done
+          
+          TOTAL=$(echo "$INDICATORS_DATA" | jq 'length')
+          [ "$TOTAL" -eq 0 ] && echo "Nothing to process" && exit 0
+          
+          echo "Sending $TOTAL indicator(s)..."
+          
+          PAYLOAD=$(jq -n --argjson ind "$INDICATORS_DATA" --arg ga "$GITHUB_ACTOR" '{indicators:$ind,github_actor:$ga}')
+          
+          if [[ "$SUPABASE_EDGE_URL" == */functions/v1* ]]; then
+            URL="$SUPABASE_EDGE_URL/function-to-update-private-repo"
+          else
+            URL="$SUPABASE_EDGE_URL/functions/v1/function-to-update-private-repo"
+          fi
+          
+          HTTP=$(curl -s -o resp.txt -w "%{http_code}" -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $SUPABASE_EDGE_SECRET" \
+            -d "$PAYLOAD" "$URL")
+          
+          cat resp.txt | jq . 2>/dev/null || cat resp.txt
+          
+          if [ "$HTTP" -eq 200 ]; then
+            [ "$(cat resp.txt | jq -r '.success')" = "true" ] && echo "Success!" || exit 1
+          else
+            echo "HTTP Error: $HTTP"
+            exit 1
+          fi
+
   validation-summary:
-    name: "Validation Summary"
-    needs: [step-1-detect-changes, step-2-yaml-syntax, step-3-required-fields, step-4-data-types, step-5-regex-patterns]
+    name: "Pipeline Summary"
+    needs: [step-1-detect-changes, step-2-yaml-syntax, step-3-required-fields, step-4-data-types, step-5-regex-patterns, step-6-update-database]
     if: always()
     runs-on: ubuntu-latest
     
@@ -302,7 +421,8 @@ jobs:
               'Step 2 - YAML': '${{ needs.step-2-yaml-syntax.result }}',
               'Step 3 - Fields': '${{ needs.step-3-required-fields.result }}',
               'Step 4 - Types': '${{ needs.step-4-data-types.result }}',
-              'Step 5 - Regex': '${{ needs.step-5-regex-patterns.result }}'
+              'Step 5 - Regex': '${{ needs.step-5-regex-patterns.result }}',
+              'Step 6 - Database': '${{ needs.step-6-update-database.result }}'
             };
             
             const allPassed = Object.values(steps).every(r => r === 'success' || r === 'skipped');
@@ -327,12 +447,25 @@ jobs:
               body: body
             });
 
-      - name: Check result
+      - name: Summary
         run: |
-          if [ "${{ needs.step-1-detect-changes.outputs.has-changes }}" = "true" ]; then
-            if [ "${{ needs.step-5-regex-patterns.result }}" != "success" ]; then
-              echo "ERROR: Validation chain failed or was skipped."
-              exit 1
-            fi
+          echo "=== PIPELINE SUMMARY ==="
+          echo "Step 1: ${{ needs.step-1-detect-changes.result }}"
+          echo "Step 2: ${{ needs.step-2-yaml-syntax.result }}"
+          echo "Step 3: ${{ needs.step-3-required-fields.result }}"
+          echo "Step 4: ${{ needs.step-4-data-types.result }}"
+          echo "Step 5: ${{ needs.step-5-regex-patterns.result }}"
+          echo "Step 6: ${{ needs.step-6-update-database.result }}"
+          
+          if [ "${{ needs.step-1-detect-changes.outputs.has-changes }}" = "false" ]; then
+            echo "SUCCESS: No changes to process"
+            exit 0
           fi
-          echo "SUCCESS: Validation passed or no changes to validate."
+          
+          if [ "${{ needs.step-6-update-database.result }}" = "success" ]; then
+            echo "SUCCESS: Validation passed and database updated"
+            exit 0
+          else
+            echo "FAILED: Pipeline did not complete successfully"
+            exit 1
+          fi
