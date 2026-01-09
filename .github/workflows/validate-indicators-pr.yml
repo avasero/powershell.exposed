@@ -2,7 +2,7 @@ name: Validate Indicators
 # Force rebuild: 2026-01-09
 
 on:
-  pull_request:
+  push:
     branches:
       - main
       - master
