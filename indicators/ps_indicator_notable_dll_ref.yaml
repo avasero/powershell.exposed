@@ -5,4 +5,5 @@ basescore: 9.2
 tactic: [TA0005]
 technique: [T1059.001, T1055]
 reference:
-  - https://www.avasero.com/
+  - https://redcanary.com/blog/threat-detection/better-know-a-data-source/amsi/
+  - https://unit42.paloaltonetworks.com/unit42-pulling-back-the-curtains-on-encodedcommand-powershell-attacks/
