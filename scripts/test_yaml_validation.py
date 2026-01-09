@@ -147,9 +147,6 @@ def validate_regex_patterns(filepath: Path) -> tuple[bool, str]:
                 err_str = str(e)
                 if "bad escape \\p" in err_str or "bad escape \\P" in err_str:
                     warnings.append(f"Uses Unicode property (\\p) - not supported by Python re")
-                elif "unterminated character set" in err_str and "[" in p:
-                    # Could be intentional unescaped bracket for other engines
-                    warnings.append(f"Possible unescaped bracket (may work in other engines)")
                 else:
                     errors.append(f"Invalid regex: {e}")
         

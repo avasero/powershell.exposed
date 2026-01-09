@@ -16,8 +16,8 @@ from middleware.rate_limiting import (
     GLOBAL_RATE_LIMIT_REQUESTS, GLOBAL_RATE_LIMIT_WINDOW
 )
 from services.powershell_analyzer import (
-    load_signatures_from_db, analyze_command_patterns, calculate_severity_and_risk,
-    save_analysis_to_db, signatures_cache, cache_timestamp
+    load_signatures_from_db, analyze_command_patterns, analyze_with_sanitization,
+    calculate_severity_and_risk, save_analysis_to_db, signatures_cache, cache_timestamp
 )
 from services.cache_service import (
     generate_phash, check_cache, save_to_cache, should_cache_result,
@@ -301,7 +301,8 @@ async def analyze_command_endpoint(
                 status_code=503
             )
         
-        analysis_result = analyze_command_patterns(command, signatures)
+        # ✅ Fresh analysis with sanitization support
+        analysis_result = analyze_with_sanitization(command, signatures)
         severity = calculate_severity_and_risk(analysis_result["total_score"])
         
         analysis_result.update({
