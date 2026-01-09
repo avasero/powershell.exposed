@@ -1,4 +1,4 @@
-name: Autorun registry path reference
+name: Autorun registry path reference test
 description: Detects references to Windows autorun registry related paths, which are commonly abused to achieve persistence by executing programs automatically at user logon.
 regex: Windows[\\\]+CurrentVersion[\\\]+Run|Policies[\\\]+Explorer[\\\]+Run
 basescore: 8.5
