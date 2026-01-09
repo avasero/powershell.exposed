@@ -1,4 +1,5 @@
 name: Validate Indicators (Pull Request)
+# Force rebuild: 2026-01-09
 
 on:
   pull_request:
