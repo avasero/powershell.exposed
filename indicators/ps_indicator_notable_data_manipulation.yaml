@@ -7,3 +7,4 @@ technique: [T1027, T1140]
 reference:
   - https://attack.mitre.org/techniques/T1027/
   - https://attack.mitre.org/techniques/T1140/
+  - https://www.knowyouradversary.ru/2025/08/239-thats-how-adversaries-abuse.html
