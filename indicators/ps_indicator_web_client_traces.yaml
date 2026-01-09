@@ -1,6 +1,6 @@
 name: Web Client traces
 description: Spots potential attempts to use PS as a web client to access network resources.
-regex: RestMethod|[\.-]webclient|WebRequest|Net.Sockets.TcpClient|InternetExplorer\.Application|(win|Xml)Http|\b(curl|wget|iwr|irm)\s+|InstallProduct\(.+https*://|(\b[\-—–―]Uri|\b[\-—–―]Url)\s.+https*://
+regex: net\.http|RestMethod|[\.-]webclient|WebRequest|Net.Sockets.TcpClient|InternetExplorer\.Application|(win|Xml)Http|\b(curl|wget|iwr|irm)\s+|(InstallProduct\(|bitstransfer)[\s\S]+https*://|\b[\u002D\u2013\u2014\u2015](Uri|Url)\s*https*://
 basescore: 7.5
 tactic: TA0002
 technique: [T1105, T1059.001]
