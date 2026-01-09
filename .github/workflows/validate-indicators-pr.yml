@@ -1,7 +1,14 @@
-name: Validate Indicators (Pull Request)
+name: Validate Indicators
 # Force rebuild: 2026-01-09
 
 on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'indicators/**/*.yaml'
+      - 'indicators/**/*.yml'
   pull_request:
     branches:
       - main
