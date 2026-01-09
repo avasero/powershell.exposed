@@ -1,6 +1,6 @@
 name: Notable string manipulation
-description: Detects common PowerShell string and byte manipulation patterns (e.g., [char] casting, Convert, Substring, Join, XOR) that are frequently used for obfuscation, deobfuscation, or staged payload construction.
-regex: (convert|byte|length|xor|substring|join|toint|tostr).*\[char|\[char.*(convert|byte|length|xor|substring|join|toint|tostr)
+description: Detects PowerShell string and byte-level transformation techniques commonly used to dynamically reconstruct or modify data at runtime, including character casting, numeric conversion, slicing, joining, XOR operations, and regex-based extraction—patterns frequently associated with obfuscation, staged payload assembly, and evasion.
+regex: (convert|byte|length|xor|substring|join|toint|tostr).*\[char|\[char.*(convert|byte|length|xor|substring|join|toint|tostr)|regex.+::match
 basescore: 8
 tactic: [TA0005]
 technique: [T1027, T1140]
