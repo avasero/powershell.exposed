@@ -1,6 +1,23 @@
 name: Highly suspicious keywords
-description: This indicator is designed to capture up to 2 strings with higher suspiciousness through multi-matching (see the maxmatch field below), avoiding the need to create numerous similar-value indicators. As a result, the regex will be long. If a particular string/pattern needs to be highlighted separately, it can be offloaded into its own indicator and removed from this one. The maxmatch field defines how many distinct matches are treated as separate instances of the indicator. It was initially inspired and later expanded from a few Sigma detections (refer to references).
-regex: (start|complete)-bitstransfer|mimik|metasp|psrecon|-persistence|AssemblyBuilderAccess|Reflection\.Assembly|spraying|shellcode|injection|BypassUAC|UACBypass|Rc4ByteStream|System\.Security\.Cryptography|\blsass|LastLoggedOn|hijack|BackupPrivilege|\bngrok|stage0|comsvcs|backdoor|Microsoft\.Exchange|brute.?force|Port.?Scan|Exfiltration|exploit|beacon|-dump|SeTcbPrivilege|GPPPassword|CommandAs|\.kirbi|ntds\.dit|ntdsutil|krbtgt|esentutl|procdump|(\b|\.)amsi|antimalware|Downloadstring|-adgroupmember|StringBuilder|\bsekurlsa|SimonTatham|\bksetup\s|amsiInitFailed|ASCIIEncoding|::ReadAllText|DumpCreds|-decrypt|Schedule\.Service|e46eead8-0c54-4489-9898-8fa79d059e0e|window\.location|EtwEventWriteNoRegistration|PasswordVault|ProtectedData|BeginConnect|\.SMBOpen|ConsentPromptBehaviorAdmin|Management\.Automation\.Host|ShadowCopy|Port-Scan|LocalAdminAccess|PowerShellWebAccess |BitConverter|PingStatus|set-variable[\s\S]+get-variable|clear-history|\bWinPwn|ComputerDetail|Port.?Scan|nishang|\[scriptblock\]|kernel32|e[^a-z0-9]{1,2}n[^a-z0-9]{1,2}c[^a-z0-9]{1,2}o[^a-z0-9]{1,2}d[^a-z0-9]{1,2}e[^a-z0-9]{1,2}d|c[^a-z0-9]{1,2}o[^a-z0-9]{1,2}m[^a-z0-9]{1,2}m[^a-z0-9]{1,2}a[^a-z0-9]{1,2}n[^a-z0-9]{1,2}d|System32[\\]+config[\\]+(sam|security)|\-encod\s|\S\.pfx|ActiveXObject|Exchange\.Management\.PowerShell
+description: |
+  Detects the presence of multiple high-risk PowerShell keywords and behavioral
+  primitives commonly associated with post-exploitation, credential access,
+  lateral movement, defense evasion, and payload staging.
+
+  This indicator aggregates a broad set of strongly suspicious strings into a
+  single multi-match regex to reduce rule sprawl and maintenance overhead. The
+  `maxmatch` parameter limits how many distinct keyword matches are evaluated per
+  event, enabling signal amplification when multiple independent indicators of
+  malicious intent co-occur.
+
+  The regex is intentionally extensive by design. Any individual string or
+  pattern that requires higher fidelity, different scoring, or independent
+  tuning should be promoted to its own dedicated indicator and removed from this
+  aggregate set.
+
+  This rule was initially inspired by, and later expanded beyond, multiple Sigma
+  detections covering malicious PowerShell tradecraft.
+regex: (start|complete)-bitstransfer|mimik|metasp|psrecon|-persistence|AssemblyBuilderAccess|Reflection\.Assembly|spraying|shellcode|injection|BypassUAC|UACBypass|Rc4ByteStream|System\.Security\.Cryptography|\blsass|LastLoggedOn|hijack|BackupPrivilege|\bngrok|stage0|comsvcs|backdoor|Microsoft\.Exchange|brute.?force|Port.?Scan|Exfiltration|exploit|beacon|-dump|SeTcbPrivilege|GPPPassword|CommandAs|\.kirbi|ntds\.dit|ntdsutil|krbtgt|esentutl|procdump|(\b|\.)amsi|antimalware|Downloadstring|-adgroupmember|StringBuilder|\bsekurlsa|SimonTatham|\bksetup\s|amsiInitFailed|ASCIIEncoding|::ReadAllText|DumpCreds|-decrypt|Schedule\.Service|e46eead8-0c54-4489-9898-8fa79d059e0e|window\.location|EtwEventWriteNoRegistration|PasswordVault|ProtectedData|BeginConnect|\.SMBOpen|ConsentPromptBehaviorAdmin|Management\.Automation\.Host|ShadowCopy|Port-Scan|LocalAdminAccess|PowerShellWebAccess |BitConverter|PingStatus|set-variable[\s\S]+get-variable|clear-history|\bWinPwn|ComputerDetail|Port.?Scan|nishang|\[scriptblock\]|kernel32|e[^a-z0-9]{1,2}n[^a-z0-9]{1,2}c[^a-z0-9]{1,2}o[^a-z0-9]{1,2}d[^a-z0-9]{1,2}e[^a-z0-9]{1,2}d|c[^a-z0-9]{1,2}o[^a-z0-9]{1,2}m[^a-z0-9]{1,2}m[^a-z0-9]{1,2}a[^a-z0-9]{1,2}n[^a-z0-9]{1,2}d|System32[\\]+config[\\]+(sam|security)|\-encod\s|\S\.pfx|ActiveXObject|Exchange\.Management\.PowerShell|System\.Drawing\.bitmap|\.GetPixel
 maxmatch: 2
 basescore: 8.2
 tactic: TA0002
