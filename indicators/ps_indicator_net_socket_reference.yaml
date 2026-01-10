@@ -5,5 +5,6 @@ basescore: 10
 tactic: [TA0011]
 technique: [T1095]
 reference:
+  - https://somedieyoungzz.github.io/posts/kimsucky-2/
   - https://attack.mitre.org/techniques/T1095/
   - https://www.atomicredteam.io/atomic-red-team/atomics/T1095
