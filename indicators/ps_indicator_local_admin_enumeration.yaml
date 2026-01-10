@@ -1,6 +1,6 @@
 name: Local admin enumeration
 description: Potential commands aimed at enumerating members of the local administrators group.
-regex: (win32_group|localgroupMember|localgroup).+administrators|administrators.+\.members\(\)
+regex: EnumerateLocalAdmin|(Win32_Group|get-LocalGroupMember|get-ADGroupMember|net\s+localgroup).+administrators|Administrators\S+\.members\(
 basescore: 8.8
 tactic: [TA0007, TA0004]
 technique: [T1059.001, T1069.001, T1087, T1068]
