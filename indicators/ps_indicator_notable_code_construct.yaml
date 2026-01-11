@@ -1,6 +1,6 @@
 name: Notable code construction
 description: Detects PowerShell code patterns commonly associated with dynamic command execution and basic obfuscation, including Invoke-Expression (iex), output redirection for error suppression, wildcard-based command discovery (Get-Alias/Get-Command), and indirect invocation techniques used to execute dynamically constructed code.
-regex: \b(iex|Invoke[-]Expression)\s+2>&1|\biex\(|\b(gal|gcm)\s+\*|\.\s*'*iex'*
+regex: \b(iex|Invoke[-]Expression)\s+2>&1|\biex\(|\b(gal|gcm)\s+\*|\.\s*'*iex'*|\(\s*gi\s+[\\\]+W*|\biex\s*\(\s*irm\b|iex\s*\(\s*&\s*\(
 basescore: 10
 tactic: [TA0005]
 technique: [T1059.001, T1027]
@@ -11,3 +11,6 @@ reference:
   - https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1059.001/T1059.001.md
   - https://clickfix.carsonww.com/domains/tinavanleuven.com
   - https://clickfix.carsonww.com/domains/aaa-fxinvest.com
+  - https://clickfix.carsonww.com/domains/adult.cheahpartners.com
+  - https://clickfix.carsonww.com/domains/javsenpaiii.pages.dev
+  - https://clickfix.carsonww.com/domains/www.fitnesslife24.ch
