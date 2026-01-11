@@ -13,3 +13,4 @@ reference:
   - https://attack.mitre.org/techniques/T1027/
   - https://www.atomicredteam.io/atomic-red-team/atomics/T1027
   - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/process_creation/proc_creation_win_powershell_base64_frombase64string.yml
+  - https://clickfix.carsonww.com/domains/tema-com-ua-568517.hostingersite.com
