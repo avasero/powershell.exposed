@@ -1,6 +1,6 @@
-name: Notable file archive URL
+name: Notable file archive extension in URL
 description: Detects HTTP/HTTPS URLs that point to commonly abused archive or container formats used for payload delivery and staging, including RAR, ISO, 7z, and CAB.
-regex: https*://[^/]+/\S+\.(rar|iso|7z|cab)\b
+regex: https*://[^/]+/\S+\.(zip|rar|iso|7z|cab|img|arj|z|tar|tgz|(tar\.)*(bgx)z\d*)\b
 basescore: 8.8
 tactic: [TA0001, TA0002]
 technique: [T1566.001, T1105]
