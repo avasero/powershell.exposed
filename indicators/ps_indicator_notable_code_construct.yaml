@@ -13,6 +13,7 @@ reference:
   - https://attack.mitre.org/techniques/T1027/
   - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/powershell/powershell_script/posh_ps_invoke_expression.yml
   - https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1059.001/T1059.001.md
+  - https://bazaar.abuse.ch/sample/7f92ce6ddf632dd49b6052f77857bd03e7e00f89965d9d6648c60773847ba6df/
   - https://clickfix.carsonww.com/domains/tinavanleuven.com
   - https://clickfix.carsonww.com/domains/aaa-fxinvest.com
   - https://clickfix.carsonww.com/domains/adult.cheahpartners.com
