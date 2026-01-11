@@ -14,6 +14,7 @@ reference:
   - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/powershell/powershell_script/posh_ps_invoke_expression.yml
   - https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1059.001/T1059.001.md
   - https://bazaar.abuse.ch/sample/7f92ce6ddf632dd49b6052f77857bd03e7e00f89965d9d6648c60773847ba6df/
+  - https://bazaar.abuse.ch/sample/785d8f70dea1a2cac7b63c00583c3f9fe6faa298a304eb2104a9cc0a73ce2e74/
   - https://clickfix.carsonww.com/domains/tinavanleuven.com
   - https://clickfix.carsonww.com/domains/aaa-fxinvest.com
   - https://clickfix.carsonww.com/domains/adult.cheahpartners.com
