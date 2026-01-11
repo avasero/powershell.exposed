@@ -1,5 +1,9 @@
 name: Notable code construction
-description: Detects PowerShell code patterns commonly associated with dynamic command execution and basic obfuscation, including Invoke-Expression (iex), output redirection for error suppression, wildcard-based command discovery (Get-Alias/Get-Command), and indirect invocation techniques used to execute dynamically constructed code.
+description: >
+  Detects PowerShell code patterns commonly associated with dynamic command execution and basic obfuscation, including Invoke-Expression (iex), output redirection for error suppression,
+  wildcard-based command discovery (Get-Alias/Get-Command), and indirect invocation techniques used to execute dynamically constructed code.
+
+  This might match on legitimate cases. So consider fine-tuning the score/regex to your needs. This regex will be later broke down into multiple smaller pieces focused on obfuscation techniques.
 regex: \b(iex|Invoke[-]Expression)\s+2>&1|\biex\(|\b(gal|gcm)\s+\*|\.\s*'*iex'*|\(\s*gi\s+[\\\]+W*|\biex\s*\(\s*irm\b|iex\s*\(\s*&\s*\(|\$[0-9a-z_\[\]]+\s+(-b(x*or|and|not)|-sh[lr])\s+[\$0-9a-z_]{2,}
 basescore: 10
 tactic: [TA0005]
