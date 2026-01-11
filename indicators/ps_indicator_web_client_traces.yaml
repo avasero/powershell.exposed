@@ -11,3 +11,4 @@ technique: [T1105, T1059.001]
 reference:
   - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/process_creation/proc_creation_win_susp_web_request_cmd_and_cmdlets.yml
   - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/process_creation/proc_creation_win_powershell_download_iex.yml
+  - https://github.com/avasero/psexposed/blob/main/FAQ.md#31-a-few-notes-to-consider-when-using-regex-in-splunkspl
