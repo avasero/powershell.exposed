@@ -1,10 +1,10 @@
 name: Notable code construction
 description: >
-  Detects PowerShell code patterns commonly associated with dynamic command execution and basic obfuscation, including Invoke-Expression (iex), output redirection for error suppression,
+  Detects PowerShell code patterns commonly associated with dynamic command execution and basic obfuscation, output redirection for error suppression,
   wildcard-based command discovery (Get-Alias/Get-Command), and indirect invocation techniques used to execute dynamically constructed code.
 
   This might match on legitimate cases. So consider fine-tuning the score/regex to your needs. This regex will be later broke down into multiple smaller pieces focused on obfuscation techniques.
-regex: \b(iex|Invoke[-]Expression)\s+2>&1|\biex\(|\b(gal|gcm)\s+\*|\.\s*'*iex'*|\(\s*gi\s+[\\\]+W*|\biex\s*\(\s*irm\b|iex\s*\(\s*&\s*\(|\$[0-9a-z_\[\]]+\s+(-b(x*or|and|not)|-sh[lr])\s+[\$0-9a-z_]{2,}|CreateObject\(.*Wscript.Shell.*\)\.Run
+regex: \b(gal|gcm)\s+\*|\(\s*gi\s+[\\\]+W*|\$[0-9a-z_\[\]]+\s+(-b(x*or|and|not)|-sh[lr])\s+[\$0-9a-z_]{2,}|CreateObject\(.*Wscript.Shell.*\)\.Run
 basescore: 10
 tactic: [TA0005]
 technique: [T1059.001, T1027]
@@ -16,8 +16,4 @@ reference:
   - https://bazaar.abuse.ch/sample/7f92ce6ddf632dd49b6052f77857bd03e7e00f89965d9d6648c60773847ba6df/
   - https://bazaar.abuse.ch/sample/785d8f70dea1a2cac7b63c00583c3f9fe6faa298a304eb2104a9cc0a73ce2e74/
   - https://clickfix.carsonww.com/domains/tinavanleuven.com
-  - https://clickfix.carsonww.com/domains/aaa-fxinvest.com
   - https://clickfix.carsonww.com/domains/adult.cheahpartners.com
-  - https://clickfix.carsonww.com/domains/javsenpaiii.pages.dev
-  - https://clickfix.carsonww.com/domains/www.fitnesslife24.ch
-  - https://clickfix.carsonww.com/domains/whm.umeedshiksharath.org
