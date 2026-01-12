@@ -554,7 +554,7 @@ export default function AnalysisDetailsPage() {
 
 
       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-        <div className="flex flex-col sm:flex-row gap-3 items-start">
+        <div className="flex flex-col sm:flex-row gap-3 items-center">
           <div className="flex-1 w-full">
             <CommandInput
               value={newCommand}
@@ -579,6 +579,7 @@ export default function AnalysisDetailsPage() {
         <ErrorMessage message={error} />
 
         <InfoMessage
+          className="max-w-[760px]"
           message={!error && newCommand.length === 0 ? EXAMPLE_COMMAND_DESCRIPTION : ""}
           clickable={!error && newCommand.length === 0}
           onClick={() => setNewCommand(EXAMPLE_ENCODED_COMMAND)}
@@ -619,7 +620,7 @@ export default function AnalysisDetailsPage() {
                           className="h-2 rounded-full transition-all duration-1000"
                           style={{
                             backgroundColor: 'var(--accent)',
-                            width: `${Math.max(0, (timeLeft / 3600) * 100)}%`  // ✅ FIX: Use 3600 (1 hour) instead of 60
+                            width: `${Math.max(0, (timeLeft / 3600) * 100)}%`
                           }}
                         ></div>
                       </div>
@@ -648,7 +649,7 @@ export default function AnalysisDetailsPage() {
               {totalScore.toFixed(1)}
             </div>
             <div className="text-xs sm:text-sm font-mono text-green-400 mb-2">
-              {totalScore === 0 ? "No Malicious Indicators Detected" : "Cumulative score from all patterns"}
+              {totalScore === 0 ? "No Malicious Indicators Detected" : "Based on all matching indicators"}
             </div>
             {result.signatures && result.signatures.length > 0 && (
               <div className="text-xs font-mono text-gray-400  pt-3 mt-3">

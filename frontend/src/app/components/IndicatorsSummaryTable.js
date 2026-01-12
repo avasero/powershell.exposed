@@ -45,6 +45,7 @@ export default function IndicatorsSummaryTable({ signatures }) {
             <thead className="border-y border-green-500/10">
               <tr style={{ backgroundColor: 'var(--card-bg)' }}>
                 <th className="text-left p-3 font-bold" style={{ color: 'var(--accent)' }}>#</th>
+                <th className="text-left p-3 font-bold" style={{ color: 'var(--accent)' }}>Source</th>
                 <th className="text-left p-3 font-bold" style={{ color: 'var(--accent)' }}>Indicator Name</th>
                 <th className="text-left p-3 font-bold" style={{ color: 'var(--accent)' }}>Severity</th>
                 <th className="text-left p-3 font-bold" style={{ color: 'var(--accent)' }}>Score</th>
@@ -63,28 +64,30 @@ export default function IndicatorsSummaryTable({ signatures }) {
                   <td className="p-3" style={{ color: 'var(--muted-foreground)' }}>
                     {index + 1}
                   </td>
+                  <td className="p-3">
+                    {(() => {
+                      const type = sig.indicator_type?.toLowerCase();
+                      if (type === 'community' || type === 'private' || type === 'premium') {
+                        const isCommunity = type === 'community';
+                        return (
+                          <span
+                            className={`inline-flex items-center px-2 py-1 rounded text-xs font-bold border ${isCommunity
+                              ? 'border-blue-500/30 text-blue-400 bg-blue-500/10'
+                              : 'bg-orange-500/20 text-orange-400 border-orange-500/50'
+                              }`}
+                          >
+                            {isCommunity ? 'COMMUNITY' : 'PREMIUM'}
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>—</span>
+                      );
+                    })()}
+                  </td>
                   <td className="p-3 font-semibold" style={{ color: 'var(--foreground)' }}>
-                    <div className="flex flex-col gap-1">
-                      <div className="max-w-xs truncate" title={sig.name}>
-                        {sig.name}
-                      </div>
-                      {(() => {
-                        const type = sig.indicator_type?.toLowerCase();
-                        if (type === 'community' || type === 'private' || type === 'premium') {
-                          const isCommunity = type === 'community';
-                          return (
-                            <span
-                              className={`text-[10px] w-fit px-1.5 py-0.5 rounded border leading-none font-bold ${isCommunity
-                                ? 'border-blue-500/30 text-blue-400 bg-blue-500/10'
-                                : 'bg-orange-500/20 text-orange-400 border-orange-500/50'
-                                }`}
-                            >
-                              {isCommunity ? 'COMMUNITY' : 'PREMIUM'}
-                            </span>
-                          );
-                        }
-                        return null;
-                      })()}
+                    <div className="max-w-xs truncate" title={sig.name}>
+                      {sig.name}
                     </div>
                   </td>
                   <td className="p-3">

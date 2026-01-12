@@ -141,8 +141,8 @@ export default function AnalysisCard({
                 const isCommunity = type === 'community';
                 return (
                   <span
-                    className={`text-xs font-mono px-2 py-1 rounded border ${isCommunity
-                      ? 'border-blue-500/30 text-blue-400 bg-blue-500/10'
+                    className={`font-mono text-xs px-2 py-1 rounded border ${isCommunity
+                      ? 'border-blue-500/50 text-blue-400 bg-blue-500/20'
                       : 'bg-orange-500/20 text-orange-400 border-orange-500/50'
                       }`}
                     title={isCommunity ? 'Community indicator' : 'Private/Premium indicator'}

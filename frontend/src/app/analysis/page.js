@@ -481,7 +481,7 @@ export default function AnalysisPage() {
 
 
       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-        <div className="flex flex-col sm:flex-row gap-3 items-start">
+        <div className="flex flex-col sm:flex-row gap-3 items-center">
           <div className="flex-1 w-full">
             <CommandInput
               value={newCommand}
@@ -504,6 +504,7 @@ export default function AnalysisPage() {
         <ErrorMessage message={error} />
 
         <InfoMessage
+          className="max-w-sm"
           message={!error && newCommand.length === 0 ? EXAMPLE_COMMAND_DESCRIPTION : ""}
           clickable={!error && newCommand.length === 0}
           onClick={() => setNewCommand(EXAMPLE_ENCODED_COMMAND)}
@@ -572,7 +573,7 @@ export default function AnalysisPage() {
               {totalScore.toFixed(1)}
             </div>
             <div className="text-xs sm:text-sm font-mono text-green-400 mb-2">
-              {totalScore === 0 ? "No Malicious Indicators Detected" : "Cumulative score from all patterns"}
+              {totalScore === 0 ? "No Malicious Indicators Detected" : "Based on all matching indicators"}
             </div>
             {result.signatures && result.signatures.length > 0 && (
               <div className="text-xs font-mono text-gray-400  pt-3 mt-3">
@@ -599,9 +600,9 @@ export default function AnalysisPage() {
         </div>
       )}
 
-     
 
-     
+
+
       {result && result.deobfuscated && hasObfuscationIndicator && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-purple-500/30">
@@ -619,7 +620,7 @@ export default function AnalysisPage() {
         </div>
       )}
 
-      
+
       {result && result.decoded && result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
@@ -637,7 +638,7 @@ export default function AnalysisPage() {
         </div>
       )}
 
-    
+
       {result && result.decoded && !result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
@@ -655,7 +656,7 @@ export default function AnalysisPage() {
         </div>
       )}
 
-      
+
       {result && result.doubleDecoded && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-yellow-500/30">
@@ -692,7 +693,7 @@ export default function AnalysisPage() {
 
             return (
               <>
-                
+
                 {realSignatures.length > 0 && (
                   <IndicatorsSummaryTable signatures={realSignatures} />
                 )}
