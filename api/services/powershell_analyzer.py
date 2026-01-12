@@ -62,21 +62,29 @@ async def load_signatures_from_db(user_id: str = None) -> list:
         supabase = get_supabase_client()
         
         
+        # Query standard signatures
         query = supabase.table('powershell_signatures').select('*').eq('is_active', True)
         
         if not is_premium_user:
-            
             query = query.eq('is_premium_indicator', False)
         
         response = query.order('basescore', desc=True).execute()
+        signatures_data = response.data if response.data else []
+
         
-        if response.data:
-            # ✅ Fetch public indicator names for cross-referencing
+        query_premium = supabase.table('premium_indicators').select('*').eq('is_active', True)
+        
+        response_premium = query_premium.order('basescore', desc=True).execute()
+        
+        if response_premium.data:
+            signatures_data.extend(response_premium.data)
+        
+        if signatures_data:
             public_indicators_response = supabase.table('public_indicators').select('name').execute()
             public_indicator_names = {item['name'] for item in public_indicators_response.data} if public_indicators_response.data else set()
 
             converted_signatures = []
-            for sig in response.data:
+            for sig in signatures_data:
                 # determine indicator type
                 sig_name = sig.get("name", "Unknown")
                 indicator_type = "community" if sig_name in public_indicator_names else "private"
