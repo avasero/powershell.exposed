@@ -401,7 +401,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             
             for pattern in signature["patterns"]:
                 try:
-                    regex = re.compile(pattern, re.IGNORECASE | re.MULTILINE | re.DOTALL)
+                    regex = re.compile(pattern, re.IGNORECASE)
                     pattern_matches = list(regex.finditer(cmd_to_test))
                     
                     if pattern_matches:
