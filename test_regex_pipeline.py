@@ -51,7 +51,7 @@ def extract_regex_from_file(filepath: str) -> str | None:
 
 if __name__ == '__main__':
     # Predefined regex to test
-    PREDEFINED_REGEX = r"SOFTWARE[\\\]+Policies[\\\]+Microsoft[\\\]+Windows Defender"
+    PREDEFINED_REGEX = r"a\\\ a"
     
     print("\n" + "=" * 50)
     print("TESTING PREDEFINED REGEX")
