@@ -91,10 +91,10 @@ export async function GET(request) {
         'last_modification': 'updated_at'
       };
 
-      const dbField = sortMapping[sortBy] || 'created_at';
+      const dbField = sortMapping[sortBy] || 'basescore';
       query = query.order(dbField, { ascending: order === 'asc' });
     } else {
-      query = query.order('created_at', { ascending: false });
+      query = query.order('basescore', { ascending: false });
     }
 
     // Apply pagination

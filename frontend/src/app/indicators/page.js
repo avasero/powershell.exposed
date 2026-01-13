@@ -17,9 +17,9 @@ export default function IndicatorsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({});
-  const [pageSize, setPageSize] = useState(20); // Default to 20 results per page
-  const [sortField, setSortField] = useState(""); // Campo atual de ordenação
-  const [sortOrder, setSortOrder] = useState("asc"); // asc ou desc
+  const [pageSize, setPageSize] = useState(20);
+  const [sortField, setSortField] = useState("basescore");
+  const [sortOrder, setSortOrder] = useState("desc");
   const router = useRouter();
 
   const loadIndicators = useCallback(async (search = searchTerm, page = currentPage, sortBy = sortField, order = sortOrder) => {
