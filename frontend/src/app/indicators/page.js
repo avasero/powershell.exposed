@@ -22,25 +22,7 @@ export default function IndicatorsPage() {
   const [sortOrder, setSortOrder] = useState("asc"); // asc ou desc
   const router = useRouter();
 
-  // Debounced search function
-  const debounceSearch = useCallback((searchValue, page) => {
-    const timeoutId = setTimeout(() => {
-      loadIndicators(searchValue, page);
-    }, 500);
-    return () => clearTimeout(timeoutId);
-  }, []);
-
-  useEffect(() => {
-    if (searchTerm === "" && currentPage === 1 && !sortField) {
-      loadIndicators();
-    } else {
-      setSearching(true);
-      const cleanup = debounceSearch(searchTerm, currentPage);
-      return cleanup;
-    }
-  }, [currentPage, searchTerm, pageSize, debounceSearch]);
-
-  const loadIndicators = async (search = searchTerm, page = currentPage) => {
+  const loadIndicators = useCallback(async (search = searchTerm, page = currentPage, sortBy = sortField, order = sortOrder) => {
     try {
       if (search !== searchTerm || page !== currentPage) {
         setSearching(true);
@@ -53,6 +35,11 @@ export default function IndicatorsPage() {
         page: page.toString(),
         limit: pageSize === "All" ? "1000" : pageSize.toString()
       });
+
+      if (sortBy && order) {
+        params.append('sortBy', sortBy);
+        params.append('order', order);
+      }
 
       if (search && search.trim()) {
         params.append('search', search.trim());
@@ -80,9 +67,27 @@ export default function IndicatorsPage() {
       setLoading(false);
       setSearching(false);
     }
-  };
+  }, [searchTerm, currentPage, pageSize, sortField, sortOrder]);
 
-  // Função para ordenar localmente
+  // Debounced search function
+  const debounceSearch = useCallback((searchValue, page, sortBy, order) => {
+    const timeoutId = setTimeout(() => {
+      loadIndicators(searchValue, page, sortBy, order);
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }, [loadIndicators]);
+
+  useEffect(() => {
+    if (searchTerm === "" && currentPage === 1 && !sortField) {
+      loadIndicators();
+    } else {
+      setSearching(true);
+      const cleanup = debounceSearch(searchTerm, currentPage, sortField, sortOrder);
+      return cleanup;
+    }
+  }, [currentPage, searchTerm, pageSize, sortField, sortOrder, debounceSearch, loadIndicators]);
+
+  // Função para ordenar no backend
   const sortIndicators = (field) => {
     let newOrder = "asc";
 
@@ -94,47 +99,7 @@ export default function IndicatorsPage() {
     setSortField(field);
     setSortOrder(newOrder);
 
-    const sorted = [...indicators].sort((a, b) => {
-      let aValue, bValue;
-
-      switch (field) {
-        case "name":
-          aValue = (a.name || "").toLowerCase();
-          bValue = (b.name || "").toLowerCase();
-          break;
-        case "severity":
-          const severityOrder = { "LOW": 1, "MEDIUM": 2, "HIGH": 3, "CRITICAL": 4 };
-          aValue = severityOrder[a.severity?.toUpperCase()] || 0;
-          bValue = severityOrder[b.severity?.toUpperCase()] || 0;
-          break;
-        case "basescore":
-          aValue = a.basescore || 0;
-          bValue = b.basescore || 0;
-          break;
-        case "description":
-          aValue = (a.description || "").toLowerCase();
-          bValue = (b.description || "").toLowerCase();
-          break;
-        case "last_modification":
-          aValue = a.updated_at ? new Date(a.updated_at).getTime() : 0;
-          bValue = b.updated_at ? new Date(b.updated_at).getTime() : 0;
-          break;
-        case "last_modified_by":
-          aValue = (a.last_modified_by || "").toLowerCase();
-          bValue = (b.last_modified_by || "").toLowerCase();
-          break;
-        default:
-          return 0;
-      }
-
-      if (newOrder === "asc") {
-        return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
-      } else {
-        return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
-      }
-    });
-
-    setIndicators(sorted);
+    // O useEffect irá disparar o carregamento quando sortField ou sortOrder mudar
   };
 
   const getSeverityChipClass = (severity) => {

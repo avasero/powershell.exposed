@@ -76,10 +76,31 @@ export async function GET(request) {
       query = query.or(searchFields.join(','));
     }
 
+    // Apply sorting
+    const sortBy = searchParams.get('sortBy');
+    const order = searchParams.get('order');
+
+    if (sortBy && order) {
+      // Map frontend field names to database columns if necessary
+      const sortMapping = {
+        'name': 'name',
+        'severity': 'severity', // Note: Severity might need custom ordering logic if it's text-based but has a semantic order
+        'basescore': 'basescore',
+        'description': 'description',
+        'last_modified_by': 'last_modified_by',
+        'last_modification': 'updated_at'
+      };
+
+      const dbField = sortMapping[sortBy] || 'created_at';
+      query = query.order(dbField, { ascending: order === 'asc' });
+    } else {
+      query = query.order('created_at', { ascending: false });
+    }
+
     // Apply pagination
     query = query.range(offset, offset + limit - 1)
 
-    const { data: indicators, error, count } = await query.order('created_at', { ascending: false })
+    const { data: indicators, error, count } = await query
 
     if (error) {
       console.error('Erro ao buscar indicadores:', error)
