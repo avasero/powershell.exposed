@@ -5,6 +5,8 @@ import { ErrorMessage, InfoMessage } from './Messages';
 import ThemedButton from './ThemedButton';
 import LoadingSpinner from './LoadingSpinner';
 import ApiKeyRevealModal from './ApiKeyRevealModal';
+import { GoKey } from "react-icons/go";
+
 
 export default function ApiKeyManager() {
   const { user, isAuthenticated } = useAuth();
@@ -242,7 +244,7 @@ export default function ApiKeyManager() {
               </div>
             ) : (
               <div className="text-center space-y-4">
-                <div className="text-6xl mb-4">🔑</div>
+                  <GoKey size={60} className="mx-auto text-green-500" />
                 <h3 className="text-lg font-mono font-bold" style={{ color: 'var(--accent)' }}>
                   No API Key Found
                 </h3>
