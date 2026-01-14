@@ -866,7 +866,7 @@ export default function AnalysisDetailsPage() {
       </div>
 
       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-8">
-        <div className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
+        <div className="font-mono text-[12px]" style={{ color: 'var(--muted-foreground)' }}>
           <p className="mb-4">
             The overall <a href="/scoring" className="underline hover:opacity-80" style={{ color: 'var(--accent)' }}>score</a> represents the aggregated base <a href="/scoring" className="underline hover:opacity-80" style={{ color: 'var(--accent)' }}>scores</a> of all uniquely matched indicators. Upcoming premium features will introduce advanced analytics and enhanced <a href="/scoring" className="underline hover:opacity-80" style={{ color: 'var(--accent)' }}>scoring</a> capabilities.
           </p>
