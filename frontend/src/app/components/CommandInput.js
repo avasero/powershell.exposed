@@ -107,27 +107,34 @@ export default function CommandInput({
             disabled={disabled}
             rows={1}
           />
-
-          <div className="absolute bottom-2 right-7 text-xs font-mono opacity-60" style={{ color: value.length >= CHARACTER_LIMIT - 100 ? 'var(--warning)' : 'var(--muted-foreground)' }}>
-            {value.length}/{CHARACTER_LIMIT}
-          </div>
         </div>
       </div>
 
-      {showCharacterWarning && (
-        <div className="mt-2 text-sm font-mono flex items-center gap-2" style={{ color: 'var(--warning)' }}>
-          <span>
-            {value.length >= CHARACTER_LIMIT
-              ? "Your search is capped at 5000 characters"
-              : `Approaching character limit (${CHARACTER_LIMIT - value.length} remaining)`
-            }
-          </span>
-        </div>
-      )}
+      {(value.length > 0 || showCharacterWarning) && (
+        <div className="flex justify-between mt-1">
+          <div className="flex-1">
+            {showCharacterWarning && (
+              <div className="text-sm font-mono flex items-center gap-2" style={{ color: 'var(--warning)' }}>
+                <span>
+                  {value.length >= CHARACTER_LIMIT
+                    ? "Your search is capped at 5000 characters"
+                    : `Approaching character limit (${CHARACTER_LIMIT - value.length} remaining)`
+                  }
+                </span>
+              </div>
+            )}
 
-      {value.includes('\n') && (
-        <div className="mt-1 ml-4 text-xs font-mono opacity-60" style={{ color: 'var(--muted-foreground)' }}>
-          Multi-line command detected. Press Shift+Enter for new lines, Enter to analyze.
+            {value.includes('\n') && (
+              <div className="text-xs font-mono opacity-60 ml-4" style={{ color: 'var(--muted-foreground)' }}>
+                Multi-line command detected. Press Shift+Enter for new lines, Enter to analyze.
+              </div>
+            )}
+          </div>
+          {value.length > 0 && (
+            <span className="text-xs font-mono opacity-60 ml-2 whitespace-nowrap pt-0.5" style={{ color: value.length >= CHARACTER_LIMIT - 100 ? 'var(--warning)' : 'var(--muted-foreground)' }}>
+              {value.length}/{CHARACTER_LIMIT}
+            </span>
+          )}
         </div>
       )}
     </div>
