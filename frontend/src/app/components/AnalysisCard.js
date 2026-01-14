@@ -409,30 +409,7 @@ export default function AnalysisCard({
           </div>
         )}
 
-        {reference && (
-          <div>
-            <div className="text-sm font-mono font-bold mb-2" style={{ color: 'var(--accent)' }}>
-              References:
-            </div>
-            <div className="text-xs">
-              {Array.isArray(reference) ? reference.map((ref, i) => (
-                <div key={i} className="mb-1">
-                  <a href={ref} target="_blank" rel="noopener noreferrer"
-                    className="font-mono hover:underline break-all"
-                    style={{ color: 'var(--primary-blue)' }}>
-                    {ref}
-                  </a>
-                </div>
-              )) : (
-                <a href={reference} target="_blank" rel="noopener noreferrer"
-                  className="font-mono hover:underline break-all"
-                  style={{ color: 'var(--primary-blue)' }}>
-                  {reference}
-                </a>
-              )}
-            </div>
-          </div>
-        )}
+        
 
         {children && (
           <div className="font-mono text-xs sm:text-sm" style={{ color: 'var(--foreground)' }}>
@@ -443,7 +420,6 @@ export default function AnalysisCard({
     );
   }
 
-  // Layout simples para uso geral
   return (
     <div
       className={`border rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 bg-black/80 border-green-500/30 hover:border-green-500/50 transition-all ${className}`}
