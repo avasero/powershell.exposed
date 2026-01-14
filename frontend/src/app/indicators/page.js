@@ -243,71 +243,6 @@ export default function IndicatorsPage() {
           </div>
 
 
-          {pagination.total > 0 && (
-            <div className="flex flex-wrap items-center justify-between gap-4 text-sm font-mono mb-4">
-              <div className="flex flex-wrap gap-4" style={{ color: 'var(--muted-foreground)' }}>
-                <span>Total: <strong style={{ color: 'var(--accent)' }}>{pagination.total}</strong> indicators</span>
-                {pageSize !== "All" ? (
-                  <>
-                    <span>Showing: <strong style={{ color: 'var(--accent)' }}>{((pagination.page - 1) * pageSize) + 1}</strong> - <strong style={{ color: 'var(--accent)' }}>{Math.min(pagination.page * pageSize, pagination.total)}</strong></span>
-                    <span>Page: <strong style={{ color: 'var(--accent)' }}>{pagination.page}</strong> of <strong style={{ color: 'var(--accent)' }}>{pagination.totalPages}</strong></span>
-                  </>
-                ) : (
-                  <span>Showing: <strong style={{ color: 'var(--accent)' }}>All {pagination.total}</strong> indicators</span>
-                )}
-              </div>
-
-
-              {pagination.totalPages > 1 && pageSize !== "All" && (
-                <div className="flex items-center gap-2">
-                  <FiChevronLeft
-                    onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
-                    className={`w-5 h-5 transition-all ${currentPage <= 1 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer hover:opacity-70'}`}
-                    style={{ color: 'var(--accent)' }}
-                  />
-
-                  <div className="flex gap-1">
-                    {[...Array(pagination.totalPages)].map((_, i) => {
-                      const pageNum = i + 1;
-                      if (
-                        pageNum === 1 ||
-                        pageNum === pagination.totalPages ||
-                        (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
-                      ) {
-                        return (
-                          <button
-                            key={pageNum}
-                            onClick={() => setCurrentPage(pageNum)}
-                            className={`px-2 py-1 rounded font-mono text-xs transition-all ${currentPage === pageNum
-                              ? 'bg-green-500/20 border-2 border-green-500/50 font-bold'
-                              : 'border border-green-500/30 hover:bg-green-500/10'
-                              }`}
-                            style={{
-                              color: currentPage === pageNum ? 'var(--accent)' : 'var(--muted-foreground)'
-                            }}
-                          >
-                            {pageNum}
-                          </button>
-                        );
-                      } else if (
-                        pageNum === currentPage - 2 ||
-                        pageNum === currentPage + 2
-                      ) {
-                        return <span key={pageNum} className="px-1" style={{ color: 'var(--muted-foreground)' }}>...</span>;
-                      }
-                      return null;
-                    })}
-                  </div>
-
-                  <FiChevronRight
-                    onClick={() => currentPage < pagination.totalPages && setCurrentPage(currentPage + 1)}
-                    className={`w-5 h-5 transition-all ${currentPage >= pagination.totalPages ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer hover:opacity-70'}`}
-                    style={{ color: 'var(--accent)' }}
-                  />
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {error && <ErrorMessage message={error} />}
@@ -355,13 +290,6 @@ export default function IndicatorsPage() {
                       <span className="inline-flex items-center">Base Score<SortIcon field="basescore" /></span>
                     </th>
                     <th
-                      onClick={() => sortIndicators("description")}
-                      className="px-4 py-3 text-left font-mono text-sm font-bold cursor-pointer hover:bg-green-500/10 transition-colors"
-                      style={{ color: 'var(--accent)' }}
-                    >
-                      <span className="inline-flex items-center">Description<SortIcon field="description" /></span>
-                    </th>
-                    <th
                       onClick={() => sortIndicators("last_modified_by")}
                       className="px-4 py-3 text-left font-mono text-sm font-bold cursor-pointer hover:bg-green-500/10 transition-colors"
                       style={{ color: 'var(--accent)' }}
@@ -391,7 +319,7 @@ export default function IndicatorsPage() {
                           onClick={() => handleIndicatorClick(indicator.id)}
                           className="font-mono text-sm font-bold text-left hover:opacity-80 transition-opacity underline hover:text-green-500"
                         >
-                          {truncateText(indicator.name, 40)}
+                          {indicator.name}
                         </a>
                       </td>
                       <td className="px-4 py-3">
@@ -401,9 +329,6 @@ export default function IndicatorsPage() {
                       </td>
                       <td className="px-4 py-3 font-mono text-sm" style={{ color: 'var(--foreground)' }}>
                         {indicator.basescore || 0}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                        {truncateText(indicator.description, 60)}
                       </td>
                       <td className="px-4 py-3">
                         {indicator.last_modified_by ? (
@@ -482,15 +407,6 @@ export default function IndicatorsPage() {
                   </div>
 
 
-                  {indicator.description && (
-                    <div className="mb-3">
-                      <p className="font-mono text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                        {truncateText(indicator.description, 100)}
-                      </p>
-                    </div>
-                  )}
-
-
                   <div className="pt-3 border-t border-green-500/20 flex items-center justify-between text-xs font-mono">
                     <div className="flex items-center gap-2">
                       {indicator.last_modified_by ? (
@@ -533,6 +449,71 @@ export default function IndicatorsPage() {
                 </div>
               ))}
             </div>
+
+            {pagination.total > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-4 text-sm font-mono mt-6 p-4 border rounded-lg bg-black/80 border-green-500/30">
+                <div className="flex flex-wrap gap-4" style={{ color: 'var(--muted-foreground)' }}>
+                  <span>Total: <strong style={{ color: 'var(--accent)' }}>{pagination.total}</strong> indicators</span>
+                  {pageSize !== "All" ? (
+                    <>
+                      <span>Showing: <strong style={{ color: 'var(--accent)' }}>{((pagination.page - 1) * pageSize) + 1}</strong> - <strong style={{ color: 'var(--accent)' }}>{Math.min(pagination.page * pageSize, pagination.total)}</strong></span>
+                      <span>Page: <strong style={{ color: 'var(--accent)' }}>{pagination.page}</strong> of <strong style={{ color: 'var(--accent)' }}>{pagination.totalPages}</strong></span>
+                    </>
+                  ) : (
+                    <span>Showing: <strong style={{ color: 'var(--accent)' }}>All {pagination.total}</strong> indicators</span>
+                  )}
+                </div>
+
+                {pagination.totalPages > 1 && pageSize !== "All" && (
+                  <div className="flex items-center gap-2">
+                    <FiChevronLeft
+                      onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
+                      className={`w-5 h-5 transition-all ${currentPage <= 1 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer hover:opacity-70'}`}
+                      style={{ color: 'var(--accent)' }}
+                    />
+
+                    <div className="flex gap-1">
+                      {[...Array(pagination.totalPages)].map((_, i) => {
+                        const pageNum = i + 1;
+                        if (
+                          pageNum === 1 ||
+                          pageNum === pagination.totalPages ||
+                          (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                        ) {
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => setCurrentPage(pageNum)}
+                              className={`px-2 py-1 rounded font-mono text-xs transition-all ${currentPage === pageNum
+                                ? 'bg-green-500/20 border-2 border-green-500/50 font-bold'
+                                : 'border border-green-500/30 hover:bg-green-500/10'
+                                }`}
+                              style={{
+                                color: currentPage === pageNum ? 'var(--accent)' : 'var(--muted-foreground)'
+                              }}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        } else if (
+                          pageNum === currentPage - 2 ||
+                          pageNum === currentPage + 2
+                        ) {
+                          return <span key={pageNum} className="px-1" style={{ color: 'var(--muted-foreground)' }}>...</span>;
+                        }
+                        return null;
+                      })}
+                    </div>
+
+                    <FiChevronRight
+                      onClick={() => currentPage < pagination.totalPages && setCurrentPage(currentPage + 1)}
+                      className={`w-5 h-5 transition-all ${currentPage >= pagination.totalPages ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer hover:opacity-70'}`}
+                      style={{ color: 'var(--accent)' }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
           </>
         )}

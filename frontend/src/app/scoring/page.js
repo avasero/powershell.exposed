@@ -1,6 +1,7 @@
 "use client";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import ThemedButton from "../../components/ThemedButton";
+import ThemedButton from "../components/ThemedButton";
 
 const SCORE_RANGES = {
   informational: {
@@ -34,15 +35,15 @@ const SCORE_COLORS = {
 };
 
 export default function ScoringInfoPage() {
+  const router = useRouter();
+
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl">
         <div className="mb-8">
-          <Link href="/">
-            <ThemedButton variant="outline" className="mb-6">
-              ← Back
-            </ThemedButton>
-          </Link>
+          <ThemedButton variant="outline" className="mb-6" onClick={() => router.back()}>
+            ← Back
+          </ThemedButton>
           
           <h1 className="text-3xl sm:text-4xl font-mono font-bold mb-6" style={{color: 'var(--accent)'}}>
             Scoring Information
@@ -61,7 +62,10 @@ export default function ScoringInfoPage() {
                   Basic Tier
                 </p>
                 <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-                  Matches against a limited set of indicators, mostly pattern/regex based and only enables simple, aggregated score.
+                  The Basic tier evaluates payloads against a limited set of indicators, primarily based on pattern and regex matching.
+                </p>
+                <p className="font-mono text-sm mt-2" style={{color: 'var(--muted-foreground)'}}>
+                  Scoring is calculated using a simple, aggregated model.
                 </p>
               </div>
               <div>
@@ -69,7 +73,10 @@ export default function ScoringInfoPage() {
                   Premium Tier
                 </p>
                 <p className="font-mono text-sm" style={{color: 'var(--muted-foreground)'}}>
-                  Besides testing payloads against a wider range of indicators (regex plus behavioral/anomaly), the scoring is based on a weighted model which also outputs a severity label.
+                  The Premium tier expands coverage by evaluating payloads against a broader and more sophisticated indicator set, including both regex-based and behavioral/anomaly-driven detections.
+                </p>
+                <p className="font-mono text-sm mt-2" style={{color: 'var(--muted-foreground)'}}>
+                  Scoring is derived from a weighted model and additionally produces a severity classification.
                 </p>
               </div>
             </div>
@@ -78,24 +85,28 @@ export default function ScoringInfoPage() {
          
           <div className="border rounded-lg p-6 bg-black/80 border-green-500/30">
             <h2 className="text-xl font-mono font-bold mb-4" style={{color: 'var(--accent)'}}>
-              A few notes on the simple, aggregated scoring
+              Notes on Aggregated Scoring
             </h2>
             <ul className="space-y-2">
               <li className="font-mono text-sm flex gap-3" style={{color: 'var(--muted-foreground)'}}>
                 <span style={{color: 'var(--accent)'}}>•</span>
-                <span>Each regex/pattern indicator has a base score.</span>
+                <span>Each regex or pattern-based indicator is assigned a predefined base score.</span>
               </li>
               <li className="font-mono text-sm flex gap-3" style={{color: 'var(--muted-foreground)'}}>
                 <span style={{color: 'var(--accent)'}}>•</span>
-                <span>A few indicators are subject to multi-matching (refer to maxmatch parameter in the YAML).</span>
+                <span>Individual indicator scores are summed to produce the final aggregated score.</span>
               </li>
               <li className="font-mono text-sm flex gap-3" style={{color: 'var(--muted-foreground)'}}>
                 <span style={{color: 'var(--accent)'}}>•</span>
-                <span>Individual indicator scores are summed up to form the aggregated, total score.</span>
+                <span>Certain indicators may match multiple times, subject to the maxmatch parameter defined in the indicator definition (YAML).</span>
               </li>
               <li className="font-mono text-sm flex gap-3" style={{color: 'var(--muted-foreground)'}}>
                 <span style={{color: 'var(--accent)'}}>•</span>
-                <span>Higher scores are NOT necessarily tied to a suspicious payload but larger indicator footprint.</span>
+                <span>Higher aggregated scores do not inherently indicate malicious behavior; they reflect a larger indicator footprint rather than intent or threat severity.</span>
+              </li>
+              <li className="font-mono text-sm flex gap-3" style={{color: 'var(--muted-foreground)'}}>
+                <span style={{color: 'var(--accent)'}}>•</span>
+                <span>Scores are designed to guide analysis and prioritization, not to serve as standalone verdicts of malicious activity.</span>
               </li>
             </ul>
           </div>
@@ -123,11 +134,9 @@ export default function ScoringInfoPage() {
         </div>
 
         <div className="mt-8 text-center">
-          <Link href="/">
-            <ThemedButton>
-              ← Back to Evaluation
-            </ThemedButton>
-          </Link>
+          <ThemedButton onClick={() => router.back()}>
+            ← Back to Evaluation
+          </ThemedButton>
         </div>
       </div>
     </div>

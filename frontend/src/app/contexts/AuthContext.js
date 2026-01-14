@@ -260,7 +260,8 @@ export const AuthProvider = ({ children }) => {
     '/indicators',
     '/',
     '/evaluate',
-    '/info/scoring'
+    '/info/scoring',
+    '/scoring'
   ], []);
 
   useEffect(() => {

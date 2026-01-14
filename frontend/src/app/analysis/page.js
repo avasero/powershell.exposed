@@ -781,11 +781,9 @@ export default function AnalysisPage() {
 
       {result && result.signatures && result.signatures.length > 0 && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-          <div className="border rounded-lg p-4 bg-black/80 border-green-500/30">
+          <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
             <div className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
-              Matched indicators are not inherently suspicious but highlight traces that may require closer examination. For interpretation details, check the link below:
-              <br /><br />
-              <span style={{ color: 'var(--primary-purple)' }}>&lt;wiki link to be provided later&gt;</span>
+              Matched indicators do not automatically imply malicious activity; they surface behavioral patterns that warrant contextual analysis and further investigation.
             </div>
           </div>
         </div>
@@ -816,8 +814,19 @@ export default function AnalysisPage() {
             borderColor: 'var(--success)'
           } : {}}
         >
-          {linkCopied ? 'Copied!' : 'Copy sharable link'}
+          {linkCopied ? 'Copied!' : 'Copy Results Link'}
         </ThemedButton>
+      </div>
+
+      <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-8">
+        <div className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
+          <p className="mb-4">
+            The overall <a href="/scoring" className="underline hover:opacity-80" style={{ color: 'var(--accent)' }}>score</a> represents the aggregated base <a href="/scoring" className="underline hover:opacity-80" style={{ color: 'var(--accent)' }}>scores</a> of all uniquely matched indicators. Upcoming premium features will introduce advanced analytics and enhanced <a href="/scoring" className="underline hover:opacity-80" style={{ color: 'var(--accent)' }}>scoring</a> capabilities.
+          </p>
+          <p>
+            We also offer deployment and advisory services for Splunk customers seeking to implement a PowerShell detection model integrated with Splunk Enterprise Security. Please contact us for further information.
+          </p>
+        </div>
       </div>
     </div>
   );
