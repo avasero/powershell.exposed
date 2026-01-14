@@ -1,17 +1,13 @@
 "use client";
 import Link from 'next/link';
+import { CiCircleInfo } from "react-icons/ci";
+
 
 export default function SeverityLegend({ className = "" }) {
   return (
     <div className={`relative ${className}`}>
       <Link href="/scoring">
-        <button
-          className="w-5 h-5 rounded-full border border-current flex items-center justify-center text-xs font-normal hover:bg-current hover:text-black transition-colors"
-          style={{color: 'var(--accent)', textTransform: 'none'}}
-          title="Score ranges information"
-        >
-          i
-        </button>
+        <CiCircleInfo size={25} className="text-green-500" />
       </Link>
     </div>
   );
