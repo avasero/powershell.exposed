@@ -131,7 +131,6 @@ export default function LoginPage() {
         }
       } else {
         setMagicLinkSent(true);
-        setMessage('Login link sent! Check your email to complete the login.');
       }
     } catch (err) {
       console.error('Unexpected login error:', err);
@@ -149,7 +148,7 @@ export default function LoginPage() {
             Login
           </h1>
           <p className="mt-2 font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
-            {magicLinkSent ? 'Check your email' : 'Enter your email to receive a login link'}
+            {magicLinkSent ? '' : 'Enter your email to receive a login link'}
           </p>
         </div>
 
