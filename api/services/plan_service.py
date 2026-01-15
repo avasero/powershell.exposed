@@ -236,10 +236,12 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
     supabase = get_supabase_client()
     
     # Query for analyses with decoded content (has_decoded_content = true)
+    # Only count FRESH decodes (is_cache = false), not cache hits
     query = supabase.table('powershell_analyses')\
         .select('id, created_at', count='exact')\
         .gte('created_at', window_start.isoformat())\
-        .eq('has_decoded_content', True)
+        .eq('has_decoded_content', True)\
+        .eq('is_cache', False)
         
     if user_id:
         query = query.eq('user_id', user_id)
@@ -260,16 +262,18 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
     result = query.execute()
     current_usage = result.count or 0
     
-    can_decode = current_usage <= limit
+    can_decode = current_usage < limit
     
     # ✅ FIX: Calculate seconds until reset using the oldest record's created_at
     seconds_until_reset = None
     if not can_decode:
         # Query again to get the actual records with created_at
+        # Only count FRESH decodes (is_cache = false)
         records_query = supabase.table('powershell_analyses')\
             .select('created_at')\
             .gte('created_at', window_start.isoformat())\
-            .eq('has_decoded_content', True)
+            .eq('has_decoded_content', True)\
+            .eq('is_cache', False)
         
         if user_id:
             records_query = records_query.eq('user_id', user_id)

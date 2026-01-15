@@ -227,16 +227,18 @@ def decode_powershell(command: str) -> tuple:
     return command, 0, "none", []
 
 
-def analyze_command_patterns(command: str, signatures: list) -> dict:
+def analyze_command_patterns(command: str, signatures: list, allow_decoded_analysis: bool = True) -> dict:
     """
     Analyzes PowerShell command for malicious patterns.
-    
+
     Handles format string decoding and Base64 decoding before pattern matching.
-    
+
     Args:
         command: Raw PowerShell command to analyze
         signatures: List of signature dictionaries to match against
-        
+        allow_decoded_analysis: If False, only analyze the raw command (not decoded content).
+                               Used when user has reached decode quota limit.
+
     Returns:
         dict: Analysis results including detected_signatures, total_score, etc.
     """
@@ -317,70 +319,71 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             tactics_set.update(double_encoded_sig.get("tactics", ["Defense Evasion"]))
             techniques_set.update(double_encoded_sig.get("techniques", ["T1027.010", "T1140"]))
             total_score += double_encoded_sig["score"]
-            
-    
-    encoding_detection = detectors.detect_encoded_command(raw_command)
-    
-    
-    
-    if encoding_detection["is_encoded"]:
-        encoded_sig = next((sig for sig in signatures if sig.get("name") == "Encoded Command Detected"), None)
-        
-        if encoded_sig:
-            detected_signatures.append({
-                "name": "Encoded Command Detected",
-                "description": f"Command encoding detected: {encoding_detection['indicator']} (confidence: {encoding_detection['confidence']:.0%})",
-                "severity": encoded_sig["severity"],
-                "base_score": encoded_sig["score"],
-                "matches_found": 1,
-                "total_score": encoded_sig["score"],
-                "max_match_allowed": 1,
-                "pattern": encoding_detection["type"],
-                "matches_details": [{
-                    "matched_text": encoding_detection.get("decoded_preview", "Unable to decode"),
-                    "position": {"start": 0, "end": len(raw_command)},
-                    "match_number": 1,
-                    "matched_in": "original"
-                }],
-                "tactics": encoded_sig.get("tactics", ["Defense Evasion"]),
-                "techniques": encoded_sig.get("techniques", ["T1027", "T1027.001", "T1140"]),
-                "reference": encoded_sig.get("reference", []),
-                "link": encoded_sig.get("link"),
-                "is_premium_indicator": False,
-                "indicator_type": encoded_sig.get("indicator_type", "community"),
-                "found_in_decoded": False
-            })
-            
-            tactics_set.update(encoded_sig.get("tactics", ["Defense Evasion"]))
-            techniques_set.update(encoded_sig.get("techniques", ["T1027", "T1027.001", "T1140"]))
-            total_score += encoded_sig["score"]
-            
 
-    
-    has_encoded_command_indicator = any(
-        sig.get("name") == "Encoded Command Detected" 
-        for sig in detected_signatures
-    )
+            # Also add Encoded Command Detected when double encoding is present
+            encoding_detection = detectors.detect_encoded_command(raw_command)
+            encoded_sig = next((sig for sig in signatures if sig.get("name") == "Encoded Command Detected"), None)
+
+            if encoded_sig and encoding_detection["is_encoded"]:
+                detected_signatures.append({
+                    "name": "Encoded Command Detected",
+                    "description": f"Command encoding detected: {encoding_detection['indicator']} (confidence: {encoding_detection['confidence']:.0%})",
+                    "severity": encoded_sig["severity"],
+                    "base_score": encoded_sig["score"],
+                    "matches_found": 1,
+                    "total_score": encoded_sig["score"],
+                    "max_match_allowed": 1,
+                    "pattern": encoding_detection["type"],
+                    "matches_details": [{
+                        "matched_text": encoding_detection.get("decoded_preview", "Unable to decode"),
+                        "position": {"start": 0, "end": len(raw_command)},
+                        "match_number": 1,
+                        "matched_in": "original"
+                    }],
+                    "tactics": encoded_sig.get("tactics", ["Defense Evasion"]),
+                    "techniques": encoded_sig.get("techniques", ["T1027", "T1027.001", "T1140"]),
+                    "reference": encoded_sig.get("reference", []),
+                    "link": encoded_sig.get("link"),
+                    "is_premium_indicator": False,
+                    "indicator_type": encoded_sig.get("indicator_type", "community"),
+                    "found_in_decoded": False
+                })
+
+                tactics_set.update(encoded_sig.get("tactics", ["Defense Evasion"]))
+                techniques_set.update(encoded_sig.get("techniques", ["T1027", "T1027.001", "T1140"]))
+                total_score += encoded_sig["score"]
+
+    encoding_detection = detectors.detect_encoded_command(raw_command)
+
+    # Note: We detect encoded commands for decoding purposes but don't display them as indicators
+    # The decoding functionality and quota tracking are preserved
+
+    has_encoded_command_indicator = encoding_detection["is_encoded"]
     
     
     commands_to_analyze = [raw_command]
-    
-    
+
+
     commands_set = {raw_command}
-    
-    # Add base64 decoded command from decode_powershell
-    if decode_iterations >= 1 and fully_decoded and fully_decoded != command:
-        commands_set.add(fully_decoded)
-    
-    # Add first_decoded from detect_encoded_command (may be different/more complete)
-    if first_decoded and first_decoded != command:
-        commands_set.add(first_decoded)
-    
-    # Add double decoded if available
-    if double_decoded:
-        commands_set.add(double_decoded)
-    
+
+    # Only add decoded commands if allowed (user has decode quota available)
+    if allow_decoded_analysis:
+        # Add base64 decoded command from decode_powershell
+        if decode_iterations >= 1 and fully_decoded and fully_decoded != command:
+            commands_set.add(fully_decoded)
+
+        # Add first_decoded from detect_encoded_command (may be different/more complete)
+        if first_decoded and first_decoded != command:
+            commands_set.add(first_decoded)
+
+        # Add double decoded if available
+        if double_decoded:
+            commands_set.add(double_decoded)
+    else:
+        print(f"[ANALYZE] Decode limit reached - analyzing RAW command only (no decoded content)")
+
     commands_to_analyze = list(commands_set)
+    print(f"[ANALYZE] Commands to analyze: {len(commands_to_analyze)} (allow_decoded={allow_decoded_analysis})")
     
     # ✅ OPTIMIZATION: Pre-filter signatures to skip
     skip_signatures = {"Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected"}
@@ -484,44 +487,48 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
     
   
    
+    # Only return decoded content if analysis was allowed
+    # This prevents has_decoded_content from being set when limit is reached
     return {
         "detected_signatures": detected_signatures,
         "total_score": total_score,
         "tactics": list(tactics_set),
         "techniques": list(techniques_set),
-        "decoded_command": first_decoded,
-        "double_decoded_command": double_decoded
+        "decoded_command": first_decoded if allow_decoded_analysis else None,
+        "double_decoded_command": double_decoded if allow_decoded_analysis else None
     }
 
 
-def analyze_with_sanitization(command: str, signatures: list) -> dict:
+def analyze_with_sanitization(command: str, signatures: list, allow_decoded_analysis: bool = True) -> dict:
     """
     Analyzes PowerShell command with conditional sanitization.
-    
+
     First analyzes the raw command, then applies sanitization methods
     that are triggered by specific indicators. If sanitization reveals
     new indicators, uses the sanitized version.
-    
+
     Args:
         command: Raw PowerShell command to analyze
         signatures: List of signature dictionaries to match against
-        
+        allow_decoded_analysis: If False, only analyze the raw command (not decoded content).
+                               Used when user has reached decode quota limit.
+
     Returns:
         dict: Analysis results with sanitization info included
     """
     # Helper function to extract indicator names from analysis
     def get_indicators(cmd: str) -> list[str]:
-        result = analyze_command_patterns(cmd, signatures)
+        result = analyze_command_patterns(cmd, signatures, allow_decoded_analysis)
         return get_detected_indicator_names(result)
-    
+
     # Apply conditional sanitization
     sanitization_result = apply_sanitization(command, get_indicators)
-    
+
     # If sanitization was applied, analyze the sanitized command
     if sanitization_result["was_sanitized"]:
         final_command = sanitization_result["sanitized_command"]
-        analysis_result = analyze_command_patterns(final_command, signatures)
-        
+        analysis_result = analyze_command_patterns(final_command, signatures, allow_decoded_analysis)
+
         # Add sanitization metadata to the result
         analysis_result["sanitization"] = {
             "was_sanitized": True,
@@ -530,13 +537,13 @@ def analyze_with_sanitization(command: str, signatures: list) -> dict:
         }
     else:
         # No sanitization needed, analyze original command
-        analysis_result = analyze_command_patterns(command, signatures)
+        analysis_result = analyze_command_patterns(command, signatures, allow_decoded_analysis)
         analysis_result["sanitization"] = {
             "was_sanitized": False,
             "original_command": command,
             "applied_methods": []
         }
-    
+
     return analysis_result
 
 

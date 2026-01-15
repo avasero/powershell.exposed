@@ -243,14 +243,53 @@ async def analyze_command_endpoint(
                 if double_decoded_cmd:
                     double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
                     print(f"[MASKING] double_decoded_command masked")
-                
-                # ✅ FIX: Mask matched_text in signatures to prevent leak
+
+                # ✅ FIX: Filter out signatures that were found in decoded content
+                # When decode limit reached, user should not benefit from decoded analysis
                 signatures_detected = results_blob.get("signatures_detected", [])
+                filtered_signatures = []
+                recalculated_score = 0.0
+                filtered_tactics = set()
+                filtered_techniques = set()
+
                 for signature in signatures_detected:
+                    # Check if signature was found in decoded content
+                    # Method 1: Check found_in_decoded field
+                    found_in_decoded = signature.get("found_in_decoded", False)
+
+                    # Method 2: Check if any match has matched_in: "decoded" (for old cache entries)
                     matches = signature.get("matches_details", [])
+                    has_decoded_match = any(
+                        match.get("matched_in") == "decoded" for match in matches
+                    )
+
+                    # Filter out if found in decoded content by either method
+                    if found_in_decoded or has_decoded_match:
+                        print(f"[DECODE LIMIT] Filtering signature: {signature.get('name')} (found_in_decoded={found_in_decoded}, has_decoded_match={has_decoded_match})")
+                        continue
+
+                    # Keep this signature - mask matched_text to prevent any leak
                     for match in matches:
                         if "matched_text" in match:
                             match["matched_text"] = "[PREMIUM_PROTECTED_CONTENT]"
+                    filtered_signatures.append(signature)
+                    recalculated_score += signature.get("total_score", 0)
+                    filtered_tactics.update(signature.get("tactics", []))
+                    filtered_techniques.update(signature.get("techniques", []))
+
+                # Update results_blob with filtered data
+                results_blob["signatures_detected"] = filtered_signatures
+                results_blob["detected_signatures"] = filtered_signatures
+                results_blob["risk_score"] = round(recalculated_score, 1)
+                results_blob["total_score"] = recalculated_score
+                results_blob["tactics"] = list(filtered_tactics)
+                results_blob["techniques"] = list(filtered_techniques)
+                results_blob["detected_count"] = len(filtered_signatures)
+
+                # Recalculate severity based on new score
+                results_blob["severity"] = calculate_severity_and_risk(recalculated_score)
+
+                print(f"[DECODE LIMIT] Filtered {len(signatures_detected) - len(filtered_signatures)} decoded-only signatures from cache")
 
             
             return JSONResponse({
@@ -288,7 +327,7 @@ async def analyze_command_endpoint(
         
         # ✅ Fresh analysis continues here (counters already incremented above)
         signatures = await load_signatures_from_db(user_id=user_id)
-        
+
         if not signatures:
             return JSONResponse(
                 {
@@ -300,9 +339,15 @@ async def analyze_command_endpoint(
                 },
                 status_code=503
             )
-        
+
+        # ✅ Check decode permission BEFORE analysis
+        # When limit is reached, only analyze the encoded command string itself
+        decode_info = await can_user_decode_commands(user_id, session_id=session_id, command=command)
+        allow_decoded_analysis = decode_info["can_decode"]
+
         # ✅ Fresh analysis with sanitization support
-        analysis_result = analyze_with_sanitization(command, signatures)
+        # If decode limit reached, only analyze raw encoded command (not decoded content)
+        analysis_result = analyze_with_sanitization(command, signatures, allow_decoded_analysis)
         severity = calculate_severity_and_risk(analysis_result["total_score"])
         
         analysis_result.update({
@@ -321,11 +366,8 @@ async def analyze_command_endpoint(
             
             cache_saved = await save_to_cache(phash, indicators_matched, cache_compatible_result)
         
-        # ✅ OPTIMIZATION: Prepare decode check in parallel with DB save
-        import asyncio
-        
-        # Start DB save and decode check in parallel
-        db_task = asyncio.create_task(save_analysis_to_db(
+        # Save to DB (decode_info already fetched before analysis)
+        db_result = await save_analysis_to_db(
             command=command,
             analysis_result=analysis_result,
             user_id=user_id,
@@ -335,34 +377,26 @@ async def analyze_command_endpoint(
             search_type=search_type,
             user_agent=user_agent,
             is_cache=False
-        ))
-        
-        decode_task = asyncio.create_task(can_user_decode_commands(user_id, session_id=session_id, command=command))
-        
-        # Wait for both operations
-        db_result, decode_info = await asyncio.gather(db_task, decode_task)
-        
-        # Remove old sequential code
-        is_premium_user = False
-        if user_id:
-            supabase = get_supabase_client()
-            profile_response = supabase.table('profiles').select('is_premium_user').eq('id', user_id).single().execute()
-            if profile_response.data:
-                is_premium_user = profile_response.data.get('is_premium_user', False)
-        
+        )
+
         # Mask content for non-premium users
         decoded_cmd = analysis_result.get("decoded_command")
         double_decoded_cmd = analysis_result.get("double_decoded_command")
-        
-        # ✅ decode_info already fetched in parallel above
+
+        # decode_info was already fetched before analysis
         print(f"[DECODE CHECK] User: {user_id[:8] if user_id else 'ANON'}... | Can decode: {decode_info['can_decode']} | Usage: {decode_info['current_usage']}/{decode_info['limit']}")
-        print(f"[DECODE CHECK] ✅ decode_info being sent to frontend: {decode_info}")
         
         # Mask content for users without decode permission
         decode_limit_reached = False
+        final_signatures = analysis_result["detected_signatures"]
+        final_score = analysis_result["total_score"]
+        final_severity = severity
+        final_tactics = analysis_result["tactics"]
+        final_techniques = analysis_result["techniques"]
+
         if not decode_info["can_decode"]:
             decode_limit_reached = True
-                
+
             if decoded_cmd:
                 decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
                 print(f"[MASKING] decoded_command masked")
@@ -370,28 +404,61 @@ async def analyze_command_endpoint(
                 double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
                 print(f"[MASKING] double_decoded_command masked")
 
-            # ✅ FIX: Mask matched_text in signatures to prevent leak
+            # ✅ FIX: Filter out signatures found in decoded content (safety measure)
+            # Analysis with allow_decoded_analysis=False shouldn't produce these, but filter anyway
+            filtered_signatures = []
+            recalculated_score = 0.0
+            filtered_tactics = set()
+            filtered_techniques = set()
+
             for signature in analysis_result["detected_signatures"]:
+                # Check if signature was found in decoded content
+                found_in_decoded = signature.get("found_in_decoded", False)
+
+                # Also check if any match has matched_in: "decoded"
                 matches = signature.get("matches_details", [])
+                has_decoded_match = any(
+                    match.get("matched_in") == "decoded" for match in matches
+                )
+
+                # Filter out if found in decoded content by either method
+                if found_in_decoded or has_decoded_match:
+                    print(f"[DECODE LIMIT] Filtering signature: {signature.get('name')} (found_in_decoded={found_in_decoded}, has_decoded_match={has_decoded_match})")
+                    continue
+
+                # Keep this signature - mask matched_text to prevent any leak
                 for match in matches:
                     if "matched_text" in match:
                         match["matched_text"] = "[PREMIUM_PROTECTED_CONTENT]"
+                filtered_signatures.append(signature)
+                recalculated_score += signature.get("total_score", 0)
+                filtered_tactics.update(signature.get("tactics", []))
+                filtered_techniques.update(signature.get("techniques", []))
+
+            final_signatures = filtered_signatures
+            final_score = recalculated_score
+            final_severity = calculate_severity_and_risk(recalculated_score)
+            final_tactics = list(filtered_tactics)
+            final_techniques = list(filtered_techniques)
+
+            if len(analysis_result["detected_signatures"]) != len(filtered_signatures):
+                print(f"[DECODE LIMIT] Filtered {len(analysis_result['detected_signatures']) - len(filtered_signatures)} decoded-only signatures")
 
         return JSONResponse({
             "success": True,
             "from_cache": False,
             "analysis": {
                 "command": command,
-                "risk_score": round(analysis_result["total_score"], 1),
-                "severity": severity,
-                "signatures_detected": analysis_result["detected_signatures"],
-                "tactics": analysis_result["tactics"],
-                "techniques": analysis_result["techniques"],
+                "risk_score": round(final_score, 1),
+                "severity": final_severity,
+                "signatures_detected": final_signatures,
+                "tactics": final_tactics,
+                "techniques": final_techniques,
                 "decoded_command": decoded_cmd,
                 "double_decoded_command": double_decoded_cmd,
                 "decode_limit_reached": decode_limit_reached,
                 "total_signatures_checked": len(signatures),
-                "detected_count": len(analysis_result["detected_signatures"]),
+                "detected_count": len(final_signatures),
                 "cache_info": {
                     "cached": cache_saved,
                     "cache_hit": False,
@@ -672,6 +739,12 @@ async def get_analysis_by_id_endpoint(
         
         
         decode_limit_reached = False
+        final_signatures = analysis_data.get("signatures_detected", [])
+        final_score = analysis_data.get("risk_score", 0)
+        final_severity = analysis_data.get("severity", "informational")
+        final_tactics = analysis_data.get("tactics", [])
+        final_techniques = analysis_data.get("techniques", [])
+
         if not decode_info["can_decode"]:
             decode_limit_reached = True
 
@@ -681,25 +754,55 @@ async def get_analysis_by_id_endpoint(
                 double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
             if deobfuscated_cmd:
                 deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
-            
-            # ✅ FIX: Mask matched_text in signatures to prevent leak
+
+            # ✅ FIX: Filter out signatures found in decoded content
             signatures_detected = analysis_data.get("signatures_detected", [])
-            if signatures_detected:
-                for signature in signatures_detected:
-                    matches = signature.get("matches_details", [])
-                    if matches:
-                        for match in matches:
-                            if "matched_text" in match:
-                                match["matched_text"] = "[PREMIUM_PROTECTED_CONTENT]"
+            filtered_signatures = []
+            recalculated_score = 0.0
+            filtered_tactics = set()
+            filtered_techniques = set()
+
+            for signature in signatures_detected:
+                # Check if signature was found in decoded content
+                found_in_decoded = signature.get("found_in_decoded", False)
+
+                # Also check if any match has matched_in: "decoded"
+                matches = signature.get("matches_details", [])
+                has_decoded_match = any(
+                    match.get("matched_in") == "decoded" for match in matches
+                )
+
+                # Filter out if found in decoded content by either method
+                if found_in_decoded or has_decoded_match:
+                    print(f"[GET ANALYSIS] Filtering signature: {signature.get('name')} (found_in_decoded={found_in_decoded}, has_decoded_match={has_decoded_match})")
+                    continue
+
+                # Keep this signature - mask matched_text to prevent any leak
+                for match in matches:
+                    if "matched_text" in match:
+                        match["matched_text"] = "[PREMIUM_PROTECTED_CONTENT]"
+                filtered_signatures.append(signature)
+                recalculated_score += signature.get("total_score", 0)
+                filtered_tactics.update(signature.get("tactics", []))
+                filtered_techniques.update(signature.get("techniques", []))
+
+            final_signatures = filtered_signatures
+            final_score = round(recalculated_score, 1)
+            final_severity = calculate_severity_and_risk(recalculated_score)
+            final_tactics = list(filtered_tactics)
+            final_techniques = list(filtered_techniques)
+
+            print(f"[GET ANALYSIS] Filtered {len(signatures_detected) - len(filtered_signatures)} decoded-only signatures")
 
         safe_analysis = {
             "id": analysis_data.get("id"),
             "command": analysis_data.get("command"),
             "analysis_result": analysis_data.get("analysis_result"),
-            "risk_score": analysis_data.get("risk_score"),
-            "signatures_detected": analysis_data.get("signatures_detected"),
-            "tactics": analysis_data.get("tactics"),
-            "techniques": analysis_data.get("techniques"),
+            "risk_score": final_score,
+            "severity": final_severity,
+            "signatures_detected": final_signatures,
+            "tactics": final_tactics,
+            "techniques": final_techniques,
             "decoded_command": decoded_cmd,
             "double_decoded_command": double_decoded_cmd,
             "deobfuscated_command": deobfuscated_cmd,
