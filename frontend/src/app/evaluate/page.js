@@ -224,7 +224,7 @@ export default function EvaluatePage() {
               powershell.exposed
             </h1>
 
-            <div className="flex flex-col sm:flex-row gap-3 w-full sm:items-center">
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:items-start">
               <div className="flex-1 min-w-0">
                 <CommandInput
                   value={command}
@@ -238,7 +238,7 @@ export default function EvaluatePage() {
                 <ThemedButton
                   type="submit"
                   disabled={command.length === 0 || loading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
-                  className="w-full sm:w-auto px-6 py-3"
+                  className="w-full sm:w-auto px-6 py-3 mt-[11px]"
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">

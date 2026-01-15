@@ -131,7 +131,7 @@ export default function CommandInput({
             )}
           </div>
           {value.length > 0 && (
-            <span className="text-xs mr-2 font-mono opacity-60 ml-2 whitespace-nowrap pt-0.5" style={{ color: value.length >= CHARACTER_LIMIT - 100 ? 'var(--warning)' : 'var(--muted-foreground)' }}>
+            <span className="text-xs mr-2 font-mono opacity-60 ml-2 whitespace-nowrap " style={{ color: value.length >= CHARACTER_LIMIT - 100 ? 'var(--warning)' : 'var(--muted-foreground)' }}>
               {value.length}/{CHARACTER_LIMIT}
             </span>
           )}
