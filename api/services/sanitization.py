@@ -1,4 +1,4 @@
-import re
+import regex
 from typing import Callable, Optional
 
 

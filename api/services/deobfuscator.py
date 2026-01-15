@@ -1,18 +1,18 @@
-import re
+import regex
 
 def normalize_quotes(s: str) -> str:
     s = s.replace('“', '"').replace('”', '"').replace('‘', "'").replace('’', "'")
     s = s.replace('`', "'")
-    s = re.sub(r'[\u200b-\u200f\uFEFF]', '', s)
+    s = regex.sub(r'[\u200b-\u200f\uFEFF]', '', s)
     return s
 
-format_pattern = re.compile(
+format_pattern = regex.compile(
     r'\(\s*("(?:(?:\\")|[^"])*"|\'(?:(?:\\\')|[^\'])*\')\s*-f\s*([^\)]+)\)',
-    flags=re.IGNORECASE
+    flags=regex.IGNORECASE
 )
 
 def parse_args(args_text: str):
-    args = re.findall(r'(["\'])(.*?)\1', args_text)
+    args = regex.findall(r'(["\'])(.*?)\1', args_text)
     return [a[1] for a in args]
 
 def apply_format(match):
@@ -28,10 +28,10 @@ def apply_format(match):
 
 def deobfuscate_once(s: str) -> str:
     s_new = format_pattern.sub(lambda m: apply_format(m), s)
-    s_new = re.sub(r'\)\s*\(', '', s_new)
-    s_new = re.sub(r'&\s*', '', s_new)
-    s_new = re.sub(r'\.\s*(Invoke|Start|Execute)\s*\(\s*([^\)]+)\s*\)', r'\2', s_new, flags=re.IGNORECASE)
-    s_new = re.sub(r'\s{2,}', ' ', s_new)
+    s_new = regex.sub(r'\)\s*\(', '', s_new)
+    s_new = regex.sub(r'&\s*', '', s_new)
+    s_new = regex.sub(r'\.\s*(Invoke|Start|Execute)\s*\(\s*([^\)]+)\s*\)', r'\2', s_new, flags=regex.IGNORECASE)
+    s_new = regex.sub(r'\s{2,}', ' ', s_new)
     return s_new
 ##test
 def deobfuscate(s: str, max_iters=20) -> str:
@@ -42,7 +42,7 @@ def deobfuscate(s: str, max_iters=20) -> str:
         s = deobfuscate_once(s)
         if s == previous:
             break
-    s = re.sub(r"'\s*'","'", s)
+    s = regex.sub(r"'\s*'","'", s)
     if s.startswith("'") and s.endswith("'") and s.count("'") == 2:
         s = s[1:-1]
     return s.strip()

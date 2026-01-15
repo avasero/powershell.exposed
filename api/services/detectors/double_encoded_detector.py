@@ -1,4 +1,4 @@
-import re
+import regex
 import base64
 
 # Import pattern from central location
@@ -40,7 +40,7 @@ def detect_double_encoded_command(
             }
         
       
-        match = re.search(ENCODED_COMMAND_PATTERN, decoded_command, re.IGNORECASE)
+        match = regex.search(ENCODED_COMMAND_PATTERN, decoded_command, regex.IGNORECASE)
         
         if match:
             base64_payload = match.group(1)

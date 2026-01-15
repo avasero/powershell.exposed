@@ -1,5 +1,4 @@
 import regex
-import re
 
 test_string = "a"
 

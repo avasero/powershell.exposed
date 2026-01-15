@@ -1,4 +1,4 @@
-import re
+import regex
 import base64
 
 # Import pattern from central location
@@ -34,7 +34,7 @@ def detect_encoded_command(command: str) -> dict:
        
         
     
-        match = re.search(ENCODED_COMMAND_PATTERN, command, re.IGNORECASE)
+        match = regex.search(ENCODED_COMMAND_PATTERN, command, regex.IGNORECASE)
         
        
         

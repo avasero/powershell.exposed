@@ -4,7 +4,7 @@ Script to test regex validation exactly like the GitHub Actions pipeline does.
 Mimics Step 5: Regex Patterns from validate-indicators-pr.yml
 """
 
-import re
+import regex
 import sys
 
 
@@ -12,7 +12,7 @@ def validate_regex_like_pipeline(pattern: str) -> bool:
     """
     Validates a regex pattern exactly like the pipeline does.
     
-    The pipeline uses Python's re.compile() to validate patterns.
+    The pipeline uses Python's regex.compile() to validate patterns.
     """
     print("=" * 50)
     print("STEP 5: REGEX PATTERNS (Pipeline Simulation)")
@@ -22,12 +22,12 @@ def validate_regex_like_pipeline(pattern: str) -> bool:
     print()
     
     try:
-        compiled = re.compile(pattern)
+        compiled = regex.compile(pattern)
         print("✅ Regex valid")
         print(f"   Compiled pattern: {compiled.pattern!r}")
         print(f"   Groups: {compiled.groups}")
         return True
-    except re.error as e:
+    except regex.error as e:
         print(f"❌ Invalid regex: {e}")
         print(f"   Error position: {e.pos if hasattr(e, 'pos') else 'N/A'}")
         return False
@@ -74,7 +74,7 @@ if __name__ == '__main__':
             "aaaa",
             r"aaa\\a",
         ]
-        compiled = re.compile(PREDEFINED_REGEX)
+        compiled = regex.compile(PREDEFINED_REGEX)
         for s in test_strings:
             match = compiled.search(s)
             status = "✅ MATCH" if match else "❌ NO MATCH"

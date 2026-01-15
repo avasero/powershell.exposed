@@ -96,16 +96,16 @@ jobs:
           
           cat > /tmp/validate_yaml.py << 'PYSCRIPT'
           import yaml
-          import re
+          import regex
           import sys
-          
+
           filepath = sys.argv[1]
           with open(filepath, 'r', encoding='utf-8') as f:
               content = f.read()
-          
+
           # Remove regex field entirely to avoid false positives from complex patterns
-          content_no_regex = re.sub(r'^regex:.*?(?=^\w|\Z)', '', content, flags=re.MULTILINE | re.DOTALL)
-          
+          content_no_regex = regex.sub(r'^regex:.*?(?=^\w|\Z)', '', content, flags=regex.MULTILINE | regex.DOTALL)
+
           try:
               yaml.safe_load(content_no_regex)
               print("  OK")
@@ -180,7 +180,6 @@ jobs:
           import os
           import sys
           import json
-          import re
           import urllib.request
           import urllib.error
           
@@ -337,19 +336,19 @@ jobs:
           
           cat > /tmp/validate.py << 'PYSCRIPT'
           import yaml
-          import re
+          import regex
           import sys
-          
+
           filepath = sys.argv[1]
           with open(filepath, 'r', encoding='utf-8') as f:
               content = f.read()
-          
+
           # Remove regex field to avoid parsing issues
-          content_no_regex = re.sub(r'^regex:.*?(?=^\w|\Z)', '', content, flags=re.MULTILINE | re.DOTALL)
+          content_no_regex = regex.sub(r'^regex:.*?(?=^\w|\Z)', '', content, flags=regex.MULTILINE | regex.DOTALL)
           data = yaml.safe_load(content_no_regex)
-          
+
           errors = 0
-          
+
           bs = data.get('basescore')
           try:
               val = float(bs)
@@ -359,7 +358,7 @@ jobs:
           except:
               print(f"  basescore must be number, got: {bs}")
               errors += 1
-          
+
           refs = data.get('reference', [])
           if isinstance(refs, str):
               refs = [refs]
@@ -393,33 +392,33 @@ jobs:
           ERRORS=0
           
           cat > /tmp/validate_regex.py << 'PYSCRIPT'
-          import re
+          import regex
           import sys
-          
+
           def extract_regex_raw(filepath):
               """Extract regex pattern directly from file without YAML parsing."""
               with open(filepath, 'r', encoding='utf-8') as f:
                   content = f.read()
-              
+
               for line in content.split('\n'):
                   if line.startswith('regex:'):
                       value = line[6:].strip()
                       if value:
                           return value
               return None
-          
+
           filepath = sys.argv[1]
           pattern = extract_regex_raw(filepath)
-          
+
           if not pattern:
               print("No regex found")
               sys.exit(1)
-          
+
           try:
-              re.compile(pattern)
+              regex.compile(pattern)
               print("Regex valid")
               sys.exit(0)
-          except re.error as e:
+          except regex.error as e:
               print(f"Invalid regex: {e}")
               sys.exit(1)
           PYSCRIPT
@@ -458,11 +457,11 @@ jobs:
           
           # Create script to quote regex field in YAML content
           cat > /tmp/quote_regex.py << 'PYSCRIPT'
-          import re
+          import regex
           import sys
-          
+
           content = sys.stdin.read()
-          
+
           # Find regex line and quote it if not already quoted
           def quote_regex(match):
               prefix = match.group(1)  # "regex: " or "regex:"
@@ -474,9 +473,9 @@ jobs:
               # Escape single quotes in value and wrap in single quotes
               escaped = value.replace("'", "''")
               return f"{prefix}'{escaped}'"
-          
+
           # Match regex: followed by value (not a list)
-          result = re.sub(r'^(regex:\s*)([^\n]+)$', quote_regex, content, flags=re.MULTILINE)
+          result = regex.sub(r'^(regex:\s*)([^\n]+)$', quote_regex, content, flags=regex.MULTILINE)
           print(result, end='')
           PYSCRIPT
           

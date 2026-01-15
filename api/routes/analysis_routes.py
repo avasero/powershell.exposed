@@ -607,9 +607,9 @@ async def get_analysis_by_id_endpoint(
                     status_code=404
                 )
         else:
-            import re
+            import regex
             uuid_pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-            is_uuid = re.match(uuid_pattern, analysis_id, re.IGNORECASE)
+            is_uuid = regex.match(uuid_pattern, analysis_id, regex.IGNORECASE)
             
             if is_uuid:
                 response = supabase.table('powershell_analyses').select('*').eq('uuid', analysis_id).single().execute()
