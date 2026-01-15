@@ -548,7 +548,7 @@ def analyze_with_sanitization(command: str, signatures: list, allow_decoded_anal
 
 
 def calculate_severity_and_risk(total_score: float) -> str:
-    """Calcula severidade baseado no score total
+    """
     Score Ranges:
     - 10.0+: Critical (Red) - Extremely notable, likely suspicious activity
     - 8.0 - 9.99: High (Orange) - Highly notable activity
@@ -643,7 +643,8 @@ async def save_analysis_to_db(
 
 
 def clear_signatures_cache():
-    """Limpa o cache de assinaturas"""
+    """Clear the in-memory signatures cache
+    """
     global signatures_cache, cache_timestamp
     signatures_cache = None
     cache_timestamp = 0
