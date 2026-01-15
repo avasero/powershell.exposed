@@ -57,10 +57,10 @@ def test_real_double_encoded_payload():
     
     # Step 4: Manual decode of the payload
     print(f"\n[Step 4] Manual Base64 decoding of payload:")
-    
+
     # Extrair o payload Base64
-    import re
-    match = re.search(r'-EncodedCommand\s+([A-Za-z0-9+/=]+)', original_command)
+    import regex
+    match = regex.search(r'-EncodedCommand\s+([A-Za-z0-9+/=]+)', original_command)
     if match:
         payload_b64 = match.group(1)
         print(f"  Extracted payload (first 50 chars): {payload_b64[:50]}...")
@@ -100,20 +100,20 @@ def test_layer_analysis():
     
     original_command = 'powershell -EncodedCommand cABvAHcAZQByAHMAaABlAGwAbAAgAC0ARQBuAGMAbwBkAGUAZABDAG8AbQBtAGEAbgBkACAAVgB3AEIAeQBBAEcAawBBAGQAQQBCAGwAQQBDADAAQQBTAEEAQgB2AEEASABNAEEAZABBAEEAZwBBAEMASQBBAFMAQQBCAGwAQQBHAHcAQQBiAEEAQgB2AEEAQwBBAEEAWgBnAEIAeQBBAEcAOABBAGIAUQBBAGcAQQBHADQAQQBaAFEAQgB6AEEASABRAEEAWgBRAEIAawBBAEMAQQBBAFIAUQBCAHUAQQBHAE0AQQBiAHcAQgBrAEEARwBVAEEAWgBBAEIARABBAEcAOABBAGIAUQBCAHQAQQBHAEUAQQBiAGcAQgBrAEEAQwBFAEEASQBnAEEAPQA='
     
-    import re
+    import regex
     layer = 1
     current_cmd = original_command
-    
+
     while layer <= 3:  # Máximo 3 camadas
         print(f"\n[Layer {layer}]")
         print(f"  Command: {current_cmd[:80]}...")
-        
+
         # Procurar por -EncodedCommand ou -enc
         if '-EncodedCommand' in current_cmd or '-enc' in current_cmd:
             print(f"  ✅ Found -EncodedCommand/-enc parameter")
-            
+
             # Extrair payload
-            match = re.search(r'-(?:EncodedCommand|enc)\s+([A-Za-z0-9+/=]+)', current_cmd, re.IGNORECASE)
+            match = regex.search(r'-(?:EncodedCommand|enc)\s+([A-Za-z0-9+/=]+)', current_cmd, regex.IGNORECASE)
             if match:
                 payload_b64 = match.group(1)
                 print(f"  Base64 payload (first 50 chars): {payload_b64[:50]}...")
@@ -134,10 +134,10 @@ def test_layer_analysis():
             else:
                 print(f"  ❌ Could not extract payload")
                 break
-        elif re.search(r'\[Convert\]::FromBase64String|\.FromBase64String', current_cmd, re.IGNORECASE):
+        elif regex.search(r'\[Convert\]::FromBase64String|\.FromBase64String', current_cmd, regex.IGNORECASE):
             print(f"  ✅ Found FromBase64String call")
             # Procurar por strings Base64 após FromBase64String
-            match = re.search(r"FromBase64String\(['\"]([A-Za-z0-9+/=]+)['\"]", current_cmd, re.IGNORECASE)
+            match = regex.search(r"FromBase64String\(['\"]([A-Za-z0-9+/=]+)['\"]", current_cmd, regex.IGNORECASE)
             if match:
                 payload_b64 = match.group(1)
                 print(f"  Base64 payload (first 50 chars): {payload_b64[:50]}...")

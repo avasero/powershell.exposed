@@ -1,4 +1,4 @@
-import re
+import regex
 import yaml
 
 # Load the actual YAML file to see what Python gets
@@ -12,8 +12,7 @@ print(f"  raw:  {regex_from_yaml}")
 print()
 
 # Extract just the character class to see what's in it
-import re as re2
-char_class_match = re2.search(r"\[([^\]]+)\]", regex_from_yaml)
+char_class_match = regex.search(r"\[([^\]]+)\]", regex_from_yaml)
 if char_class_match:
     char_class = char_class_match.group(1)
     print(f"First character class contents: {repr(char_class)}")
@@ -31,5 +30,5 @@ test_cases = [
 print("Testing with regex from YAML:")
 for tc in test_cases:
     print(f"  Input: {repr(tc)}")
-    match = re.search(regex_from_yaml, tc, re.IGNORECASE)
+    match = regex.search(regex_from_yaml, tc, regex.IGNORECASE)
     print(f"    -> {'MATCH: ' + repr(match.group(0)) if match else 'NO MATCH'}")

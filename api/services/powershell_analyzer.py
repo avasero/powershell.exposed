@@ -1,6 +1,6 @@
 """PowerShell Analyzer Service
 """
-import re
+import regex
 import time
 import json
 import secrets
@@ -178,10 +178,10 @@ def decode_powershell(command: str) -> tuple:
     
    
     while iteration < max_decode_iterations:
-        encoded_match = re.search(
+        encoded_match = regex.search(
             detectors.ENCODED_COMMAND_PATTERN,
             current_command,
-            re.IGNORECASE
+            regex.IGNORECASE
         )
         
         if encoded_match:
@@ -205,10 +205,10 @@ def decode_powershell(command: str) -> tuple:
                 successfully_decoded = True
                 
                 # Check for nested encoding
-                has_more_encoding = re.search(
+                has_more_encoding = regex.search(
                     detectors.ENCODED_COMMAND_PATTERN,
                     decoded_payload,
-                    re.IGNORECASE
+                    regex.IGNORECASE
                 )
                 
                 if not has_more_encoding:
@@ -401,7 +401,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
             
             for pattern in signature["patterns"]:
                 try:
-                    regex = re.compile(pattern, re.IGNORECASE)
+                    regex = regex.compile(pattern, regex.IGNORECASE)
                     pattern_matches = list(regex.finditer(cmd_to_test))
                     
                     if pattern_matches:
@@ -426,7 +426,7 @@ def analyze_command_patterns(command: str, signatures: list) -> dict:
                             })
                             
 
-                except re.error:
+                except regex.error:
                     continue
 
         unique_matches = []

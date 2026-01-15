@@ -2,7 +2,7 @@
 Teste para verificar a detecção de caracteres notáveis (Cyrillic, Hangul, Han)
 Regex do indicador: [\p{Cyrillic}\p{Hangul}\p{Han}]
 """
-import re
+import regex
 
 # Regex do indicador Notable charset usando ranges Unicode (equivalente a \p{Cyrillic}\p{Hangul}\p{Han})
 # Cyrillic: U+0400-U+04FF, U+0500-U+052F
@@ -33,7 +33,7 @@ def test_notable_charset():
     print(f"📋 Regex: {NOTABLE_CHARSET_REGEX}")
     print("=" * 70)
     
-    compiled_regex = re.compile(NOTABLE_CHARSET_REGEX)
+    compiled_regex = regex.compile(NOTABLE_CHARSET_REGEX)
     
     all_passed = True
     

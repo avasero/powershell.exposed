@@ -5,7 +5,7 @@ Mimics the GitHub Actions workflow validation logic.
 """
 
 import yaml
-import re
+import regex
 import sys
 from pathlib import Path
 
@@ -16,7 +16,7 @@ def load_yaml_skip_regex(filepath: Path):
         content = f.read()
     
     # Remove regex field entirely to avoid parsing issues from complex patterns
-    content_no_regex = re.sub(r'^regex:.*?(?=^\w|\Z)', '', content, flags=re.MULTILINE | re.DOTALL)
+    content_no_regex = regex.sub(r'^regex:.*?(?=^\w|\Z)', '', content, flags=regex.MULTILINE | regex.DOTALL)
     return yaml.safe_load(content_no_regex)
 
 
@@ -52,7 +52,7 @@ def extract_regex_raw(filepath: Path) -> list[str]:
                     patterns.append(value)
             elif stripped and not stripped.startswith('#') and not stripped.startswith('-'):
                 # Continuation or new field - check if new field
-                if re.match(r'^\w+:', stripped):
+                if regex.match(r'^\w+:', stripped):
                     in_regex = False
     
     return patterns
@@ -65,7 +65,7 @@ def validate_yaml_syntax(filepath: Path) -> tuple[bool, str]:
             content = f.read()
         
         # Remove regex field entirely to avoid false positives from complex patterns
-        content_no_regex = re.sub(r'^regex:.*?(?=^\w|\Z)', '', content, flags=re.MULTILINE | re.DOTALL)
+        content_no_regex = regex.sub(r'^regex:.*?(?=^\w|\Z)', '', content, flags=regex.MULTILINE | regex.DOTALL)
         
         yaml.safe_load(content_no_regex)
         return True, "OK"
@@ -85,7 +85,7 @@ def validate_required_fields(filepath: Path) -> tuple[bool, str]:
         
         missing = []
         for field in required:
-            if not re.search(rf'^{field}:', content, re.MULTILINE):
+            if not regex.search(rf'^{field}:', content, regex.MULTILINE):
                 missing.append(field)
         
         if missing:
@@ -141,8 +141,8 @@ def validate_regex_patterns(filepath: Path) -> tuple[bool, str]:
                 errors.append(f"URL in regex: {p[:50]}")
                 continue
             try:
-                re.compile(p)
-            except re.error as e:
+                regex.compile(p)
+            except regex.error as e:
                 # Check for known Python regex limitations (valid in other engines)
                 err_str = str(e)
                 if "bad escape \\p" in err_str or "bad escape \\P" in err_str:
