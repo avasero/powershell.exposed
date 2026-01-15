@@ -87,6 +87,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Python dependencies
+        run: pip install regex pyyaml
+
       - name: Validate YAML
         env:
           CHANGED_FILES: ${{ needs.step-1-detect-changes.outputs.changed-files }}
@@ -323,9 +326,12 @@ jobs:
     name: "Step 4: Data Types"
     needs: [step-1-detect-changes, step-3-5-duplicate-check]
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Python dependencies
+        run: pip install regex pyyaml
 
       - name: Validate types
         env:
@@ -380,9 +386,12 @@ jobs:
     name: "Step 5: Regex Patterns"
     needs: [step-1-detect-changes, step-4-data-types]
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Python dependencies
+        run: pip install regex
 
       - name: Validate regex
         env:
@@ -436,9 +445,12 @@ jobs:
     name: "Step 6: Update Database"
     needs: [step-1-detect-changes, step-5-regex-patterns]
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Python dependencies
+        run: pip install regex
 
       - name: Send to Supabase
         env:
