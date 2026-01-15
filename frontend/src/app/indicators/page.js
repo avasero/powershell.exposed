@@ -499,7 +499,7 @@ export default function IndicatorsPage() {
                           pageNum === currentPage - 2 ||
                           pageNum === currentPage + 2
                         ) {
-                          return <span key={pageNum} className="px-1" style={{ color: 'var(--muted-foreground)' }}>...</span>;
+                          return <span key={pageNum} className="px-1 flex items-center" style={{ color: 'var(--muted-foreground)' }}>...</span>;
                         }
                         return null;
                       })}
