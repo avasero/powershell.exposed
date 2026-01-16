@@ -102,7 +102,7 @@ def step_2_yaml_syntax(filepath: str) -> dict:
         with open(filepath, 'r', encoding='utf-8') as f:
             content = f.read()
 
-        # Remove regex field entirely to avoid false positives from complex patterns
+        # Remove regex field from yaml read
         content_no_regex = regex.sub(
             r'^regex:.*?(?=^\w|\Z)',
             '',
