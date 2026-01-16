@@ -145,9 +145,9 @@ function parseYamlContent(
                     : yamlData.basescore;
 
             if (!isNaN(parsed)) {
-                // Limit to valid range (DECIMAL 3,1 = max 99.9)
+                // Limit to valid range (DECIMAL 4,1 = max 999.9)
                 const originalBaseScore = parsed;
-                basescore = Math.max(0, Math.min(99.9, parsed));
+                basescore = Math.max(0, Math.min(999.9, parsed));
                 if (basescore !== originalBaseScore) {
                     console.log(`⚠️ [${filePath}] Basescore clamped from ${originalBaseScore} to ${basescore}`);
                 }

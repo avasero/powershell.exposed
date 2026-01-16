@@ -610,8 +610,8 @@ async def save_analysis_to_db(
         safe_decoded = truncate_if_needed(decoded_cmd, MAX_DECODED_LENGTH, "decoded_command")
         safe_double_decoded = truncate_if_needed(double_decoded_cmd, MAX_DECODED_LENGTH, "double_decoded_command")
 
-        # Cap risk_score to 99.9 (DB field has precision 3, scale 1)
-        risk_score = min(round(analysis_result["total_score"], 1), 99.9)
+        # Cap risk_score to 999.9 (DB field has precision 4, scale 1)
+        risk_score = min(round(analysis_result["total_score"], 1), 999.9)
 
         insert_data = {
             "command": safe_command,

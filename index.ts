@@ -144,8 +144,8 @@ function parseYamlContent(
           : yamlData.basescore;
 
       if (!isNaN(parsed)) {
-        // Limit to valid range (DECIMAL 3,1 = max 99.9)
-        basescore = Math.max(0, Math.min(99.9, parsed));
+        // Limit to valid range (DECIMAL 4,1 = max 999.9)
+        basescore = Math.max(0, Math.min(999.9, parsed));
       }
     }
 
