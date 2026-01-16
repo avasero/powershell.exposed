@@ -327,7 +327,6 @@ def step_6_regex_test_cases(filepath: str, pattern_result: dict) -> dict:
 
     if not compiled:
         try:
-            # Match production behavior: use IGNORECASE flag
             compiled = regex.compile(pattern, regex.IGNORECASE)
         except:
             print_error("Could not compile regex for testing")
@@ -347,7 +346,6 @@ def step_6_regex_test_cases(filepath: str, pattern_result: dict) -> dict:
     print()
 
     try:
-        # Match production behavior: use finditer() like powershell_analyzer.py
         pattern_matches = list(compiled.finditer(test_string))
 
         if pattern_matches:
