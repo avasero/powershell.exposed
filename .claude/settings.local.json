@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(python validate_indicator_local.py:*)",
-      "Bash(pip install:*)"
-    ]
-  }
-}
