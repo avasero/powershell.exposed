@@ -267,7 +267,10 @@ def step_4_data_types(filepath: str) -> dict:
 
 
 def step_5_regex_patterns(filepath: str) -> dict:
-    """Step 5: Regex Patterns - Validates regex compiles correctly."""
+    """Step 5: Regex Patterns - Validates regex compiles correctly.
+
+    Uses the same compilation flags as the production site (regex.IGNORECASE).
+    """
     print_step_header("5", "REGEX PATTERNS")
     print(f"Checking: {filepath}")
 
@@ -280,8 +283,9 @@ def step_5_regex_patterns(filepath: str) -> dict:
     print_info(f"Pattern: {pattern[:100]}{'...' if len(pattern) > 100 else ''}")
 
     try:
-        compiled = regex.compile(pattern)
-        print_success("Regex valid")
+        # Match production behavior: use IGNORECASE flag
+        compiled = regex.compile(pattern, regex.IGNORECASE)
+        print_success("Regex valid (compiled with IGNORECASE)")
         print_success("All regex valid")
         return {"success": True, "pattern": pattern, "compiled": compiled}
     except regex.error as e:
@@ -306,7 +310,12 @@ def extract_test_case(filepath: str) -> str:
 
 
 def step_6_regex_test_cases(filepath: str, pattern_result: dict) -> dict:
-    """Step 6: Regex Test Cases - Tests the regex against the test case from YAML."""
+    """Step 6: Regex Test Cases - Tests the regex against the test case from YAML.
+
+    Uses the same matching approach as the production site:
+    - regex.IGNORECASE flag
+    - finditer() to find all matches (like powershell_analyzer.py)
+    """
     print_step_header("6", "REGEX TEST CASE")
 
     if not pattern_result.get("success"):
@@ -318,7 +327,8 @@ def step_6_regex_test_cases(filepath: str, pattern_result: dict) -> dict:
 
     if not compiled:
         try:
-            compiled = regex.compile(pattern)
+            # Match production behavior: use IGNORECASE flag
+            compiled = regex.compile(pattern, regex.IGNORECASE)
         except:
             print_error("Could not compile regex for testing")
             return {"success": False}
@@ -337,16 +347,19 @@ def step_6_regex_test_cases(filepath: str, pattern_result: dict) -> dict:
     print()
 
     try:
-        match = compiled.search(test_string)
+        # Match production behavior: use finditer() like powershell_analyzer.py
+        pattern_matches = list(compiled.finditer(test_string))
 
-        if match:
-            print_success(f"MATCH: {repr(match.group(0))}")
-            print_info(f"Position: {match.start()}-{match.end()}")
-            return {"success": True, "match": match.group(0)}
+        if pattern_matches:
+            print_success(f"MATCHES FOUND: {len(pattern_matches)}")
+            for i, match in enumerate(pattern_matches, 1):
+                print_success(f"  Match {i}: {repr(match.group(0))}")
+                print_info(f"    Position: {match.start()}-{match.end()}")
+            return {"success": True, "matches": [m.group(0) for m in pattern_matches]}
         else:
             print_error("NO MATCH")
             print_error("The test string does not match the regex pattern")
-            return {"success": False, "match": None}
+            return {"success": False, "matches": []}
 
     except Exception as e:
         print_error(f"Error during matching: {e}")
