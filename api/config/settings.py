@@ -5,7 +5,8 @@ import os
 from dotenv import load_dotenv
 
 
-load_dotenv('.env.local', override=True)
+load_dotenv()  # Load .env file
+load_dotenv('.env.local', override=True)  # Override with .env.local if it exists
 
 
 RATE_LIMIT_REQUESTS = 5   

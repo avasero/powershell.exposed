@@ -13,7 +13,7 @@ export default function CommandInput({
   const [showCharacterWarning, setShowCharacterWarning] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  const CHARACTER_LIMIT = 100000;
+  const CHARACTER_LIMIT = 10000;
   const MAX_ROWS = 10;
   const MIN_HEIGHT = 50;
   const LINE_HEIGHT = 24;
@@ -117,7 +117,7 @@ export default function CommandInput({
               <div className="text-sm font-mono flex items-center gap-2" style={{ color: 'var(--warning)' }}>
                 <span>
                   {value.length >= CHARACTER_LIMIT
-                    ? "Your search is capped at 5000 characters"
+                    ? "Your search is capped at 10000 characters"
                     : `Approaching character limit (${CHARACTER_LIMIT - value.length} remaining)`
                   }
                 </span>
