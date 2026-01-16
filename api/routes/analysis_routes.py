@@ -218,7 +218,21 @@ async def analyze_command_endpoint(
                 is_cache=True
             )
             
-            analysis_id = db_result.get("short_id") if db_result.get("success") else "cache-error"
+            if not db_result.get("success"):
+                # DB save failed - return error response
+                print(f"[ERROR] Failed to save cached analysis to DB: {db_result.get('error')}")
+                return JSONResponse(
+                    {
+                        "success": False,
+                        "error": {
+                            "code": "DatabaseError",
+                            "message": "Failed to save analysis",
+                            "details": db_result.get("error", "Unknown database error")
+                        }
+                    },
+                    status_code=500
+                )
+            analysis_id = db_result.get("short_id")
             
             # ✅ FIX: Recalculate rate_limit_info AFTER saving to DB
             if session_id:

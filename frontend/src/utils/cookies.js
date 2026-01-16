@@ -85,20 +85,33 @@ export const saveAnonymousAnalysis = (analysis) => {
     
     
     // Verificar se o cookie não ficará muito grande (limite de 4KB)
-    const cookieData = JSON.stringify(analyses);
-    const cookieSize = cookieData.length;
-    
-   
-    
+    let cookieSize = JSON.stringify(analyses).length;
+
     if (cookieSize > 4000) {
       console.warn('⚠️ Cookie muito grande, removendo análises mais antigas');
       // Remover análises mais antigas até o cookie ficar menor que 4KB
       while (analyses.length > 1 && cookieSize > 4000) {
-        analyses.pop(); // Remove a análise mais antiga
-        const newCookieData = JSON.stringify(analyses);
-        cookieSize = newCookieData.length;
+        analyses.pop();
+        cookieSize = JSON.stringify(analyses).length;
       }
-     
+
+      // Se ainda está muito grande com apenas 1 análise, truncar o comando
+      if (cookieSize > 4000 && analyses.length === 1) {
+        console.warn('⚠️ Análise única muito grande, truncando comando');
+        const maxCommandLength = 500;
+        if (analyses[0].command && analyses[0].command.length > maxCommandLength) {
+          analyses[0].command = analyses[0].command.substring(0, maxCommandLength) + '... [truncated]';
+          analyses[0].cmdlets_detected = analyses[0].cmdlets_detected?.slice(0, 5) || [];
+          analyses[0].signatures = analyses[0].signatures?.slice(0, 5) || [];
+          cookieSize = JSON.stringify(analyses).length;
+        }
+      }
+
+      // Se ainda está muito grande, não salvar no cookie
+      if (cookieSize > 4000) {
+        console.warn('⚠️ Não foi possível salvar análise no cookie (muito grande)');
+        return null;
+      }
     }
     
     // Salvar no cookie (expira em 30 dias)

@@ -88,7 +88,14 @@ export default function EvaluatePage() {
 
       const isCacheHit = data.from_cache === true || data.analysis?.cache_info?.cache_hit === true;
 
-      if (isCacheHit && data.analysis_id) {
+      // Validate analysis_id is a proper ID (not an error placeholder)
+      const isValidAnalysisId = data.analysis_id &&
+        typeof data.analysis_id === 'string' &&
+        data.analysis_id.length > 0 &&
+        !data.analysis_id.includes('error') &&
+        !data.analysis_id.includes('temp');
+
+      if (isCacheHit && isValidAnalysisId) {
         sessionStorage.setItem('cache_redirect_info', JSON.stringify({
           is_cache_hit: true,
           analysis_id: data.analysis_id,
@@ -142,7 +149,14 @@ export default function EvaluatePage() {
         return;
       }
 
-      if (data.success && data.analysis_id) {
+      // Reuse validation for non-cache responses
+      const isValidId = data.analysis_id &&
+        typeof data.analysis_id === 'string' &&
+        data.analysis_id.length > 0 &&
+        !data.analysis_id.includes('error') &&
+        !data.analysis_id.includes('temp');
+
+      if (data.success && isValidId) {
         if (data.session_id && !user?.id) {
           saveSessionFromBackend(data.session_id);
         }

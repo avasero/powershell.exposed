@@ -579,31 +579,46 @@ async def save_analysis_to_db(
     is_cache: bool = False
 ) -> dict:
     """Salva análise no banco de dados"""
+
+    # Maximum sizes for text fields (PostgreSQL TEXT can hold much more, but we limit for performance)
+    MAX_COMMAND_LENGTH = 50000
+    MAX_DECODED_LENGTH = 100000
+
+    def truncate_if_needed(text: str, max_length: int, field_name: str) -> str:
+        if text and len(text) > max_length:
+            print(f"[TRUNCATE] {field_name} truncated from {len(text)} to {max_length} chars")
+            return text[:max_length] + "... [TRUNCATED]"
+        return text
+
     try:
         supabase = get_supabase_client()
         short_id = generate_short_id()
-        
+
         ip_country = country if country and country != 'Unknown' else None
-        
-      
+
         decoded_cmd = analysis_result.get("decoded_command")
         double_decoded_cmd = analysis_result.get("double_decoded_command")
-        
-        
+
         is_example_command = command.strip() == EXAMPLE_ENCODED_COMMAND.strip()
-        
-       
+
         has_decoded_content = bool(
             (decoded_cmd or double_decoded_cmd) and not is_example_command
         )
-        
-        
+
+        # Truncate large fields to prevent DB errors
+        safe_command = truncate_if_needed(command, MAX_COMMAND_LENGTH, "command")
+        safe_decoded = truncate_if_needed(decoded_cmd, MAX_DECODED_LENGTH, "decoded_command")
+        safe_double_decoded = truncate_if_needed(double_decoded_cmd, MAX_DECODED_LENGTH, "double_decoded_command")
+
+        # Cap risk_score to 99.9 (DB field has precision 3, scale 1)
+        risk_score = min(round(analysis_result["total_score"], 1), 99.9)
+
         insert_data = {
-            "command": command,
-            "decoded_command": decoded_cmd,
-            "double_decoded_command": double_decoded_cmd,
-            "has_decoded_content": has_decoded_content,  # ✅ NEW
-            "risk_score": round(analysis_result["total_score"], 1),
+            "command": safe_command,
+            "decoded_command": safe_decoded,
+            "double_decoded_command": safe_double_decoded,
+            "has_decoded_content": has_decoded_content,
+            "risk_score": risk_score,
             "severity": analysis_result["severity"],
             "signatures_detected": analysis_result["detected_signatures"],
             "tactics": analysis_result["tactics"],
@@ -616,14 +631,14 @@ async def save_analysis_to_db(
             "short_id": short_id,
             "is_cache": is_cache
         }
-        
+
         if user_id:
             insert_data["user_id"] = user_id
         if session_id:
             insert_data["session_id"] = session_id
-        
+
         insert_data = {k: v for k, v in insert_data.items() if v is not None}
-        
+
         db_response = supabase.table('powershell_analyses').insert(insert_data).execute()
         if db_response.data:
             return {
@@ -634,9 +649,9 @@ async def save_analysis_to_db(
             }
         else:
             return {"success": False, "error": "Failed to save analysis"}
-            
+
     except Exception as db_error:
-        print(f"[ERROR] Database error: {type(db_error).__name__}")
+        print(f"[ERROR] Database error: {type(db_error).__name__}: {str(db_error)}")
         return {"success": False, "error": str(db_error)}
 
 
