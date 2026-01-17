@@ -76,12 +76,20 @@ export default function CommandInput({
   const handleChange = (e) => {
     const newValue = e.target.value;
 
-    // Enforce character limit (no trimming - preserve whitespace)
-    if (newValue.length <= CHARACTER_LIMIT) {
+    // Enforce character limit - truncate if exceeds limit instead of blocking
+    if (newValue.length > CHARACTER_LIMIT) {
+      // Create a synthetic event with truncated value so paste always works
+      const syntheticEvent = {
+        ...e,
+        target: {
+          ...e.target,
+          value: newValue.slice(0, CHARACTER_LIMIT)
+        }
+      };
+      onChange(syntheticEvent);
+    } else {
       onChange(e);
     }
-    // If at limit, still call onChange but don't update value
-    // This allows parent components to handle the limit behavior
   };
 
   return (
