@@ -290,18 +290,10 @@ export default function IndicatorsPage() {
                       <span className="inline-flex items-center">Base Score<SortIcon field="basescore" /></span>
                     </th>
                     <th
-                      onClick={() => sortIndicators("last_modified_by")}
-                      className="px-4 py-3 text-left font-mono text-sm font-bold cursor-pointer hover:bg-green-500/10 transition-colors"
+                      className="px-4 py-3 text-left font-mono text-sm font-bold"
                       style={{ color: 'var(--accent)' }}
                     >
-                      <span className="inline-flex items-center">Author<SortIcon field="last_modified_by" /></span>
-                    </th>
-                    <th
-                      onClick={() => sortIndicators("merger")}
-                      className="px-4 py-3 text-left font-mono text-sm font-bold cursor-pointer hover:bg-green-500/10 transition-colors"
-                      style={{ color: 'var(--accent)' }}
-                    >
-                      <span className="inline-flex items-center">Merger<SortIcon field="merger" /></span>
+                      <span className="inline-flex items-center">Contributors</span>
                     </th>
                     <th
                       onClick={() => sortIndicators("last_modification")}
@@ -338,64 +330,94 @@ export default function IndicatorsPage() {
                         {indicator.basescore || 0}
                       </td>
                       <td className="px-4 py-3">
-                        {indicator.last_modified_by ? (
-                          <div className="flex items-center gap-2">
-                            {indicator.last_modified_by_avatar ? (
-                              <img
-                                src={indicator.last_modified_by_avatar}
-                                alt={indicator.last_modified_by}
-                                className="w-6 h-6 rounded-full border border-green-500/30"
-                                onError={(e) => {
-                                  e.target.style.display = 'none';
-                                  e.target.nextElementSibling.style.display = 'flex';
-                                }}
-                              />
-                            ) : null}
-                            {!indicator.last_modified_by_avatar && (
-                              <div className="w-6 h-6 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
-                                <span className="text-xs font-bold" style={{ color: 'var(--accent)' }}>
-                                  {indicator.last_modified_by.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
+                        <div className="flex items-center gap-3">
+                          {/* Stacked Avatars */}
+                          <div className="flex items-center -space-x-2 flex-shrink-0">
+                            {/* Author Avatar */}
+                            {indicator.last_modified_by && (
+                              <a
+                                href={`https://github.com/${indicator.last_modified_by}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="relative z-20 transition-all duration-300 hover:scale-110 hover:z-30"
+                                onClick={(e) => e.stopPropagation()}
+                                title={indicator.last_modified_by}
+                              >
+                                {indicator.last_modified_by_avatar ? (
+                                  <img
+                                    src={indicator.last_modified_by_avatar}
+                                    alt={indicator.last_modified_by}
+                                    className="w-8 h-8 rounded-full border-2 border-black ring-2 ring-green-500/50 transition-all duration-300 hover:ring-green-400 hover:shadow-[0_0_15px_rgba(34,197,94,0.5)]"
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500/30 to-green-600/20 border-2 border-black ring-2 ring-green-500/50 flex items-center justify-center transition-all duration-300 hover:ring-green-400 hover:shadow-[0_0_15px_rgba(34,197,94,0.5)]">
+                                    <span className="text-xs font-bold" style={{ color: 'var(--accent)' }}>
+                                      {indicator.last_modified_by.charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                )}
+                              </a>
                             )}
-                            <span className="font-mono text-sm" style={{ color: 'var(--foreground)' }}>
-                              {truncateText(indicator.last_modified_by, 20)}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>-</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        {indicator.merger ? (
-                          <div className="flex items-center gap-2">
-                            {indicator.merger_avatar ? (
-                              <img
-                                src={indicator.merger_avatar}
-                                alt={indicator.merger}
-                                className="w-6 h-6 rounded-full border border-green-500/30"
-                                onError={(e) => {
-                                  e.target.style.display = 'none';
-                                  if (e.target.nextElementSibling) {
-                                    e.target.nextElementSibling.style.display = 'flex';
-                                  }
-                                }}
-                              />
-                            ) : null}
-                            {!indicator.merger_avatar && (
-                              <div className="w-6 h-6 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
-                                <span className="text-xs font-bold" style={{ color: 'var(--accent)' }}>
-                                  {indicator.merger.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
+                            {/* Merger Avatar */}
+                            {indicator.merger && (
+                              <a
+                                href={`https://github.com/${indicator.merger}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="relative z-10 transition-all duration-300 hover:scale-110 hover:z-30"
+                                onClick={(e) => e.stopPropagation()}
+                                title={indicator.merger}
+                              >
+                                {indicator.merger_avatar ? (
+                                  <img
+                                    src={indicator.merger_avatar}
+                                    alt={indicator.merger}
+                                    className="w-8 h-8 rounded-full border-2 border-black ring-2 ring-purple-500/50 transition-all duration-300 hover:ring-purple-400 hover:shadow-[0_0_15px_rgba(168,85,247,0.5)]"
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500/30 to-purple-600/20 border-2 border-black ring-2 ring-purple-500/50 flex items-center justify-center transition-all duration-300 hover:ring-purple-400 hover:shadow-[0_0_15px_rgba(168,85,247,0.5)]">
+                                    <span className="text-xs font-bold text-purple-400">
+                                      {indicator.merger.charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                )}
+                              </a>
                             )}
-                            <span className="font-mono text-sm" style={{ color: 'var(--foreground)' }}>
-                              {truncateText(indicator.merger, 20)}
-                            </span>
                           </div>
-                        ) : (
-                          <span className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>-</span>
-                        )}
+                          {/* Names with links */}
+                          <div className="flex flex-col gap-0.5 min-w-0 max-w-[120px]">
+                            {indicator.last_modified_by && (
+                              <a
+                                href={`https://github.com/${indicator.last_modified_by}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs font-mono text-green-400 hover:text-green-300 transition-colors truncate"
+                                onClick={(e) => e.stopPropagation()}
+                                title={indicator.last_modified_by}
+                              >
+                                {indicator.last_modified_by}
+                              </a>
+                            )}
+                            {indicator.merger && indicator.merger !== indicator.last_modified_by && (
+                              <a
+                                href={`https://github.com/${indicator.merger}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs font-mono text-purple-400 hover:text-purple-300 transition-colors truncate"
+                                onClick={(e) => e.stopPropagation()}
+                                title={indicator.merger}
+                              >
+                                {indicator.merger}
+                              </a>
+                            )}
+                          </div>
+                          {/* Fallback if no contributors */}
+                          {!indicator.last_modified_by && !indicator.merger && (
+                            <span className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>-</span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 font-mono text-xs" style={{ color: 'var(--muted-foreground)' }}>
                         {indicator.updated_at ? new Date(indicator.updated_at).toLocaleDateString('en-US', {
@@ -445,78 +467,91 @@ export default function IndicatorsPage() {
                   </div>
 
 
-                  <div className="pt-3 border-t border-green-500/20 text-xs font-mono space-y-2">
+                  <div className="pt-3 border-t border-green-500/20 text-xs font-mono">
                     <div className="flex items-center justify-between">
-                      <span style={{ color: 'var(--muted-foreground)' }}>Author:</span>
                       <div className="flex items-center gap-2">
-                        {indicator.last_modified_by ? (
-                          <>
-                            {indicator.last_modified_by_avatar ? (
-                              <img
-                                src={indicator.last_modified_by_avatar}
-                                alt={indicator.last_modified_by}
-                                className="w-5 h-5 rounded-full border border-green-500/30"
-                                onError={(e) => {
-                                  e.target.style.display = 'none';
-                                  if (e.target.nextElementSibling) {
-                                    e.target.nextElementSibling.style.display = 'flex';
-                                  }
-                                }}
-                              />
-                            ) : null}
-                            {!indicator.last_modified_by_avatar && (
-                              <div className="w-5 h-5 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
-                                <span style={{ color: 'var(--accent)' }} className="text-xs font-bold">
-                                  {indicator.last_modified_by.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                            )}
-                            <span style={{ color: 'var(--foreground)' }}>
-                              {truncateText(indicator.last_modified_by, 15)}
-                            </span>
-                          </>
-                        ) : (
-                          <span style={{ color: 'var(--muted-foreground)' }}>-</span>
-                        )}
+                        {/* Contributors - Stacked Avatars */}
+                        <div className="flex items-center -space-x-2 flex-shrink-0">
+                          {/* Author Avatar */}
+                          {indicator.last_modified_by && (
+                            <a
+                              href={`https://github.com/${indicator.last_modified_by}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="relative z-20"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {indicator.last_modified_by_avatar ? (
+                                <img
+                                  src={indicator.last_modified_by_avatar}
+                                  alt={indicator.last_modified_by}
+                                  className="w-7 h-7 rounded-full border-2 border-black ring-2 ring-green-500/50 shadow-[0_0_10px_rgba(34,197,94,0.3)]"
+                                  onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                              ) : (
+                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-green-500/30 to-green-600/20 border-2 border-black ring-2 ring-green-500/50 flex items-center justify-center">
+                                  <span className="text-xs font-bold" style={{ color: 'var(--accent)' }}>
+                                    {indicator.last_modified_by.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                            </a>
+                          )}
+                          {/* Merger Avatar */}
+                          {indicator.merger && (
+                            <a
+                              href={`https://github.com/${indicator.merger}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="relative z-10"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {indicator.merger_avatar ? (
+                                <img
+                                  src={indicator.merger_avatar}
+                                  alt={indicator.merger}
+                                  className="w-7 h-7 rounded-full border-2 border-black ring-2 ring-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.3)]"
+                                  onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                              ) : (
+                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500/30 to-purple-600/20 border-2 border-black ring-2 ring-purple-500/50 flex items-center justify-center">
+                                  <span className="text-xs font-bold text-purple-400">
+                                    {indicator.merger.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                            </a>
+                          )}
+                        </div>
+                        {/* Names with links */}
+                        <div className="flex flex-col min-w-0 max-w-[100px]">
+                          {indicator.last_modified_by && (
+                            <a
+                              href={`https://github.com/${indicator.last_modified_by}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-green-400 text-[10px] truncate hover:text-green-300"
+                              onClick={(e) => e.stopPropagation()}
+                              title={indicator.last_modified_by}
+                            >
+                              {indicator.last_modified_by}
+                            </a>
+                          )}
+                          {indicator.merger && indicator.merger !== indicator.last_modified_by && (
+                            <a
+                              href={`https://github.com/${indicator.merger}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-purple-400 text-[10px] truncate hover:text-purple-300"
+                              onClick={(e) => e.stopPropagation()}
+                              title={indicator.merger}
+                            >
+                              {indicator.merger}
+                            </a>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span style={{ color: 'var(--muted-foreground)' }}>Merger:</span>
-                      <div className="flex items-center gap-2">
-                        {indicator.merger ? (
-                          <>
-                            {indicator.merger_avatar ? (
-                              <img
-                                src={indicator.merger_avatar}
-                                alt={indicator.merger}
-                                className="w-5 h-5 rounded-full border border-green-500/30"
-                                onError={(e) => {
-                                  e.target.style.display = 'none';
-                                  if (e.target.nextElementSibling) {
-                                    e.target.nextElementSibling.style.display = 'flex';
-                                  }
-                                }}
-                              />
-                            ) : null}
-                            {!indicator.merger_avatar && (
-                              <div className="w-5 h-5 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
-                                <span style={{ color: 'var(--accent)' }} className="text-xs font-bold">
-                                  {indicator.merger.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                            )}
-                            <span style={{ color: 'var(--foreground)' }}>
-                              {truncateText(indicator.merger, 15)}
-                            </span>
-                          </>
-                        ) : (
-                          <span style={{ color: 'var(--muted-foreground)' }}>-</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span style={{ color: 'var(--muted-foreground)' }}>Updated:</span>
-                      <span style={{ color: 'var(--foreground)' }}>
+                      <span style={{ color: 'var(--muted-foreground)' }}>
                         {indicator.updated_at ? new Date(indicator.updated_at).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric'
