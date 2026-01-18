@@ -45,6 +45,8 @@ export async function GET(request) {
         file_path,
         last_modified_by,
         last_modified_by_avatar,
+        merger,
+        merger_avatar,
         is_premium_indicator
       `)
       .eq('is_active', true)
@@ -88,6 +90,7 @@ export async function GET(request) {
         'basescore': 'basescore',
         'description': 'description',
         'last_modified_by': 'last_modified_by',
+        'merger': 'merger',
         'last_modification': 'updated_at'
       };
 
