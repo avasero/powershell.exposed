@@ -294,7 +294,14 @@ export default function IndicatorsPage() {
                       className="px-4 py-3 text-left font-mono text-sm font-bold cursor-pointer hover:bg-green-500/10 transition-colors"
                       style={{ color: 'var(--accent)' }}
                     >
-                      <span className="inline-flex items-center">Last Modified By<SortIcon field="last_modified_by" /></span>
+                      <span className="inline-flex items-center">Author<SortIcon field="last_modified_by" /></span>
+                    </th>
+                    <th
+                      onClick={() => sortIndicators("merger")}
+                      className="px-4 py-3 text-left font-mono text-sm font-bold cursor-pointer hover:bg-green-500/10 transition-colors"
+                      style={{ color: 'var(--accent)' }}
+                    >
+                      <span className="inline-flex items-center">Merger<SortIcon field="merger" /></span>
                     </th>
                     <th
                       onClick={() => sortIndicators("last_modification")}
@@ -359,6 +366,37 @@ export default function IndicatorsPage() {
                           <span className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>-</span>
                         )}
                       </td>
+                      <td className="px-4 py-3">
+                        {indicator.merger ? (
+                          <div className="flex items-center gap-2">
+                            {indicator.merger_avatar ? (
+                              <img
+                                src={indicator.merger_avatar}
+                                alt={indicator.merger}
+                                className="w-6 h-6 rounded-full border border-green-500/30"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  if (e.target.nextElementSibling) {
+                                    e.target.nextElementSibling.style.display = 'flex';
+                                  }
+                                }}
+                              />
+                            ) : null}
+                            {!indicator.merger_avatar && (
+                              <div className="w-6 h-6 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
+                                <span className="text-xs font-bold" style={{ color: 'var(--accent)' }}>
+                                  {indicator.merger.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                            <span className="font-mono text-sm" style={{ color: 'var(--foreground)' }}>
+                              {truncateText(indicator.merger, 20)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>-</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 font-mono text-xs" style={{ color: 'var(--muted-foreground)' }}>
                         {indicator.updated_at ? new Date(indicator.updated_at).toLocaleDateString('en-US', {
                           year: 'numeric',
@@ -407,44 +445,84 @@ export default function IndicatorsPage() {
                   </div>
 
 
-                  <div className="pt-3 border-t border-green-500/20 flex items-center justify-between text-xs font-mono">
-                    <div className="flex items-center gap-2">
-                      {indicator.last_modified_by ? (
-                        <>
-                          {indicator.last_modified_by_avatar ? (
-                            <img
-                              src={indicator.last_modified_by_avatar}
-                              alt={indicator.last_modified_by}
-                              className="w-5 h-5 rounded-full border border-green-500/30"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                if (e.target.nextElementSibling) {
-                                  e.target.nextElementSibling.style.display = 'flex';
-                                }
-                              }}
-                            />
-                          ) : null}
-                          {!indicator.last_modified_by_avatar && (
-                            <div className="w-5 h-5 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
-                              <span style={{ color: 'var(--accent)' }} className="text-xs font-bold">
-                                {indicator.last_modified_by.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                          )}
-                          <span style={{ color: 'var(--muted-foreground)' }}>
-                            {truncateText(indicator.last_modified_by, 15)}
-                          </span>
-                        </>
-                      ) : (
-                        <span style={{ color: 'var(--muted-foreground)' }}>-</span>
-                      )}
+                  <div className="pt-3 border-t border-green-500/20 text-xs font-mono space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span style={{ color: 'var(--muted-foreground)' }}>Author:</span>
+                      <div className="flex items-center gap-2">
+                        {indicator.last_modified_by ? (
+                          <>
+                            {indicator.last_modified_by_avatar ? (
+                              <img
+                                src={indicator.last_modified_by_avatar}
+                                alt={indicator.last_modified_by}
+                                className="w-5 h-5 rounded-full border border-green-500/30"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  if (e.target.nextElementSibling) {
+                                    e.target.nextElementSibling.style.display = 'flex';
+                                  }
+                                }}
+                              />
+                            ) : null}
+                            {!indicator.last_modified_by_avatar && (
+                              <div className="w-5 h-5 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
+                                <span style={{ color: 'var(--accent)' }} className="text-xs font-bold">
+                                  {indicator.last_modified_by.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                            <span style={{ color: 'var(--foreground)' }}>
+                              {truncateText(indicator.last_modified_by, 15)}
+                            </span>
+                          </>
+                        ) : (
+                          <span style={{ color: 'var(--muted-foreground)' }}>-</span>
+                        )}
+                      </div>
                     </div>
-                    <span style={{ color: 'var(--muted-foreground)' }}>
-                      {indicator.updated_at ? new Date(indicator.updated_at).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric'
-                      }) : '-'}
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span style={{ color: 'var(--muted-foreground)' }}>Merger:</span>
+                      <div className="flex items-center gap-2">
+                        {indicator.merger ? (
+                          <>
+                            {indicator.merger_avatar ? (
+                              <img
+                                src={indicator.merger_avatar}
+                                alt={indicator.merger}
+                                className="w-5 h-5 rounded-full border border-green-500/30"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  if (e.target.nextElementSibling) {
+                                    e.target.nextElementSibling.style.display = 'flex';
+                                  }
+                                }}
+                              />
+                            ) : null}
+                            {!indicator.merger_avatar && (
+                              <div className="w-5 h-5 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
+                                <span style={{ color: 'var(--accent)' }} className="text-xs font-bold">
+                                  {indicator.merger.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                            <span style={{ color: 'var(--foreground)' }}>
+                              {truncateText(indicator.merger, 15)}
+                            </span>
+                          </>
+                        ) : (
+                          <span style={{ color: 'var(--muted-foreground)' }}>-</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span style={{ color: 'var(--muted-foreground)' }}>Updated:</span>
+                      <span style={{ color: 'var(--foreground)' }}>
+                        {indicator.updated_at ? new Date(indicator.updated_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric'
+                        }) : '-'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}

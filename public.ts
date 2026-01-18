@@ -28,6 +28,8 @@ interface IndicatorPayload {
     link?: string;
     last_modified_by?: string;
     last_modified_by_avatar?: string;
+    merger?: string;
+    merger_avatar?: string;
     action: "upsert" | "delete";
 }
 
@@ -51,6 +53,8 @@ interface DatabaseIndicator {
     link?: string;
     last_modified_by?: string;
     last_modified_by_avatar?: string;
+    merger?: string;
+    merger_avatar?: string;
     is_premium_indicator: boolean;
 }
 
@@ -100,7 +104,9 @@ function parseYamlContent(
     filePath: string,
     link?: string,
     lastModifiedBy?: string,
-    lastModifiedByAvatar?: string
+    lastModifiedByAvatar?: string,
+    merger?: string,
+    mergerAvatar?: string
 ): { indicator: DatabaseIndicator | null; error?: string } {
     try {
         console.log(`🔄 Starting parse of: ${filePath}`);
@@ -145,7 +151,7 @@ function parseYamlContent(
                     : yamlData.basescore;
 
             if (!isNaN(parsed)) {
-                // Limit to valid range (DECIMAL 4,1 = max 999.9)
+                // Limit to valid range (DECIMAL 3,1 = max 99.9)
                 const originalBaseScore = parsed;
                 basescore = Math.max(0, Math.min(999.9, parsed));
                 if (basescore !== originalBaseScore) {
@@ -206,6 +212,12 @@ function parseYamlContent(
         if (lastModifiedByAvatar) {
             indicator.last_modified_by_avatar = lastModifiedByAvatar;
         }
+        if (merger) {
+            indicator.merger = merger;
+        }
+        if (mergerAvatar) {
+            indicator.merger_avatar = mergerAvatar;
+        }
 
         return { indicator };
     } catch (error: any) {
@@ -258,6 +270,8 @@ async function upsertIndicator(
                     link: indicator.link,
                     last_modified_by: indicator.last_modified_by,
                     last_modified_by_avatar: indicator.last_modified_by_avatar,
+                    merger: indicator.merger,
+                    merger_avatar: indicator.merger_avatar,
                     updated_at: new Date().toISOString(),
                 })
                 .eq("id", existing.id);
@@ -404,7 +418,9 @@ serve(async (req) => {
                     item.file_path,
                     item.link,
                     item.last_modified_by,
-                    item.last_modified_by_avatar
+                    item.last_modified_by_avatar,
+                    item.merger,
+                    item.merger_avatar
                 );
 
                 if (parseResult.indicator) {
