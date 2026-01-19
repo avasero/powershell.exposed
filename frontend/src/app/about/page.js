@@ -17,8 +17,8 @@ export default function AboutPage() {
                 <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold break-words" style={{ color: 'var(--accent)' }}>
                     ABOUT
                 </h1>
-                <p className="text-base sm:text-lg md:text-xl max-w-2xl mx-auto" style={{ color: 'var(--muted-foreground)' }}>
-                    Powershell detection, simplified.
+                <p className="text-base sm:text-lg md:text-xl mx-auto whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>
+                    Spotting Suspicious PowerShell payloads, one indicator at a time.
                 </p>
             </div>
 
