@@ -307,7 +307,7 @@ export default function AnalysisChat() {
                     })}
                     {(analysis.signatures_detected || analysis.signatures).length > 2 && (
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-white/5 text-white/40 border border-white/10">
-                        +{(analysis.signatures_detected || analysis.signatures).length - 2}
+                        +{(analysis.signatures_detected || analysis.signatures).length - 2} indicators
                       </span>
                     )}
                   </div>

@@ -20,6 +20,8 @@ export default function HistoryPage() {
   const [filterTerm, setFilterTerm] = useState("");
   const [sortBy, setSortBy] = useState("date"); // date, score, command
   const [sortOrder, setSortOrder] = useState("desc"); // asc, desc
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const router = useRouter();
 
   const [offset, setOffset] = useState(0);
@@ -228,6 +230,18 @@ export default function HistoryPage() {
       return sortOrder === "asc" ? -comparison : comparison;
     });
 
+  // Pagination
+  const totalPages = Math.ceil(filteredAndSortedAnalyses.length / ITEMS_PER_PAGE);
+  const paginatedAnalyses = filteredAndSortedAnalyses.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterTerm, sortBy, sortOrder]);
+
   if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
@@ -256,21 +270,14 @@ export default function HistoryPage() {
 
 
       <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-
-        <div className="flex-1 max-w-md relative">
-          <div className="absolute inset-y-0  flex items-center pointer-events-none">
-          </div>
+        <div className="flex-1 max-w-md">
           <input
             type="text"
             placeholder="Filter by command..."
             value={filterTerm}
             onChange={(e) => setFilterTerm(e.target.value)}
-            className="w-full py-2 pl-10 rounded-lg border font-mono text-sm focus:ring-1 focus:ring-green-500 outline-none transition-all"
-            style={{
-              backgroundColor: 'var(--card-bg)',
-              borderColor: 'var(--border-color)',
-              color: 'var(--foreground)'
-            }}
+            className="w-full px-3 py-2 rounded-lg border border-green-500/30 bg-black/80 font-mono text-sm focus:border-green-500/50 outline-none transition-all"
+            style={{ color: 'var(--foreground)' }}
           />
         </div>
 
@@ -278,12 +285,8 @@ export default function HistoryPage() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="px-3 py-2 rounded-lg border font-mono text-sm"
-            style={{
-              backgroundColor: 'var(--card-bg)',
-              borderColor: 'var(--border-color)',
-              color: 'var(--foreground)'
-            }}
+            className="px-3 py-2 rounded-lg border border-green-500/30 bg-black/80 font-mono text-sm focus:border-green-500/50 outline-none transition-all"
+            style={{ color: 'var(--foreground)' }}
           >
             <option value="date">Date</option>
             <option value="score">Risk Score</option>
@@ -292,12 +295,8 @@ export default function HistoryPage() {
 
           <button
             onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-            className="px-3 py-2 rounded-lg border font-mono text-sm transition-colors flex items-center justify-center min-w-[40px] hover:bg-white/5"
-            style={{
-              backgroundColor: 'var(--card-bg)',
-              borderColor: 'var(--border-color)',
-              color: 'var(--foreground)'
-            }}
+            className="px-3 py-2 rounded-lg border border-green-500/30 bg-black/80 font-mono text-sm transition-all flex items-center justify-center min-w-[40px] hover:border-green-500/50 hover:bg-green-500/10"
+            style={{ color: 'var(--foreground)' }}
             title={sortOrder === "asc" ? "Ascending" : "Descending"}
           >
             {sortOrder === "asc" ? <FaSortAmountUp /> : <FaSortAmountDown />}
@@ -348,8 +347,8 @@ export default function HistoryPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredAndSortedAnalyses.map((analysis) => (
+          <div className="flex flex-col gap-3 w-full">
+            {paginatedAnalyses.map((analysis) => (
               <div
                 key={analysis.id}
                 onClick={() => handleAnalysisClick(analysis.command, analysis.short_id || analysis.uuid || analysis.id)}
@@ -357,44 +356,44 @@ export default function HistoryPage() {
               >
                 <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-green-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex items-center gap-3 shrink-0">
                     <SeverityBadge
                       score={analysis.risk_score ?? analysis.score ?? 0}
                       size="xs"
                     />
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-white/40 min-w-[70px]">
                       {formatDate(analysis.created_at)}
                     </span>
                   </div>
-                </div>
 
-                <div className="mb-3">
-                  <p className="font-mono text-sm text-white/90 break-all line-clamp-2 group-hover:text-green-400 transition-colors">
-                    {truncateCommand(analysis.command)}
-                  </p>
-                </div>
-
-                {(analysis.signatures_detected || analysis.signatures || []).length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {(analysis.signatures_detected || analysis.signatures).slice(0, 2).map((sig, index) => {
-                      const name = typeof sig === 'string' ? sig : (sig.name || sig.keyword || 'Unknown');
-                      return (
-                        <span
-                          key={index}
-                          className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-red-500/10 text-red-400 border border-red-500/20"
-                        >
-                          {name.length > 15 ? name.substring(0, 15) + '...' : name}
-                        </span>
-                      );
-                    })}
-                    {(analysis.signatures_detected || analysis.signatures).length > 2 && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-white/5 text-white/40 border border-white/10">
-                        +{(analysis.signatures_detected || analysis.signatures).length - 2}
-                      </span>
-                    )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-mono text-sm text-white/90 break-all line-clamp-1 group-hover:text-green-400 transition-colors">
+                      {truncateCommand(analysis.command, 100)}
+                    </p>
                   </div>
-                )}
+
+                  {(analysis.signatures_detected || analysis.signatures || []).length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 shrink-0">
+                      {(analysis.signatures_detected || analysis.signatures).slice(0, 2).map((sig, index) => {
+                        const name = typeof sig === 'string' ? sig : (sig.name || sig.keyword || 'Unknown');
+                        return (
+                          <span
+                            key={index}
+                            className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-red-500/10 text-red-400 border border-red-500/20"
+                          >
+                            {name.length > 15 ? name.substring(0, 15) + '...' : name}
+                          </span>
+                        );
+                      })}
+                      {(analysis.signatures_detected || analysis.signatures).length > 2 && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-white/5 text-white/40 border border-white/10">
+                          +{(analysis.signatures_detected || analysis.signatures).length - 2} indicators
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 {!isAuthenticated() && analysis.is_anonymous && (
                   <div className="mt-3 pt-3 border-t border-white/5">
@@ -410,20 +409,49 @@ export default function HistoryPage() {
       }
 
 
-      {
-        filteredAndSortedAnalyses.length > 0 && (
-          <div className="mt-8 flex flex-col items-center gap-4">
-            {hasMore && !filterTerm && (
-              <ThemedButton
-                onClick={handleLoadMore}
-                variant="outline"
-                disabled={loadingMore}
-              >
-                {loadingMore ? <LoadingSpinner size="sm" /> : 'Load More'}
-              </ThemedButton>
+      {filteredAndSortedAnalyses.length > 0 && (
+          <div className="mt-6 flex flex-col gap-4">
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 rounded-lg border border-green-500/30 bg-black/80 font-mono text-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:border-green-500/50 hover:bg-green-500/10"
+                  style={{ color: 'var(--foreground)' }}
+                >
+                  Previous
+                </button>
+
+                <span className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                  Page {currentPage} of {totalPages}
+                </span>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 rounded-lg border border-green-500/30 bg-black/80 font-mono text-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:border-green-500/50 hover:bg-green-500/10"
+                  style={{ color: 'var(--foreground)' }}
+                >
+                  Next
+                </button>
+              </div>
             )}
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            {/* Load more from server if needed */}
+            {hasMore && !filterTerm && currentPage === totalPages && (
+              <div className="flex justify-center">
+                <ThemedButton
+                  onClick={handleLoadMore}
+                  variant="outline"
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? <LoadingSpinner size="sm" /> : 'Load More from Server'}
+                </ThemedButton>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mt-4">
               <ThemedButton onClick={() => router.push('/')}>
                 New Analysis
               </ThemedButton>
@@ -434,8 +462,7 @@ export default function HistoryPage() {
               )}
             </div>
           </div>
-        )
-      }
+        )}
     </div >
   );
 }

@@ -101,7 +101,7 @@ export default function PricingPage() {
                 <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold break-words" style={{ color: 'var(--accent)' }}>
                     USAGE TIERS
                 </h1>
-                <p className="text-base sm:text-lg md:text-xl max-w-2xl mx-auto" style={{ color: 'var(--muted-foreground)' }}>
+                <p className="text-base sm:text-lg md:text-xl mx-auto whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>
                     Scale your detection capabilities with our flexible tiers.
                 </p>
             </div>

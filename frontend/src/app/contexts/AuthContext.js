@@ -428,7 +428,7 @@ export const AuthProvider = ({ children }) => {
         email,
         options: {
           emailRedirectTo: redirectTo,
-          shouldCreateUser: true
+          shouldCreateUser: false
         }
       });
 

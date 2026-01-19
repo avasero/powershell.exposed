@@ -724,9 +724,6 @@ export default function AnalysisDetailsPage() {
               <DecodeUsageBadge decodeInfo={decodeInfo} />
             </div>
             <ProtectedCodeBlock code={result.decoded} borderColorClass="border-blue-500/20" limitReached={result.decodeLimitReached} decodeInfo={decodeInfo} />
-            <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
-              This is the decoded version from -EncodedCommand
-            </div>
           </div>
         </div>
       )}
@@ -742,9 +739,6 @@ export default function AnalysisDetailsPage() {
               <DecodeUsageBadge decodeInfo={decodeInfo} />
             </div>
             <ProtectedCodeBlock code={result.doubleDecoded} borderColorClass="border-yellow-500/20" limitReached={result.decodeLimitReached} decodeInfo={decodeInfo} />
-            <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
-              Final layer decoded from multiple nested -EncodedCommand (2+ layers detected)
-            </div>
           </div>
         </div>
       )}

