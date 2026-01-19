@@ -572,8 +572,8 @@ async def save_analysis_to_db(
     """Salva análise no banco de dados"""
 
     # Maximum sizes for text fields (PostgreSQL TEXT can hold much more, but we limit for performance)
-    MAX_COMMAND_LENGTH = 10000
-    MAX_DECODED_LENGTH = 10000
+    MAX_COMMAND_LENGTH = 100000
+    MAX_DECODED_LENGTH = 100000
 
     def truncate_if_needed(text: str, max_length: int, field_name: str) -> str:
         if text and len(text) > max_length:
