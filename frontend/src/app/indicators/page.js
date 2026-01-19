@@ -53,11 +53,6 @@ export default function IndicatorsPage() {
 
       const data = await response.json();
 
-      // Debug: Check if last_modified_by data is present
-      if (data.indicators && data.indicators.length > 0) {
-        console.log('First indicator data:', data.indicators[0]);
-      }
-
       setIndicators(data.indicators || []);
       setPagination(data.pagination || {});
 

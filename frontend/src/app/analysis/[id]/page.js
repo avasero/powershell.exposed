@@ -38,21 +38,10 @@ function getScoreLabel(score) {
   return "INFORMATIONAL";                // 1.0-1.99
 }
 
-// ✅ Componente para conteúdo protegido - FIXED with return statement
 const ProtectedCodeBlock = ({ code, borderColorClass = "border-gray-500/20", limitReached = false, decodeInfo = null }) => {
-  // ✅ DEBUG: Log para verificar o que está chegando
-  console.log("🔍 [ProtectedCodeBlock] Received:", {
-    code: code?.substring(0, 50) + "...",
-    codeLength: code?.length,
-    isProtected: code === "[PREMIUM_PROTECTED_CONTENT]",
-    limitReached,
-    decodeInfo
-  });
-
   const isProtected = code === "[PREMIUM_PROTECTED_CONTENT]";
 
   if (isProtected) {
-    console.log("🚫 [ProtectedCodeBlock] Showing LOCK SCREEN");
 
     // ✅ Calculate minutes until reset
     const minutesUntilReset = decodeInfo?.seconds_until_reset
@@ -89,8 +78,6 @@ IEX([System.Text.Encoding]::Unicode.GetString($payload))
     );
   }
 
-  // ✅ CRITICAL: Show actual content when not protected
-  console.log("✅ [ProtectedCodeBlock] Showing ACTUAL CONTENT");
   return (
     <div className={`bg-black rounded p-3 border ${borderColorClass} text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words`} style={{ color: 'var(--foreground)' }}>
       <code>{code}</code>
@@ -99,22 +86,11 @@ IEX([System.Text.Encoding]::Unicode.GetString($payload))
 };
 
 const DecodeUsageBadge = ({ decodeInfo }) => {
-  console.log('🔍 [DecodeUsageBadge - ID] Received decodeInfo:', decodeInfo);
-
   if (!decodeInfo) {
-    console.log('🔍 [DecodeUsageBadge - ID] No decodeInfo provided');
     return null;
   }
 
-  console.log("🔍 [DecodeUsageBadge] decodeInfo:", decodeInfo);
-  console.log("🔍 [DecodeUsageBadge] limit:", decodeInfo.limit, "Type:", typeof decodeInfo.limit);
-  console.log("🔍 [DecodeUsageBadge] isUnlimited check:", decodeInfo.limit === null);
-
-  // ✅ Check if this is an example command (is_example flag from backend)
-  console.log('🔍 [DecodeUsageBadge - ID] is_example flag:', decodeInfo.is_example);
-
   if (decodeInfo.is_example) {
-    console.log('✅ [DecodeUsageBadge - ID] SHOWING EXAMPLE BADGE');
     return (
       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-blue-400 border-blue-500/30 bg-blue-500/10 mb-4">
         <span className="text-xs font-mono font-bold">
@@ -268,15 +244,6 @@ export default function AnalysisDetailsPage() {
         analysisId: params.id
       };
 
-      // ✅ DEBUG: Log para ver o que foi processado
-      console.log(" [ANALYSIS LOADED]", {
-        hasDecoded: !!processedResult.decoded,
-        hasDoubleDecoded: !!processedResult.doubleDecoded,
-        hasDeobfuscated: !!processedResult.deobfuscated,
-        decodeLimitReached: processedResult.decodeLimitReached,
-        decodedPreview: processedResult.decoded?.substring(0, 50)
-      });
-
       setResult(processedResult);
       setDecodeInfo(analysisData.decode_info);
 
@@ -309,8 +276,6 @@ export default function AnalysisDetailsPage() {
       setError("");
       setCacheHit(false);
 
-      console.log("🔍 [ANALYSIS_PAGE] Analyzing command:", command.substring(0, 100) + "...");
-
       const startTime = performance.now();
       const sessionId = getOrCreateSession();
 
@@ -325,26 +290,19 @@ export default function AnalysisDetailsPage() {
         session_id: sessionId
       };
 
-      console.log("🌐 [ANALYSIS_PAGE] Request type:", user?.id ? "Authenticated WEB" : "Anonymous WEB");
-
       const { makeAuthenticatedRequest } = await import('../../../lib/api');
 
-      console.log('🔍 [RATE LIMIT DEBUG - ID] Making request to /evaluate...');
       const response = await makeAuthenticatedRequest('/evaluate', {
         method: 'POST',
         body: JSON.stringify(requestData)
       });
 
-      console.log('🔍 [RATE LIMIT DEBUG - ID] Response status:', response.status);
       const data = await response.json();
-      console.log('🔍 [RATE LIMIT DEBUG - ID] Response data:', data);
 
       const responseTime = performance.now() - startTime;
 
-      // ✅ FIX: Handle 429 Rate Limit explicitly
+      // Handle 429 Rate Limit
       if (response.status === 429) {
-        console.log('🚫 [RATE LIMIT DEBUG - ID] 429 detected - setting error and stopping loading');
-        // ✅ Extract error message from object structure
         let errorMessage = "Rate limit exceeded. Please try again later.";
         if (data.error) {
           if (typeof data.error === 'string') {
@@ -360,7 +318,6 @@ export default function AnalysisDetailsPage() {
         setError(errorMessage);
         setNewAnalysisLoading(false);
         setContentReady(true);
-        console.log('🚫 [RATE LIMIT DEBUG - ID] State updated - error:', errorMessage, 'loading:', false, 'contentReady:', true);
         return;
       }
 
@@ -371,12 +328,8 @@ export default function AnalysisDetailsPage() {
       }
 
       const needsHandling = handleRateLimitResponse(response, data);
-      console.log('🔍 [RATE LIMIT DEBUG - ID] handleRateLimitResponse returned:', needsHandling);
 
       if (needsHandling) {
-        console.log('🚫 [RATE LIMIT DEBUG - ID] Rate limit needs handling - setting error and stopping loading');
-        // ✅ Don't redirect - just stop loading and show rate limit UI
-        // ✅ Extract proper error message
         let errorMessage = "Rate limit reached. Please wait for the timer to reset.";
         if (data.error) {
           if (typeof data.error === 'string') {
@@ -390,8 +343,7 @@ export default function AnalysisDetailsPage() {
         setError(errorMessage);
         setNewAnalysisLoading(false);
         setContentReady(true);
-        console.log('🚫 [RATE LIMIT DEBUG - ID] State updated after handleRateLimitResponse');
-        return; // ✅ Exit early without redirecting
+        return;
       }
 
       if (!response.ok) {
@@ -471,24 +423,17 @@ export default function AnalysisDetailsPage() {
         throw new Error(response.error || 'Analysis failed');
       }
     } catch (err) {
-      console.error('[ANALYSIS ERROR]', err);
-      console.log('❌ [RATE LIMIT DEBUG - ID] Error caught:', err.message);
       setError(err.message);
       setResult(null);
       setContentReady(true);
     } finally {
-      console.log('🏁 [RATE LIMIT DEBUG - ID] Finally block - setting loading to false');
       setNewAnalysisLoading(false);
-      console.log('🏁 [RATE LIMIT DEBUG - ID] Loading state set to false');
     }
   };
 
   const handleNewAnalysis = async () => {
-    // ✅ FIX: Enviar comando raw sem validação de trim
     if (newCommand.length > 0) {
-      // ✅ CRITICAL: Check rate limit BEFORE starting loading or making request
       if (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit) {
-        console.log('🚫 [RATE LIMIT DEBUG - ID] Rate limit already reached - NOT starting loading');
         // ✅ Extract proper error message from rate_limit_info if available
         let errorMessage = "Rate limit reached. Please wait for the timer to reset.";
         if (rateLimitInfo.seconds_until_reset) {

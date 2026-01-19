@@ -55,7 +55,6 @@ export function useIpAddress() {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          console.warn(`IP detection failed with status: ${response.status}`);
           setIpAddress('Unknown');
           setIpCountry('Unknown');
           setLoading(false);
@@ -65,7 +64,6 @@ export function useIpAddress() {
         const data = await response.json();
 
         if (!data.success) {
-          console.warn('IP detection failed:', data.message);
           setIpAddress(data.ip || 'Unknown');
           setIpCountry('Unknown');
         } else {
@@ -73,7 +71,6 @@ export function useIpAddress() {
           setIpCountry(data.country);
         }
 
-        // Salvar no cache
         ipCache = {
           ipAddress: data.ip || 'Unknown',
           ipCountry: data.country || 'Unknown',
@@ -81,8 +78,7 @@ export function useIpAddress() {
           error: null
         };
 
-        console.log('✅ IP and country captured:', { ip: data.ip, country: data.country });
-        setError(null);  // ✅ Não propagar erro
+        setError(null);
       } finally {
         setLoading(false);
       }

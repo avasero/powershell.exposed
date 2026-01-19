@@ -383,13 +383,9 @@ export const AuthProvider = ({ children }) => {
 
   const signUpWithMagicLink = async (email, username, notifyUser = false) => {
     try {
-      console.log('📧 Initiating Magic Link login for:', email);
-      // Determine the redirect URL based on the current environment
       const redirectTo = typeof window !== 'undefined'
         ? `${window.location.origin}/auth/confirm`
         : undefined;
-
-      console.log('🔗 Redirect URL set to:', redirectTo);
 
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
@@ -405,21 +401,17 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (error) {
-        console.error('❌ Supabase Auth Error:', error);
         throw error;
       }
 
-      console.log('✅ Magic Link sent successfully:', data);
       return { data, error: null };
     } catch (error) {
-      console.error('❌ Login Exception:', error);
       return { data: null, error };
     }
   };
 
   const signInWithMagicLink = async (email) => {
     try {
-      console.log('📧 Initiating Magic Link login (signin-only) for:', email);
       const redirectTo = typeof window !== 'undefined'
         ? `${window.location.origin}/auth/confirm`
         : undefined;
@@ -433,12 +425,10 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (error) {
-        console.error('❌ Supabase Auth Error:', error);
         throw error;
       }
       return { data, error: null };
     } catch (error) {
-      console.error('❌ Login Exception:', error);
       return { data: null, error };
     }
   };

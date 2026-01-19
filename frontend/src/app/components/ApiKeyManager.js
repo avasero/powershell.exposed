@@ -144,8 +144,7 @@ export default function ApiKeyManager() {
   };
 
   const handleModalCopy = () => {
-
-    console.log('API Key copied from modal');
+    // Copy handled by CopyButton component
   };
 
   if (!isAuthenticated()) {
