@@ -145,7 +145,6 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <h1 className="text-2xl sm:text-3xl font-mono font-bold" style={{ color: 'var(--accent)' }}>
-            Login
           </h1>
           <p className="mt-2 font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
             {magicLinkSent ? '' : 'Enter your email to receive a login link'}
@@ -189,9 +188,7 @@ export default function LoginPage() {
               <p className="text-sm font-mono" style={{ color: 'var(--muted-foreground)' }}>
                 We&apos;ve sent a secure login link to <strong>{email}</strong>
               </p>
-              <p className="text-sm font-mono" style={{ color: 'var(--muted-foreground)' }}>
-                Click the link in your email to complete the login process. This link is valid for 15 minutes.
-              </p>
+              
               <p className="text-sm font-mono" style={{ color: 'var(--accent)' }}>
                 If you&apos;ve not received a login link you probably have not signed up yet
               </p>

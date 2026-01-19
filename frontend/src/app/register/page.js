@@ -274,9 +274,6 @@ export default function RegisterPage() {
               <p className="text-sm font-mono" style={{ color: 'var(--muted-foreground)' }}>
                 We&apos;ve sent a secure registration link to <strong>{email}</strong>
               </p>
-              <p className="text-sm font-mono" style={{ color: 'var(--muted-foreground)' }}>
-                Click the link in your email to complete your account creation. This link is valid for 15 minutes.
-              </p>
               <p className="text-sm font-mono" style={{ color: 'var(--accent)' }}>
                 If you&apos;ve not received a registration link, please try again
               </p>
