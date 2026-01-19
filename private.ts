@@ -57,7 +57,7 @@ interface DatabaseIndicator {
     merger?: string;
     merger_avatar?: string;
     is_premium_indicator: boolean;
-    san_regex?: string | string[];
+    san_regex: string[] | null;
 }
 
 /**
@@ -188,9 +188,15 @@ function parseYamlContent(
         }
 
         console.log(`🎯 Max_match configured for ${name}: ${maxMatch}`);
-        const sanRegex = yamlData.san_regex?.trim() || null;
-        if(sanRegex) {
-            console.log(`🧼 Sanitize regex configured for ${name}: ${sanRegex}`);
+
+        // Processar san_regex - pode ser string ou array
+        let sanRegex: string[] | null = null;
+        if (yamlData.san_regex) {
+            const sanRegexArray = toStringArray(yamlData.san_regex);
+            sanRegex = sanRegexArray.length > 0 ? sanRegexArray : null;
+        }
+        if (sanRegex) {
+            console.log(`🧼 Sanitize regex configured for ${name}: ${JSON.stringify(sanRegex)}`);
         }
         const indicator: DatabaseIndicator = {
             name,
