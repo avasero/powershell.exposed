@@ -726,9 +726,22 @@ export default function AnalysisPage() {
 
       {result && result.signatures && result.signatures.length > 0 && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-          <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
-            <div className="font-mono text-sm" style={{ color: 'var(--muted-foreground)' }}>
-              Matched indicators do not automatically imply malicious activity; they surface behavioral patterns that warrant contextual analysis and further investigation.
+          <div className="relative border rounded-lg p-4 bg-gradient-to-r from-yellow-500/5 to-transparent border-yellow-500/30 overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-yellow-500/70"></div>
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 mt-0.5">
+                <svg className="w-5 h-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-mono text-xs font-bold uppercase tracking-wider text-yellow-500 mb-1">
+                  Analysis Notice
+                </div>
+                <div className="font-mono text-sm text-yellow-100/80 leading-relaxed">
+                  Matched indicators do not automatically imply malicious activity. They surface behavioral patterns that warrant contextual analysis and further investigation.
+                </div>
+              </div>
             </div>
           </div>
         </div>
