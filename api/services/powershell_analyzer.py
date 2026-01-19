@@ -397,14 +397,14 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
         matched_pattern = None
         matched_in_decoded = False
         
-        for cmd_to_test in commands_to_analyze:
+        for command in commands_to_analyze:
            
-            is_decoded_version = (cmd_to_test != raw_command)
+            is_decoded_version = (command != raw_command)
             
             for pattern in signature["patterns"]:
                 try:
                     compiled_pattern = regex.compile(pattern, regex.IGNORECASE)
-                    pattern_matches = list(compiled_pattern.finditer(cmd_to_test))
+                    pattern_matches = list(compiled_pattern.finditer(command))
                     
                     if pattern_matches:
                         if matched_pattern is None:
