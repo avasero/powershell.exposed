@@ -20,6 +20,7 @@ interface YamlIndicator {
     tactic?: string | string[];
     technique?: string | string[];
     reference?: string | string[];
+    san_regex?: string | string[];
 }
 
 interface IndicatorPayload {
@@ -56,6 +57,7 @@ interface DatabaseIndicator {
     merger?: string;
     merger_avatar?: string;
     is_premium_indicator: boolean;
+    san_regex?: string | string[];
 }
 
 /**
@@ -186,7 +188,10 @@ function parseYamlContent(
         }
 
         console.log(`🎯 Max_match configured for ${name}: ${maxMatch}`);
-
+        const sanRegex = yamlData.san_regex?.trim() || null;
+        if(sanRegex) {
+            console.log(`🧼 Sanitize regex configured for ${name}: ${sanRegex}`);
+        }
         const indicator: DatabaseIndicator = {
             name,
             description,
@@ -200,6 +205,7 @@ function parseYamlContent(
             is_active: true,
             file_path: filePath,
             is_premium_indicator: false,
+            san_regex: sanRegex,
         };
 
         // Adicionar campos opcionais
@@ -267,12 +273,14 @@ async function upsertIndicator(
                     techniques: indicator.techniques,
                     reference: indicator.reference,
                     max_match: indicator.max_match,
+                    san_regex: indicator.san_regex,
                     link: indicator.link,
                     last_modified_by: indicator.last_modified_by,
                     last_modified_by_avatar: indicator.last_modified_by_avatar,
                     merger: indicator.merger,
                     merger_avatar: indicator.merger_avatar,
                     updated_at: new Date().toISOString(),
+                    
                 })
                 .eq("id", existing.id);
 

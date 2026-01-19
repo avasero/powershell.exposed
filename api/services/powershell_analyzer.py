@@ -109,7 +109,8 @@ async def load_signatures_from_db(user_id: str = None) -> list:
                     "max_match": int(sig.get("max_match", 1)),
                     "link": link,
                     "is_premium_indicator": sig.get("is_premium_indicator", False),
-                    "indicator_type": indicator_type 
+                    "indicator_type": indicator_type,
+                    "san_regex": sig.get("san_regex", None)
                 })
             
             
@@ -241,7 +242,26 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
     Returns:
         dict: Analysis results including detected_signatures, total_score, etc.
     """
-    encoding_result = detectors.detect_encoded_command(command)
+    # Pre-sanitize command for decoding by applying all san_regex patterns
+    sanitized_for_decode = command
+    for sig in signatures:
+        san_regex_raw = sig.get("san_regex")
+        if san_regex_raw:
+            try:
+                if isinstance(san_regex_raw, str):
+                    san_patterns = json.loads(san_regex_raw)
+                else:
+                    san_patterns = san_regex_raw
+
+                if isinstance(san_patterns, list):
+                    for san_pattern in san_patterns:
+                        sanitized_for_decode = regex.sub(san_pattern, "", sanitized_for_decode, flags=regex.IGNORECASE)
+                else:
+                    sanitized_for_decode = regex.sub(san_patterns, "", sanitized_for_decode, flags=regex.IGNORECASE)
+            except (json.JSONDecodeError, regex.error):
+                pass
+
+    encoding_result = detectors.detect_encoded_command(sanitized_for_decode)
     
     first_decoded = None
     double_decoded = None
@@ -251,7 +271,7 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
         
         if first_decoded:
             double_encoding_result = detectors.detect_double_encoded_command(
-                command=command,
+                command=sanitized_for_decode,
                 decoded_command=first_decoded,
                 decode_iterations=1
             )
@@ -265,9 +285,9 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
     techniques_set = set()
     
     raw_command = command
-    
-    fully_decoded, decode_iterations, processing_type, decoded_layers = decode_powershell(command)
-    has_decoded = fully_decoded != command
+
+    fully_decoded, decode_iterations, processing_type, decoded_layers = decode_powershell(sanitized_for_decode)
+    has_decoded = fully_decoded != sanitized_for_decode
     
     first_decoded_layer = None
     second_decoded_layer = None
@@ -400,6 +420,26 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
         for command in commands_to_analyze:
            
             is_decoded_version = (command != raw_command)
+
+
+            san_regex_raw = signature.get("san_regex")
+            if san_regex_raw:
+                try:
+                    # san_regex may be a JSON array string like '["[`]+"]' or a list
+                    if isinstance(san_regex_raw, str):
+                        san_patterns = json.loads(san_regex_raw)
+                    else:
+                        san_patterns = san_regex_raw
+
+                    if isinstance(san_patterns, list):
+                        for san_pattern in san_patterns:
+                            command = regex.sub(san_pattern, "", command, flags=regex.IGNORECASE)
+                    else:
+                        command = regex.sub(san_patterns, "", command, flags=regex.IGNORECASE)
+                except (json.JSONDecodeError, regex.error):
+                    pass
+
+            
             
             for pattern in signature["patterns"]:
                 try:
