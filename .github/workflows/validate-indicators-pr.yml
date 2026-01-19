@@ -106,8 +106,8 @@ jobs:
           with open(filepath, 'r', encoding='utf-8') as f:
               content = f.read()
 
-          # Remove regex field entirely to avoid false positives from complex patterns
-          content_no_regex = regex.sub(r'^regex:.*?(?=^\w|\Z)', '', content, flags=regex.MULTILINE | regex.DOTALL)
+          # Remove regex and san_regex fields entirely to avoid false positives from complex patterns
+          content_no_regex = regex.sub(r'^(?:san_)?regex:.*?(?=^\w|\Z)', '', content, flags=regex.MULTILINE | regex.DOTALL)
 
           try:
               yaml.safe_load(content_no_regex)
@@ -349,8 +349,8 @@ jobs:
           with open(filepath, 'r', encoding='utf-8') as f:
               content = f.read()
 
-          # Remove regex field to avoid parsing issues
-          content_no_regex = regex.sub(r'^regex:.*?(?=^\w|\Z)', '', content, flags=regex.MULTILINE | regex.DOTALL)
+          # Remove regex and san_regex fields to avoid parsing issues
+          content_no_regex = regex.sub(r'^(?:san_)?regex:.*?(?=^\w|\Z)', '', content, flags=regex.MULTILINE | regex.DOTALL)
           data = yaml.safe_load(content_no_regex)
 
           errors = 0
