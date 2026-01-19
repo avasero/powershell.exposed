@@ -497,23 +497,6 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
     }
 
 
-def analyze_with_sanitization(command: str, signatures: list, allow_decoded_analysis: bool = True) -> dict:
-    """
-    Analyzes PowerShell command.
-
-    Args:
-        command: Raw PowerShell command to analyze
-        signatures: List of signature dictionaries to match against
-        allow_decoded_analysis: If False, only analyze the raw command (not decoded content).
-                               Used when user has reached decode quota limit.
-
-    Returns:
-        dict: Analysis results
-    """
-    analysis_result = analyze_command_patterns(command, signatures, allow_decoded_analysis)
-    return analysis_result
-
-
 def calculate_severity_and_risk(total_score: float) -> str:
     """
     Score Ranges:

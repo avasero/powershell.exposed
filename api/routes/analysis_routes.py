@@ -16,7 +16,7 @@ from middleware.rate_limiting import (
     GLOBAL_RATE_LIMIT_REQUESTS, GLOBAL_RATE_LIMIT_WINDOW
 )
 from services.powershell_analyzer import (
-    load_signatures_from_db, analyze_command_patterns, analyze_with_sanitization,
+    load_signatures_from_db, analyze_command_patterns,
     calculate_severity_and_risk, save_analysis_to_db, signatures_cache, cache_timestamp
 )
 from services.cache_service import (
@@ -372,9 +372,9 @@ async def analyze_command_endpoint(
         decode_info = await can_user_decode_commands(user_id, session_id=session_id, command=command)
         allow_decoded_analysis = decode_info["can_decode"]
 
-        # ✅ Fresh analysis with sanitization support
+        # Fresh analysis
         # If decode limit reached, only analyze raw encoded command (not decoded content)
-        analysis_result = analyze_with_sanitization(command, signatures, allow_decoded_analysis)
+        analysis_result = analyze_command_patterns(command, signatures, allow_decoded_analysis)
         severity = calculate_severity_and_risk(analysis_result["total_score"])
         
         analysis_result.update({
