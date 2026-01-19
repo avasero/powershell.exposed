@@ -266,7 +266,7 @@ export default function AnalysisPage() {
                 command: command,
                 score: analysisData.risk_score,
                 severity: analysisData.is_malicious ? "malicious" : "safe",
-                signatures: analysisData.signatures_detected || [],
+                signatures: analysisData.signatures || analysisData.signatures_detected || [],
                 cmdlets_detected: analysisData.cmdlets_detected || [],
                 analysis_id: response.analysis_id
               });
@@ -287,7 +287,7 @@ export default function AnalysisPage() {
           const analysisResult = {
             score: analysisData.risk_score,
             severity: analysisData.is_malicious ? "malicious" : "safe",
-            signatures: (analysisData.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
+            signatures: (analysisData.signatures || analysisData.signatures_detected || []).sort((a, b) => (b.score || b.total_score || 0) - (a.score || a.total_score || 0)),
             decoded: analysisData.decoded_command || null,
             doubleDecoded: analysisData.double_decoded_command || null,
             deobfuscated: analysisData.deobfuscated_command || null,

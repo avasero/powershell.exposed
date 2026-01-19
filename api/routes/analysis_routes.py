@@ -29,6 +29,26 @@ from utils.geolocation import get_ip_location, get_client_ip_from_request
 from services.plan_service import can_user_decode_commands, get_user_plan_features, get_plan_by_name, check_session_rate_limit_from_db
 from services.api_key_manager import update_api_key_usage
 
+
+def slim_signature(sig: dict) -> dict:
+    """Remove non-essential fields from signature for API response"""
+    return {
+        "name": sig.get("name"),
+        "severity": sig.get("severity"),
+        "score": sig.get("total_score", sig.get("base_score", 0)),
+        "tactics": sig.get("tactics", []),
+        "techniques": sig.get("techniques", []),
+        "description": sig.get("description"),
+        "link": sig.get("link"),
+        "indicator_type": sig.get("indicator_type")
+    }
+
+
+def slim_signatures(signatures: list) -> list:
+    """Slim down all signatures in a list"""
+    return [slim_signature(sig) for sig in signatures]
+
+
 async def analyze_command_endpoint(
     request: Request,
     request_data: AnalyzeCommandRequest,
@@ -308,35 +328,28 @@ async def analyze_command_endpoint(
             
             return JSONResponse({
                 "success": True,
-                "from_cache": True,
                 "analysis": {
                     "command": command,
                     "risk_score": results_blob.get("risk_score", 0.0),
                     "severity": results_blob.get("severity", "very_low"),
-                    "signatures_detected": results_blob.get("signatures_detected", []),
+                    "signatures": slim_signatures(results_blob.get("signatures_detected", [])),
                     "tactics": results_blob.get("tactics", []),
                     "techniques": results_blob.get("techniques", []),
                     "decoded_command": decoded_cmd,
-                    "double_decoded_command": double_decoded_cmd,
-                    "total_signatures_checked": results_blob.get("total_signatures_checked", 0),
-                    "detected_count": results_blob.get("detected_count", 0),
-                    "cache_info": {
-                        "cached": True,
-                        "cache_hit": True,
-                        "phash": phash,
-                        "instant_response": True
-                    }
+                    "double_decoded_command": double_decoded_cmd
                 },
                 "analysis_id": analysis_id,
                 "session_id": session_id,
                 "decode_info": {
                     "current_usage": decode_info["current_usage"],
                     "limit": decode_info["limit"],
-                    "remaining": decode_info["remaining"],
-                    "seconds_until_reset": decode_info["seconds_until_reset"],
                     "is_example": decode_info.get("is_example", False)
                 },
-                "rate_limit_info": rate_limit_info
+                "rate_limit_info": {
+                    "within_limit": rate_limit_info.get("within_limit", True),
+                    "current_count": rate_limit_info.get("current_count", 0),
+                    "limit": rate_limit_info.get("limit")
+                }
             })
         
         # ✅ Fresh analysis continues here (counters already incremented above)
@@ -460,37 +473,28 @@ async def analyze_command_endpoint(
 
         return JSONResponse({
             "success": True,
-            "from_cache": False,
             "analysis": {
                 "command": command,
                 "risk_score": round(final_score, 1),
                 "severity": final_severity,
-                "signatures_detected": final_signatures,
+                "signatures": slim_signatures(final_signatures),
                 "tactics": final_tactics,
                 "techniques": final_techniques,
                 "decoded_command": decoded_cmd,
-                "double_decoded_command": double_decoded_cmd,
-                "decode_limit_reached": decode_limit_reached,
-                "total_signatures_checked": len(signatures),
-                "detected_count": len(final_signatures),
-                "cache_info": {
-                    "cached": cache_saved,
-                    "cache_hit": False,
-                    "phash": phash,
-                    "signatures_cache_active": signatures_cache is not None,
-                    "signatures_cache_age_minutes": round((int(time.time() * 1000) - cache_timestamp) / 60000, 1) if cache_timestamp > 0 else 0
-                }
+                "double_decoded_command": double_decoded_cmd
             },
             "analysis_id": db_result.get("short_id") if db_result.get("success") else None,
             "session_id": session_id,
             "decode_info": {
                 "current_usage": decode_info["current_usage"],
                 "limit": decode_info["limit"],
-                "remaining": decode_info["remaining"],
-                "seconds_until_reset": decode_info["seconds_until_reset"],
                 "is_example": decode_info.get("is_example", False)
             },
-            "rate_limit_info": rate_limit_info
+            "rate_limit_info": {
+                "within_limit": rate_limit_info.get("within_limit", True),
+                "current_count": rate_limit_info.get("current_count", 0),
+                "limit": rate_limit_info.get("limit")
+            }
         })
         
     except Exception as error:
@@ -808,29 +812,22 @@ async def get_analysis_by_id_endpoint(
 
             print(f"[GET ANALYSIS] Filtered {len(signatures_detected) - len(filtered_signatures)} decoded-only signatures")
 
-        safe_analysis = {
-            "id": analysis_data.get("id"),
-            "command": analysis_data.get("command"),
-            "analysis_result": analysis_data.get("analysis_result"),
-            "risk_score": final_score,
-            "severity": final_severity,
-            "signatures_detected": final_signatures,
-            "tactics": final_tactics,
-            "techniques": final_techniques,
-            "decoded_command": decoded_cmd,
-            "double_decoded_command": double_decoded_cmd,
-            "deobfuscated_command": deobfuscated_cmd,
-            "decode_limit_reached": decode_limit_reached,
-            "created_at": analysis_data.get("created_at"),
-        }
         return JSONResponse({
             "success": True,
-            "analysis": safe_analysis,
+            "analysis": {
+                "command": analysis_data.get("command"),
+                "risk_score": final_score,
+                "severity": final_severity,
+                "signatures": slim_signatures(final_signatures),
+                "tactics": final_tactics,
+                "techniques": final_techniques,
+                "decoded_command": decoded_cmd,
+                "double_decoded_command": double_decoded_cmd,
+                "deobfuscated_command": deobfuscated_cmd
+            },
             "decode_info": {
                 "current_usage": decode_info["current_usage"],
                 "limit": decode_info["limit"],
-                "remaining": decode_info["remaining"],
-                "seconds_until_reset": decode_info["seconds_until_reset"],
                 "is_example": decode_info.get("is_example", False)
             }
         })

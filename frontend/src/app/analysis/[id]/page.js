@@ -232,7 +232,7 @@ export default function AnalysisDetailsPage() {
       const processedResult = {
         score: analysis.risk_score || analysisResult.risk_score || 0,
         severity: (analysis.risk_score || analysisResult.risk_score || 0) > 5 ? "malicious" : "safe",
-        signatures: (analysis.signatures_detected || analysisResult.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
+        signatures: (analysis.signatures || analysis.signatures_detected || analysisResult.signatures || analysisResult.signatures_detected || []).sort((a, b) => (b.score || b.total_score || 0) - (a.score || a.total_score || 0)),
         decoded: analysis.decoded_command || analysisResult.decoded_command || null,
         doubleDecoded: analysis.double_decoded_command || analysisResult.double_decoded_command || null,
         deobfuscated: analysis.deobfuscated_command || analysisResult.deobfuscated_command || null,
@@ -371,7 +371,7 @@ export default function AnalysisDetailsPage() {
               command: command,
               score: analysisData.risk_score,
               severity: analysisData.is_malicious ? "malicious" : "safe",
-              signatures: analysisData.signatures_detected || [],
+              signatures: analysisData.signatures || analysisData.signatures_detected || [],
               cmdlets_detected: analysisData.cmdlets_detected || [],
               analysis_id: data.analysis_id
             });
@@ -404,7 +404,7 @@ export default function AnalysisDetailsPage() {
         const analysisResult = {
           score: analysisData.risk_score,
           severity: analysisData.is_malicious ? "malicious" : "safe",
-          signatures: (analysisData.signatures_detected || []).sort((a, b) => (b.total_score || 0) - (a.total_score || 0)),
+          signatures: (analysisData.signatures || analysisData.signatures_detected || []).sort((a, b) => (b.score || b.total_score || 0) - (a.score || a.total_score || 0)),
           decoded: analysisData.decoded_command,
           doubleDecoded: analysisData.double_decoded_command,
           deobfuscated: analysisData.deobfuscated_command,
