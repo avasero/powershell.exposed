@@ -1,6 +1,7 @@
 name: MS Defender exclusion path modification
 description: Detects attempts to add or modify Microsoft Defender exclusion paths.
 regex: (add|set)-MpPreference[\s\S]+ExclusionPath
+san_regex: [&,`'\"()^+/]+
 basescore: 9.4
 tactic: TA0005
 technique: [T1562.001, T1059.001]
