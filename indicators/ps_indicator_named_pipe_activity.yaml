@@ -1,6 +1,7 @@
 name: Named pipe activity
 description: Spots .NET named pipes for inter-process communication, often used for C2 or pivoting.
 regex: AnonymousPipeClientStream|NamedPipeServerStream|System\.IO\.Pipes
+san_regex: [&,`'\"()^+/]+
 basescore: 10
 tactic: TA0011
 technique: [T1059.001, T1559.001]
