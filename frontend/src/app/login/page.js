@@ -19,6 +19,12 @@ export default function LoginPage() {
   const { signInWithMagicLink } = useAuth();
   const router = useRouter();
 
+  // Email validation regex
+  const validateEmail = (email) => {
+    const emailRegex = /^\S+@\S+\.\S+$/;
+    return emailRegex.test(email.trim());
+  };
+
   // Check rate limit using Supabase function
   const checkRateLimit = async (email) => {
     try {
@@ -92,6 +98,13 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     setMessage('');
+
+    // Validate email format
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address.');
+      setLoading(false);
+      return;
+    }
 
     // Check rate limit from Supabase
     const rateLimit = await checkRateLimit(email);

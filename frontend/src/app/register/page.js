@@ -22,6 +22,12 @@ export default function RegisterPage() {
   const { signUpWithMagicLink, signInWithMagicLink, checkEmailExists } = useAuth();
   const router = useRouter();
 
+  // Email validation regex
+  const validateEmail = (email) => {
+    const emailRegex = /^\S+@\S+\.\S+$/
+    return emailRegex.test(email.trim());
+  };
+
   // Check rate limit using Supabase function
   const checkRateLimit = async (email) => {
     try {
@@ -98,6 +104,13 @@ export default function RegisterPage() {
 
     if (!acceptedTerms) {
       setError('You must accept the Terms & Conditions to create an account.');
+      setLoading(false);
+      return;
+    }
+
+    // Validate email format
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address.');
       setLoading(false);
       return;
     }
