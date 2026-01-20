@@ -1,6 +1,7 @@
 name: System.Management.Automation reference
 description: Detects references to PowerShell’s System.Management.Automation runtime, which may indicate embedded or in-memory PowerShell execution outside the standard host.
-regex: (system\.management\.automation)
+regex: system\.management\.automation
+san_regex: [&,`'\"()^+/]+
 basescore: 8.8
 tactic: [TA0002]
 technique: [T1059.001]
