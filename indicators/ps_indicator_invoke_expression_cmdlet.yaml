@@ -1,6 +1,7 @@
 name: Invoke-Expression cmdlet
 description: Spots potential use of Invoke-Expression cmdlet and its alias.
 regex: Invoke-Expression|\biex\b
+san_regex: [&,`'\"()^+/]+
 basescore: 5.0
 tactic: TA0002
 technique: T1059.001
