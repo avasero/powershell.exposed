@@ -1,6 +1,7 @@
 name: Suspicious file link
 description: Detects PowerShell creation of a Windows shortcut (.lnk) that references high-risk LOLBins, DLL execution, or suspicious staging locations (e.g., ProgramData/AppData/Public), which is commonly used for stealthy persistence and proxy execution.
 regex: CreateShortcut\(.+(\S+\.dll|rundll32|script\.exe|mshta|msbuild|installutil|msiexec|programdata|appdata|users\S{1,3}public)
+san_regex: [&,`'\"^+]+
 basescore: 10
 tactic: [TA0005]
 technique: [T1218]
