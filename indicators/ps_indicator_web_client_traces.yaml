@@ -5,6 +5,7 @@ description: >
   Note that the unicodes below refer to Hyphen-Minus (ASCII hyphen), En/m Dash and Horizontal Bar.
   Refer to FAQ entry 3.1 in the reference to use those in Splunk/SPL.
 regex: net\.http|RestMethod|[\.-]webclient|WebRequest|Net.Sockets.TcpClient|InternetExplorer\.Application|(win|Xml)Http|\b(curl|wget|iwr|irm)\s+|(InstallProduct\(|bitstransfer)[\s\S]+https*://|\b[\u002D\u2013\u2014\u2015](Uri|Url)\s*https*://
+san_regex: [&,`'\"()^+]+
 basescore: 7.5
 tactic: TA0002
 technique: [T1105, T1059.001]
