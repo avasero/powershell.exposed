@@ -6,7 +6,7 @@ description: >
   Note that the unicodes below refer to Hyphen-Minus (ASCII hyphen), En/m Dash and Horizontal Bar.
   Refer to FAQ entry 3.1 in the reference to use those in Splunk/SPL.
 regex: [\u002D\u2013\u2014\u2015/](?:ec|e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+[\"']*\s*[a-z0-9+/]{20,}={0,2}
-san_regex: [&,`'\"\+]+
+san_regex: [&,`'\"()^]+
 basescore: 4.5
 tactic: TA0002
 technique: [T1059.001, T1027]

@@ -1,6 +1,7 @@
 name: Threads manipulation
 description: Tracks the creation or manipulation of execution threads, often used for injection attacks or detection evasion.
 regex: createthread|threading\.thread
+san_regex: [&,`'\"()^+/]+
 basescore: 10.0
 tactic: TA0005
 technique: [T1055, T1059.001]

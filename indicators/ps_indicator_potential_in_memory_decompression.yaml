@@ -1,6 +1,7 @@
 name: Potential in-memory data decompression
 description: Detects PowerShell references to in-memory decompression primitives (e.g., Decompress, DeflateStream), which are commonly used to unpack compressed payloads, configuration data, or second-stage code at runtime to evade static inspection.
 regex: ::Decompress|DeflateStreamIO
+san_regex: [&,`'\"()^+/]+
 basescore: 10
 tactic: [TA0005]
 technique: [T1027, T1140]

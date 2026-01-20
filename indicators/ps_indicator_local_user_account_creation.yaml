@@ -1,6 +1,7 @@
 name: Local user account creation
 description: Detects PowerShell creation of local user accounts, a common persistence and privilege-enablement technique used to establish or maintain access on a host.
 regex: New-LocalUser
+san_regex: [&,`'\"()^+/]+
 basescore: 10
 tactic: [TA0003]
 technique: [T1136.001]

@@ -1,6 +1,7 @@
 name: AD high privilege group enumeration
 description: Enumerates enterprise admins or domain admins group membership.
 regex: get-adgroupmember.+(enterprise|domain) admins
+san_regex: [&,`'\"()^+/]+
 basescore: 10
 tactic: TA0007
 technique: [T1059.001, T1069.002]

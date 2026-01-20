@@ -1,6 +1,7 @@
 name: Potential Base64 conversion
 description: Detects Base64 encoding and decoding primitives in PowerShell scripts that are commonly used to obfuscate data or stage payloads prior to further processing.
 regex: (To|From)Base64String|TransformFinalBlock\(|Base64Transform
+san_regex: [&,`'\"^+/]+
 basescore: 9.3
 tactic: [TA0005]
 technique: [T1027]

@@ -1,6 +1,7 @@
 name: Notable DLL file reference
 description: Detects explicit references to highly sensitive Windows system DLLs that are frequently abused in PowerShell-based post-exploitation activity, including credential dumping, AMSI bypass, native API invocation, and low-level process manipulation.
 regex: \b(comsvcs|kernel32|dbghelp|amsi|ntdll)\.dll
+san_regex: [&,`'\"()^+/]+
 basescore: 10
 tactic: [TA0005, TA0006]
 technique: [T1055, T1003.001]
