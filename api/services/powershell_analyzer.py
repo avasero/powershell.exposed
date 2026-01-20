@@ -369,7 +369,6 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
         print(f"[ANALYZE] Decode limit reached - analyzing RAW command only (no decoded content)")
 
     commands_to_analyze = list(commands_set)
-    print(f"[ANALYZE] Commands to analyze: {len(commands_to_analyze)} (allow_decoded={allow_decoded_analysis})")
     
     
     skip_signatures = {"Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected"}
@@ -535,9 +534,16 @@ async def save_analysis_to_db(
     country: str = None,
     search_type: str = "API",
     user_agent: str = "FastAPI-Client",
-    is_cache: bool = False
+    is_cache: bool = False,
+    count_as_decode: bool = None
 ) -> dict:
-    """Salva análise no banco de dados"""
+    """Save analysis result to the database.
+
+    Args:
+        count_as_decode: If provided, overrides the automatic has_decoded_content calculation.
+                        Use False when user doesn't have decode permission (so it doesn't count against quota).
+                        Use None to auto-calculate based on whether decoded content exists.
+    """
 
     # Maximum sizes for text fields (PostgreSQL TEXT can hold much more, but we limit for performance)
     MAX_COMMAND_LENGTH = 100000
@@ -560,12 +566,16 @@ async def save_analysis_to_db(
 
         is_example_command = command.strip() == EXAMPLE_ENCODED_COMMAND.strip()
 
-        has_decoded_content = bool(
-            (decoded_cmd or double_decoded_cmd) and not is_example_command
-        )
+        # If count_as_decode is explicitly provided, use it
+        # Otherwise, auto-calculate based on whether decoded content exists
+        if count_as_decode is not None:
+            has_decoded_content = count_as_decode and not is_example_command
+        else:
+            has_decoded_content = bool(
+                (decoded_cmd or double_decoded_cmd) and not is_example_command
+            )
 
-        # Debug log
-        print(f"[SAVE] has_decoded_content={has_decoded_content} | decoded_cmd={'YES' if decoded_cmd else 'NO'} | double_decoded={'YES' if double_decoded_cmd else 'NO'} | is_example={is_example_command} | is_cache={is_cache}")
+       
 
         # Truncate large fields to prevent DB errors
         safe_command = truncate_if_needed(command, MAX_COMMAND_LENGTH, "command")
@@ -596,10 +606,8 @@ async def save_analysis_to_db(
 
         if user_id:
             insert_data["user_id"] = user_id
-            print(f"[SAVE] user_id={user_id[:8]}...")
         if session_id:
             insert_data["session_id"] = session_id
-            print(f"[SAVE] session_id={session_id[:8]}...")
 
         insert_data = {k: v for k, v in insert_data.items() if v is not None}
 
