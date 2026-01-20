@@ -236,12 +236,11 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
     supabase = get_supabase_client()
     
     # Query for analyses with decoded content (has_decoded_content = true)
-    # Only count FRESH decodes (is_cache = false), not cache hits
+    # Count ALL decodes (including cache hits) to prevent infinite decode exploit
     query = supabase.table('powershell_analyses')\
         .select('id, created_at, has_decoded_content, is_cache, session_id, user_id', count='exact')\
         .gte('created_at', window_start.isoformat())\
-        .eq('has_decoded_content', True)\
-        .eq('is_cache', False)
+        .eq('has_decoded_content', True)
 
     if user_id:
         query = query.eq('user_id', user_id)
@@ -275,12 +274,11 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
     seconds_until_reset = None
     if not can_decode:
         # Query again to get the actual records with created_at
-        # Only count FRESH decodes (is_cache = false)
+        # Count ALL decodes (including cache hits)
         records_query = supabase.table('powershell_analyses')\
             .select('created_at')\
             .gte('created_at', window_start.isoformat())\
-            .eq('has_decoded_content', True)\
-            .eq('is_cache', False)
+            .eq('has_decoded_content', True)
         
         if user_id:
             records_query = records_query.eq('user_id', user_id)
