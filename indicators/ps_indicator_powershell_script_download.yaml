@@ -1,6 +1,7 @@
 name: PowerShell script download
 description: Detects HTTP/HTTPS URLs referencing PowerShell script or module files (.ps1/.psm1), which are commonly used for remote payload delivery and staging.
 regex: https*://\S+\.\S+/\S+\.(ps1|psm1)
+san_regex: [&,`'\"()^+]+
 basescore: 7.8
 tactic: [TA0011]
 technique: [T1105]
