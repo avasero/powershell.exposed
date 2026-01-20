@@ -83,6 +83,23 @@ function toStringArray(value: unknown): string[] {
 }
 
 /**
+ * Extrai o valor raw de um campo do conteúdo YAML (sem parsing)
+ * Útil para campos como regex e san_regex que contêm caracteres especiais
+ */
+function extractRawField(content: string, fieldName: string): string | null {
+    const lines = content.split('\n');
+    for (const line of lines) {
+        if (line.startsWith(`${fieldName}:`)) {
+            const value = line.substring(fieldName.length + 1).trim();
+            if (value) {
+                return value;
+            }
+        }
+    }
+    return null;
+}
+
+/**
  * Filtra padrões regex válidos (remove URLs e strings vazias)
  */
 function filterValidPatterns(patterns: string[], filePath: string): string[] {
@@ -189,11 +206,11 @@ function parseYamlContent(
 
         console.log(`🎯 Max_match configured for ${name}: ${maxMatch}`);
 
-        // Processar san_regex - pode ser string ou array
+        // Processar san_regex - extrair raw do conteúdo para evitar escapes do YAML parser
         let sanRegex: string[] | null = null;
-        if (yamlData.san_regex) {
-            const sanRegexArray = toStringArray(yamlData.san_regex);
-            sanRegex = sanRegexArray.length > 0 ? sanRegexArray : null;
+        const rawSanRegex = extractRawField(content, "san_regex");
+        if (rawSanRegex) {
+            sanRegex = [rawSanRegex];
         }
         if (sanRegex) {
             console.log(`🧼 Sanitize regex configured for ${name}: ${JSON.stringify(sanRegex)}`);

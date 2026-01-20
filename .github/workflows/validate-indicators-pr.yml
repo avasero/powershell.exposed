@@ -486,8 +486,8 @@ jobs:
               escaped = value.replace("'", "''")
               return f"{prefix}'{escaped}'"
 
-          # Match regex: and san_regex: followed by value (not a list)
-          result = regex.sub(r'^((?:san_)?regex:\s*)([^\n]+)$', quote_regex, content, flags=regex.MULTILINE)
+          # Match regex: followed by value (not a list) - san_regex is extracted raw by backend
+          result = regex.sub(r'^(regex:\s*)([^\n]+)$', quote_regex, content, flags=regex.MULTILINE)
           print(result, end='')
           PYSCRIPT
           
