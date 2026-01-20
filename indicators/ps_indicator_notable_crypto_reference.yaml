@@ -1,6 +1,7 @@
 name: Notable cryptographic reference
 description: Detects explicit PowerShell references to notable .NET cryptographic primitives (AES, hashing, key derivation, cipher modes, padding, CryptoStream), which are commonly used by malware to encrypt/decrypt payloads, protect configuration data, or implement encrypted C2 communications.
 regex: Cryptography\.(Aes|SHA|CipherMode|PaddingMode|CryptoStream|Rfc2898DeriveBytes)
+san_regex: [&,`'\"()^+/]+
 basescore: 10
 tactic: [TA0005]
 technique: [T1027, T1140]
