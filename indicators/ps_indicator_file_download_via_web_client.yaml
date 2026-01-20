@@ -1,6 +1,7 @@
 name: File download via PS web client
 description: Detects PowerShell usage of common web client methods (Invoke-WebRequest/iwr, curl, wget) combined with explicit file output parameters, indicating remote file retrieval and on-disk staging commonly used for tool transfer or payload delivery.
 regex: (invoke[-]WebRequest|curl|wget|iwr)\s+[\s\S]*(-outfile|out-file)
+san_regex: [&,`'\"()^+/]+
 basescore: 6.5
 tactic: [TA0011]
 technique: [T1105]
