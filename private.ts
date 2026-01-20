@@ -129,7 +129,19 @@ function parseYamlContent(
 ): { indicator: DatabaseIndicator | null; error?: string } {
     try {
         console.log(`🔄 Starting parse of: ${filePath}`);
-        const yamlData = yaml.load(content) as YamlIndicator;
+
+        // Extrair san_regex ANTES do parsing YAML (pode conter caracteres que quebram o parser)
+        const rawSanRegex = extractRawField(content, "san_regex");
+
+        // Remover a linha san_regex do conteúdo antes de fazer o parse YAML
+        let contentForParsing = content;
+        if (rawSanRegex) {
+            contentForParsing = content.split('\n')
+                .filter(line => !line.startsWith('san_regex:'))
+                .join('\n');
+        }
+
+        const yamlData = yaml.load(contentForParsing) as YamlIndicator;
 
         if (!yamlData) {
             const error = `Empty or invalid YAML: ${filePath}`;
@@ -206,12 +218,8 @@ function parseYamlContent(
 
         console.log(`🎯 Max_match configured for ${name}: ${maxMatch}`);
 
-        // Processar san_regex - extrair raw do conteúdo para evitar escapes do YAML parser
-        let sanRegex: string[] | null = null;
-        const rawSanRegex = extractRawField(content, "san_regex");
-        if (rawSanRegex) {
-            sanRegex = [rawSanRegex];
-        }
+        // Usar san_regex já extraído antes do parsing YAML
+        const sanRegex: string[] | null = rawSanRegex ? [rawSanRegex] : null;
         if (sanRegex) {
             console.log(`🧼 Sanitize regex configured for ${name}: ${JSON.stringify(sanRegex)}`);
         }
