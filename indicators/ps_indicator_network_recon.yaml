@@ -1,6 +1,7 @@
 name: Network reconnaissance related activity
 description: Detects PowerShell usage of network inspection and discovery primitives that enumerate connections, neighbors, or network configuration details, commonly used during host and network reconnaissance.
 regex: NetTCPConnection|Get-NetNeighbor|\.NetworkInformation
+san_regex: [&,`'\"()^+/]+
 basescore: 8
 tactic: [TA0007]
 technique: [T1046, T1016]
