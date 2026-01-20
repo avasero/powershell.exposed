@@ -1,6 +1,7 @@
 name: Potential binary file download
 description: Detects HTTP or HTTPS URLs referencing executable or installer file types commonly used for payload delivery, staging, or tool transfer during post-exploitation.
 regex: https*://\S+\.\S+/\S+\.(exe|bin|dll|msi|scr|cpl|ocx|sys)
+san_regex: [&,`'\"()^+]+
 basescore: 8.4
 tactic: [TA0001, TA0011]
 technique: [T1105, T1566.001]
