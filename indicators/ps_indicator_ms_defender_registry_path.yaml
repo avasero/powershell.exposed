@@ -1,6 +1,7 @@
 name: MS Defender registry path reference
 description: Detects references to Microsoft Defender policy registry paths, which are commonly targeted to modify or disable Defender protections via configuration changes.
 regex: SOFTWARE[\\]+Policies[\\]+Microsoft[\\]+Windows Defender
+san_regex: [&,`'\"()^+/]+
 basescore: 9.2
 tactic: [TA0005]
 technique: [T1562.001]
