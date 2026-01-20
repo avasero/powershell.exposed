@@ -1,6 +1,7 @@
 name: Firewall rule creation
 description: Creation of Windows Firewall rules or filters via NetSecurity cmdlets.
 regex: new-netfirewall[\s\S]+(filter|rule)
+san_regex: [&,`'\"()^+/]+
 basescore: 8.7
 tactic: TA0005
 technique: [T1562.004, T1059.001]
