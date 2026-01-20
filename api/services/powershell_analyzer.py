@@ -487,9 +487,10 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
         
         matches_found = min(len(unique_matches), signature["max_match"])
         final_matches = unique_matches[:matches_found]
-        
+
         if matches_found > 0:
-            signature_total_score = signature["score"] * matches_found
+            # Score is always base_score, never multiplied by matches
+            signature_total_score = signature["score"]
             
             detected_signature = {
                 "name": signature["name"],
@@ -596,6 +597,9 @@ async def save_analysis_to_db(
             (decoded_cmd or double_decoded_cmd) and not is_example_command
         )
 
+        # Debug log
+        print(f"[SAVE] has_decoded_content={has_decoded_content} | decoded_cmd={'YES' if decoded_cmd else 'NO'} | double_decoded={'YES' if double_decoded_cmd else 'NO'} | is_example={is_example_command} | is_cache={is_cache}")
+
         # Truncate large fields to prevent DB errors
         safe_command = truncate_if_needed(command, MAX_COMMAND_LENGTH, "command")
         safe_decoded = truncate_if_needed(decoded_cmd, MAX_DECODED_LENGTH, "decoded_command")
@@ -625,8 +629,10 @@ async def save_analysis_to_db(
 
         if user_id:
             insert_data["user_id"] = user_id
+            print(f"[SAVE] user_id={user_id[:8]}...")
         if session_id:
             insert_data["session_id"] = session_id
+            print(f"[SAVE] session_id={session_id[:8]}...")
 
         insert_data = {k: v for k, v in insert_data.items() if v is not None}
 

@@ -181,13 +181,8 @@ export default function AnalysisCard({
                 <span className="text-gray-400"> / {matchesInfo.maxMatchAllowed || 'N/A'}</span>
               </div>
               <div className="mb-2">
-                <span className="font-bold">Score Base: </span>
-                <span className="text-green-400">{matchesInfo.baseScore || 'N/A'}</span>
-              </div>
-              <div className="mb-2">
-                <span className="font-bold">Score Subtotal: </span>
-                <span className="text-green-400 font-bold">{matchesInfo.totalScore || 'N/A'}</span>
-                <span className="text-gray-400"> ({matchesInfo.baseScore || 'N/A'} × {matchesInfo.matchesFound || 'N/A'})</span>
+                <span className="font-bold">Score: </span>
+                <span className="text-green-400 font-bold">{matchesInfo.baseScore || 'N/A'}</span>
               </div>
 
               {matchesInfo.matchesDetails && matchesInfo.matchesDetails.length > 0 && (

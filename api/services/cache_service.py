@@ -368,9 +368,9 @@ async def update_cached_signatures_with_current_db_values(results_blob: Dict[str
                 # Recalculate matches_found based on current max_match
                 original_matches_found = sig.get("matches_found", 1)
                 new_matches_found = min(original_matches_found, current_max_match)
-                
-                # Recalculate total_score
-                new_total_score = current_base_score * new_matches_found
+
+                # Score is always base_score, never multiplied by matches
+                new_total_score = current_base_score
                 
                 # Update the signature with current DB values
                 sig["max_match_allowed"] = current_max_match

@@ -36,6 +36,12 @@ def slim_signature(sig: dict) -> dict:
         "name": sig.get("name"),
         "severity": sig.get("severity"),
         "score": sig.get("total_score", sig.get("base_score", 0)),
+        "base_score": sig.get("base_score", sig.get("score", 0)),
+        "total_score": sig.get("total_score", sig.get("base_score", 0)),
+        "matches_found": sig.get("matches_found", 1),
+        "max_match_allowed": sig.get("max_match_allowed", sig.get("max_match", 1)),
+        "matches_details": sig.get("matches_details", []),
+        "pattern": sig.get("pattern", ""),
         "tactics": sig.get("tactics", []),
         "techniques": sig.get("techniques", []),
         "description": sig.get("description"),
@@ -139,7 +145,8 @@ async def analyze_command_endpoint(
             await update_api_key_usage(api_key_to_track)
         
         session_id = request_data.session_id
-        
+        print(f"[ANALYZE] session_id from request: {session_id[:8] if session_id else 'NONE'}...")
+
         if not session_id:
             supabase = get_supabase_client()
             session_id = await get_or_create_session(
@@ -369,8 +376,8 @@ async def analyze_command_endpoint(
 
         # ✅ Check decode permission BEFORE analysis
         # When limit is reached, only analyze the encoded command string itself
-        decode_info = await can_user_decode_commands(user_id, session_id=session_id, command=command)
-        allow_decoded_analysis = decode_info["can_decode"]
+        decode_info_before = await can_user_decode_commands(user_id, session_id=session_id, command=command)
+        allow_decoded_analysis = decode_info_before["can_decode"]
 
         # Fresh analysis
         # If decode limit reached, only analyze raw encoded command (not decoded content)
@@ -406,14 +413,17 @@ async def analyze_command_endpoint(
             is_cache=False
         )
 
+        # ✅ FIX: Re-fetch decode_info AFTER saving to DB to get updated count
+        decode_info = await can_user_decode_commands(user_id, session_id=session_id, command=command)
+
         # Mask content for non-premium users
         decoded_cmd = analysis_result.get("decoded_command")
         double_decoded_cmd = analysis_result.get("double_decoded_command")
 
-        # decode_info was already fetched before analysis
-        print(f"[DECODE CHECK] User: {user_id[:8] if user_id else 'ANON'}... | Can decode: {decode_info['can_decode']} | Usage: {decode_info['current_usage']}/{decode_info['limit']}")
-        
+        print(f"[DECODE CHECK] User: {user_id[:8] if user_id else 'ANON'}... | Had permission: {decode_info_before['can_decode']} | Usage after: {decode_info['current_usage']}/{decode_info['limit']}")
+
         # Mask content for users without decode permission
+        # Use decode_info_before to check if they HAD permission when analysis started
         decode_limit_reached = False
         final_signatures = analysis_result["detected_signatures"]
         final_score = analysis_result["total_score"]
@@ -421,7 +431,7 @@ async def analyze_command_endpoint(
         final_tactics = analysis_result["tactics"]
         final_techniques = analysis_result["techniques"]
 
-        if not decode_info["can_decode"]:
+        if not decode_info_before["can_decode"]:
             decode_limit_reached = True
 
             if decoded_cmd:

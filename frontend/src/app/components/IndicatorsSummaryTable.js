@@ -97,13 +97,8 @@ export default function IndicatorsSummaryTable({ signatures }) {
                   </td>
                   <td className="p-3">
                     <span className="font-bold" style={{ color: 'var(--accent)' }}>
-                      {(sig.total_score || sig.score || 0).toFixed(1)}
+                      {(sig.base_score || sig.score || 0).toFixed(1)}
                     </span>
-                    {sig.matches_found > 1 && (
-                      <span className="text-xs ml-1" style={{ color: 'var(--muted-foreground)' }}>
-                        (×{sig.matches_found})
-                      </span>
-                    )}
                   </td>
                   <td className="p-3">
                     <div className="flex flex-wrap gap-1 max-w-xs">

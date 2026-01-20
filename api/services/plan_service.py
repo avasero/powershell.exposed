@@ -238,16 +238,17 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
     # Query for analyses with decoded content (has_decoded_content = true)
     # Only count FRESH decodes (is_cache = false), not cache hits
     query = supabase.table('powershell_analyses')\
-        .select('id, created_at', count='exact')\
+        .select('id, created_at, has_decoded_content, is_cache, session_id, user_id', count='exact')\
         .gte('created_at', window_start.isoformat())\
         .eq('has_decoded_content', True)\
         .eq('is_cache', False)
-        
+
     if user_id:
         query = query.eq('user_id', user_id)
         target_id = f"user:{user_id}"
     elif session_id:
-        query = query.eq('session_id', session_id).is_('user_id', 'null')
+        # For anonymous users, just match session_id (don't require user_id to be NULL)
+        query = query.eq('session_id', session_id)
         target_id = f"session:{session_id}"
     else:
         print("[DECODE_CHECK] No user_id or session_id provided, blocking decode.")
@@ -258,9 +259,15 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
             "remaining": 0,
             "seconds_until_reset": 0
         }
-        
+
     result = query.execute()
     current_usage = result.count or 0
+
+    # Debug: Log what we found
+    print(f"[DECODE_CHECK] Query result: found {current_usage} records in last minute")
+    if result.data:
+        for r in result.data[:3]:  # Log first 3 records
+            print(f"  - id={r.get('id')}, has_decoded={r.get('has_decoded_content')}, is_cache={r.get('is_cache')}, session={r.get('session_id', 'N/A')[:8] if r.get('session_id') else 'N/A'}...")
     
     can_decode = current_usage < limit
     
@@ -278,7 +285,7 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
         if user_id:
             records_query = records_query.eq('user_id', user_id)
         elif session_id:
-            records_query = records_query.eq('session_id', session_id).is_('user_id', 'null')
+            records_query = records_query.eq('session_id', session_id)
         
         records_result = records_query.order('created_at', desc=False).limit(1).execute()
         
