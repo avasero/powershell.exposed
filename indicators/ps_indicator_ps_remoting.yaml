@@ -1,6 +1,7 @@
 name: PS-Remoting usage
 description: Detects PowerShell remoting constructs that establish or reference remote PowerShell sessions, which can be used for lateral movement, remote command execution, or distributed administration and are frequently abused post-compromise.
 regex: -PSSession|PSRemoting
+san_regex: [&,`'\"()^+/]+
 basescore: 7
 tactic: [TA0008]
 technique: [T1021.006]

@@ -1,6 +1,7 @@
 name: Notable EventLog query
 description: Detects PowerShell commands that use Get-WinEvent to query sensitive Windows event logs.
 regex: get-winevent.+(powershell/operational|security)
+san_regex: [&,`'\"()^+]+
 basescore: 8.8
 tactic: TA0007
 technique: [T1059.001, T1082]

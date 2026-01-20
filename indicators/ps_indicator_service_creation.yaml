@@ -1,6 +1,7 @@
 name: Service creation
 description: Spots potential service creation via New-Service PS cmdlet and sc.exe.
 regex: \bnew-service\s|\bsc(.exe)*\s+create\s
+san_regex: [&,`'\"()^+/]+
 basescore: 7.6
 tactic: [TA0003, TA0004]
 technique: [T1543.003, T1059.001]
