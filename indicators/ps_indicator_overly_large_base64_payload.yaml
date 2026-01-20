@@ -1,6 +1,7 @@
 name: Overly large base64 payload
 description: Detects extremely large Base64-encoded blobs embedded in PowerShell or command-line content, which are commonly used to inline payloads, shellcode, or secondary stages for in-memory execution, obfuscation and binary droppers.
 regex: [a-z0-9+/]{20000,}
+san_regex: [&,`'\"()^]+
 basescore: 10
 tactic: [TA0005]
 technique: [T1027, T1059.001]
