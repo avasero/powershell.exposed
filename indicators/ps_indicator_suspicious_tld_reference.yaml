@@ -6,6 +6,7 @@ description: >
   rotation, making them attractive for command-and-control, payload hosting,
   and phishing campaigns.
 regex: https*://\S+\.(ddns|dyndns|ml|ga|cf|cc|tk|top|xyz|biz|dynu|dnsdynamic|changeip|servebeer|noip\.me|no-ip\.biz|no-ip\.org|zapto\.org|no-ip\.info|duckdns\.org|hopto\.org|sytes\.net)
+san_regex: [&,`'\"()^+]+
 basescore: 10
 tactic: [TA0011, TA0001]
 technique: [T1071.001, T1568.003]
