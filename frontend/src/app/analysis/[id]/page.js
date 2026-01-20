@@ -651,9 +651,7 @@ export default function AnalysisDetailsPage() {
               <DecodeUsageBadge decodeInfo={decodeInfo} />
             </div>
             <ProtectedCodeBlock code={result.decoded} borderColorClass="border-blue-500/20" limitReached={result.decodeLimitReached} decodeInfo={decodeInfo} />
-            <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
-              First layer of decoding - still contains -EncodedCommand
-            </div>
+           
           </div>
         </div>
       )}
