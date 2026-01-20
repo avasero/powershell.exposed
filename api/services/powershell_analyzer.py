@@ -339,39 +339,6 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
             techniques_set.update(double_encoded_sig.get("techniques", ["T1027.010", "T1140"]))
             total_score += double_encoded_sig["score"]
 
-           
-            encoding_detection = detectors.detect_encoded_command(raw_command)
-            encoded_sig = next((sig for sig in signatures if sig.get("name") == "Encoded Command Detected"), None)
-
-            if encoded_sig and encoding_detection["is_encoded"]:
-                detected_signatures.append({
-                    "name": "Encoded Command Detected",
-                    "description": f"Command encoding detected: {encoding_detection['indicator']} (confidence: {encoding_detection['confidence']:.0%})",
-                    "severity": encoded_sig["severity"],
-                    "base_score": encoded_sig["score"],
-                    "matches_found": 1,
-                    "total_score": encoded_sig["score"],
-                    "max_match_allowed": 1,
-                    "pattern": encoding_detection["type"],
-                    "matches_details": [{
-                        "matched_text": encoding_detection.get("decoded_preview", "Unable to decode"),
-                        "position": {"start": 0, "end": len(raw_command)},
-                        "match_number": 1,
-                        "matched_in": "original"
-                    }],
-                    "tactics": encoded_sig.get("tactics", ["Defense Evasion"]),
-                    "techniques": encoded_sig.get("techniques", ["T1027", "T1027.001", "T1140"]),
-                    "reference": encoded_sig.get("reference", []),
-                    "link": encoded_sig.get("link"),
-                    "is_premium_indicator": False,
-                    "indicator_type": encoded_sig.get("indicator_type", "community"),
-                    "found_in_decoded": False
-                })
-
-                tactics_set.update(encoded_sig.get("tactics", ["Defense Evasion"]))
-                techniques_set.update(encoded_sig.get("techniques", ["T1027", "T1027.001", "T1140"]))
-                total_score += encoded_sig["score"]
-
     encoding_detection = detectors.detect_encoded_command(raw_command)
 
     # Note: We detect encoded commands for decoding purposes but don't display them as indicators
