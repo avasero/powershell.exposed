@@ -7,7 +7,8 @@ export default function CommandInput({
   onSubmit,
   placeholder = "Type a PowerShell command...",
   error = "",
-  disabled = false
+  disabled = false,
+  renderAction = null
 }) {
   const textareaRef = useRef(null);
   const [showCharacterWarning, setShowCharacterWarning] = useState(false);
@@ -93,33 +94,46 @@ export default function CommandInput({
   };
 
   return (
-    <div className="w-full">
-      <div className={`flex flex-col sm:flex-row items-stretch sm:items-center rounded-lg overflow-hidden border-2 ${error ? 'border-red-500' : showCharacterWarning ? 'border-yellow-500' : 'border-green-500/30'} bg-black/80 hover:border-green-500/50 transition-all`} style={{ borderColor: error ? '#ef4444' : showCharacterWarning ? '#eab308' : 'rgba(34, 197, 94, 0.3)' }}>
-        <span className="px-3 sm:px-4 py-3 font-mono text-sm sm:text-base border-b sm:border-b-0 sm:border-r border-opacity-30 flex-shrink-0" style={{ color: 'var(--accent)', borderColor: 'var(--border-color)' }}>
-          PS &gt;
-        </span>
-        <div className="flex-1 relative min-w-0">
-          <textarea
-            ref={textareaRef}
-            value={value}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            className="w-full font-mono px-3 sm:px-4 py-3 border-none outline-none resize-none text-sm sm:text-base bg-transparent"
-            style={{
-              color: 'var(--foreground)',
-              minHeight: `${MIN_HEIGHT}px`,
-              maxHeight: `${MAX_HEIGHT}px`,
-              lineHeight: `${LINE_HEIGHT}px`
-            }}
-            disabled={disabled}
-            rows={1}
-          />
+    <>
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+        <div className={`flex-1 flex flex-col sm:flex-row items-stretch sm:items-center rounded-lg overflow-hidden border-2 ${error ? 'border-red-500' : showCharacterWarning ? 'border-yellow-500' : 'border-green-500/30'} bg-black/80 hover:border-green-500/50 transition-all`} style={{ borderColor: error ? '#ef4444' : showCharacterWarning ? '#eab308' : 'rgba(34, 197, 94, 0.3)' }}>
+          <span className="px-3 sm:px-4 py-3 font-mono text-sm sm:text-base border-b sm:border-b-0 sm:border-r border-opacity-30 flex-shrink-0" style={{ color: 'var(--accent)', borderColor: 'var(--border-color)' }}>
+            PS &gt;
+          </span>
+          <div className="flex-1 relative min-w-0">
+            <textarea
+              ref={textareaRef}
+              value={value}
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              className="w-full font-mono px-3 sm:px-4 py-3 border-none outline-none resize-none text-sm sm:text-base bg-transparent"
+              style={{
+                color: 'var(--foreground)',
+                minHeight: `${MIN_HEIGHT}px`,
+                maxHeight: `${MAX_HEIGHT}px`,
+                lineHeight: `${LINE_HEIGHT}px`
+              }}
+              disabled={disabled}
+              rows={1}
+            />
+          </div>
         </div>
+        {renderAction && (
+          <div className="flex-shrink-0">
+            {renderAction}
+          </div>
+        )}
       </div>
 
-      {(value.length > 0 || showCharacterWarning) && (
-        <div className="flex justify-between mt-1">
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div
+          className="flex-1 flex justify-between mt-1"
+          style={{
+            opacity: (value.length > 0 || showCharacterWarning) ? 1 : 0,
+            minHeight: '1.25rem'
+          }}
+        >
           <div className="flex-1">
             {showCharacterWarning && (
               <div className="text-sm font-mono flex items-center gap-2" style={{ color: 'var(--warning)' }}>
@@ -139,12 +153,13 @@ export default function CommandInput({
             )}
           </div>
           {value.length > 0 && (
-            <span className="text-xs mr-2 font-mono opacity-60 ml-2 whitespace-nowrap " style={{ color: value.length >= CHARACTER_LIMIT - 100 ? 'var(--warning)' : 'var(--muted-foreground)' }}>
+            <span className={`text-xs ${renderAction ? 'mr-[130px]' : 'mr-[6px]'} font-mono opacity-60 whitespace-nowrap`} style={{ color: value.length >= CHARACTER_LIMIT - 100 ? 'var(--warning)' : 'var(--muted-foreground)' }}>
               {value.length}/{CHARACTER_LIMIT}
             </span>
           )}
         </div>
-      )}
-    </div>
+        {renderAction && <div className="flex-shrink-0 invisible" aria-hidden="true" />}
+      </div>
+    </>
   );
 }

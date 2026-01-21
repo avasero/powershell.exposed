@@ -238,21 +238,17 @@ export default function EvaluatePage() {
               powershell.exposed
             </h1>
 
-            <div className="flex flex-col sm:flex-row gap-3 w-full sm:items-start">
-              <div className="flex-1 min-w-0">
-                <CommandInput
-                  value={command}
-                  onChange={handleCommandChange}
-                  onSubmit={() => handleAnalyze({ preventDefault: () => { } })}
-                  placeholder="Type or paste a PS payload..."
-                  error={error}
-                />
-              </div>
-              <div className="flex-shrink-0">
+            <CommandInput
+              value={command}
+              onChange={handleCommandChange}
+              onSubmit={() => handleAnalyze({ preventDefault: () => { } })}
+              placeholder="Type or paste a PS payload..."
+              error={error}
+              renderAction={
                 <ThemedButton
                   type="submit"
                   disabled={command.length === 0 || loading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
-                  className="w-full sm:w-auto px-6 py-3 mt-[11px]"
+                  className="w-full sm:w-auto px-6 py-3"
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">
@@ -263,11 +259,13 @@ export default function EvaluatePage() {
                     'Evaluate'
                   )}
                 </ThemedButton>
-              </div>
-            </div>
+              }
+            />
+
             <InfoMessage
               className="max-w-[760px]"
               message={!error && command.length === 0 ? EXAMPLE_COMMAND_DESCRIPTION : ""}
+              placeholder={EXAMPLE_COMMAND_DESCRIPTION}
               clickable={!error && command.length === 0}
               onClick={() => setCommand(EXAMPLE_ENCODED_COMMAND)}
             />
