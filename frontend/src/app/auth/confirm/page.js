@@ -67,6 +67,23 @@ export default function ConfirmPage() {
 
     const handleAuthConfirmation = async () => {
       try {
+        // Check for error parameters in hash (e.g., expired magic links from Supabase)
+        if (typeof window !== 'undefined') {
+          const hash = window.location.hash;
+          if (hash && hash.includes('error=')) {
+            const hashParams = new URLSearchParams(hash.substring(1));
+            const error = hashParams.get('error');
+            const errorCode = hashParams.get('error_code');
+
+            // If we have auth errors (like otp_expired), redirect to front page with the hash
+            // The front page will handle displaying the error message
+            if (error === 'access_denied' && (errorCode === 'otp_expired' || errorCode === 'otp_disabled')) {
+              router.push('/' + hash);
+              return;
+            }
+          }
+        }
+
         // Extrair tokens dos parâmetros da URL
         const token_hash = searchParams.get('token_hash');
         const type = searchParams.get('type');

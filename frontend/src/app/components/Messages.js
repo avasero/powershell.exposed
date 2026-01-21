@@ -20,23 +20,32 @@ export function SuccessMessage({ message, className = "" }) {
   );
 }
 
-export function InfoMessage({ message, className = "", onClick, clickable = false }) {
-  if (!message) return null;
-
+export function InfoMessage({ message, className = "", onClick, clickable = false, placeholder = "" }) {
   const handleClick = () => {
-    if (onClick && clickable) {
+    if (onClick && clickable && message) {
       onClick();
     }
   };
 
+  const displayText = message || placeholder;
+  const isHidden = !message && placeholder;
+
   return (
     <div
-      className={`mt-2 text-xs font-mono px-2 break-all ${clickable ? 'cursor-pointer hover:opacity-100 transition-all duration-200 hover:bg-green-500/10 rounded' : ''} ${className}`}
-      style={{ color: 'var(--accent)', opacity: clickable ? 0.9 : 0.7, overflowWrap: 'break-word', wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}
+      className={`mt-2 text-xs font-mono px-2 break-all ${clickable && message ? 'cursor-pointer hover:opacity-100 transition-all duration-200 hover:bg-green-500/10 rounded' : ''} ${className}`}
+      style={{
+        color: 'var(--accent)',
+        opacity: isHidden ? 0 : (clickable ? 0.9 : 0.7),
+        overflowWrap: 'break-word',
+        wordBreak: 'break-all',
+        whiteSpace: 'pre-wrap',
+        visibility: displayText ? 'visible' : 'hidden',
+        minHeight: displayText ? 'auto' : '1.25rem'
+      }}
       onClick={handleClick}
-      title={clickable ? "Click to use this example" : ""}
+      title={clickable && message ? "Click to use this example" : ""}
     >
-      {message} {clickable && <span className="text-green-400 ml-1"></span>}
+      {displayText} {clickable && message && <span className="text-green-400 ml-1"></span>}
     </div>
   );
 }

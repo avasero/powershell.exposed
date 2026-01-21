@@ -499,33 +499,30 @@ export default function AnalysisDetailsPage() {
 
 
       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
-        <div className="flex flex-col sm:flex-row gap-3 items-center">
-          <div className="flex-1 w-full">
-            <CommandInput
-              value={newCommand}
-              onChange={(e) => setNewCommand(e.target.value)}
-              onSubmit={handleNewAnalysis}
-              placeholder="Type or paste a PS payload..."
-              disabled={newAnalysisLoading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
-            />
-          </div>
-          <ThemedButton
-            onClick={handleNewAnalysis}
-            disabled={newCommand.length === 0 || newAnalysisLoading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
-            className="flex-shrink-0"
-            loading={newAnalysisLoading}
-          >
-            {newAnalysisLoading ? 'Analyzing...' : 'Evaluate'}
-          </ThemedButton>
-        </div>
-
-
+        <CommandInput
+          value={newCommand}
+          onChange={(e) => setNewCommand(e.target.value)}
+          onSubmit={handleNewAnalysis}
+          placeholder="Type or paste a PS payload..."
+          disabled={newAnalysisLoading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
+          renderAction={
+            <ThemedButton
+              onClick={handleNewAnalysis}
+              disabled={newCommand.length === 0 || newAnalysisLoading || (rateLimitInfo && rateLimitInfo.current_count >= rateLimitInfo.limit)}
+              className="w-full sm:w-auto px-6 py-3"
+              loading={newAnalysisLoading}
+            >
+              {newAnalysisLoading ? 'Analyzing...' : 'Evaluate'}
+            </ThemedButton>
+          }
+        />
 
         <ErrorMessage message={error} />
 
         <InfoMessage
           className="max-w-[760px]"
           message={!error && newCommand.length === 0 ? EXAMPLE_COMMAND_DESCRIPTION : ""}
+          placeholder={EXAMPLE_COMMAND_DESCRIPTION}
           clickable={!error && newCommand.length === 0}
           onClick={() => setNewCommand(EXAMPLE_ENCODED_COMMAND)}
         />
@@ -776,7 +773,7 @@ export default function AnalysisDetailsPage() {
               </div>
               <div>
                 <div className="font-mono text-xs font-bold uppercase tracking-wider text-yellow-500 mb-1">
-                  Analysis Notice
+                  Note
                 </div>
                 <div className="font-mono text-sm text-yellow-100/80 leading-relaxed">
                   Matched indicators do not automatically imply malicious activity. They surface behavioral patterns that warrant contextual analysis and further investigation.

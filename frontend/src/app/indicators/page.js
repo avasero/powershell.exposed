@@ -1,6 +1,6 @@
 // eslint-disable-line react-hooks/exhaustive-deps
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -17,10 +17,11 @@ export default function IndicatorsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({});
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(10);
   const [sortField, setSortField] = useState("basescore");
   const [sortOrder, setSortOrder] = useState("desc");
   const router = useRouter();
+  const isFirstRender = useRef(true);
 
   const loadIndicators = useCallback(async (search = searchTerm, page = currentPage, sortBy = sortField, order = sortOrder) => {
     try {
@@ -64,29 +65,30 @@ export default function IndicatorsPage() {
     }
   }, [searchTerm, currentPage, pageSize, sortField, sortOrder]);
 
-  // Debounced search function
-  const debounceSearch = useCallback((searchValue, page, sortBy, order) => {
-    const timeoutId = setTimeout(() => {
-      loadIndicators(searchValue, page, sortBy, order);
-    }, 500);
-    return () => clearTimeout(timeoutId);
-  }, [loadIndicators]);
 
   useEffect(() => {
-    if (searchTerm === "" && currentPage === 1 && !sortField) {
-      loadIndicators();
-    } else {
-      setSearching(true);
-      const cleanup = debounceSearch(searchTerm, currentPage, sortField, sortOrder);
-      return cleanup;
-    }
-  }, [currentPage, searchTerm, pageSize, sortField, sortOrder, debounceSearch, loadIndicators]);
+    loadIndicators();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Função para ordenar no backend
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      loadIndicators(searchTerm, currentPage, sortField, sortOrder);
+    }, searchTerm ? 500 : 0);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, currentPage, pageSize, sortField, sortOrder]); // eslint-disable-line react-hooks/exhaustive-deps
+
+
   const sortIndicators = (field) => {
     let newOrder = "asc";
 
-    // Se já está ordenando por esse campo, inverte a ordem
+ 
     if (sortField === field) {
       newOrder = sortOrder === "asc" ? "desc" : "asc";
     }
@@ -94,7 +96,6 @@ export default function IndicatorsPage() {
     setSortField(field);
     setSortOrder(newOrder);
 
-    // O useEffect irá disparar o carregamento quando sortField ou sortOrder mudar
   };
 
   const getSeverityChipClass = (severity) => {
@@ -112,14 +113,6 @@ export default function IndicatorsPage() {
   const handleIndicatorClick = (indicatorId) => {
     router.push(`/indicators/${indicatorId}`);
   };
-
-  const truncateText = (text, maxLength = 50) => {
-    if (!text) return '-';
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-  };
-
-  // Componente para o ícone de ordenação
   const SortIcon = ({ field }) => {
     if (sortField !== field) {
       return (
@@ -157,14 +150,20 @@ export default function IndicatorsPage() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-2" style={{ color: 'var(--accent)' }}>
-            Community Indicators
+            Indicators
           </h1>
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+            <div className="flex flex-col">
             <p className="font-mono text-sm mb-4" style={{ color: 'var(--muted-foreground)' }}>
-              Browse and search detection public indicators
+              Browse the community indicators powering a large part of our engine.
             </p>
-            <Link href="https://github.com/avasero/psexposed" target="_blank">
-              <ThemedButton className="gap-2 mb-4">
+            <p className="font-mono text-sm mb-4 max-w-3xl" style={{ color: 'var(--muted-foreground)' }}>
+              Premium indicators as part of the [Premium] tier are not listed here. Details can be found on the premium documentation.
+              While some premium indicators might be available on the &quot;Guest&quot; and &quot;Base&quot; tiers, their use is limited.
+            </p>
+            </div>
+            <Link href="https://github.com/avasero/psexposed" target="_blank" className="flex-shrink-0">
+              <ThemedButton className="gap-2 mb-6 md:mb-0">
                 <FaGithub size={18} />
                 Explore on GitHub
               </ThemedButton>
@@ -181,12 +180,7 @@ export default function IndicatorsPage() {
                   setSearchTerm(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-4 py-3 rounded border font-mono text-sm"
-                style={{
-                  backgroundColor: 'var(--card-bg)',
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--foreground)'
-                }}
+                className="w-full px-4 py-3 rounded-md border-5 border-green-500/ bg-black font-mono text-sm text-green-400/80 placeholder:text-green-400/40 shadow-[0_0_15px_rgba(34,197,94,0.2)] focus:outline-none"
               />
               {searching && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -204,37 +198,21 @@ export default function IndicatorsPage() {
                     setPageSize(e.target.value === "All" ? "All" : parseInt(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="appearance-none px-4 py-3 pr-10 rounded border font-mono text-sm min-w-[120px] cursor-pointer hover:bg-opacity-80 transition-all focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500"
-                  style={{
-                    backgroundColor: 'var(--card-bg)',
-                    borderColor: 'var(--border-color)',
-                    color: 'var(--foreground)'
-                  }}
+                  className="appearance-none px-4 py-3 pr-10 rounded-md border-2 border-green-500/50 bg-black font-mono text-sm text-green-400/80 min-w-[120px] cursor-pointer shadow-[0_0_15px_rgba(34,197,94,0.2)] transition-all focus:outline-none focus:border-green-500 focus:text-green-400 focus:shadow-[0_0_25px_rgba(34,197,94,0.4)] hover:border-green-500 hover:text-green-400 hover:shadow-[0_0_25px_rgba(34,197,94,0.4)]"
                 >
+                  <option value={10}>10 per page</option>
                   <option value={20}>20 per page</option>
                   <option value={50}>50 per page</option>
                   <option value="All">Show All</option>
                 </select>
 
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--muted-foreground)' }}>
+                  <svg className="w-4 h-4 text-green-400/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
               </div>
             </div>
-
-            {searchTerm && (
-              <ThemedButton
-                variant="outline"
-                onClick={() => {
-                  setSearchTerm("");
-                  setCurrentPage(1);
-                }}
-              >
-                Clear
-              </ThemedButton>
-            )}
           </div>
 
 

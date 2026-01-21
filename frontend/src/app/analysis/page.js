@@ -734,7 +734,7 @@ export default function AnalysisPage() {
               </div>
               <div>
                 <div className="font-mono text-xs font-bold uppercase tracking-wider text-yellow-500 mb-1">
-                  Analysis Notice
+                  Note
                 </div>
                 <div className="font-mono text-sm text-yellow-100/80 leading-relaxed">
                   Matched indicators do not automatically imply malicious activity. They surface behavioral patterns that warrant contextual analysis and further investigation.

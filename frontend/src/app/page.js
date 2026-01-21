@@ -19,10 +19,10 @@ export default function LandingPage() {
         const error = params.get('error');
         const errorCode = params.get('error_code');
         const errorDescription = params.get('error_description');
-        
-        if (error === 'access_denied' && errorCode === 'otp_expired') {
+
+        if (error === 'access_denied' && (errorCode === 'otp_expired' || errorCode === 'otp_disabled')) {
           setAuthError(decodeURIComponent(errorDescription || 'Your login link has expired. Please request a new one.'));
-         
+
           window.history.replaceState(null, '', window.location.pathname);
         }
       }
