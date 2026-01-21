@@ -152,7 +152,7 @@ export default function IndicatorsPage() {
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mb-2" style={{ color: 'var(--accent)' }}>
             Indicators
           </h1>
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
             <div className="flex flex-col">
             <p className="font-mono text-sm mb-4" style={{ color: 'var(--muted-foreground)' }}>
               Browse the community indicators powering a large part of our engine.
@@ -162,8 +162,8 @@ export default function IndicatorsPage() {
               While some premium indicators might be available on the &quot;Guest&quot; and &quot;Base&quot; tiers, their use is limited.
             </p>
             </div>
-            <Link href="https://github.com/avasero/psexposed" target="_blank">
-              <ThemedButton className="gap-2 mb-4">
+            <Link href="https://github.com/avasero/psexposed" target="_blank" className="flex-shrink-0">
+              <ThemedButton className="gap-2 mb-6 md:mb-0">
                 <FaGithub size={18} />
                 Explore on GitHub
               </ThemedButton>
