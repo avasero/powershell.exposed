@@ -375,15 +375,7 @@ async def analyze_command_endpoint(
        
         decode_info_before = await can_user_decode_commands(user_id, session_id=session_id, command=command)
         allow_decoded_analysis = decode_info_before["can_decode"]
-
-        
-
         analysis_result = analyze_command_patterns(command, signatures, allow_decoded_analysis)
-
-        print(f"[DEBUG ENDPOINT] analysis_result keys: {analysis_result.keys()}")
-        print(f"[DEBUG ENDPOINT] analysis_result['decoded_command']: {analysis_result.get('decoded_command', 'NOT_IN_RESULT')[:200] if analysis_result.get('decoded_command') else 'None'}")
-        print(f"[DEBUG ENDPOINT] analysis_result['double_decoded_command']: {analysis_result.get('double_decoded_command', 'NOT_IN_RESULT')[:200] if analysis_result.get('double_decoded_command') else 'None'}")
-
         severity = calculate_severity_and_risk(analysis_result["total_score"])
         
         analysis_result.update({
@@ -486,11 +478,7 @@ async def analyze_command_endpoint(
 
         # Determine if decode was successfully used in THIS request
         decode_was_used_this_request = decode_info_before["can_decode"] and (decoded_cmd is not None or double_decoded_cmd is not None)
-        print(f"[DEBUG ENDPOINT] === DECODE SUMMARY ===")
-        print(f"[DEBUG ENDPOINT] decoded_cmd is not None: {decoded_cmd is not None}")
-        print(f"[DEBUG ENDPOINT] double_decoded_cmd is not None: {double_decoded_cmd is not None}")
-        print(f"[DEBUG ENDPOINT] decode_info_before['can_decode']: {decode_info_before['can_decode']}")
-        print(f"[DEBUG ENDPOINT] decode_was_used_this_request: {decode_was_used_this_request}")
+       
 
         return JSONResponse({
             "success": True,

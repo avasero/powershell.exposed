@@ -11,7 +11,6 @@ def decode_base64_utf16(encoded_str: str) -> str:
         encoded_str = encoded_str.replace(' ', '').replace('\n', '').replace('\r', '')
 
         if not encoded_str:
-            print(f"[DEBUG decode_base64_utf16] Empty after cleanup, returning ''")
             return ""
 
         # Handle truncated base64: length % 4 == 1 is INVALID in base64
@@ -32,7 +31,6 @@ def decode_base64_utf16(encoded_str: str) -> str:
         return decoded_text
 
     except Exception as e:
-        print(f"[DEBUG decode_base64_utf16] EXCEPTION in decode: {e}")
         import traceback
         traceback.print_exc()
         return ""
@@ -46,7 +44,6 @@ def detect_encoded_command(command: str) -> dict:
     try:
         match = regex.search(ENCODED_COMMAND_PATTERN, command, regex.IGNORECASE)
 
-        print(f"[DEBUG detect_encoded_command] Pattern match result: {match}")
 
         if match:
            
@@ -58,7 +55,6 @@ def detect_encoded_command(command: str) -> dict:
            
 
             if len(decoded) > 0:
-                print(f"[DEBUG detect_encoded_command] Returning is_encoded=True with decoded_preview")
                 return {
                     "is_encoded": True,
                     "type": "explicit_encoded_command",
