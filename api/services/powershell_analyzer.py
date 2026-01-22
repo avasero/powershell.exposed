@@ -133,34 +133,40 @@ async def load_signatures_from_db(user_id: str = None) -> list:
 def decode_base64_utf16(encoded_str: str) -> str:
     try:
         encoded_str = encoded_str.replace(' ', '').replace('\n', '').replace('\r', '')
-        
+
         if not encoded_str:
             return ""
-        
-        decoded_bytes = base64.b64decode(encoded_str + '===', validate=False)
+
+        # Handle truncated base64: length % 4 == 1 is INVALID in base64
+        # Remove trailing character to make it valid
+        remainder = len(encoded_str) % 4
+        if remainder == 1:
+            encoded_str = encoded_str[:-1]
+
+        # Add proper padding
+        padding_needed = (4 - len(encoded_str) % 4) % 4
+        padded_str = encoded_str + ('=' * padding_needed)
+
+        decoded_bytes = base64.b64decode(padded_str, validate=False)
         decoded_text = decoded_bytes.decode('utf-16-le', errors='ignore')
-        
+
         return decoded_text
-        
+
     except Exception:
-        try:
-            decoded_bytes = base64.b64decode(encoded_str, validate=False)
-            return decoded_bytes.decode('utf-16-le', errors='ignore')
-        except Exception:
-            return ""
+        return ""
 
 
 def decode_powershell(command: str) -> tuple:
     """
     Decode a PowerShell command through multiple layers.
-    
+
     Handles:
     - Base64 encoded commands (-EncodedCommand)
     - Format string resolution ("{0}{1}" -f "a","b")
-    
+
     Args:
         command: Raw PowerShell command to decode
-        
+
     Returns:
         tuple: (final_command, decode_iterations, processing_type, decoded_layers)
             - final_command: The fully decoded command
@@ -168,62 +174,71 @@ def decode_powershell(command: str) -> tuple:
             - processing_type: "none", "base64_decoded", or "format_decoded"
             - decoded_layers: List of intermediate decoded states
     """
+    
+
     current_command = command
     max_decode_iterations = 5
     iteration = 0
     processing_type = "none"
     decoded_layers = []
     successfully_decoded = False
-    
-    
-   
+
+
+
     while iteration < max_decode_iterations:
+       
         encoded_match = regex.search(
             detectors.ENCODED_COMMAND_PATTERN,
             current_command,
             regex.IGNORECASE
         )
-        
+
+       
+
         if encoded_match:
+         
             iteration += 1
             payload_b64 = encoded_match.group(1)
             decoded_payload = decode_base64_utf16(payload_b64)
-            
             is_valid_decode = (
                 len(decoded_payload) > 0 and
                 decoded_payload != payload_b64
             )
-            
+           
+
             if is_valid_decode:
                 decoded_layers.append({
                     "iteration": iteration,
                     "decoded": decoded_payload
                 })
-                
+
                 current_command = decoded_payload
                 processing_type = "base64_decoded"
                 successfully_decoded = True
-                
-        
+               
+
+
                 has_more_encoding = regex.search(
                     detectors.ENCODED_COMMAND_PATTERN,
                     decoded_payload,
                     regex.IGNORECASE
                 )
-                
+
                 if not has_more_encoding:
+                   
                     break
             else:
+               
                 iteration -= 1
                 break
         else:
             break
-    
+
     base64_iterations = iteration if successfully_decoded else 0
 
     if base64_iterations > 0:
         return current_command, base64_iterations, processing_type, decoded_layers
-    
+
     return command, 0, "none", []
 
 
@@ -242,8 +257,11 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
     Returns:
         dict: Analysis results including detected_signatures, total_score, etc.
     """
+   
+
     # Pre-sanitize command for decoding by applying all san_regex patterns
     sanitized_for_decode = command
+    san_regex_applied_count = 0
     for sig in signatures:
         san_regex_raw = sig.get("san_regex")
         if san_regex_raw:
@@ -255,48 +273,67 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
 
                 if isinstance(san_patterns, list):
                     for san_pattern in san_patterns:
+                        before_len = len(sanitized_for_decode)
                         sanitized_for_decode = regex.sub(san_pattern, "", sanitized_for_decode, flags=regex.IGNORECASE)
+                        if len(sanitized_for_decode) != before_len:
+                            san_regex_applied_count += 1
                 else:
+                    before_len = len(sanitized_for_decode)
                     sanitized_for_decode = regex.sub(san_patterns, "", sanitized_for_decode, flags=regex.IGNORECASE)
+                    if len(sanitized_for_decode) != before_len:
+                        san_regex_applied_count += 1
             except (json.JSONDecodeError, regex.error):
                 pass
 
+       
+
+    
     encoding_result = detectors.detect_encoded_command(sanitized_for_decode)
+   
     
     first_decoded = None
     double_decoded = None
-    
+
+  
+
     if encoding_result["is_encoded"]:
         first_decoded = encoding_result.get("decoded_preview")
-        
+      
+
         if first_decoded:
             double_encoding_result = detectors.detect_double_encoded_command(
                 command=sanitized_for_decode,
                 decoded_command=first_decoded,
                 decode_iterations=1
             )
-            
+
             if double_encoding_result["is_double_encoded"]:
                 double_decoded = double_encoding_result.get("second_level_decoded")
-    
+                print(f"[DEBUG analyze_command_patterns] double_decoded: {double_decoded[:200] if double_decoded else 'None'}")
+    else:
+        print(f"[DEBUG analyze_command_patterns] encoding_result['is_encoded'] is False - NO DECODING WILL HAPPEN")
+
     detected_signatures = []
     total_score = 0.0
     tactics_set = set()
     techniques_set = set()
-    
+
     raw_command = command
 
+    
     fully_decoded, decode_iterations, processing_type, decoded_layers = decode_powershell(sanitized_for_decode)
     has_decoded = fully_decoded != sanitized_for_decode
-    
+  
+
     first_decoded_layer = None
     second_decoded_layer = None
-    
+
     if decoded_layers:
         if len(decoded_layers) >= 1:
             first_decoded_layer = decoded_layers[0]["decoded"]
         if len(decoded_layers) >= 2:
             second_decoded_layer = decoded_layers[1]["decoded"]
+            print(f"[DEBUG analyze_command_patterns] second_decoded_layer (first 200 chars): {second_decoded_layer[:200]}")
     
     
     
