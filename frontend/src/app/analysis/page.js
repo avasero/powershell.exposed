@@ -15,6 +15,7 @@ import AnalysisSkeleton from "../components/AnalysisSkeleton";
 import CommandInput from "../components/CommandInput";
 import { ErrorMessage, InfoMessage } from "../components/Messages";
 import IndicatorsSummaryTable from "../components/IndicatorsSummaryTable";
+import { RequestReviewButton } from "../components/ReviewRequestModal";
 import { EXAMPLE_ENCODED_COMMAND, EXAMPLE_COMMAND_DESCRIPTION } from "../../constants/examples";
 
 import { saveAnonymousAnalysis } from "../../utils/cookies";
@@ -745,34 +746,42 @@ export default function AnalysisPage() {
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
-        <ThemedButton onClick={() => router.push('/')}>
-          Evaluate Another Command
-        </ThemedButton>
-        <ThemedButton
-          variant="outline"
-          onClick={async () => {
-            const baseUrl = window.location.origin;
-            const shareUrl = result?.analysisId
-              ? `${baseUrl}/analysis/${result.analysisId}`
-              : window.location.href;
-            try {
-              await navigator.clipboard.writeText(shareUrl);
-              setLinkCopied(true);
-              setTimeout(() => setLinkCopied(false), 3000);
-            } catch (err) {
-              console.error('Failed to copy to clipboard:', err);
-            }
-          }}
-          style={linkCopied ? {
-            backgroundColor: 'var(--success)',
-            color: 'var(--success-foreground)',
-            borderColor: 'var(--success)'
-          } : {}}
-        >
-          {linkCopied ? 'Copied!' : 'Copy Results Link'}
-        </ThemedButton>
-      </div>
+      {result && (
+        <div className="flex flex-col items-center gap-4 mb-8">
+          <div className="flex flex-wrap justify-center items-center gap-3">
+            <ThemedButton
+              variant="outline"
+              onClick={async () => {
+                const baseUrl = window.location.origin;
+                const shareUrl = result?.analysisId
+                  ? `${baseUrl}/analysis/${result.analysisId}`
+                  : window.location.href;
+                try {
+                  await navigator.clipboard.writeText(shareUrl);
+                  setLinkCopied(true);
+                  setTimeout(() => setLinkCopied(false), 3000);
+                } catch (err) {
+                  console.error('Failed to copy to clipboard:', err);
+                }
+              }}
+              style={linkCopied ? {
+                backgroundColor: 'var(--success)',
+                color: 'var(--success-foreground)',
+                borderColor: 'var(--success)'
+              } : {}}
+            >
+              {linkCopied ? 'Copied!' : 'Copy Results Link'}
+            </ThemedButton>
+            <RequestReviewButton
+              command={cmd}
+              isAuthenticated={isAuthenticated}
+            />
+          </div>
+          <p className="text-xs font-mono text-center" style={{ color: 'var(--muted-foreground)' }}>
+            Request Review: Submit feedback for incorrectly matched or unmatched indicators
+          </p>
+        </div>
+      )}
 
       <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-8">
         <div className="font-mono text-[12px]" style={{ color: 'var(--muted-foreground)' }}>
