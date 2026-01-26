@@ -279,3 +279,25 @@ class UserCommandEvaluationsResponse(BaseModel):
     )
     analyses: List[CommandEvaluationResponse]
     message: Optional[str] = None
+
+
+class ReviewRequestCreate(BaseModel):
+    """Schema for creating a review request"""
+    command: str = Field(..., description="The PowerShell command being reviewed", max_length=100000)
+    reason: str = Field(..., description="Reason for the review request: 'unmatched' or 'incorrectly_matched'")
+    comment: Optional[str] = Field(None, description="Additional comments or details about the review request", max_length=2000)
+
+    @field_validator('reason')
+    @classmethod
+    def validate_reason(cls, v):
+        allowed_reasons = ['unmatched', 'incorrectly_matched']
+        if v not in allowed_reasons:
+            raise ValueError(f"Reason must be one of: {', '.join(allowed_reasons)}")
+        return v
+
+
+class ReviewRequestResponse(BaseModel):
+    """Schema for review request response"""
+    success: bool
+    message: str
+    review_id: Optional[str] = None
