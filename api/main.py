@@ -94,8 +94,8 @@ except ImportError as e:
 try:
     from routes.system_routes import root_endpoint, health_check_endpoint
     from routes.analysis_routes import (
-        analyze_command_endpoint, get_user_analyses_endpoint, 
-        get_analysis_by_id_endpoint
+        analyze_command_endpoint, get_user_analyses_endpoint,
+        get_analysis_by_id_endpoint, submit_review_request_endpoint
     )
     from routes.user_routes import (
         create_user_session_endpoint,
@@ -116,6 +116,7 @@ try:
              })(analyze_command_endpoint)
     app.get("/user-analyses", tags=["User Data"], summary="Get User Analyses", include_in_schema=False)(get_user_analyses_endpoint)
     app.get("/analysis/{analysis_id}", tags=["Command Analysis"], summary="Get Analysis by ID", include_in_schema=False)(get_analysis_by_id_endpoint)
+    app.post("/review-request", tags=["Command Analysis"], summary="Submit Review Request", include_in_schema=False)(submit_review_request_endpoint)
     app.post("/create-user-session", tags=["Session Management"], summary="Create User Session", include_in_schema=False)(create_user_session_endpoint)
     app.get("/user/profile", tags=["User Data"], summary="Get User Profile", include_in_schema=False)(get_user_profile_endpoint)
     app.patch("/user/profile", tags=["User Data"], summary="Update User Profile", include_in_schema=False)(update_user_profile_endpoint)
