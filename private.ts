@@ -21,6 +21,7 @@ interface YamlIndicator {
     technique?: string | string[];
     reference?: string | string[];
     san_regex?: string | string[];
+    san_score?: number | string;
 }
 
 interface IndicatorPayload {
@@ -58,6 +59,7 @@ interface DatabaseIndicator {
     merger_avatar?: string;
     is_premium_indicator: boolean;
     san_regex: string[] | null;
+    san_score: number | null;
 }
 
 /**
@@ -223,6 +225,21 @@ function parseYamlContent(
         if (sanRegex) {
             console.log(`🧼 Sanitize regex configured for ${name}: ${JSON.stringify(sanRegex)}`);
         }
+
+        // Processar san_score (score adicional quando san_regex faz match)
+        let sanScore: number | null = null;
+        if (yamlData.san_score !== undefined) {
+            const parsed =
+                typeof yamlData.san_score === "string"
+                    ? parseFloat(yamlData.san_score)
+                    : yamlData.san_score;
+
+            if (!isNaN(parsed)) {
+                sanScore = parsed;
+                console.log(`🧼 Sanitize score configured for ${name}: ${sanScore}`);
+            }
+        }
+
         const indicator: DatabaseIndicator = {
             name,
             description,
@@ -237,6 +254,7 @@ function parseYamlContent(
             file_path: filePath,
             is_premium_indicator: false,
             san_regex: sanRegex,
+            san_score: sanScore,
         };
 
         // Adicionar campos opcionais
@@ -305,13 +323,13 @@ async function upsertIndicator(
                     reference: indicator.reference,
                     max_match: indicator.max_match,
                     san_regex: indicator.san_regex,
+                    san_score: indicator.san_score,
                     link: indicator.link,
                     last_modified_by: indicator.last_modified_by,
                     last_modified_by_avatar: indicator.last_modified_by_avatar,
                     merger: indicator.merger,
                     merger_avatar: indicator.merger_avatar,
                     updated_at: new Date().toISOString(),
-                    
                 })
                 .eq("id", existing.id);
 
