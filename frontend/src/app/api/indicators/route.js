@@ -82,22 +82,39 @@ export async function GET(request) {
     const sortBy = searchParams.get('sortBy');
     const order = searchParams.get('order');
 
-    if (sortBy && order) {
-      // Map frontend field names to database columns if necessary
-      const sortMapping = {
-        'name': 'name',
-        'severity': 'severity', // Note: Severity might need custom ordering logic if it's text-based but has a semantic order
-        'basescore': 'basescore',
-        'description': 'description',
-        'last_modified_by': 'last_modified_by',
-        'merger': 'merger',
-        'last_modification': 'updated_at'
-      };
+    // Map frontend field names to database columns
+    // Note: 'severity_order' is a generated column for proper ordering (CRITICAL=1, HIGH=2, MEDIUM=3, LOW=4, INFORMATIONAL=5)
+    const sortMapping = {
+      'name': 'name',
+      'severity': 'severity_order',
+      'basescore': 'basescore',
+      'description': 'description',
+      'last_modified_by': 'last_modified_by',
+      'merger': 'merger',
+      'last_modification': 'updated_at'
+    };
 
-      const dbField = sortMapping[sortBy] || 'basescore';
-      query = query.order(dbField, { ascending: order === 'asc' });
+    if (sortBy && order) {
+      
+      const sortFields = sortBy.split(',');
+      const sortOrders = order.split(',');
+
+      sortFields.forEach((field, index) => {
+        const trimmedField = field.trim();
+        const fieldOrder = (sortOrders[index] || sortOrders[0] || 'asc').trim();
+        const dbField = sortMapping[trimmedField] || trimmedField;
+
+        // Invert order for severity_order since CRITICAL=1, INFORMATIONAL=5
+        
+        const isAscending = trimmedField === 'severity'
+          ? fieldOrder === 'desc'  
+          : fieldOrder === 'asc';
+
+        query = query.order(dbField, { ascending: isAscending });
+      });
     } else {
-      query = query.order('basescore', { ascending: false });
+      query = query.order('severity_order', { ascending: true });
+      query = query.order('updated_at', { ascending: false });
     }
 
     // Apply pagination

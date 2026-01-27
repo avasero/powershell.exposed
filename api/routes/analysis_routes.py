@@ -8,8 +8,9 @@ from fastapi import Request, Depends, Query
 from fastapi.responses import JSONResponse
 from middleware.auth_middleware import get_current_user_optional, get_current_user_required
 from models.schemas import (
-    AnalyzeCommandRequest, AnalyzeCommandResponse, 
-    ErrorResponse, UserCommandEvaluationsResponse
+    AnalyzeCommandRequest, AnalyzeCommandResponse,
+    ErrorResponse, UserCommandEvaluationsResponse,
+    ReviewRequestCreate, ReviewRequestResponse
 )
 from middleware.rate_limiting import (
     check_global_rate_limit, add_global_request, 
@@ -1072,4 +1073,82 @@ async def get_user_command_evaluations_endpoint(
         return JSONResponse(
             {"error": f"Failed to fetch command evaluations: {str(error)}"},
             status_code=500
+        )
+
+
+async def submit_review_request_endpoint(
+    request: Request,
+    review_data: ReviewRequestCreate,
+    current_user: Dict[str, Any] = Depends(get_current_user_required)
+) -> ReviewRequestResponse:
+    """
+    Submit a review request for a PowerShell command analysis.
+
+    Allows authenticated users to request a manual review when they believe
+    an indicator was unmatched or incorrectly matched.
+    """
+    try:
+        supabase = get_supabase_client()
+
+        # Get user email from the user's profile or auth data
+        user_id = current_user.get("id")
+        user_email = current_user.get("email")
+
+        # If email not in current_user, try to fetch from profiles table
+        if not user_email:
+            try:
+                profile_response = supabase.table('profiles').select('email').eq('id', user_id).single().execute()
+                if profile_response.data:
+                    user_email = profile_response.data.get('email')
+            except Exception:
+                pass  # Email is optional, continue without it
+
+        # Get client info
+        ip_address = get_client_ip_from_request(request)
+        user_agent = request.headers.get("User-Agent", "Unknown")
+
+        # Create review request record
+        review_record = {
+            "user_id": user_id,
+            "user_email": user_email,
+            "command": review_data.command,
+            "reason": review_data.reason,
+            "comment": review_data.comment,
+            "ip_address": ip_address,
+            "user_agent": user_agent,
+            "status": "pending"
+        }
+
+        response = supabase.table('review_requests').insert(review_record).execute()
+
+        if response.data:
+            review_id = response.data[0].get('id')
+            return JSONResponse({
+                "success": True,
+                "message": "Review request submitted successfully",
+                "review_id": str(review_id)
+            })
+        else:
+            return JSONResponse(
+                {
+                    "error": {
+                        "code": "DatabaseError",
+                        "message": "Failed to save review request",
+                        "details": "Unable to insert review request into database"
+                    }
+                },
+                status_code=500
+            )
+
+    except Exception as error:
+        print(f"[ERROR] Submitting review request: {type(error).__name__}: {str(error)}")
+        return JSONResponse(
+            {
+                "error": {
+                    "code": "TransientError",
+                    "message": "Transient server error. Retry might work.",
+                    "details": f"Failed to submit review request: {str(error)}"
+                }
+            },
+            status_code=503
         )
