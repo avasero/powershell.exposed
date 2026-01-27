@@ -18,8 +18,8 @@ export default function IndicatorsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({});
   const [pageSize, setPageSize] = useState(10);
-  const [sortField, setSortField] = useState("basescore");
-  const [sortOrder, setSortOrder] = useState("desc");
+  const [sortField, setSortField] = useState("severity,last_modification");
+  const [sortOrder, setSortOrder] = useState("desc,desc");
   const router = useRouter();
   const isFirstRender = useRef(true);
 
@@ -86,16 +86,15 @@ export default function IndicatorsPage() {
 
 
   const sortIndicators = (field) => {
-    let newOrder = "asc";
+    let newOrder = "desc";
 
- 
-    if (sortField === field) {
-      newOrder = sortOrder === "asc" ? "desc" : "asc";
+    // If clicking the same field, toggle order
+    if (sortField === field || sortField.startsWith(field + ",")) {
+      newOrder = sortOrder === "asc" || sortOrder.startsWith("asc") ? "desc" : "asc";
     }
 
     setSortField(field);
     setSortOrder(newOrder);
-
   };
 
   const getSeverityChipClass = (severity) => {
