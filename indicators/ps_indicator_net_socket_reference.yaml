@@ -1,7 +1,8 @@
 name: Net.Socket reference
 description: Detects explicit PowerShell usage of low-level .NET socket classes, which enables custom network communication outside standard application-layer protocols and is frequently used for bespoke C2 channels, tunneling, or covert data transfer.
 regex: Net\.Socket
-san_regex: [&,`'\"()^+/]+
+san_regex: [&,`'\"()^+/]+]
+san_score: 10
 basescore: 10
 tactic: [TA0011]
 technique: [T1095]
