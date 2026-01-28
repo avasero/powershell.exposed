@@ -67,16 +67,17 @@ export default function IndicatorsSummaryTable({ signatures }) {
                   <td className="p-3">
                     {(() => {
                       const type = sig.indicator_type?.toLowerCase();
+                      // If san_score_applied, upgrade to premium regardless of original type
+                      const isPremium = sig.san_score_applied || type === 'private' || type === 'premium';
                       if (type === 'community' || type === 'private' || type === 'premium') {
-                        const isCommunity = type === 'community';
                         return (
                           <span
-                            className={`inline-flex items-center px-2 py-1 rounded text-xs font-bold border ${isCommunity
+                            className={`inline-flex items-center px-2 py-1 rounded text-xs font-bold border ${!isPremium
                               ? 'border-blue-500/30 text-blue-400 bg-blue-500/10'
                               : 'bg-orange-500/20 text-orange-400 border-orange-500/50'
                               }`}
                           >
-                            {isCommunity ? 'COMMUNITY' : 'PREMIUM'}
+                            {!isPremium ? 'COMMUNITY' : 'PREMIUM'}
                           </span>
                         );
                       }
@@ -96,9 +97,26 @@ export default function IndicatorsSummaryTable({ signatures }) {
                     </span>
                   </td>
                   <td className="p-3">
-                    <span className="font-bold" style={{ color: 'var(--accent)' }}>
-                      {(sig.base_score || sig.score || 0).toFixed(1)}
-                    </span>
+                    {sig.san_score_applied ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-gray-500 line-through text-xs">
+                          {(sig.base_score || 0).toFixed(1)}
+                        </span>
+                        <span className="font-bold text-red-400">
+                          {(sig.san_score || sig.total_score || 0).toFixed(1)}
+                        </span>
+                        <span
+                          className="px-1 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/50"
+                          title="Score increased due to evasion techniques detected"
+                        >
+                          ⚠
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="font-bold" style={{ color: 'var(--accent)' }}>
+                        {(sig.base_score || sig.score || 0).toFixed(1)}
+                      </span>
+                    )}
                   </td>
                   <td className="p-3">
                     <div className="flex flex-wrap gap-1 max-w-xs">

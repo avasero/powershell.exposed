@@ -110,7 +110,8 @@ async def load_signatures_from_db(user_id: str = None) -> list:
                     "link": link,
                     "is_premium_indicator": sig.get("is_premium_indicator", False),
                     "indicator_type": indicator_type,
-                    "san_regex": sig.get("san_regex", None)
+                    "san_regex": sig.get("san_regex", None),
+                    "san_score": float(sig.get("san_score")) if sig.get("san_score") is not None else None
                 })
             
             
@@ -419,18 +420,37 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
         all_signature_matches = []
         matched_pattern = None
         matched_in_decoded = False
-        
+        matched_via_sanitization = False
+
         for command in commands_to_analyze:
-           
+
             is_decoded_version = (command != raw_command)
 
+            # Track if sanitization was applied for this signature
+            command_before_san = command
+            was_sanitized = False
 
             san_regex_raw = signature.get("san_regex")
+
+            # Count matches BEFORE sanitization
+            matches_before_count = 0
+            for pattern in signature["patterns"]:
+                try:
+                    compiled_pattern = regex.compile(pattern, regex.IGNORECASE)
+                    matches_before_count += len(list(compiled_pattern.finditer(command_before_san)))
+                except regex.error:
+                    pass
+
+            # Apply san_regex to sanitize the command
             if san_regex_raw:
                 try:
-                    # san_regex may be a JSON array string like '["[`]+"]' or a list
+                    # san_regex may be a JSON array string like '["[`]+"]', a list, or a raw regex string
                     if isinstance(san_regex_raw, str):
-                        san_patterns = json.loads(san_regex_raw)
+                        try:
+                            san_patterns = json.loads(san_regex_raw)
+                        except json.JSONDecodeError:
+                            # Not JSON, treat as raw regex string
+                            san_patterns = san_regex_raw
                     else:
                         san_patterns = san_regex_raw
 
@@ -439,23 +459,32 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
                             command = regex.sub(san_pattern, "", command, flags=regex.IGNORECASE)
                     else:
                         command = regex.sub(san_patterns, "", command, flags=regex.IGNORECASE)
-                except (json.JSONDecodeError, regex.error):
-                    pass
 
-            
-            
+                    # Check if sanitization actually modified the command
+                    if command != command_before_san:
+                        was_sanitized = True
+                except regex.error as e:
+                    print(f"[DEBUG] san_regex error for {signature['name']}: {e}")
+
             for pattern in signature["patterns"]:
                 try:
                     compiled_pattern = regex.compile(pattern, regex.IGNORECASE)
                     pattern_matches = list(compiled_pattern.finditer(command))
-                    
+
                     if pattern_matches:
                         if matched_pattern is None:
                             matched_pattern = pattern
-                        
+
                         if is_decoded_version:
                             matched_in_decoded = True
-                        
+
+                        # Evasion detected if:
+                        # 1. Sanitization was applied (command changed)
+                        # 2. MORE matches found after sanitization than before
+                        #    (meaning some obfuscated instances were revealed)
+                        if was_sanitized and len(pattern_matches) > matches_before_count:
+                            matched_via_sanitization = True
+
                         for match in pattern_matches:
                             matched_text = match.group(0)
                             match_start = match.start()
@@ -492,9 +521,13 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
         final_matches = unique_matches[:matches_found]
 
         if matches_found > 0:
-            # Score is always base_score, never multiplied by matches
-            signature_total_score = signature["score"]
-            
+            # Use san_score if match came from sanitized input, otherwise use basescore
+            san_score_applied = matched_via_sanitization and signature.get("san_score") is not None
+            if san_score_applied:
+                signature_total_score = signature["san_score"]
+            else:
+                signature_total_score = signature["score"]
+
             detected_signature = {
                 "name": signature["name"],
                 "description": signature["description"],
@@ -519,7 +552,9 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
                 "link": signature.get("link"),
                 "is_premium_indicator": signature.get("is_premium_indicator", False),
                 "indicator_type": signature.get("indicator_type", "community"),
-                "found_in_decoded": matched_in_decoded
+                "found_in_decoded": matched_in_decoded,
+                "san_score_applied": san_score_applied,
+                "san_score": signature.get("san_score") if san_score_applied else None
             }
             
             detected_signatures.append(detected_signature)

@@ -41,12 +41,13 @@ export default function AnalysisCard({
   link = null,
   matchesInfo,
   index = 0,
-  variant = "default",  // ✅ Adicionar prop variant com valor padrão
-  className = "",  // ✅ Adicionar prop className com valor padrão
-  children,  // ✅ Adicionar prop children
-  indicatorType // ✅ Adicionar prop indicatorType
+  variant = "default",
+  className = "",
+  children,
+  indicatorType,
+  sanScoreApplied = false,
+  sanScore = null
 }) {
-  // Debug: log the link prop
   const variantStyles = {
     default: {
       backgroundColor: 'var(--card-bg)',
@@ -137,17 +138,18 @@ export default function AnalysisCard({
             {/* Indicator Type Badge */}
             {(() => {
               const type = indicatorType?.toLowerCase();
+              // If san_score_applied, upgrade to premium regardless of original type
+              const isPremium = sanScoreApplied || type === 'private' || type === 'premium';
               if (type === 'community' || type === 'private' || type === 'premium') {
-                const isCommunity = type === 'community';
                 return (
                   <span
-                    className={`font-mono text-xs px-2 py-1 rounded border ${isCommunity
+                    className={`font-mono text-xs px-2 py-1 rounded border ${!isPremium
                       ? 'border-blue-500/50 text-blue-400 bg-blue-500/20'
                       : 'bg-orange-500/20 text-orange-400 border-orange-500/50'
                       }`}
-                    title={isCommunity ? 'Community indicator' : 'Private/Premium indicator'}
+                    title={!isPremium ? 'Community indicator' : (sanScoreApplied ? 'Upgraded to Premium due to evasion detection' : 'Private/Premium indicator')}
                   >
-                    {isCommunity ? 'COMMUNITY' : 'PREMIUM'}
+                    {!isPremium ? 'COMMUNITY' : 'PREMIUM'}
                   </span>
                 );
               }
@@ -182,7 +184,23 @@ export default function AnalysisCard({
               </div>
               <div className="mb-2">
                 <span className="font-bold">Score: </span>
-                <span className="text-green-400 font-bold">{matchesInfo.baseScore || 'N/A'}</span>
+                {sanScoreApplied ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="text-gray-500 line-through text-sm">{matchesInfo.baseScore || 'N/A'}</span>
+                    <span className="text-red-400 font-bold text-lg">{sanScore}</span>
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-gradient-to-r from-red-500/30 to-orange-500/30 border border-red-500/50 text-red-300 animate-pulse"
+                      title="Score increased because evasion techniques (string concatenation, special characters) were detected"
+                    >
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      EVASION PENALTY
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-green-400 font-bold">{matchesInfo.baseScore || 'N/A'}</span>
+                )}
               </div>
 
               {matchesInfo.matchesDetails && matchesInfo.matchesDetails.length > 0 && (
@@ -192,7 +210,7 @@ export default function AnalysisCard({
                   </div>
                   <div className="space-y-2">
                     {matchesInfo.matchesDetails
-                      .filter(match => match && match.matched_text) // ✅ Filtrar antes de renderizar
+                      .filter(match => match && match.matched_text)
                       .map((match, idx) => (
                         <div key={idx} className="text-xs p-2 rounded" style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border-color)' }}>
                           <div className="flex justify-between items-center mb-1">
@@ -204,6 +222,19 @@ export default function AnalysisCard({
                           </div>
                         </div>
                       ))}
+                  </div>
+                </div>
+              )}
+
+              {sanScoreApplied && (
+                <div className="mt-3 pt-3 border-t border-red-500/30">
+                  <div className="flex items-start gap-2 p-2 rounded bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/30">
+                    <svg className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <div className="text-xs text-red-300">
+                      <span className="font-bold">Evasion Detected:</span> This indicator matched after removing obfuscation characters (quotes, concatenation, special chars). The score was increased from <span className="text-gray-400 line-through">{matchesInfo.baseScore}</span> to <span className="text-red-400 font-bold">{sanScore}</span> due to suspected evasion attempt.
+                    </div>
                   </div>
                 </div>
               )}
