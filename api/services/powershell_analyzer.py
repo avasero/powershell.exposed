@@ -429,17 +429,15 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
             # Track if sanitization was applied for this signature
             command_before_san = command
             was_sanitized = False
-            matched_before_sanitization = False
 
             san_regex_raw = signature.get("san_regex")
 
-            # First, check if pattern matches BEFORE sanitization
+            # Count matches BEFORE sanitization
+            matches_before_count = 0
             for pattern in signature["patterns"]:
                 try:
                     compiled_pattern = regex.compile(pattern, regex.IGNORECASE)
-                    if compiled_pattern.search(command_before_san):
-                        matched_before_sanitization = True
-                        break
+                    matches_before_count += len(list(compiled_pattern.finditer(command_before_san)))
                 except regex.error:
                     pass
 
@@ -476,10 +474,11 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
                         if is_decoded_version:
                             matched_in_decoded = True
 
-                        # Only set matched_via_sanitization if:
+                        # Evasion detected if:
                         # 1. Sanitization was applied (command changed)
-                        # 2. Pattern did NOT match before sanitization (evasion was used)
-                        if was_sanitized and not matched_before_sanitization:
+                        # 2. MORE matches found after sanitization than before
+                        #    (meaning some obfuscated instances were revealed)
+                        if was_sanitized and len(pattern_matches) > matches_before_count:
                             matched_via_sanitization = True
 
                         for match in pattern_matches:
