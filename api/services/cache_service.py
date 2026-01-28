@@ -171,7 +171,7 @@ def create_cache_compatible_result(analysis_result: Dict[str, Any]) -> Dict[str,
                     "matched_text": md.get("matched_text"),
                     "position": md.get("position"),
                     "match_number": md.get("match_number"),
-                    "matched_in": md.get("matched_in")  
+                    "matched_in": md.get("matched_in")
                 }
                 for md in sig.get("matches_details", [])
             ],
@@ -181,7 +181,9 @@ def create_cache_compatible_result(analysis_result: Dict[str, Any]) -> Dict[str,
             "link": sig.get("link"),
             "is_premium_indicator": sig.get("is_premium_indicator", False),
             "found_in_decoded": sig.get("found_in_decoded", False),
-            "indicator_type": sig.get("indicator_type", "community")
+            "indicator_type": sig.get("indicator_type", "community"),
+            "san_score_applied": sig.get("san_score_applied", False),
+            "san_score": sig.get("san_score")
         }
         cleaned_signatures.append(cleaned_sig)
     
@@ -340,7 +342,7 @@ async def update_cached_signatures_with_current_db_values(results_blob: Dict[str
         
         # Get all active signatures from DB
         response = supabase.table('powershell_signatures') \
-            .select('name, max_match, basescore, severity, description, tactics, techniques, reference, link, file_path, is_premium_indicator') \
+            .select('name, max_match, basescore, san_score, severity, description, tactics, techniques, reference, link, file_path, is_premium_indicator') \
             .eq('is_active', True) \
             .execute()
         
@@ -364,13 +366,19 @@ async def update_cached_signatures_with_current_db_values(results_blob: Dict[str
                 # Get current max_match from DB
                 current_max_match = int(db_sig.get("max_match", 1))
                 current_base_score = float(db_sig.get("basescore", 0))
-                
+                current_san_score = float(db_sig.get("san_score")) if db_sig.get("san_score") is not None else None
+
                 # Recalculate matches_found based on current max_match
                 original_matches_found = sig.get("matches_found", 1)
                 new_matches_found = min(original_matches_found, current_max_match)
 
-                # Score is always base_score, never multiplied by matches
-                new_total_score = current_base_score
+                # Use san_score if san_score_applied was True during original analysis
+                san_score_applied = sig.get("san_score_applied", False)
+                if san_score_applied and current_san_score is not None:
+                    new_total_score = current_san_score
+                    sig["san_score"] = current_san_score
+                else:
+                    new_total_score = current_base_score
                 
                 # Update the signature with current DB values
                 sig["max_match_allowed"] = current_max_match

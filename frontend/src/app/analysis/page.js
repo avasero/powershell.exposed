@@ -651,7 +651,7 @@ export default function AnalysisPage() {
                       {realSignatures.map((signature, index) => (
                         <AnalysisCard
                           key={`real-${index}`}
-                          index={index}  // ✅ Passar index
+                          index={index}
                           title={signature.name || 'Unknown Pattern'}
                           description={signature.description || `Pattern detected: ${signature.pattern || 'No description available'}`}
                           severity={signature.severity || 'unknown'}
@@ -664,6 +664,9 @@ export default function AnalysisPage() {
                           technique={signature.techniques || signature.technique || []}
                           reference={signature.reference || ''}
                           link={signature.link || null}
+                          indicatorType={signature.indicator_type}
+                          sanScoreApplied={signature.san_score_applied || false}
+                          sanScore={signature.san_score || null}
                           matchesInfo={{
                             matchesFound: signature.matches_found || 1,
                             baseScore: signature.base_score || signature.score || 0,

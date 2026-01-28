@@ -48,7 +48,9 @@ def slim_signature(sig: dict) -> dict:
         "techniques": sig.get("techniques", []),
         "description": sig.get("description"),
         "link": sig.get("link"),
-        "indicator_type": sig.get("indicator_type")
+        "indicator_type": sig.get("indicator_type"),
+        "san_score_applied": sig.get("san_score_applied", False),
+        "san_score": sig.get("san_score")
     }
 
 
