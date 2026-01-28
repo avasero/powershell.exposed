@@ -444,9 +444,13 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
             # Apply san_regex to sanitize the command
             if san_regex_raw:
                 try:
-                    # san_regex may be a JSON array string like '["[`]+"]' or a list
+                    # san_regex may be a JSON array string like '["[`]+"]', a list, or a raw regex string
                     if isinstance(san_regex_raw, str):
-                        san_patterns = json.loads(san_regex_raw)
+                        try:
+                            san_patterns = json.loads(san_regex_raw)
+                        except json.JSONDecodeError:
+                            # Not JSON, treat as raw regex string
+                            san_patterns = san_regex_raw
                     else:
                         san_patterns = san_regex_raw
 
@@ -459,8 +463,8 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
                     # Check if sanitization actually modified the command
                     if command != command_before_san:
                         was_sanitized = True
-                except (json.JSONDecodeError, regex.error):
-                    pass
+                except regex.error as e:
+                    print(f"[DEBUG] san_regex error for {signature['name']}: {e}")
 
             for pattern in signature["patterns"]:
                 try:
