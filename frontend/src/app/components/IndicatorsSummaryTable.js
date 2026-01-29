@@ -91,6 +91,9 @@ export default function IndicatorsSummaryTable({ signatures }) {
                   <td className="p-3 font-semibold" style={{ color: 'var(--foreground)' }}>
                     <div className="flex items-center gap-1.5 max-w-xs">
                       <span className="truncate" title={sig.name}>{sig.name}</span>
+                      {sig.san_score_applied && (
+                        <span title="Evasion technique detected">⚠️</span>
+                      )}
                     </div>
                   </td>
                   <td className="p-3">

@@ -1,7 +1,6 @@
 "use client";
 
 import SeverityBadge from './SeverityBadge';
-import { CiWarning } from "react-icons/ci";
 
 // Function to truncate regex around the match
 function truncateRegexAroundMatch(pattern, matchedText, maxLength = 120) {
@@ -121,7 +120,7 @@ export default function AnalysisCard({
             <h4 className="font-mono font-bold text-base sm:text-lg mb-2 sm:mb-0 flex items-center gap-2" style={{ color: variantTitleColors[variant] }}>
               {title}
               {sanScoreApplied && (
-                <CiWarning className="text-red-400 w-5 h-5 flex-shrink-0" title="Evasion technique detected" />
+                <span title="Evasion technique detected">⚠️</span>
               )}
             </h4>
             {link && indicatorType?.toLowerCase() === 'community' && (
