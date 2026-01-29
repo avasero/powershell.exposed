@@ -11,6 +11,11 @@ from config.settings import CACHE_DURATION
 
 
 from services import detectors
+from services.detectors import (
+    process_command_for_evasion,
+    detect_evasion,
+    get_adjusted_score_and_severity,
+)
 
 
 
@@ -426,45 +431,10 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
 
             is_decoded_version = (command != raw_command)
 
-            # Track if sanitization was applied for this signature
-            command_before_san = command
-            was_sanitized = False
-
-            san_regex_raw = signature.get("san_regex")
-
-            # Count matches BEFORE sanitization
-            matches_before_count = 0
-            for pattern in signature["patterns"]:
-                try:
-                    compiled_pattern = regex.compile(pattern, regex.IGNORECASE)
-                    matches_before_count += len(list(compiled_pattern.finditer(command_before_san)))
-                except regex.error:
-                    pass
-
-            # Apply san_regex to sanitize the command
-            if san_regex_raw:
-                try:
-                    # san_regex may be a JSON array string like '["[`]+"]', a list, or a raw regex string
-                    if isinstance(san_regex_raw, str):
-                        try:
-                            san_patterns = json.loads(san_regex_raw)
-                        except json.JSONDecodeError:
-                            # Not JSON, treat as raw regex string
-                            san_patterns = san_regex_raw
-                    else:
-                        san_patterns = san_regex_raw
-
-                    if isinstance(san_patterns, list):
-                        for san_pattern in san_patterns:
-                            command = regex.sub(san_pattern, "", command, flags=regex.IGNORECASE)
-                    else:
-                        command = regex.sub(san_patterns, "", command, flags=regex.IGNORECASE)
-
-                    # Check if sanitization actually modified the command
-                    if command != command_before_san:
-                        was_sanitized = True
-                except regex.error as e:
-                    print(f"[DEBUG] san_regex error for {signature['name']}: {e}")
+            # Process command for evasion detection (san_regex)
+            command, was_sanitized, matches_before_count = process_command_for_evasion(
+                command, signature
+            )
 
             for pattern in signature["patterns"]:
                 try:
@@ -478,11 +448,8 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
                         if is_decoded_version:
                             matched_in_decoded = True
 
-                        # Evasion detected if:
-                        # 1. Sanitization was applied (command changed)
-                        # 2. MORE matches found after sanitization than before
-                        #    (meaning some obfuscated instances were revealed)
-                        if was_sanitized and len(pattern_matches) > matches_before_count:
+                        # Detect evasion using the detector module
+                        if detect_evasion(was_sanitized, matches_before_count, len(pattern_matches)):
                             matched_via_sanitization = True
 
                         for match in pattern_matches:
@@ -521,28 +488,10 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
         final_matches = unique_matches[:matches_found]
 
         if matches_found > 0:
-            # Use san_score if match came from sanitized input, otherwise use basescore
-            san_score_applied = matched_via_sanitization and signature.get("san_score") is not None
-            if san_score_applied:
-                signature_total_score = signature["san_score"]
-            else:
-                signature_total_score = signature["score"]
-
-            # Recalculate severity based on actual score used
-            if san_score_applied:
-                score_for_severity = signature["san_score"]
-                if score_for_severity >= 10:
-                    adjusted_severity = "critical"
-                elif score_for_severity >= 8:
-                    adjusted_severity = "high"
-                elif score_for_severity >= 5:
-                    adjusted_severity = "medium"
-                elif score_for_severity >= 2:
-                    adjusted_severity = "low"
-                else:
-                    adjusted_severity = "informational"
-            else:
-                adjusted_severity = signature["severity"]
+            # Get adjusted score and severity using evasion detector
+            signature_total_score, adjusted_severity, san_score_applied = get_adjusted_score_and_severity(
+                signature, matched_via_sanitization
+            )
 
             detected_signature = {
                 "name": signature["name"],

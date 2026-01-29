@@ -10,6 +10,14 @@ To add a new detector:
 from .encoded_command_detector import detect_encoded_command
 from .double_encoded_detector import detect_double_encoded_command
 from .patterns import ENCODED_COMMAND_PATTERN
+from .evasion_detector import (
+    apply_san_regex,
+    count_pattern_matches,
+    detect_evasion,
+    calculate_severity_from_score,
+    get_adjusted_score_and_severity,
+    process_command_for_evasion,
+)
 
 # Detector registry - add new detectors here
 DETECTORS = {
@@ -34,4 +42,11 @@ __all__ = [
     "detect_encoded_command",
     "detect_double_encoded_command",
     "ENCODED_COMMAND_PATTERN",
+    # Evasion detector exports
+    "apply_san_regex",
+    "count_pattern_matches",
+    "detect_evasion",
+    "calculate_severity_from_score",
+    "get_adjusted_score_and_severity",
+    "process_command_for_evasion",
 ]

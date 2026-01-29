@@ -6,6 +6,7 @@ import json
 import zlib
 from typing import Optional, Dict, Any, Tuple
 from services.session_manager import get_supabase_client
+from services.detectors import calculate_severity_from_score
 
 
 def generate_phash(command: str) -> int:
@@ -388,16 +389,7 @@ async def update_cached_signatures_with_current_db_values(results_blob: Dict[str
 
                 # Recalculate severity based on san_score if applied
                 if san_score_applied and current_san_score is not None:
-                    if current_san_score >= 10:
-                        sig["severity"] = "critical"
-                    elif current_san_score >= 8:
-                        sig["severity"] = "high"
-                    elif current_san_score >= 5:
-                        sig["severity"] = "medium"
-                    elif current_san_score >= 2:
-                        sig["severity"] = "low"
-                    else:
-                        sig["severity"] = "informational"
+                    sig["severity"] = calculate_severity_from_score(current_san_score)
                 else:
                     sig["severity"] = db_sig.get("severity", sig.get("severity"))
                 sig["description"] = db_sig.get("description", sig.get("description"))
