@@ -117,8 +117,11 @@ export default function AnalysisCard({
       >
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3">
           <div className="flex-1">
-            <h4 className="font-mono font-bold text-base sm:text-lg mb-2 sm:mb-0" style={{ color: variantTitleColors[variant] }}>
+            <h4 className="font-mono font-bold text-base sm:text-lg mb-2 sm:mb-0 flex items-center gap-2" style={{ color: variantTitleColors[variant] }}>
               {title}
+              {sanScoreApplied && (
+                <span title="Evasion technique detected">⚠️</span>
+              )}
             </h4>
             {link && indicatorType?.toLowerCase() === 'community' && (
               <div className="mb-2">
@@ -186,17 +189,10 @@ export default function AnalysisCard({
                 <span className="font-bold">Score: </span>
                 {sanScoreApplied ? (
                   <span className="inline-flex items-center gap-2">
-                    <span className="text-gray-500 line-through text-sm">{matchesInfo.baseScore || 'N/A'}</span>
-                    <span className="text-red-400 font-bold text-lg">{sanScore}</span>
-                    <span
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-gradient-to-r from-red-500/30 to-orange-500/30 border border-red-500/50 text-red-300 animate-pulse"
-                      title="Score increased because evasion techniques (string concatenation, special characters) were detected"
-                    >
-                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                      EVASION PENALTY
-                    </span>
+                    {(matchesInfo.baseScore || 0) !== (sanScore || 0) && (
+                      <span className="text-gray-500 line-through text-sm">{matchesInfo.baseScore || 'N/A'}</span>
+                    )}
+                    <span className="text-red-400 font-bold text-sm">{sanScore}</span>
                   </span>
                 ) : (
                   <span className="text-green-400 font-bold">{matchesInfo.baseScore || 'N/A'}</span>
@@ -227,13 +223,10 @@ export default function AnalysisCard({
               )}
 
               {sanScoreApplied && (
-                <div className="mt-3 pt-3 border-t border-red-500/30">
+                <div className="mt-3 pt-3">
                   <div className="flex items-start gap-2 p-2 rounded bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/30">
-                    <svg className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                    </svg>
                     <div className="text-xs text-red-300">
-                      <span className="font-bold">Evasion Detected:</span> This indicator matched after removing obfuscation characters (quotes, concatenation, special chars). The score was increased from <span className="text-gray-400 line-through">{matchesInfo.baseScore}</span> to <span className="text-red-400 font-bold">{sanScore}</span> due to suspected evasion attempt.
+                      <span className="font-bold">Potencial Evasion: </span> Indicator matched after further deobfuscation.
                     </div>
                   </div>
                 </div>

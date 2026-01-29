@@ -11,6 +11,11 @@ from config.settings import CACHE_DURATION
 
 
 from services import detectors
+from services.detectors import (
+    process_command_for_evasion,
+    detect_evasion,
+    get_adjusted_score_and_severity,
+)
 
 
 
@@ -426,45 +431,10 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
 
             is_decoded_version = (command != raw_command)
 
-            # Track if sanitization was applied for this signature
-            command_before_san = command
-            was_sanitized = False
-
-            san_regex_raw = signature.get("san_regex")
-
-            # Count matches BEFORE sanitization
-            matches_before_count = 0
-            for pattern in signature["patterns"]:
-                try:
-                    compiled_pattern = regex.compile(pattern, regex.IGNORECASE)
-                    matches_before_count += len(list(compiled_pattern.finditer(command_before_san)))
-                except regex.error:
-                    pass
-
-            # Apply san_regex to sanitize the command
-            if san_regex_raw:
-                try:
-                    # san_regex may be a JSON array string like '["[`]+"]', a list, or a raw regex string
-                    if isinstance(san_regex_raw, str):
-                        try:
-                            san_patterns = json.loads(san_regex_raw)
-                        except json.JSONDecodeError:
-                            # Not JSON, treat as raw regex string
-                            san_patterns = san_regex_raw
-                    else:
-                        san_patterns = san_regex_raw
-
-                    if isinstance(san_patterns, list):
-                        for san_pattern in san_patterns:
-                            command = regex.sub(san_pattern, "", command, flags=regex.IGNORECASE)
-                    else:
-                        command = regex.sub(san_patterns, "", command, flags=regex.IGNORECASE)
-
-                    # Check if sanitization actually modified the command
-                    if command != command_before_san:
-                        was_sanitized = True
-                except regex.error as e:
-                    print(f"[DEBUG] san_regex error for {signature['name']}: {e}")
+            # Process command for evasion detection (san_regex)
+            command, was_sanitized, matches_before_count = process_command_for_evasion(
+                command, signature
+            )
 
             for pattern in signature["patterns"]:
                 try:
@@ -478,11 +448,8 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
                         if is_decoded_version:
                             matched_in_decoded = True
 
-                        # Evasion detected if:
-                        # 1. Sanitization was applied (command changed)
-                        # 2. MORE matches found after sanitization than before
-                        #    (meaning some obfuscated instances were revealed)
-                        if was_sanitized and len(pattern_matches) > matches_before_count:
+                        # Detect evasion using the detector module
+                        if detect_evasion(was_sanitized, matches_before_count, len(pattern_matches)):
                             matched_via_sanitization = True
 
                         for match in pattern_matches:
@@ -521,17 +488,15 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
         final_matches = unique_matches[:matches_found]
 
         if matches_found > 0:
-            # Use san_score if match came from sanitized input, otherwise use basescore
-            san_score_applied = matched_via_sanitization and signature.get("san_score") is not None
-            if san_score_applied:
-                signature_total_score = signature["san_score"]
-            else:
-                signature_total_score = signature["score"]
+            # Get adjusted score and severity using evasion detector
+            signature_total_score, adjusted_severity, san_score_applied = get_adjusted_score_and_severity(
+                signature, matched_via_sanitization
+            )
 
             detected_signature = {
                 "name": signature["name"],
                 "description": signature["description"],
-                "severity": signature["severity"],
+                "severity": adjusted_severity,
                 "base_score": signature["score"],
                 "matches_found": matches_found,
                 "total_score": signature_total_score,
@@ -558,14 +523,46 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
             }
             
             detected_signatures.append(detected_signature)
-            
+
             tactics_set.update(signature["tactics"])
             techniques_set.update(signature["techniques"])
             total_score += signature_total_score
-    
-  
-   
-   
+
+    # Post-processing: If "Plain encoded command usage" is detected,
+    # remove "Long base64 string" matches from original command
+    # (the base64 is already part of -EncodedCommand, so it should only match in decoded)
+    has_encoded_command = any(
+        sig["name"] == "Plain encoded command usage"
+        for sig in detected_signatures
+    )
+
+    if has_encoded_command:
+        filtered_signatures = []
+        for sig in detected_signatures:
+            if sig["name"] == "Long base64 string":
+                # Only keep matches from decoded command
+                decoded_matches = [
+                    m for m in sig["matches_details"]
+                    if m.get("matched_in") == "decoded"
+                ]
+                if decoded_matches:
+                    sig["matches_details"] = decoded_matches
+                    sig["matches_found"] = len(decoded_matches)
+                    filtered_signatures.append(sig)
+                else:
+                    # No decoded matches, remove this signature and adjust score
+                    total_score -= sig["total_score"]
+            else:
+                filtered_signatures.append(sig)
+        detected_signatures = filtered_signatures
+
+        # Recalculate tactics and techniques from remaining signatures
+        tactics_set = set()
+        techniques_set = set()
+        for sig in detected_signatures:
+            tactics_set.update(sig.get("tactics", []))
+            techniques_set.update(sig.get("techniques", []))
+
     return {
         "detected_signatures": detected_signatures,
         "total_score": total_score,

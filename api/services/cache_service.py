@@ -6,6 +6,7 @@ import json
 import zlib
 from typing import Optional, Dict, Any, Tuple
 from services.session_manager import get_supabase_client
+from services.detectors import calculate_severity_from_score
 
 
 def generate_phash(command: str) -> int:
@@ -385,7 +386,12 @@ async def update_cached_signatures_with_current_db_values(results_blob: Dict[str
                 sig["base_score"] = current_base_score
                 sig["matches_found"] = new_matches_found
                 sig["total_score"] = new_total_score
-                sig["severity"] = db_sig.get("severity", sig.get("severity"))
+
+                # Recalculate severity based on san_score if applied
+                if san_score_applied and current_san_score is not None:
+                    sig["severity"] = calculate_severity_from_score(current_san_score)
+                else:
+                    sig["severity"] = db_sig.get("severity", sig.get("severity"))
                 sig["description"] = db_sig.get("description", sig.get("description"))
                 sig["tactics"] = db_sig.get("tactics", sig.get("tactics", []))
                 sig["techniques"] = db_sig.get("techniques", sig.get("techniques", []))
