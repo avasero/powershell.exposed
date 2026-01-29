@@ -523,14 +523,46 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
             }
             
             detected_signatures.append(detected_signature)
-            
+
             tactics_set.update(signature["tactics"])
             techniques_set.update(signature["techniques"])
             total_score += signature_total_score
-    
-  
-   
-   
+
+    # Post-processing: If "Plain encoded command usage" is detected,
+    # remove "Long base64 string" matches from original command
+    # (the base64 is already part of -EncodedCommand, so it should only match in decoded)
+    has_encoded_command = any(
+        sig["name"] == "Plain encoded command usage"
+        for sig in detected_signatures
+    )
+
+    if has_encoded_command:
+        filtered_signatures = []
+        for sig in detected_signatures:
+            if sig["name"] == "Long base64 string":
+                # Only keep matches from decoded command
+                decoded_matches = [
+                    m for m in sig["matches_details"]
+                    if m.get("matched_in") == "decoded"
+                ]
+                if decoded_matches:
+                    sig["matches_details"] = decoded_matches
+                    sig["matches_found"] = len(decoded_matches)
+                    filtered_signatures.append(sig)
+                else:
+                    # No decoded matches, remove this signature and adjust score
+                    total_score -= sig["total_score"]
+            else:
+                filtered_signatures.append(sig)
+        detected_signatures = filtered_signatures
+
+        # Recalculate tactics and techniques from remaining signatures
+        tactics_set = set()
+        techniques_set = set()
+        for sig in detected_signatures:
+            tactics_set.update(sig.get("tactics", []))
+            techniques_set.update(sig.get("techniques", []))
+
     return {
         "detected_signatures": detected_signatures,
         "total_score": total_score,
