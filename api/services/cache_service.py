@@ -385,7 +385,21 @@ async def update_cached_signatures_with_current_db_values(results_blob: Dict[str
                 sig["base_score"] = current_base_score
                 sig["matches_found"] = new_matches_found
                 sig["total_score"] = new_total_score
-                sig["severity"] = db_sig.get("severity", sig.get("severity"))
+
+                # Recalculate severity based on san_score if applied
+                if san_score_applied and current_san_score is not None:
+                    if current_san_score >= 10:
+                        sig["severity"] = "critical"
+                    elif current_san_score >= 8:
+                        sig["severity"] = "high"
+                    elif current_san_score >= 5:
+                        sig["severity"] = "medium"
+                    elif current_san_score >= 2:
+                        sig["severity"] = "low"
+                    else:
+                        sig["severity"] = "informational"
+                else:
+                    sig["severity"] = db_sig.get("severity", sig.get("severity"))
                 sig["description"] = db_sig.get("description", sig.get("description"))
                 sig["tactics"] = db_sig.get("tactics", sig.get("tactics", []))
                 sig["techniques"] = db_sig.get("techniques", sig.get("techniques", []))

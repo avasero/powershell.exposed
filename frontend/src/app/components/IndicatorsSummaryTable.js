@@ -1,5 +1,7 @@
 "use client";
 
+import { CiWarning } from "react-icons/ci";
+
 // Severity color mapping
 // Score Ranges:
 // 1.0 - 1.99: Informational (Blue) - Extremely common, benign behavior
@@ -87,8 +89,11 @@ export default function IndicatorsSummaryTable({ signatures }) {
                     })()}
                   </td>
                   <td className="p-3 font-semibold" style={{ color: 'var(--foreground)' }}>
-                    <div className="max-w-xs truncate" title={sig.name}>
-                      {sig.name}
+                    <div className="flex items-center gap-1.5 max-w-xs">
+                      <span className="truncate" title={sig.name}>{sig.name}</span>
+                      {sig.san_score_applied && (
+                        <CiWarning className="text-red-400 w-4 h-4 flex-shrink-0" title="Evasion technique detected" />
+                      )}
                     </div>
                   </td>
                   <td className="p-3">
@@ -104,12 +109,6 @@ export default function IndicatorsSummaryTable({ signatures }) {
                         </span>
                         <span className="font-bold text-red-400">
                           {(sig.san_score || sig.total_score || 0).toFixed(1)}
-                        </span>
-                        <span
-                          className="px-1 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/50"
-                          title="Score increased due to evasion techniques detected"
-                        >
-                          ⚠
                         </span>
                       </div>
                     ) : (

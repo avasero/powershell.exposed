@@ -528,10 +528,26 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
             else:
                 signature_total_score = signature["score"]
 
+            # Recalculate severity based on actual score used
+            if san_score_applied:
+                score_for_severity = signature["san_score"]
+                if score_for_severity >= 10:
+                    adjusted_severity = "critical"
+                elif score_for_severity >= 8:
+                    adjusted_severity = "high"
+                elif score_for_severity >= 5:
+                    adjusted_severity = "medium"
+                elif score_for_severity >= 2:
+                    adjusted_severity = "low"
+                else:
+                    adjusted_severity = "informational"
+            else:
+                adjusted_severity = signature["severity"]
+
             detected_signature = {
                 "name": signature["name"],
                 "description": signature["description"],
-                "severity": signature["severity"],
+                "severity": adjusted_severity,
                 "base_score": signature["score"],
                 "matches_found": matches_found,
                 "total_score": signature_total_score,
