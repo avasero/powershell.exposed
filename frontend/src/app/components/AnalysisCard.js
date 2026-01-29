@@ -190,7 +190,9 @@ export default function AnalysisCard({
                 <span className="font-bold">Score: </span>
                 {sanScoreApplied ? (
                   <span className="inline-flex items-center gap-2">
-                    <span className="text-gray-500 line-through text-sm">{matchesInfo.baseScore || 'N/A'}</span>
+                    {(matchesInfo.baseScore || 0) !== (sanScore || 0) && (
+                      <span className="text-gray-500 line-through text-sm">{matchesInfo.baseScore || 'N/A'}</span>
+                    )}
                     <span className="text-red-400 font-bold text-sm">{sanScore}</span>
                   </span>
                 ) : (
