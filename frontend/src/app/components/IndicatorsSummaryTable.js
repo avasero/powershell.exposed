@@ -1,6 +1,6 @@
 "use client";
 
-import { CiWarning } from "react-icons/ci";
+
 
 // Severity color mapping
 // Score Ranges:
@@ -91,9 +91,6 @@ export default function IndicatorsSummaryTable({ signatures }) {
                   <td className="p-3 font-semibold" style={{ color: 'var(--foreground)' }}>
                     <div className="flex items-center gap-1.5 max-w-xs">
                       <span className="truncate" title={sig.name}>{sig.name}</span>
-                      {sig.san_score_applied && (
-                        <CiWarning className="text-red-400 w-4 h-4 flex-shrink-0" title="Evasion technique detected" />
-                      )}
                     </div>
                   </td>
                   <td className="p-3">
@@ -104,9 +101,11 @@ export default function IndicatorsSummaryTable({ signatures }) {
                   <td className="p-3">
                     {sig.san_score_applied ? (
                       <div className="flex items-center gap-1.5">
-                        <span className="text-gray-500 line-through text-xs">
-                          {(sig.base_score || 0).toFixed(1)}
-                        </span>
+                        {(sig.base_score || 0) !== (sig.san_score || sig.total_score || 0) && (
+                          <span className="text-gray-500 line-through text-xs">
+                            {(sig.base_score || 0).toFixed(1)}
+                          </span>
+                        )}
                         <span className="font-bold text-red-400">
                           {(sig.san_score || sig.total_score || 0).toFixed(1)}
                         </span>

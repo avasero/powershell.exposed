@@ -225,7 +225,7 @@ export default function AnalysisCard({
                 <div className="mt-3 pt-3">
                   <div className="flex items-start gap-2 p-2 rounded bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/30">
                     <div className="text-xs text-red-300">
-                      <span className="font-bold">Potencial Evasion technique: </span> A notable indicator was only matched after advanced analysis ( decoding, deobfuscation, frequency analysis, etc.) 
+                      <span className="font-bold">Potencial Evasion: </span> Indicator matched after further deobfuscation.
                     </div>
                   </div>
                 </div>
