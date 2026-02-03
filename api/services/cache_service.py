@@ -30,7 +30,7 @@ async def check_cache(phash: int) -> Optional[Dict[str, Any]]:
         supabase = get_supabase_client()
         
         response = supabase.table('cache_results') \
-            .select('phash, created_at, results_blob') \
+            .select('phash, created_at, results_blob, ai_overview') \
             .eq('phash', phash) \
             .limit(1) \
             .execute()
@@ -39,7 +39,8 @@ async def check_cache(phash: int) -> Optional[Dict[str, Any]]:
             return {
                 "phash": response.data[0].get("phash"),
                 "created_at": response.data[0].get("created_at"),
-                "results_blob": response.data[0].get("results_blob")
+                "results_blob": response.data[0].get("results_blob"),
+                "ai_overview": response.data[0].get("ai_overview")
             }
         
         return None
@@ -49,16 +50,17 @@ async def check_cache(phash: int) -> Optional[Dict[str, Any]]:
         return None
 
 
-async def save_to_cache(phash: int, indicators_matched: Any, results_blob: Dict[str, Any]) -> bool:
+async def save_to_cache(phash: int, indicators_matched: Any, results_blob: Dict[str, Any], ai_overview: Optional[str] = None) -> bool:
     """
     Save analysis results to cache with a limit of 5 entries
     When adding the 6th entry, removes the oldest one
-    
+
     Args:
         phash (int): The CRC32 hash of the command
         indicators_matched: JSON data of matched indicators
         results_blob (Dict): Complete analysis results
-        
+        ai_overview (str, optional): AI-generated overview of the command
+
     Returns:
         bool: True if saved successfully, False otherwise
     """
@@ -99,7 +101,8 @@ async def save_to_cache(phash: int, indicators_matched: Any, results_blob: Dict[
         cache_data = {
             "phash": phash,
             "indicators_matched": indicators_matched,
-            "results_blob": results_blob
+            "results_blob": results_blob,
+            "ai_overview": ai_overview
         }
         
       
@@ -201,7 +204,8 @@ def create_cache_compatible_result(analysis_result: Dict[str, Any]) -> Dict[str,
         "double_decoded_command": analysis_result.get("double_decoded_command"),
         "total_signatures_checked": analysis_result.get("total_signatures_checked", 0),
         "detected_count": analysis_result.get("detected_count", 0),
-        "cached": True
+        "cached": True,
+        "ai_overview": analysis_result.get("ai_overview")
     }
 
 

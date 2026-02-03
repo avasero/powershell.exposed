@@ -47,3 +47,8 @@ IPAPI_TIMEOUT = 10
 IPAPI_BASE_URL = "https://ipapi.co"
 
 
+# OpenAI Configuration
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+OPENAI_MAX_TOKENS = int(os.getenv("OPENAI_MAX_TOKENS", "200"))
+OPENAI_TIMEOUT = int(os.getenv("OPENAI_TIMEOUT", "10"))

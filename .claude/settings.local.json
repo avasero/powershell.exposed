@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"C:\\\\Users\\\\solte\\\\powershell.exposed\" -Depth 2)",
+      "Bash(grep:*)"
+    ]
+  }
+}

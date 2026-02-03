@@ -16,6 +16,7 @@ import CommandInput from "../../components/CommandInput";
 import { ErrorMessage, InfoMessage } from "../../components/Messages";
 import IndicatorsSummaryTable from "../../components/IndicatorsSummaryTable";
 import { RequestReviewButton } from "../../components/ReviewRequestModal";
+import AiOverviewCard from "../../components/AiOverviewCard";
 import { EXAMPLE_ENCODED_COMMAND, EXAMPLE_COMMAND_DESCRIPTION } from "../../../constants/examples";
 
 import { saveAnonymousAnalysis } from "../../../utils/cookies";
@@ -154,6 +155,7 @@ export default function AnalysisDetailsPage() {
   const [contentReady, setContentReady] = useState(false);
   const [decodeInfo, setDecodeInfo] = useState(null);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [aiOverview, setAiOverview] = useState(null);
   const analysisExecutedRef = useRef(false);
 
   useEffect(() => {
@@ -247,6 +249,7 @@ export default function AnalysisDetailsPage() {
 
       setResult(processedResult);
       setDecodeInfo(analysisData.decode_info);
+      setAiOverview(analysisData.ai_overview || null);
 
       // Smooth transition delay
       setTimeout(() => {
@@ -419,6 +422,7 @@ export default function AnalysisDetailsPage() {
 
         setResult(analysisResult);
         setDecodeInfo(data.decode_info);
+        setAiOverview(data.ai_overview || null);
         setCmd(command);
       } else {
         throw new Error(response.error || 'Analysis failed');
@@ -451,6 +455,7 @@ export default function AnalysisDetailsPage() {
       setError("");
       setResult(null);  // ✅ Clear old results immediately
       setDecodeInfo(null);  // ✅ Clear decode info
+      setAiOverview(null);  // ✅ Clear AI overview
       setContentReady(false);  // ✅ Hide content
       setLoading(true);  // ✅ Show loading state
 
@@ -620,6 +625,12 @@ export default function AnalysisDetailsPage() {
       )}
 
 
+
+      {result && aiOverview && (
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+          <AiOverviewCard overview={aiOverview} />
+        </div>
+      )}
 
       {result && result.deobfuscated && hasObfuscationIndicator && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">

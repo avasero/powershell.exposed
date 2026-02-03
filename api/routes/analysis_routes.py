@@ -30,6 +30,7 @@ from services.session_manager import get_or_create_session, get_supabase_client
 from utils.geolocation import get_ip_location, get_client_ip_from_request
 from services.plan_service import can_user_decode_commands, get_user_plan_features, get_plan_by_name, check_session_rate_limit_from_db
 from services.api_key_manager import update_api_key_usage
+from services.ai_service import generate_ai_overview, is_ai_service_available
 
 
 def slim_signature(sig: dict) -> dict:
@@ -218,6 +219,7 @@ async def analyze_command_endpoint(
         
         if cached_result:
             results_blob = cached_result.get("results_blob", {})
+            cached_ai_overview = cached_result.get("ai_overview")
 
             if "total_score" not in results_blob:
                 results_blob["total_score"] = results_blob.get("risk_score", 0.0)
@@ -347,6 +349,7 @@ async def analyze_command_endpoint(
                 },
                 "analysis_id": analysis_id,
                 "session_id": session_id,
+                "ai_overview": cached_ai_overview,
                 "decode_info": {
                     "current_usage": decode_info["current_usage"],
                     "limit": decode_info["limit"],
@@ -388,14 +391,19 @@ async def analyze_command_endpoint(
         })
         
         analysis_result["detected_signatures"].sort(key=lambda x: x["total_score"], reverse=True)
-        
+
+        # Generate AI overview if service is available
+        ai_overview = None
+        if is_ai_service_available():
+            ai_overview = await generate_ai_overview(command, analysis_result)
+
         cache_saved = False
         if should_cache_result(analysis_result):
-            
+
             indicators_matched = extract_indicators_matched(analysis_result)
             cache_compatible_result = create_cache_compatible_result(analysis_result)
-            
-            cache_saved = await save_to_cache(phash, indicators_matched, cache_compatible_result)
+
+            cache_saved = await save_to_cache(phash, indicators_matched, cache_compatible_result, ai_overview)
         
         
         db_result = await save_analysis_to_db(
@@ -497,6 +505,7 @@ async def analyze_command_endpoint(
             },
             "analysis_id": db_result.get("short_id") if db_result.get("success") else None,
             "session_id": session_id,
+            "ai_overview": ai_overview,
             "decode_info": {
                 "current_usage": decode_info["current_usage"],
                 "limit": decode_info["limit"],
