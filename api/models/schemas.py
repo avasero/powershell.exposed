@@ -100,6 +100,10 @@ class AnalysisResult(BaseModel):
     total_signatures_checked: int
     detected_count: int
     cache_info: CacheInfo
+    decoded_command: Optional[str] = Field(None, description="Base64 decoded command (if -EncodedCommand was used)")
+    double_decoded_command: Optional[str] = Field(None, description="Second layer decoded command (if double encoding)")
+    deobfuscated_command: Optional[str] = Field(None, description="AST-based deobfuscated command")
+    deobfuscation_techniques: Optional[List[str]] = Field(None, description="Obfuscation techniques detected and resolved")
 
 
 class AnalyzeCommandResponse(BaseModel):

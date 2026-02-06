@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(dir \"C:\\\\Users\\\\solte\\\\powershell.exposed\" -Depth 2)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(docker-compose:*)",
+      "Bash(timeout:*)",
+      "Bash(docker logs:*)",
+      "Bash(ping:*)",
+      "Bash(curl:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)"
     ]
   }
 }

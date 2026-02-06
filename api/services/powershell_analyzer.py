@@ -16,6 +16,8 @@ from services.detectors import (
     detect_evasion,
     get_adjusted_score_and_severity,
 )
+from services.ast_client import ast_client
+from config.settings import AST_SERVICE_ENABLED
 
 
 
@@ -248,11 +250,12 @@ def decode_powershell(command: str) -> tuple:
     return command, 0, "none", []
 
 
-def analyze_command_patterns(command: str, signatures: list, allow_decoded_analysis: bool = True) -> dict:
+async def analyze_command_patterns(command: str, signatures: list, allow_decoded_analysis: bool = True) -> dict:
     """
     Analyzes PowerShell command for malicious patterns.
 
     Handles format string decoding and Base64 decoding before pattern matching.
+    Now also supports AST-based deobfuscation via external PowerShell service.
 
     Args:
         command: Raw PowerShell command to analyze
@@ -346,9 +349,10 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
     
    
     
-    # TODO: Add obfuscation detector here later (will be added via signatures database)
-    
-    
+    # AST-based deobfuscation results (populated if AST service is enabled)
+    ast_deobfuscated = None
+    ast_techniques = []
+
     if decode_iterations >= 2:
         double_encoded_sig = next((sig for sig in signatures if sig.get("name") == "Double Encoded Command Detected"), None)
         
@@ -408,6 +412,29 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
         
         if double_decoded:
             commands_set.add(double_decoded)
+
+        # AST-based deobfuscation (if service is enabled)
+        if AST_SERVICE_ENABLED:
+            try:
+                # Try deobfuscating the original command
+                ast_result = await ast_client.deobfuscate(command)
+                if ast_result["success"] and ast_result["is_fully_deobfuscated"]:
+                    ast_deobfuscated = ast_result["deobfuscated"]
+                    ast_techniques = ast_result.get("techniques_found", [])
+                    if ast_deobfuscated and ast_deobfuscated != command:
+                        commands_set.add(ast_deobfuscated)
+                        print(f"[AST] Deobfuscated command added to analysis set")
+
+                # Also try deobfuscating decoded content if available
+                if first_decoded and first_decoded != command:
+                    ast_decoded_result = await ast_client.deobfuscate(first_decoded)
+                    if ast_decoded_result["success"] and ast_decoded_result["is_fully_deobfuscated"]:
+                        decoded_deobfuscated = ast_decoded_result["deobfuscated"]
+                        if decoded_deobfuscated and decoded_deobfuscated != first_decoded:
+                            commands_set.add(decoded_deobfuscated)
+                            print(f"[AST] Deobfuscated decoded content added to analysis set")
+            except Exception as ast_error:
+                print(f"[AST] Deobfuscation error (non-blocking): {ast_error}")
     else:
         print(f"[ANALYZE] Decode limit reached - analyzing RAW command only (no decoded content)")
 
@@ -569,7 +596,9 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
         "tactics": list(tactics_set),
         "techniques": list(techniques_set),
         "decoded_command": first_decoded if allow_decoded_analysis else None,
-        "double_decoded_command": double_decoded if allow_decoded_analysis else None
+        "double_decoded_command": double_decoded if allow_decoded_analysis else None,
+        "deobfuscated_command": ast_deobfuscated if allow_decoded_analysis else None,
+        "deobfuscation_techniques": ast_techniques if allow_decoded_analysis else []
     }
 
 
@@ -651,6 +680,10 @@ async def save_analysis_to_db(
         safe_decoded = truncate_if_needed(decoded_cmd, MAX_DECODED_LENGTH, "decoded_command")
         safe_double_decoded = truncate_if_needed(double_decoded_cmd, MAX_DECODED_LENGTH, "double_decoded_command")
 
+        deobfuscated_cmd = analysis_result.get("deobfuscated_command")
+        safe_deobfuscated = truncate_if_needed(deobfuscated_cmd, MAX_DECODED_LENGTH, "deobfuscated_command") if deobfuscated_cmd else None
+        deobfuscation_techniques = analysis_result.get("deobfuscation_techniques", [])
+
         # Cap risk_score to 999.9 (DB field has precision 4, scale 1)
         risk_score = min(round(analysis_result["total_score"], 1), 999.9)
 
@@ -658,6 +691,8 @@ async def save_analysis_to_db(
             "command": safe_command,
             "decoded_command": safe_decoded,
             "double_decoded_command": safe_double_decoded,
+            "deobfuscated_command": safe_deobfuscated,
+            "deobfuscation_techniques": deobfuscation_techniques if deobfuscation_techniques else None,
             "has_decoded_content": has_decoded_content,
             "risk_score": risk_score,
             "severity": analysis_result["severity"],

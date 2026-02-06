@@ -52,3 +52,12 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 OPENAI_MAX_TOKENS = int(os.getenv("OPENAI_MAX_TOKENS", "200"))
 OPENAI_TIMEOUT = int(os.getenv("OPENAI_TIMEOUT", "10"))
+
+
+# AST Deobfuscation Service Configuration
+# The AST service runs in a separate Docker container using PowerShell 7
+# It performs safe AST-based deobfuscation without executing user code
+AST_SERVICE_URL = os.getenv("AST_SERVICE_URL", "http://localhost:8081")
+AST_SERVICE_TIMEOUT = int(os.getenv("AST_SERVICE_TIMEOUT", "35"))
+AST_SERVICE_ENABLED = os.getenv("AST_SERVICE_ENABLED", "false").lower() == "true"
+AST_API_KEY = os.getenv("AST_API_KEY", "")

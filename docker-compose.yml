@@ -1,0 +1,33 @@
+services:
+  # PowerShell AST Deobfuscation Service
+  ast-service:
+    build:
+      context: ./ast-service
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - MAX_INPUT_LENGTH=100000
+      - TIMEOUT_SECONDS=30
+      - MAX_ITERATIONS=10
+      - AST_API_KEY=${AST_API_KEY:-dev-local-key-12345}
+      - PORT=8081
+    healthcheck:
+      test: ["CMD", "pwsh", "-Command", "try { $$r = Invoke-RestMethod -Uri 'http://localhost:8081/health' -Method Get -TimeoutSec 5; if ($$r.status -eq 'healthy') { exit 0 } else { exit 1 } } catch { exit 1 }"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    # Resource limits for safety
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    networks:
+      - ps-network
+    restart: unless-stopped
+
+networks:
+  ps-network:
+    driver: nat

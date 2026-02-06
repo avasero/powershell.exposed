@@ -1,0 +1,33 @@
+# Render.com deployment configuration for PowerShell AST Service
+# Deploy: Connect this repo to Render and it will auto-detect this file
+
+services:
+  - type: web
+    name: ps-ast-service
+    env: docker
+    dockerfilePath: ./ast-service/Dockerfile
+    dockerContext: ./ast-service
+    region: oregon  # or your preferred region
+    plan: starter   # starter ($7/mo) or free (with cold starts)
+    healthCheckPath: /health
+    envVars:
+      - key: MAX_INPUT_LENGTH
+        value: 100000
+      - key: TIMEOUT_SECONDS
+        value: 30
+      - key: MAX_ITERATIONS
+        value: 10
+      - key: PORT
+        value: 8081
+      - key: AST_API_KEY
+        sync: false  # Set manually in Render dashboard (secret)
+    autoDeploy: true
+    # Build settings
+    buildCommand: ""
+    # Scaling
+    numInstances: 1
+    # Health check settings
+    initialDelaySeconds: 15
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3

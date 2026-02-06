@@ -381,7 +381,7 @@ async def analyze_command_endpoint(
        
         decode_info_before = await can_user_decode_commands(user_id, session_id=session_id, command=command)
         allow_decoded_analysis = decode_info_before["can_decode"]
-        analysis_result = analyze_command_patterns(command, signatures, allow_decoded_analysis)
+        analysis_result = await analyze_command_patterns(command, signatures, allow_decoded_analysis)
         severity = calculate_severity_and_risk(analysis_result["total_score"])
         
         analysis_result.update({
@@ -425,8 +425,10 @@ async def analyze_command_endpoint(
        
         decoded_cmd = analysis_result.get("decoded_command")
         double_decoded_cmd = analysis_result.get("double_decoded_command")
+        deobfuscated_cmd = analysis_result.get("deobfuscated_command")
+        deobfuscation_techniques = analysis_result.get("deobfuscation_techniques", [])
 
-        
+
         decode_limit_reached = False
         final_signatures = analysis_result["detected_signatures"]
         final_score = analysis_result["total_score"]
@@ -449,7 +451,9 @@ async def analyze_command_endpoint(
             if double_decoded_cmd:
                 double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
 
-        
+            if deobfuscated_cmd:
+                deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
+
             filtered_signatures = []
             recalculated_score = 0.0
             filtered_tactics = set()
@@ -501,7 +505,9 @@ async def analyze_command_endpoint(
                 "tactics": final_tactics,
                 "techniques": final_techniques,
                 "decoded_command": decoded_cmd,
-                "double_decoded_command": double_decoded_cmd
+                "double_decoded_command": double_decoded_cmd,
+                "deobfuscated_command": deobfuscated_cmd,
+                "deobfuscation_techniques": deobfuscation_techniques
             },
             "analysis_id": db_result.get("short_id") if db_result.get("success") else None,
             "session_id": session_id,
