@@ -8,7 +8,6 @@ services:
       - "8081:8081"
     volumes:
       - ./ast-service/scripts:C:/app/scripts:ro
-      - ./ast-service/server.ps1:C:/app/server.ps1:ro
     environment:
       - MAX_INPUT_LENGTH=100000
       - TIMEOUT_SECONDS=30
