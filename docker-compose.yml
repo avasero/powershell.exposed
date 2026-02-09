@@ -6,6 +6,9 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8081:8081"
+    volumes:
+      - ./ast-service/scripts:/app/scripts:ro
+      - ./ast-service/server.ps1:/app/server.ps1:ro
     environment:
       - MAX_INPUT_LENGTH=100000
       - TIMEOUT_SECONDS=30
@@ -18,16 +21,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
-    # Resource limits for safety
     deploy:
       resources:
         limits:
-          cpus: '1.0'
-          memory: 512M
-    networks:
-      - ps-network
+          cpus: '2.0'
+          memory: 1G
     restart: unless-stopped
-
-networks:
-  ps-network:
-    driver: nat
