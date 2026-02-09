@@ -1,15 +1,8 @@
-# PowerShell Deobfuscation Functions
-# CRITICAL SAFETY: These functions transform AST nodes WITHOUT executing code
-# All transformations are done via string manipulation based on AST analysis
-
 function Resolve-UnicodeQuotes {
     <#
     .SYNOPSIS
         Normalize unicode quote characters to ASCII equivalents
     .DESCRIPTION
-        Converts fancy/smart quotes to standard ASCII quotes to fix parse errors.
-        Common in copy-pasted commands from documents, emails, or web pages.
-        Example: 'text' → 'text' (curly quotes to straight quotes)
     #>
     param([string]$Code)
 

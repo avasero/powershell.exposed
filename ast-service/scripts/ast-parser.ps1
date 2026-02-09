@@ -1,6 +1,4 @@
-# Safe AST Parsing Functions
-# CRITICAL SECURITY: These functions ONLY parse code - they NEVER execute it
-# Uses [System.Management.Automation.Language.Parser]::ParseInput() which is safe
+
 
 function Get-SafeAst {
     <#
@@ -22,7 +20,7 @@ function Get-SafeAst {
     $tokens = $null
     $errors = $null
 
-    # SAFE: ParseInput only creates an AST representation, it does NOT execute code
+    
     $ast = [System.Management.Automation.Language.Parser]::ParseInput(
         $Code,
         [ref]$tokens,
@@ -54,14 +52,14 @@ function Get-AstAnalysis {
     $parseResult = Get-SafeAst -Code $Command
     $ast = $parseResult.Ast
 
-    # Initialize analysis structure
+    
     $analysis = @{
         hasParseErrors = ($parseResult.Errors.Count -gt 0)
         parseErrors = @($parseResult.Errors | ForEach-Object { $_.Message })
         parseErrorCount = $parseResult.Errors.Count
         tokenCount = $parseResult.Tokens.Count
 
-        # AST node collections
+        
         stringExpressions = [System.Collections.ArrayList]::new()
         expandableStrings = [System.Collections.ArrayList]::new()
         commandInvocations = [System.Collections.ArrayList]::new()
@@ -75,7 +73,7 @@ function Get-AstAnalysis {
         scriptBlocks = [System.Collections.ArrayList]::new()
     }
 
-    # Walk the AST to find relevant nodes
+  
     $ast.FindAll({ $true }, $true) | ForEach-Object {
         $node = $_
         $nodeType = $node.GetType().Name
@@ -115,7 +113,7 @@ function Get-AstAnalysis {
                     })
                 }
                 elseif ($op -eq 'Plus') {
-                    # Check if it's string concatenation
+                    
                     $leftType = $node.Left.GetType().Name
                     $rightType = $node.Right.GetType().Name
 
@@ -220,7 +218,7 @@ function Get-AstAnalysis {
         }
     }
 
-    # Calculate summary statistics
+    
     $analysis.summary = @{
         totalNodes = ($ast.FindAll({ $true }, $true) | Measure-Object).Count
         hasFormatOperators = $analysis.formatOperators.Count -gt 0
@@ -230,7 +228,7 @@ function Get-AstAnalysis {
         obfuscationIndicators = @()
     }
 
-    # Detect obfuscation indicators
+   
     if ($analysis.formatOperators.Count -gt 0) {
         $analysis.summary.obfuscationIndicators += 'format_string'
     }
