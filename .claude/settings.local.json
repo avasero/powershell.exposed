@@ -10,7 +10,8 @@
       "Bash(curl:*)",
       "Bash(ls:*)",
       "Bash(find:*)",
-      "Bash(del:*)"
+      "Bash(del:*)",
+      "Bash(copy:*)"
     ]
   }
 }
