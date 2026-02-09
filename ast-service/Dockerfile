@@ -1,4 +1,4 @@
-# PowerShell 7 on Ubuntu (Linux) - compatible with Render.com, Railway, etc.
+# PowerShell 7 on Ubuntu (Linux) - compatible with Render.com, Railway, Fly.io, etc.
 FROM mcr.microsoft.com/powershell:lts-ubuntu-22.04
 
 # Set working directory
