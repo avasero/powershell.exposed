@@ -8,7 +8,7 @@ import json
 url = "http://localhost:8081/deobfuscate"
 headers = {
     "Content-Type": "application/json",
-    "X-Api-Key": "dev-local-key-12345"
+    "X-Api-Key": "avasero220949"
 }
 
 # Test cases for each obfuscation technique

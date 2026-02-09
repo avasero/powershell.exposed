@@ -9,7 +9,7 @@ import json
 BASE_URL = "http://localhost:8081"
 HEADERS = {
     "Content-Type": "application/json",
-    "X-Api-Key": "dev-local-key-12345"
+    "X-Api-Key": "avasero220949"
 }
 
 # ========================================

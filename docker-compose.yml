@@ -12,7 +12,7 @@ services:
       - MAX_INPUT_LENGTH=100000
       - TIMEOUT_SECONDS=30
       - MAX_ITERATIONS=10
-      - AST_API_KEY=${AST_API_KEY:-dev-local-key-12345}
+      - AST_API_KEY=${AST_API_KEY:-avasero220949}
       - PORT=8081
     healthcheck:
       test: ["CMD", "pwsh", "-Command", "try { $$r = Invoke-RestMethod -Uri 'http://localhost:8081/health' -Method Get -TimeoutSec 5; if ($$r.status -eq 'healthy') { exit 0 } else { exit 1 } } catch { exit 1 }"]
