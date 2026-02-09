@@ -401,47 +401,86 @@ async def analyze_command_patterns(command: str, signatures: list, allow_decoded
 
    
     if allow_decoded_analysis:
-        
+
         if decode_iterations >= 1 and fully_decoded and fully_decoded != command:
             commands_set.add(fully_decoded)
 
-      
+
         if first_decoded and first_decoded != command:
             commands_set.add(first_decoded)
 
-        
+
         if double_decoded:
             commands_set.add(double_decoded)
-
-        # AST-based deobfuscation (if service is enabled)
-        if AST_SERVICE_ENABLED:
-            try:
-                # Try deobfuscating the original command
-                ast_result = await ast_client.deobfuscate(command)
-                if ast_result["success"] and ast_result["is_fully_deobfuscated"]:
-                    ast_deobfuscated = ast_result["deobfuscated"]
-                    ast_techniques = ast_result.get("techniques_found", [])
-                    if ast_deobfuscated and ast_deobfuscated != command:
-                        commands_set.add(ast_deobfuscated)
-                        print(f"[AST] Deobfuscated command added to analysis set")
-
-                # Also try deobfuscating decoded content if available
-                if first_decoded and first_decoded != command:
-                    ast_decoded_result = await ast_client.deobfuscate(first_decoded)
-                    if ast_decoded_result["success"] and ast_decoded_result["is_fully_deobfuscated"]:
-                        decoded_deobfuscated = ast_decoded_result["deobfuscated"]
-                        if decoded_deobfuscated and decoded_deobfuscated != first_decoded:
-                            commands_set.add(decoded_deobfuscated)
-                            print(f"[AST] Deobfuscated decoded content added to analysis set")
-            except Exception as ast_error:
-                print(f"[AST] Deobfuscation error (non-blocking): {ast_error}")
     else:
         print(f"[ANALYZE] Decode limit reached - analyzing RAW command only (no decoded content)")
+
+    # AST-based deobfuscation always runs (not gated by decode quota)
+    if AST_SERVICE_ENABLED:
+        try:
+            # Try deobfuscating the original command
+            ast_result = await ast_client.deobfuscate(command)
+            if ast_result["success"] and ast_result.get("techniques_found"):
+                ast_deobfuscated = ast_result["deobfuscated"]
+                ast_techniques = ast_result.get("techniques_found", [])
+                if ast_deobfuscated and ast_deobfuscated != command:
+                    commands_set.add(ast_deobfuscated)
+                    print(f"[AST] Deobfuscated command added to analysis set (techniques: {', '.join(ast_techniques)})")
+
+            # Also try deobfuscating decoded content if available
+            if first_decoded and first_decoded != command:
+                ast_decoded_result = await ast_client.deobfuscate(first_decoded)
+                if ast_decoded_result["success"] and ast_decoded_result.get("techniques_found"):
+                    decoded_deobfuscated = ast_decoded_result["deobfuscated"]
+                    if decoded_deobfuscated and decoded_deobfuscated != first_decoded:
+                        commands_set.add(decoded_deobfuscated)
+                        # Merge techniques from decoded deobfuscation
+                        for tech in ast_decoded_result.get("techniques_found", []):
+                            if tech not in ast_techniques:
+                                ast_techniques.append(tech)
+                        if not ast_deobfuscated:
+                            ast_deobfuscated = decoded_deobfuscated
+                        print(f"[AST] Deobfuscated decoded content added to analysis set")
+        except Exception as ast_error:
+            print(f"[AST] Deobfuscation error (non-blocking): {ast_error}")
+
+    # Inject "Heavily Obfuscated Command" indicator when techniques are found
+    if ast_deobfuscated and ast_techniques:
+        heavily_obfuscated_sig = next(
+            (sig for sig in signatures if sig.get("name") == "Heavily Obfuscated Command"), None
+        )
+        if heavily_obfuscated_sig:
+            detected_signatures.append({
+                "name": "Heavily Obfuscated Command",
+                "description": f"AST deobfuscation detected {len(ast_techniques)} obfuscation technique(s): {', '.join(ast_techniques)}",
+                "severity": heavily_obfuscated_sig["severity"],
+                "base_score": heavily_obfuscated_sig["score"],
+                "matches_found": 1,
+                "total_score": heavily_obfuscated_sig["score"],
+                "max_match_allowed": 1,
+                "pattern": "__DEOBFUSCATION_CHECK__",
+                "matches_details": [{
+                    "matched_text": f"Techniques: {', '.join(ast_techniques)}",
+                    "position": {"start": 0, "end": len(raw_command)},
+                    "match_number": 1,
+                    "matched_in": "original"
+                }],
+                "tactics": heavily_obfuscated_sig.get("tactics", ["Defense Evasion"]),
+                "techniques": heavily_obfuscated_sig.get("techniques", ["T1027", "T1027.010", "T1140"]),
+                "reference": heavily_obfuscated_sig.get("reference", []),
+                "link": heavily_obfuscated_sig.get("link"),
+                "is_premium_indicator": False,
+                "indicator_type": heavily_obfuscated_sig.get("indicator_type", "community"),
+                "found_in_decoded": False
+            })
+            tactics_set.update(heavily_obfuscated_sig.get("tactics", ["Defense Evasion"]))
+            techniques_set.update(heavily_obfuscated_sig.get("techniques", []))
+            total_score += heavily_obfuscated_sig["score"]
 
     commands_to_analyze = list(commands_set)
     
     
-    skip_signatures = {"Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected"}
+    skip_signatures = {"Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected", "Heavily Obfuscated Command"}
     if has_encoded_command_indicator:
         skip_signatures.add("Long base64 strings")
     
@@ -597,8 +636,8 @@ async def analyze_command_patterns(command: str, signatures: list, allow_decoded
         "techniques": list(techniques_set),
         "decoded_command": first_decoded if allow_decoded_analysis else None,
         "double_decoded_command": double_decoded if allow_decoded_analysis else None,
-        "deobfuscated_command": ast_deobfuscated if allow_decoded_analysis else None,
-        "deobfuscation_techniques": ast_techniques if allow_decoded_analysis else []
+        "deobfuscated_command": ast_deobfuscated,
+        "deobfuscation_techniques": ast_techniques
     }
 
 

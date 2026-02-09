@@ -31,6 +31,7 @@ from utils.geolocation import get_ip_location, get_client_ip_from_request
 from services.plan_service import can_user_decode_commands, get_user_plan_features, get_plan_by_name, check_session_rate_limit_from_db
 from services.api_key_manager import update_api_key_usage
 from services.ai_service import generate_ai_overview, is_ai_service_available
+from config.settings import AST_SERVICE_ENABLED
 
 
 def slim_signature(sig: dict) -> dict:
@@ -217,6 +218,13 @@ async def analyze_command_endpoint(
                 country = location_data.get("country")
 
         
+        # Invalidate cache if AST is enabled but cached result has no deobfuscation data
+        if cached_result and AST_SERVICE_ENABLED:
+            cached_blob = cached_result.get("results_blob", {})
+            if "deobfuscated_command" not in cached_blob:
+                print(f"[CACHE] Invalidating stale cache (missing deobfuscation data, AST enabled)")
+                cached_result = None
+
         if cached_result:
             results_blob = cached_result.get("results_blob", {})
             cached_ai_overview = cached_result.get("ai_overview")
@@ -240,8 +248,10 @@ async def analyze_command_endpoint(
             
             decoded_cmd = results_blob.get("decoded_command")
             double_decoded_cmd = results_blob.get("double_decoded_command")
+            deobfuscated_cmd = results_blob.get("deobfuscated_command")
+            deobfuscation_techniques = results_blob.get("deobfuscation_techniques", [])
 
-            
+
             results_blob_for_save = results_blob.copy()
 
            
@@ -291,7 +301,7 @@ async def analyze_command_endpoint(
                 if double_decoded_cmd:
                     double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
 
-               
+
                 signatures_detected = results_blob.get("signatures_detected", [])
                 filtered_signatures = []
                 recalculated_score = 0.0
@@ -345,7 +355,9 @@ async def analyze_command_endpoint(
                     "tactics": results_blob.get("tactics", []),
                     "techniques": results_blob.get("techniques", []),
                     "decoded_command": decoded_cmd,
-                    "double_decoded_command": double_decoded_cmd
+                    "double_decoded_command": double_decoded_cmd,
+                    "deobfuscated_command": deobfuscated_cmd,
+                    "deobfuscation_techniques": deobfuscation_techniques
                 },
                 "analysis_id": analysis_id,
                 "session_id": session_id,
@@ -450,9 +462,6 @@ async def analyze_command_endpoint(
 
             if double_decoded_cmd:
                 double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
-
-            if deobfuscated_cmd:
-                deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
 
             filtered_signatures = []
             recalculated_score = 0.0
@@ -642,7 +651,7 @@ async def get_user_analyses_endpoint(
                     "created_at": analysis.get("created_at"),
                     "is_cache": analysis.get("is_cache", False),
                     "decoded_command": analysis.get("decoded_command"),
-                    "deobfuscated_command": analysis.get("obfuscated_command")
+                    "deobfuscated_command": analysis.get("deobfuscated_command")
                 })
             
             return JSONResponse({
@@ -781,7 +790,8 @@ async def get_analysis_by_id_endpoint(
 
         decoded_cmd = analysis_data.get("decoded_command")
         double_decoded_cmd = analysis_data.get("double_decoded_command")
-        deobfuscated_cmd = analysis_data.get("obfuscated_command")
+        deobfuscated_cmd = analysis_data.get("deobfuscated_command")
+        deobfuscation_techniques = analysis_data.get("deobfuscation_techniques", [])
 
         
        
@@ -824,10 +834,8 @@ async def get_analysis_by_id_endpoint(
 
             if double_decoded_cmd:
                 double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
-            if deobfuscated_cmd:
-                deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
 
-           
+
             signatures_detected = analysis_data.get("signatures_detected", [])
             filtered_signatures = []
             recalculated_score = 0.0
@@ -878,7 +886,8 @@ async def get_analysis_by_id_endpoint(
                 "techniques": final_techniques,
                 "decoded_command": decoded_cmd,
                 "double_decoded_command": double_decoded_cmd,
-                "deobfuscated_command": deobfuscated_cmd
+                "deobfuscated_command": deobfuscated_cmd,
+                "deobfuscation_techniques": deobfuscation_techniques
             },
             "decode_info": {
                 "current_usage": decode_info["current_usage"],

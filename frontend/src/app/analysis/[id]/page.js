@@ -477,11 +477,6 @@ export default function AnalysisDetailsPage() {
     return <LoadingSpinner />; // Only show on initial page load
   }
 
-  // ✅ Verificar se o indicador de obfuscação foi detectado
-  const hasObfuscationIndicator = result?.signatures?.some(
-    sig => sig.name === "Obfuscation Detected"
-  );
-
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 animate-fade-in">
       <style jsx>{`
@@ -632,18 +627,19 @@ export default function AnalysisDetailsPage() {
         </div>
       )}
 
-      {result && result.deobfuscated && hasObfuscationIndicator && (
+      {result && result.deobfuscated && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-purple-500/30">
-            <div className="flex justify-between items-center mb-3">
+            <div className="mb-3">
               <div className="font-mono text-sm font-bold" style={{ color: 'var(--accent)' }}>
                 Deobfuscated Command
               </div>
-              <DecodeUsageBadge decodeInfo={decodeInfo} />
             </div>
-            <ProtectedCodeBlock code={result.deobfuscated} borderColorClass="border-purple-500/20" limitReached={result.decodeLimitReached} decodeInfo={decodeInfo} />
+            <div className={`bg-black rounded p-3 border border-purple-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words`} style={{ color: 'var(--foreground)' }}>
+              <code>{result.deobfuscated}</code>
+            </div>
             <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
-              Format string obfuscation was removed (e.g., &#123;&quot;&#123;1&#125;&#123;0&#125;&quot; -f &apos;EX&apos;,&apos;I&apos;&#125; → &apos;IEX&apos;)
+              Obfuscation layers were removed using AST-based static analysis (no code execution).
             </div>
           </div>
         </div>

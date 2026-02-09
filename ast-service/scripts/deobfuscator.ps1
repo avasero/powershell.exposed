@@ -93,6 +93,19 @@ function Invoke-AstDeobfuscation {
                 })
             }
 
+            # Pass 0.5: Extract command from powershell.exe launcher wrappers
+            $launcherResult = Resolve-PowerShellLauncher -Code $current
+            if ($launcherResult.changed) {
+                $current = $launcherResult.result
+                [void]$iterationTechniques.Add('powershell_launcher')
+                [void]$result.transformations.Add(@{
+                    iteration = $iteration
+                    technique = 'powershell_launcher'
+                    before = (Get-TruncatedString $previous 200)
+                    after = (Get-TruncatedString $current 200)
+                })
+            }
+
             # Pass 1: Resolve tick/backtick obfuscation (simplest, do first)
             $tickResult = Resolve-TickObfuscation -Code $current
             if ($tickResult.changed) {
@@ -101,6 +114,19 @@ function Invoke-AstDeobfuscation {
                 [void]$result.transformations.Add(@{
                     iteration = $iteration
                     technique = 'tick_obfuscation'
+                    before = (Get-TruncatedString $previous 200)
+                    after = (Get-TruncatedString $current 200)
+                })
+            }
+
+            # Pass 1.1: Resolve scriptblock invocation wrappers (&{cmd} args -> cmd args)
+            $sbWrapperResult = Resolve-ScriptBlockWrapper -Code $current
+            if ($sbWrapperResult.changed) {
+                $current = $sbWrapperResult.result
+                [void]$iterationTechniques.Add('scriptblock_wrapper')
+                [void]$result.transformations.Add(@{
+                    iteration = $iteration
+                    technique = 'scriptblock_wrapper'
                     before = (Get-TruncatedString $previous 200)
                     after = (Get-TruncatedString $current 200)
                 })
@@ -153,6 +179,19 @@ function Invoke-AstDeobfuscation {
                 [void]$result.transformations.Add(@{
                     iteration = $iteration
                     technique = 'reversed_string'
+                    before = (Get-TruncatedString $previous 200)
+                    after = (Get-TruncatedString $current 200)
+                })
+            }
+
+            # Pass 1.85: Resolve string index slicing ("string"[18..3] -> extracted chars)
+            $sliceResult = Resolve-StringIndexSlicing -Code $current
+            if ($sliceResult.changed) {
+                $current = $sliceResult.result
+                [void]$iterationTechniques.Add('string_index_slicing')
+                [void]$result.transformations.Add(@{
+                    iteration = $iteration
+                    technique = 'string_index_slicing'
                     before = (Get-TruncatedString $previous 200)
                     after = (Get-TruncatedString $current 200)
                 })
@@ -270,6 +309,19 @@ function Invoke-AstDeobfuscation {
                 [void]$result.transformations.Add(@{
                     iteration = $iteration
                     technique = 'base64_decode'
+                    before = (Get-TruncatedString $previous 200)
+                    after = (Get-TruncatedString $current 200)
+                })
+            }
+
+            # Pass 9.3: Resolve Unicode (UTF-16LE) Base64 encoded strings
+            $unicodeB64Result = Resolve-UnicodeBase64 -Code $current
+            if ($unicodeB64Result.changed) {
+                $current = $unicodeB64Result.result
+                [void]$iterationTechniques.Add('unicode_base64')
+                [void]$result.transformations.Add(@{
+                    iteration = $iteration
+                    technique = 'unicode_base64'
                     before = (Get-TruncatedString $previous 200)
                     after = (Get-TruncatedString $current 200)
                 })
@@ -1703,6 +1755,7 @@ function Resolve-VariableSubstitution {
     .DESCRIPTION
         Only resolves variables that are assigned constant string values
         and used in simple contexts. Very conservative to avoid issues.
+        Also substitutes variables used as command arguments.
     #>
     param([string]$Code)
 
@@ -1733,16 +1786,392 @@ function Resolve-VariableSubstitution {
     }
 
     # Find variable usages in string contexts and substitute
-    # Very conservative - only substitute in specific patterns
     foreach ($var in $varMap.Keys) {
         $varValue = $varMap[$var]
-        # Pattern: & $varname or . $varname (invoke with variable)
+        # Pattern 1: & $varname or . $varname (invoke with variable)
         $invokePattern = '([&\.])\s*\$' + [regex]::Escape($var) + '(?![a-zA-Z0-9_])'
         $newResult = [regex]::Replace($result, $invokePattern, "`$1'$varValue'", [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
         if ($newResult -ne $result) {
             $result = $newResult
             $changed = $true
         }
+    }
+
+    # Pattern 2: Substitute variables used as command arguments
+    # e.g., $z="Hello";Write-Host $z -> Write-Host "Hello"
+    # Re-parse after any changes above
+    if ($varMap.Count -gt 0) {
+        $parseResult2 = Get-SafeAst -Code $result
+        $ast2 = $parseResult2.Ast
+
+        # Find all variable references used as command arguments
+        $commandNodes = $ast2.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.CommandAst]
+        }, $true)
+
+        # Process in reverse offset order
+        $replacements = @()
+        foreach ($cmd in $commandNodes) {
+            # Skip first element (the command name itself)
+            for ($i = 1; $i -lt $cmd.CommandElements.Count; $i++) {
+                $elem = $cmd.CommandElements[$i]
+                if ($elem -is [System.Management.Automation.Language.VariableExpressionAst]) {
+                    $vName = $elem.VariablePath.UserPath
+                    if ($varMap.ContainsKey($vName)) {
+                        $replacements += @{
+                            Start = $elem.Extent.StartOffset
+                            Length = $elem.Extent.EndOffset - $elem.Extent.StartOffset
+                            Value = "`"$($varMap[$vName])`""
+                        }
+                    }
+                }
+            }
+        }
+
+        # Apply replacements in reverse order
+        $replacements = $replacements | Sort-Object { $_.Start } -Descending
+        foreach ($rep in $replacements) {
+            $result = $result.Substring(0, $rep.Start) + $rep.Value + $result.Substring($rep.Start + $rep.Length)
+            $changed = $true
+        }
+
+        # Remove the variable assignment lines for substituted variables if all uses replaced
+        if ($changed) {
+            foreach ($var in $varMap.Keys) {
+                # Check if the variable is still referenced
+                $stillUsed = [regex]::IsMatch($result, '\$' + [regex]::Escape($var) + '(?![a-zA-Z0-9_])')
+                if (-not $stillUsed) {
+                    # Remove assignment line
+                    $removePattern = '\$' + [regex]::Escape($var) + '\s*=\s*[''"][^''"]*[''"]\s*;?\s*'
+                    $result = [regex]::Replace($result, $removePattern, '')
+                }
+            }
+            $result = $result.Trim()
+        }
+    }
+
+    return @{
+        result = $result
+        changed = $changed
+    }
+}
+
+function Resolve-PowerShellLauncher {
+    <#
+    .SYNOPSIS
+        Extract command from powershell.exe launcher wrappers
+    .DESCRIPTION
+        Handles two patterns:
+        1. powershell[.exe] [-flags] -Command "actual command" -> extracts the command
+        2. powershell[.exe] -e[ncodedcommand] "base64" -> decodes UTF-16LE base64
+        Flags like -NoP, -NonI, -W Hidden, -Exec Bypass are stripped.
+    #>
+    param([string]$Code)
+
+    $result = $Code
+    $changed = $false
+
+    # Helper: decode UTF-16LE base64 with odd-byte-count protection
+    function DecodeUtf16Base64([string]$base64) {
+        $bytes = [Convert]::FromBase64String($base64)
+        # Ensure even byte count for UTF-16LE (pad with 0x00 if odd)
+        if ($bytes.Length % 2 -ne 0) {
+            $padded = [byte[]]::new($bytes.Length + 1)
+            [Array]::Copy($bytes, $padded, $bytes.Length)
+            $bytes = $padded
+        }
+        $decoded = [System.Text.Encoding]::Unicode.GetString($bytes)
+        # Trim trailing null characters
+        return $decoded.TrimEnd([char]0)
+    }
+
+    # Pattern 1: powershell[.exe] ... -EncodedCommand "base64" or -e "base64"
+    # Use [''""] - in PS single-quoted string, '' is escaped single quote, " is literal
+    $encodedPattern = '^\s*(?:powershell(?:\.exe)?)\s+(?:(?:-\w+\s+(?:\w+\s+)?)*?)(?:-e(?:nc(?:odedcommand)?)?)\s+[''"]?([A-Za-z0-9+/=]+)[''"]?\s*$'
+    $encodedMatch = [regex]::Match($Code, $encodedPattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+
+    if ($encodedMatch.Success) {
+        $base64 = $encodedMatch.Groups[1].Value
+        try {
+            $decoded = DecodeUtf16Base64 $base64
+            if ($decoded -and $decoded.Length -gt 0) {
+                $result = $decoded.Trim()
+                $changed = $true
+                return @{ result = $result; changed = $changed }
+            }
+        }
+        catch {
+            Write-Host "[DEBUG] PowerShellLauncher: Base64 decode failed: $_"
+        }
+    }
+
+    # Pattern 2: powershell[.exe] ... -Command "actual command"
+    $commandPattern = '^\s*(?:powershell(?:\.exe)?)\s+(?:(?:-\w+\s+(?:\w+\s+)?)*?)(?:-(?:c(?:ommand)?))\s+[''"](.+)[''"]\s*$'
+    $commandMatch = [regex]::Match($Code, $commandPattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [System.Text.RegularExpressions.RegexOptions]::Singleline)
+
+    if ($commandMatch.Success) {
+        $result = $commandMatch.Groups[1].Value.Trim()
+        $changed = $true
+        return @{ result = $result; changed = $changed }
+    }
+
+    # Pattern 3: Simpler - just powershell -e base64 (no quotes, no other flags)
+    $simpleEncPattern = '^\s*(?:powershell(?:\.exe)?)\s+(?:-\w+\s+)*-e(?:nc(?:odedcommand)?)?\s+([A-Za-z0-9+/=]+)\s*$'
+    $simpleEncMatch = [regex]::Match($Code, $simpleEncPattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+
+    if ($simpleEncMatch.Success) {
+        $base64 = $simpleEncMatch.Groups[1].Value
+        try {
+            $decoded = DecodeUtf16Base64 $base64
+            if ($decoded -and $decoded.Length -gt 0) {
+                $result = $decoded.Trim()
+                $changed = $true
+            }
+        }
+        catch { }
+    }
+
+    return @{
+        result = $result
+        changed = $changed
+    }
+}
+
+function Resolve-ScriptBlockWrapper {
+    <#
+    .SYNOPSIS
+        Resolve scriptblock invocation wrappers
+    .DESCRIPTION
+        Handles patterns where & or . invoke a scriptblock containing a single command:
+        - &{Write-Host} "args" -> Write-Host "args"
+        - .{Get-Process} -> Get-Process
+        - (&{cmdlet} args) -> (cmdlet args)
+        Uses AST to safely identify ScriptBlockExpressionAst nodes.
+    #>
+    param([string]$Code)
+
+    $result = $Code
+    $changed = $false
+
+    # Pattern: &{command-name} or .{command-name}
+    # The scriptblock contains a single simple command (cmdlet name)
+    $pattern = '([&\.])\s*\{\s*([a-zA-Z][a-zA-Z0-9\-]*)\s*\}'
+
+    $result = [regex]::Replace($result, $pattern, {
+        param($match)
+        $cmdName = $match.Groups[2].Value
+        return $cmdName
+    }, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+
+    $changed = ($result -ne $Code)
+
+    # Clean up: if the whole thing was wrapped in parens like (&{cmd} args) -> (cmd args)
+    # The regex above already handles this by just replacing &{cmd} with cmd
+
+    return @{
+        result = $result
+        changed = $changed
+    }
+}
+
+function Resolve-UnicodeBase64 {
+    <#
+    .SYNOPSIS
+        Resolve Unicode (UTF-16LE) Base64 encoded strings
+    .DESCRIPTION
+        Handles the pattern:
+        [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String("base64"))
+        Decodes the base64 bytes using UTF-16LE (PowerShell's default Unicode encoding).
+        Also handles [Text.Encoding]::Unicode.GetString(...) without System. prefix.
+    #>
+    param([string]$Code)
+
+    $result = $Code
+    $changed = $false
+
+    # Pattern: [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String("xxx"))
+    # With optional System. prefix for both types
+    # Use [''""] - in PS single-quoted string, '' is escaped single quote, " is literal
+    $pattern = '\[(?:System\.)?Text\.Encoding\]::Unicode\.GetString\s*\(\s*\[(?:System\.)?Convert\]::FromBase64String\s*\(\s*[''"]([A-Za-z0-9+/=]+)[''"]\s*\)\s*\)'
+
+    $result = [regex]::Replace($Code, $pattern, {
+        param($match)
+        $base64 = $match.Groups[1].Value
+        try {
+            $bytes = [Convert]::FromBase64String($base64)
+            # Ensure even byte count for UTF-16LE (pad with 0x00 if odd)
+            if ($bytes.Length % 2 -ne 0) {
+                $padded = [byte[]]::new($bytes.Length + 1)
+                [Array]::Copy($bytes, $padded, $bytes.Length)
+                $bytes = $padded
+            }
+            $decoded = [System.Text.Encoding]::Unicode.GetString($bytes)
+            # Trim trailing null characters
+            $decoded = $decoded.TrimEnd([char]0)
+            # Allow printable ASCII plus common Unicode (reject control chars except CR/LF/Tab)
+            if ($decoded -and $decoded.Length -gt 0 -and $decoded -notmatch '[\x00-\x08\x0E-\x1F]') {
+                return "'$decoded'"
+            }
+        }
+        catch {
+            Write-Host "[DEBUG] UnicodeBase64: Decode failed: $_"
+        }
+        return $match.Value
+    }, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+
+    $changed = ($result -ne $Code)
+
+    return @{
+        result = $result
+        changed = $changed
+    }
+}
+
+function Resolve-StringIndexSlicing {
+    <#
+    .SYNOPSIS
+        Resolve string index slicing with range operators
+    .DESCRIPTION
+        Handles patterns where characters are extracted from strings using index ranges:
+        - "string"[18..3] -> extracts chars at indices 18,17,16,...,3
+        - 'string'[0..4] -> extracts chars at indices 0,1,2,3,4
+        - "string"[1,3,5] -> extracts chars at indices 1,3,5
+        Uses AST to properly handle strings with escape characters (backtick-escaped quotes).
+        Falls back to regex for cases AST cannot parse.
+        Common in obfuscation to build commands from innocent-looking strings.
+    #>
+    param([string]$Code)
+
+    $result = $Code
+    $changed = $false
+
+    try {
+        # Use AST to find IndexExpressionAst nodes where target is a string constant
+        $parseResult = Get-SafeAst -Code $Code
+        $ast = $parseResult.Ast
+
+        if (-not $ast) {
+            return @{ result = $Code; changed = $false }
+        }
+
+        # Find all index expressions: something[index]
+        $indexNodes = @($ast.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.IndexExpressionAst]
+        }, $true))
+
+        if ($indexNodes.Count -eq 0) {
+            return @{ result = $Code; changed = $false }
+        }
+
+        # Process in reverse offset order to maintain positions
+        $indexNodes = @($indexNodes | Sort-Object { $_.Extent.StartOffset } -Descending)
+
+        foreach ($node in $indexNodes) {
+            try {
+                # The target must be a string constant (the string being indexed)
+                $targetNode = $node.Target
+                $stringValue = $null
+
+                if ($targetNode -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
+                    $stringValue = $targetNode.Value
+                }
+                elseif ($targetNode -is [System.Management.Automation.Language.ExpandableStringExpressionAst]) {
+                    # Only handle if the expandable string has no nested expressions (pure string)
+                    if ($null -ne $targetNode.NestedExpressions -and $targetNode.NestedExpressions.Count -eq 0) {
+                        $stringValue = $targetNode.Value
+                    }
+                }
+
+                if (-not $stringValue -or $stringValue.Length -eq 0) { continue }
+
+                # The index must be a range (N..M) or array literal
+                $indexExpr = $node.Index
+                $indices = [System.Collections.ArrayList]::new()
+
+                if ($indexExpr -is [System.Management.Automation.Language.BinaryExpressionAst] -and
+                    $indexExpr.Operator.ToString() -eq 'DotDot') {
+                    # Range operator: N..M
+                    $startVal = $null
+                    $endVal = $null
+
+                    # Extract start value
+                    if ($indexExpr.Left -is [System.Management.Automation.Language.ConstantExpressionAst]) {
+                        $startVal = [int]$indexExpr.Left.Value
+                    }
+                    elseif ($indexExpr.Left -is [System.Management.Automation.Language.UnaryExpressionAst]) {
+                        try {
+                            $child = $indexExpr.Left.Child
+                            if ($child -is [System.Management.Automation.Language.ConstantExpressionAst]) {
+                                $startVal = -[int]$child.Value
+                            }
+                        } catch { }
+                    }
+
+                    # Extract end value
+                    if ($indexExpr.Right -is [System.Management.Automation.Language.ConstantExpressionAst]) {
+                        $endVal = [int]$indexExpr.Right.Value
+                    }
+                    elseif ($indexExpr.Right -is [System.Management.Automation.Language.UnaryExpressionAst]) {
+                        try {
+                            $child = $indexExpr.Right.Child
+                            if ($child -is [System.Management.Automation.Language.ConstantExpressionAst]) {
+                                $endVal = -[int]$child.Value
+                            }
+                        } catch { }
+                    }
+
+                    if ($null -ne $startVal -and $null -ne $endVal) {
+                        if ($startVal -le $endVal) {
+                            for ($i = $startVal; $i -le $endVal; $i++) { [void]$indices.Add($i) }
+                        } else {
+                            for ($i = $startVal; $i -ge $endVal; $i--) { [void]$indices.Add($i) }
+                        }
+                    }
+                }
+                elseif ($indexExpr -is [System.Management.Automation.Language.ArrayLiteralAst]) {
+                    # Comma-separated indices: N,M,O
+                    foreach ($elem in $indexExpr.Elements) {
+                        if ($elem -is [System.Management.Automation.Language.ConstantExpressionAst]) {
+                            [void]$indices.Add([int]$elem.Value)
+                        }
+                    }
+                }
+                elseif ($indexExpr -is [System.Management.Automation.Language.ConstantExpressionAst]) {
+                    # Single index: [N]
+                    [void]$indices.Add([int]$indexExpr.Value)
+                }
+
+                if ($indices.Count -eq 0) { continue }
+
+                # Extract characters at the computed indices
+                $chars = [System.Collections.ArrayList]::new()
+                foreach ($idx in $indices) {
+                    # Handle negative indices (from end)
+                    $actualIdx = $idx
+                    if ($actualIdx -lt 0) { $actualIdx = $stringValue.Length + $actualIdx }
+                    if ($actualIdx -ge 0 -and $actualIdx -lt $stringValue.Length) {
+                        [void]$chars.Add($stringValue[$actualIdx])
+                    }
+                }
+
+                if ($chars.Count -gt 0) {
+                    $extracted = -join $chars
+                    $start = $node.Extent.StartOffset
+                    $length = $node.Extent.EndOffset - $start
+                    $result = $result.Substring(0, $start) + "'$extracted'" + $result.Substring($start + $length)
+                    $changed = $true
+                }
+            }
+            catch {
+                Write-Host "[DEBUG] StringIndexSlicing node error: $($_.Exception.Message)"
+                continue
+            }
+        }
+    }
+    catch {
+        Write-Host "[DEBUG] StringIndexSlicing fatal error: $($_.Exception.Message)"
     }
 
     return @{
