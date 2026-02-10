@@ -194,7 +194,7 @@ class DeobfuscationQueue:
                 if heavily_obfuscated_sig:
                     sig_entry = {
                         "name": "Heavily Obfuscated Command",
-                        "description": f"AST deobfuscation detected {len(ast_techniques)} obfuscation technique(s): {', '.join(ast_techniques)}",
+                        "description": f"AST deobfuscation detected {len(ast_techniques)} obfuscation technique(s)",
                         "severity": heavily_obfuscated_sig["severity"],
                         "base_score": heavily_obfuscated_sig["score"],
                         "matches_found": 1,
@@ -202,7 +202,7 @@ class DeobfuscationQueue:
                         "max_match_allowed": 1,
                         "pattern": "__DEOBFUSCATION_CHECK__",
                         "matches_details": [{
-                            "matched_text": f"Techniques: {', '.join(ast_techniques)}",
+                            "matched_text": f"{len(ast_techniques)} obfuscation technique(s) detected",
                             "position": {"start": 0, "end": len(original_command)},
                             "match_number": 1,
                             "matched_in": "deobfuscated"

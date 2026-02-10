@@ -242,7 +242,6 @@ async def analyze_command_endpoint(
             decoded_cmd = results_blob.get("decoded_command")
             double_decoded_cmd = results_blob.get("double_decoded_command")
             deobfuscated_cmd = results_blob.get("deobfuscated_command")
-            deobfuscation_techniques = results_blob.get("deobfuscation_techniques", [])
 
 
             results_blob_for_save = results_blob.copy()
@@ -350,7 +349,6 @@ async def analyze_command_endpoint(
                     "decoded_command": decoded_cmd,
                     "double_decoded_command": double_decoded_cmd,
                     "deobfuscated_command": deobfuscated_cmd,
-                    "deobfuscation_techniques": deobfuscation_techniques,
                     "deobfuscation_status": "completed" if deobfuscated_cmd else ("processing" if AST_SERVICE_ENABLED else "disabled")
                 },
                 "analysis_id": analysis_id,
@@ -443,7 +441,6 @@ async def analyze_command_endpoint(
         decoded_cmd = analysis_result.get("decoded_command")
         double_decoded_cmd = analysis_result.get("double_decoded_command")
         deobfuscated_cmd = analysis_result.get("deobfuscated_command")
-        deobfuscation_techniques = analysis_result.get("deobfuscation_techniques", [])
 
 
         decode_limit_reached = False
@@ -521,7 +518,6 @@ async def analyze_command_endpoint(
                 "decoded_command": decoded_cmd,
                 "double_decoded_command": double_decoded_cmd,
                 "deobfuscated_command": deobfuscated_cmd,
-                "deobfuscation_techniques": deobfuscation_techniques,
                 "deobfuscation_status": "processing" if AST_SERVICE_ENABLED else "disabled"
             },
             "analysis_id": db_result.get("short_id") if db_result.get("success") else None,
@@ -576,7 +572,6 @@ async def get_deobfuscation_status_endpoint(
                 }
                 if result.status == "completed":
                     response_data["deobfuscated_command"] = result.deobfuscated_command
-                    response_data["deobfuscation_techniques"] = result.deobfuscation_techniques
                     response_data["new_signatures"] = slim_signatures(result.new_signatures) if result.new_signatures else []
                     response_data["added_score"] = result.added_score
                     response_data["new_tactics"] = result.new_tactics
@@ -588,7 +583,7 @@ async def get_deobfuscation_status_endpoint(
         # Fallback: check database
         supabase = get_supabase_client()
         db_response = supabase.table('powershell_analyses') \
-            .select('deobfuscated_command, deobfuscation_techniques') \
+            .select('deobfuscated_command') \
             .eq('short_id', short_id) \
             .single() \
             .execute()
@@ -600,14 +595,12 @@ async def get_deobfuscation_status_endpoint(
             )
 
         deobfuscated = db_response.data.get("deobfuscated_command")
-        techniques = db_response.data.get("deobfuscation_techniques", [])
 
         if deobfuscated:
             return JSONResponse({
                 "status": "completed",
                 "short_id": short_id,
-                "deobfuscated_command": deobfuscated,
-                "deobfuscation_techniques": techniques or []
+                "deobfuscated_command": deobfuscated
             })
 
         if AST_SERVICE_ENABLED:
@@ -873,7 +866,6 @@ async def get_analysis_by_id_endpoint(
         decoded_cmd = analysis_data.get("decoded_command")
         double_decoded_cmd = analysis_data.get("double_decoded_command")
         deobfuscated_cmd = analysis_data.get("deobfuscated_command")
-        deobfuscation_techniques = analysis_data.get("deobfuscation_techniques", [])
 
         
        
@@ -991,7 +983,6 @@ async def get_analysis_by_id_endpoint(
                 "decoded_command": decoded_cmd,
                 "double_decoded_command": double_decoded_cmd,
                 "deobfuscated_command": deobfuscated_cmd,
-                "deobfuscation_techniques": deobfuscation_techniques,
                 "deobfuscation_status": deob_status
             },
             "decode_info": {
