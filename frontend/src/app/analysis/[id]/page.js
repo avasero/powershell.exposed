@@ -156,6 +156,7 @@ export default function AnalysisDetailsPage() {
   const [decodeInfo, setDecodeInfo] = useState(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [aiOverview, setAiOverview] = useState(null);
+  const [deobfuscationMessage, setDeobfuscationMessage] = useState(null);
   const analysisExecutedRef = useRef(false);
 
   useEffect(() => {
@@ -232,7 +233,7 @@ export default function AnalysisDetailsPage() {
       setCmd(analysis.command || analysisResult.command);
       setNewCommand(analysis.command || analysisResult.command);
 
-      const processedResult = {
+      let processedResult = {
         score: analysis.risk_score || analysisResult.risk_score || 0,
         severity: (analysis.risk_score || analysisResult.risk_score || 0) > 5 ? "malicious" : "safe",
         signatures: (analysis.signatures || analysis.signatures_detected || analysisResult.signatures || analysisResult.signatures_detected || []).sort((a, b) => (b.score || b.total_score || 0) - (a.score || a.total_score || 0)),
@@ -247,9 +248,46 @@ export default function AnalysisDetailsPage() {
         analysisId: params.id
       };
 
-      setResult(processedResult);
       setDecodeInfo(analysisData.decode_info);
       setAiOverview(analysisData.ai_overview || null);
+
+      // If deobfuscation is still processing, wait for it then reload the full analysis
+      const deobStatus = analysis.deobfuscation_status || analysisResult.deobfuscation_status;
+      if (deobStatus === "processing" && !processedResult.deobfuscated) {
+        setDeobfuscationMessage("Deobfuscating");
+        const deobDone = await waitForDeobfuscation(params.id, makeAuthenticatedRequest);
+        setDeobfuscationMessage(null);
+
+        if (deobDone) {
+          // Reload the full analysis from DB (now has merged signatures, score, etc.)
+          const reloadRes = await makeAuthenticatedRequest(`/analysis/${params.id}`, {
+            headers: { 'X-Session-ID': sessionId }
+          });
+          if (reloadRes.ok) {
+            const reloadData = await reloadRes.json();
+            const ra = reloadData.analysis || reloadData;
+            const rr = ra.analysis_result || ra;
+            processedResult = {
+              score: ra.risk_score || rr.risk_score || 0,
+              severity: (ra.risk_score || rr.risk_score || 0) > 5 ? "malicious" : "safe",
+              signatures: (ra.signatures || ra.signatures_detected || rr.signatures || rr.signatures_detected || []).sort((a, b) => (b.score || b.total_score || 0) - (a.score || a.total_score || 0)),
+              decoded: ra.decoded_command || rr.decoded_command || null,
+              doubleDecoded: ra.double_decoded_command || rr.double_decoded_command || null,
+              deobfuscated: ra.deobfuscated_command || rr.deobfuscated_command || null,
+              decodeLimitReached: ra.decode_limit_reached || rr.decode_limit_reached || false,
+              indicators: rr.analysis_details?.indicators || [],
+              details: rr.analysis_details?.recommendations?.join(", ") || "",
+              tactics: ra.tactics || rr.tactics || [],
+              techniques: ra.techniques || rr.techniques || [],
+              analysisId: params.id
+            };
+            setDecodeInfo(reloadData.decode_info);
+            setAiOverview(reloadData.ai_overview || null);
+          }
+        }
+      }
+
+      setResult(processedResult);
 
       // Smooth transition delay
       setTimeout(() => {
@@ -264,6 +302,23 @@ export default function AnalysisDetailsPage() {
     }
   }, [params.id, isCacheRedirect]); // ✅ FIX: Remover cacheRedirectInfo da dependência
 
+  // Poll deobfuscation status until complete, failed, or timeout
+  const waitForDeobfuscation = async (analysisId, makeAuthenticatedRequest) => {
+    const maxAttempts = 60;
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      try {
+        const res = await makeAuthenticatedRequest(`/deobfuscation-status/${analysisId}`);
+        const data = await res.json();
+        if (data.status === "completed" || data.status === "failed" || data.status === "disabled") {
+          return data.status === "completed";
+        }
+      } catch (err) {
+        console.error('Deobfuscation poll error:', err);
+      }
+    }
+    return false;
+  };
 
   useEffect(() => {
     if (params.id) {
@@ -474,7 +529,7 @@ export default function AnalysisDetailsPage() {
   // }
 
   if (!contentReady && loading) {
-    return <LoadingSpinner />; // Only show on initial page load
+    return <LoadingSpinner message={deobfuscationMessage || "Loading"} />;
   }
 
   return (
@@ -644,6 +699,7 @@ export default function AnalysisDetailsPage() {
           </div>
         </div>
       )}
+
 
 
       {result && result.decoded && result.doubleDecoded && (

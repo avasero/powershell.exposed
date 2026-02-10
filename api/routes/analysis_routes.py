@@ -218,13 +218,6 @@ async def analyze_command_endpoint(
                 country = location_data.get("country")
 
         
-        # Invalidate cache if AST is enabled but cached result has no deobfuscation data
-        if cached_result and AST_SERVICE_ENABLED:
-            cached_blob = cached_result.get("results_blob", {})
-            if "deobfuscated_command" not in cached_blob:
-                print(f"[CACHE] Invalidating stale cache (missing deobfuscation data, AST enabled)")
-                cached_result = None
-
         if cached_result:
             results_blob = cached_result.get("results_blob", {})
             cached_ai_overview = cached_result.get("ai_overview")
@@ -357,7 +350,8 @@ async def analyze_command_endpoint(
                     "decoded_command": decoded_cmd,
                     "double_decoded_command": double_decoded_cmd,
                     "deobfuscated_command": deobfuscated_cmd,
-                    "deobfuscation_techniques": deobfuscation_techniques
+                    "deobfuscation_techniques": deobfuscation_techniques,
+                    "deobfuscation_status": "completed" if deobfuscated_cmd else ("processing" if AST_SERVICE_ENABLED else "disabled")
                 },
                 "analysis_id": analysis_id,
                 "session_id": session_id,
@@ -428,10 +422,21 @@ async def analyze_command_endpoint(
             search_type=search_type,
             user_agent=user_agent,
             is_cache=False,
-            count_as_decode=allow_decoded_analysis 
+            count_as_decode=allow_decoded_analysis
         )
 
-        
+        # Submit deobfuscation to background queue (non-blocking)
+        if AST_SERVICE_ENABLED and db_result.get("success"):
+            from services.deobfuscation_queue import deobfuscation_queue, DeobfuscationJob
+            first_decoded = analysis_result.get("decoded_command")
+            job = DeobfuscationJob(
+                short_id=db_result.get("short_id"),
+                command=command,
+                first_decoded=first_decoded
+            )
+            await deobfuscation_queue.submit(job)
+
+
         decode_info = await can_user_decode_commands(user_id, session_id=session_id, command=command)
 
        
@@ -516,7 +521,8 @@ async def analyze_command_endpoint(
                 "decoded_command": decoded_cmd,
                 "double_decoded_command": double_decoded_cmd,
                 "deobfuscated_command": deobfuscated_cmd,
-                "deobfuscation_techniques": deobfuscation_techniques
+                "deobfuscation_techniques": deobfuscation_techniques,
+                "deobfuscation_status": "processing" if AST_SERVICE_ENABLED else "disabled"
             },
             "analysis_id": db_result.get("short_id") if db_result.get("success") else None,
             "session_id": session_id,
@@ -545,6 +551,82 @@ async def analyze_command_endpoint(
             },
             status_code=503
         )
+
+async def get_deobfuscation_status_endpoint(
+    request: Request,
+    short_id: str,
+):
+    """Poll for the deobfuscation status of an analysis."""
+    try:
+        if not short_id or len(short_id) != 8 or not short_id.isalnum():
+            return JSONResponse(
+                {"error": {"code": "InvalidArgumentError", "message": "Invalid short_id"}},
+                status_code=400
+            )
+
+        # Check in-memory queue store first (fast path)
+        if AST_SERVICE_ENABLED:
+            from services.deobfuscation_queue import deobfuscation_queue
+            result = deobfuscation_queue.get_status(short_id)
+
+            if result:
+                response_data = {
+                    "status": result.status,
+                    "short_id": short_id,
+                }
+                if result.status == "completed":
+                    response_data["deobfuscated_command"] = result.deobfuscated_command
+                    response_data["deobfuscation_techniques"] = result.deobfuscation_techniques
+                    response_data["new_signatures"] = slim_signatures(result.new_signatures) if result.new_signatures else []
+                    response_data["added_score"] = result.added_score
+                    response_data["new_tactics"] = result.new_tactics
+                    response_data["new_techniques"] = result.new_techniques
+                elif result.status == "failed":
+                    response_data["error"] = result.error
+                return JSONResponse(response_data)
+
+        # Fallback: check database
+        supabase = get_supabase_client()
+        db_response = supabase.table('powershell_analyses') \
+            .select('deobfuscated_command, deobfuscation_techniques') \
+            .eq('short_id', short_id) \
+            .single() \
+            .execute()
+
+        if not db_response.data:
+            return JSONResponse(
+                {"error": {"code": "NotFoundError", "message": "Analysis not found"}},
+                status_code=404
+            )
+
+        deobfuscated = db_response.data.get("deobfuscated_command")
+        techniques = db_response.data.get("deobfuscation_techniques", [])
+
+        if deobfuscated:
+            return JSONResponse({
+                "status": "completed",
+                "short_id": short_id,
+                "deobfuscated_command": deobfuscated,
+                "deobfuscation_techniques": techniques or []
+            })
+
+        if AST_SERVICE_ENABLED:
+            return JSONResponse({
+                "status": "processing",
+                "short_id": short_id
+            })
+
+        return JSONResponse({
+            "status": "disabled",
+            "short_id": short_id
+        })
+
+    except Exception as e:
+        return JSONResponse(
+            {"error": {"code": "TransientError", "message": str(e)}},
+            status_code=503
+        )
+
 
 async def get_user_analyses_endpoint(
     request: Request,
@@ -875,6 +957,28 @@ async def get_analysis_by_id_endpoint(
         
         showing_decoded_content = should_show_decoded or (decode_info["can_decode"] and decoded_cmd and decoded_cmd != "[PREMIUM_PROTECTED_CONTENT]")
 
+        # Determine deobfuscation status
+        deob_status = "disabled"
+        if deobfuscated_cmd:
+            deob_status = "completed"
+        elif AST_SERVICE_ENABLED:
+            from services.deobfuscation_queue import deobfuscation_queue
+            short_id = analysis_data.get("short_id", "")
+            queue_result = deobfuscation_queue.get_status(short_id)
+            if queue_result:
+                deob_status = queue_result.status
+            else:
+                # Not in queue - could be still processing or old analysis
+                # Check if analysis was created recently (within last 2 minutes)
+                import datetime
+                created_at = analysis_data.get("created_at", "")
+                try:
+                    created_time = datetime.datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                    age_seconds = (datetime.datetime.now(datetime.timezone.utc) - created_time).total_seconds()
+                    deob_status = "processing" if age_seconds < 120 else "disabled"
+                except (ValueError, TypeError):
+                    deob_status = "disabled"
+
         return JSONResponse({
             "success": True,
             "analysis": {
@@ -887,7 +991,8 @@ async def get_analysis_by_id_endpoint(
                 "decoded_command": decoded_cmd,
                 "double_decoded_command": double_decoded_cmd,
                 "deobfuscated_command": deobfuscated_cmd,
-                "deobfuscation_techniques": deobfuscation_techniques
+                "deobfuscation_techniques": deobfuscation_techniques,
+                "deobfuscation_status": deob_status
             },
             "decode_info": {
                 "current_usage": decode_info["current_usage"],

@@ -16,8 +16,6 @@ from services.detectors import (
     detect_evasion,
     get_adjusted_score_and_severity,
 )
-from services.ast_client import ast_client
-from config.settings import AST_SERVICE_ENABLED
 
 
 
@@ -415,67 +413,8 @@ async def analyze_command_patterns(command: str, signatures: list, allow_decoded
     else:
         print(f"[ANALYZE] Decode limit reached - analyzing RAW command only (no decoded content)")
 
-    # AST-based deobfuscation always runs (not gated by decode quota)
-    if AST_SERVICE_ENABLED:
-        try:
-            # Try deobfuscating the original command
-            ast_result = await ast_client.deobfuscate(command)
-            if ast_result["success"] and ast_result.get("techniques_found"):
-                ast_deobfuscated = ast_result["deobfuscated"]
-                ast_techniques = ast_result.get("techniques_found", [])
-                if ast_deobfuscated and ast_deobfuscated != command:
-                    commands_set.add(ast_deobfuscated)
-                    print(f"[AST] Deobfuscated command added to analysis set (techniques: {', '.join(ast_techniques)})")
-
-            # Also try deobfuscating decoded content if available
-            if first_decoded and first_decoded != command:
-                ast_decoded_result = await ast_client.deobfuscate(first_decoded)
-                if ast_decoded_result["success"] and ast_decoded_result.get("techniques_found"):
-                    decoded_deobfuscated = ast_decoded_result["deobfuscated"]
-                    if decoded_deobfuscated and decoded_deobfuscated != first_decoded:
-                        commands_set.add(decoded_deobfuscated)
-                        # Merge techniques from decoded deobfuscation
-                        for tech in ast_decoded_result.get("techniques_found", []):
-                            if tech not in ast_techniques:
-                                ast_techniques.append(tech)
-                        if not ast_deobfuscated:
-                            ast_deobfuscated = decoded_deobfuscated
-                        print(f"[AST] Deobfuscated decoded content added to analysis set")
-        except Exception as ast_error:
-            print(f"[AST] Deobfuscation error (non-blocking): {ast_error}")
-
-    # Inject "Heavily Obfuscated Command" indicator when techniques are found
-    if ast_deobfuscated and ast_techniques:
-        heavily_obfuscated_sig = next(
-            (sig for sig in signatures if sig.get("name") == "Heavily Obfuscated Command"), None
-        )
-        if heavily_obfuscated_sig:
-            detected_signatures.append({
-                "name": "Heavily Obfuscated Command",
-                "description": f"AST deobfuscation detected {len(ast_techniques)} obfuscation technique(s): {', '.join(ast_techniques)}",
-                "severity": heavily_obfuscated_sig["severity"],
-                "base_score": heavily_obfuscated_sig["score"],
-                "matches_found": 1,
-                "total_score": heavily_obfuscated_sig["score"],
-                "max_match_allowed": 1,
-                "pattern": "__DEOBFUSCATION_CHECK__",
-                "matches_details": [{
-                    "matched_text": f"Techniques: {', '.join(ast_techniques)}",
-                    "position": {"start": 0, "end": len(raw_command)},
-                    "match_number": 1,
-                    "matched_in": "original"
-                }],
-                "tactics": heavily_obfuscated_sig.get("tactics", ["Defense Evasion"]),
-                "techniques": heavily_obfuscated_sig.get("techniques", ["T1027", "T1027.010", "T1140"]),
-                "reference": heavily_obfuscated_sig.get("reference", []),
-                "link": heavily_obfuscated_sig.get("link"),
-                "is_premium_indicator": False,
-                "indicator_type": heavily_obfuscated_sig.get("indicator_type", "community"),
-                "found_in_decoded": False
-            })
-            tactics_set.update(heavily_obfuscated_sig.get("tactics", ["Defense Evasion"]))
-            techniques_set.update(heavily_obfuscated_sig.get("techniques", []))
-            total_score += heavily_obfuscated_sig["score"]
+    # AST-based deobfuscation is now handled asynchronously via the deobfuscation queue.
+    # Results are populated later and the DB record is updated when processing completes.
 
     commands_to_analyze = list(commands_set)
     
