@@ -275,8 +275,10 @@ async def analyze_command_endpoint(
                 )
             analysis_id = db_result.get("short_id")
 
-            # Submit deobfuscation to background queue if not already deobfuscated
-            if AST_SERVICE_ENABLED and not deobfuscated_cmd and db_result.get("success"):
+            # Submit deobfuscation to background queue only for low-score (likely obfuscated) payloads
+            cached_score = float(results_blob.get("risk_score", 0))
+            should_deobfuscate = AST_SERVICE_ENABLED and not deobfuscated_cmd and db_result.get("success") and cached_score < 10
+            if should_deobfuscate:
                 from services.deobfuscation_queue import deobfuscation_queue, DeobfuscationJob
                 first_decoded = results_blob.get("decoded_command")
                 job = DeobfuscationJob(
@@ -360,7 +362,7 @@ async def analyze_command_endpoint(
                     "decoded_command": decoded_cmd,
                     "double_decoded_command": double_decoded_cmd,
                     "deobfuscated_command": deobfuscated_cmd,
-                    "deobfuscation_status": "completed" if deobfuscated_cmd else ("processing" if AST_SERVICE_ENABLED else "disabled")
+                    "deobfuscation_status": "completed" if deobfuscated_cmd else ("processing" if should_deobfuscate else "disabled")
                 },
                 "analysis_id": analysis_id,
                 "session_id": session_id,
@@ -434,8 +436,10 @@ async def analyze_command_endpoint(
             count_as_decode=allow_decoded_analysis
         )
 
-        # Submit deobfuscation to background queue (non-blocking)
-        if AST_SERVICE_ENABLED and db_result.get("success"):
+        # Submit deobfuscation to background queue only for low-score (likely obfuscated) payloads
+        original_score = analysis_result.get("total_score", 0)
+        should_deobfuscate = AST_SERVICE_ENABLED and db_result.get("success") and original_score < 10
+        if should_deobfuscate:
             from services.deobfuscation_queue import deobfuscation_queue, DeobfuscationJob
             first_decoded = analysis_result.get("decoded_command")
             job = DeobfuscationJob(
@@ -529,7 +533,7 @@ async def analyze_command_endpoint(
                 "decoded_command": decoded_cmd,
                 "double_decoded_command": double_decoded_cmd,
                 "deobfuscated_command": deobfuscated_cmd,
-                "deobfuscation_status": "processing" if AST_SERVICE_ENABLED else "disabled"
+                "deobfuscation_status": "processing" if should_deobfuscate else "disabled"
             },
             "analysis_id": db_result.get("short_id") if db_result.get("success") else None,
             "session_id": session_id,
