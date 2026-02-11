@@ -3,23 +3,17 @@ services:
   ast-service:
     build:
       context: ./ast-service
-      dockerfile: Dockerfile.windows
+      dockerfile: Dockerfile
     ports:
       - "8081:8081"
     volumes:
-      - ./ast-service/scripts:C:/app/scripts:ro
+      - ./ast-service/scripts:/app/scripts:ro
     environment:
       - MAX_INPUT_LENGTH=100000
       - TIMEOUT_SECONDS=30
       - MAX_ITERATIONS=10
       - AST_API_KEY=${AST_API_KEY:-avasero220949}
       - PORT=8081
-    healthcheck:
-      test: ["CMD", "pwsh", "-Command", "try { $$r = Invoke-RestMethod -Uri 'http://localhost:8081/health' -Method Get -TimeoutSec 5; if ($$r.status -eq 'healthy') { exit 0 } else { exit 1 } } catch { exit 1 }"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
     deploy:
       resources:
         limits:
@@ -31,4 +25,3 @@ services:
 
 networks:
   ps-network:
-    driver: nat

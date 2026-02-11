@@ -275,7 +275,18 @@ async def analyze_command_endpoint(
                 )
             analysis_id = db_result.get("short_id")
 
-           
+            # Submit deobfuscation to background queue if not already deobfuscated
+            if AST_SERVICE_ENABLED and not deobfuscated_cmd and db_result.get("success"):
+                from services.deobfuscation_queue import deobfuscation_queue, DeobfuscationJob
+                first_decoded = results_blob.get("decoded_command")
+                job = DeobfuscationJob(
+                    short_id=analysis_id,
+                    command=command,
+                    first_decoded=first_decoded
+                )
+                await deobfuscation_queue.submit(job)
+
+
             if session_id:
                 rate_limit_info = await check_session_rate_limit_from_db(
                     session_id=session_id,
