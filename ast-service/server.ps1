@@ -3,6 +3,12 @@
 
 Import-Module Pode
 
+# Helper function for logging inside Pode runspaces
+function Write-Log($msg) {
+    [Console]::Out.WriteLine($msg)
+    [Console]::Out.Flush()
+}
+
 # Read config from environment (for display)
 $port = [int]($env:PORT ?? 8081)
 $maxInput = [int]($env:MAX_INPUT_LENGTH ?? 100000)
@@ -55,7 +61,8 @@ Start-PodeServer -Threads 1 {
         $method = $WebEvent.Method
         $path = $WebEvent.Path
         $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
-        Write-Host "[$timestamp] $method $path"
+        [Console]::Out.WriteLine("[$timestamp] $method $path")
+        [Console]::Out.Flush()
         return $true
     }
 
@@ -81,22 +88,20 @@ Start-PodeServer -Threads 1 {
         . /app/scripts/deobfuscator.ps1
 
         try {
-            # Debug: Log raw request info
-            Write-Host "[DEBUG] Received POST /deobfuscate"
+            [Console]::Out.WriteLine("[DEBUG] Received POST /deobfuscate"); [Console]::Out.Flush()
 
             $body = $WebEvent.Data
 
             # If body is null, try to parse from raw body
             if (-not $body) {
                 $rawBody = $WebEvent.Request.Body
-                Write-Host "[DEBUG] Raw body: $rawBody"
+                [Console]::Out.WriteLine("[DEBUG] Raw body: $rawBody"); [Console]::Out.Flush()
                 if ($rawBody) {
                     $body = $rawBody | ConvertFrom-Json
                 }
             }
 
-            Write-Host "[DEBUG] Parsed body type: $($body.GetType().Name)"
-            Write-Host "[DEBUG] Body content: $($body | ConvertTo-Json -Compress)"
+            [Console]::Out.WriteLine("[DEBUG] Parsed body type: $($body.GetType().Name)"); [Console]::Out.Flush()
 
             # Validate input
             if (-not $body -or -not $body.command) {
@@ -110,7 +115,7 @@ Start-PodeServer -Threads 1 {
             }
 
             $command = $body.command
-            Write-Host "[DEBUG] Command to deobfuscate: $($command.Substring(0, [Math]::Min(100, $command.Length)))..."
+            [Console]::Out.WriteLine("[DEBUG] Command length: $($command.Length) chars"); [Console]::Out.Flush()
 
             # Check input length
             $maxLen = Get-PodeState -Name 'MaxInputLength'
@@ -124,16 +129,16 @@ Start-PodeServer -Threads 1 {
             }
 
             # Perform deobfuscation
-            Write-Host "[DEBUG] Calling Invoke-AstDeobfuscation..."
+            [Console]::Out.WriteLine("[DEBUG] Calling Invoke-AstDeobfuscation..."); [Console]::Out.Flush()
             $timeout = Get-PodeState -Name 'TimeoutSeconds'
             $maxIter = Get-PodeState -Name 'MaxIterations'
             try {
                 $result = Invoke-AstDeobfuscation -Command $command -TimeoutSeconds $timeout -MaxIterations $maxIter
-                Write-Host "[DEBUG] Deobfuscation completed. Result: $($result | ConvertTo-Json -Compress -Depth 3)"
+                [Console]::Out.WriteLine("[DEBUG] Deobfuscation completed. Techniques: $($result.techniques_found -join ', ')"); [Console]::Out.Flush()
             }
             catch {
-                Write-Host "[ERROR] Invoke-AstDeobfuscation failed: $($_.Exception.Message)"
-                Write-Host "[ERROR] Stack trace: $($_.ScriptStackTrace)"
+                [Console]::Out.WriteLine("[ERROR] Invoke-AstDeobfuscation failed: $($_.Exception.Message)"); [Console]::Out.Flush()
+                [Console]::Out.WriteLine("[ERROR] Stack trace: $($_.ScriptStackTrace)"); [Console]::Out.Flush()
                 throw
             }
 
@@ -152,8 +157,8 @@ Start-PodeServer -Threads 1 {
             }
         }
         catch {
-            Write-Host "[ERROR] Unhandled exception: $($_.Exception.Message)"
-            Write-Host "[ERROR] Stack trace: $($_.ScriptStackTrace)"
+            [Console]::Out.WriteLine("[ERROR] Unhandled exception: $($_.Exception.Message)"); [Console]::Out.Flush()
+            [Console]::Out.WriteLine("[ERROR] Stack trace: $($_.ScriptStackTrace)"); [Console]::Out.Flush()
             Set-PodeResponseStatus -Code 500
             Write-PodeJsonResponse -Value @{
                 success = $false
