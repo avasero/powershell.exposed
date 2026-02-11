@@ -156,7 +156,6 @@ export default function AnalysisDetailsPage() {
   const [decodeInfo, setDecodeInfo] = useState(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [aiOverview, setAiOverview] = useState(null);
-  const [deobfuscationMessage, setDeobfuscationMessage] = useState(null);
   const analysisExecutedRef = useRef(false);
 
   useEffect(() => {
@@ -254,9 +253,7 @@ export default function AnalysisDetailsPage() {
       // If deobfuscation is still processing, wait for it then reload the full analysis
       const deobStatus = analysis.deobfuscation_status || analysisResult.deobfuscation_status;
       if (deobStatus === "processing" && !processedResult.deobfuscated) {
-        setDeobfuscationMessage("Deobfuscating");
         const deobDone = await waitForDeobfuscation(params.id, makeAuthenticatedRequest);
-        setDeobfuscationMessage(null);
 
         if (deobDone) {
           // Reload the full analysis from DB (now has merged signatures, score, etc.)
@@ -529,7 +526,7 @@ export default function AnalysisDetailsPage() {
   // }
 
   if (!contentReady && loading) {
-    return <LoadingSpinner message={deobfuscationMessage || "Loading"} />;
+    return <LoadingSpinner message="Loading" />;
   }
 
   return (
