@@ -229,6 +229,19 @@ function Invoke-AstDeobfuscation {
                 })
             }
 
+            # Pass 3.5: Fallback format resolver for bareword args (when AST can't parse)
+            $barewordFormatResult = Resolve-FormatStringsBareword -Code $current
+            if ($barewordFormatResult.changed) {
+                $current = $barewordFormatResult.result
+                [void]$iterationTechniques.Add('format_string_bareword')
+                [void]$result.transformations.Add(@{
+                    iteration = $iteration
+                    technique = 'format_string_bareword'
+                    before = (Get-TruncatedString $previous 200)
+                    after = (Get-TruncatedString $current 200)
+                })
+            }
+
             # Pass 4: Resolve string concatenation "a" + "b" -> "ab"
             $concatResult = Resolve-StringConcatenation -Code $current
             if ($concatResult.changed) {
@@ -735,14 +748,14 @@ function Resolve-ShellIdIndexing {
     param([string]$Code)
 
     $result = $Code
-    $shellId = "Microsoft.PowerShell"
-    
+    $shellIdValue = "Microsoft.PowerShell"
+
     # Pattern: $ShellId[N] or $SHeLLiD[N] (case insensitive)
     $result = [regex]::Replace($result, '\$ShellId\s*\[\s*(\d+)\s*\]', {
         param($match)
         $index = [int]$match.Groups[1].Value
-        if ($index -lt $shellId.Length) {
-            return "'" + $shellId[$index] + "'"
+        if ($index -lt $shellIdValue.Length) {
+            return "'" + $shellIdValue[$index] + "'"
         }
         return $match.Value
     }, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
@@ -1529,6 +1542,98 @@ function Resolve-FormatStrings {
         }
         catch {
             continue
+        }
+    }
+
+    return @{
+        result = $result
+        changed = $changed
+    }
+}
+
+function Resolve-FormatStringsBareword {
+    <#
+    .SYNOPSIS
+        Fallback format string resolver for bareword/unquoted arguments
+    .DESCRIPTION
+        Handles format expressions where the -f arguments lack quotes and/or commas,
+        which commonly occurs when PowerShell commands are extracted from logs, SIEM tools,
+        or other sources that strip special characters.
+        Uses regex instead of AST since these expressions produce parse errors.
+
+        Handles three cases:
+        1. Args with commas but no quotes: "{0}{1}" -f inT,32 -> split by comma and resolve
+        2. Sequential format ({0}{1}{2}...): bareword text IS the result
+        3. Single-arg format ({0}): bareword text IS the result
+    #>
+    param([string]$Code)
+
+    $result = $Code
+    $changed = $false
+
+    # Match format expressions with unquoted/bareword args
+    # Pattern: "format_string" -f/-F args_text
+    # Also handles no space: "format_string"-Fargs_text
+    # Args text stops at ), ;, quotes, or whitespace
+    $pattern = '"(\{\d+\}(?:\{\d+\})*)"\s*-[fF]\s*([^\s;)"'']+)'
+
+    $regexMatches = [regex]::Matches($result, $pattern)
+    $matchList = @($regexMatches | Sort-Object { $_.Index } -Descending)
+
+    foreach ($m in $matchList) {
+        $formatString = $m.Groups[1].Value
+        $argsText = $m.Groups[2].Value
+
+        # Skip if args are already properly quoted
+        if ($argsText.StartsWith("'") -or $argsText.StartsWith('"')) { continue }
+
+        # Extract format indices to determine how many args are needed
+        $indexMatches = [regex]::Matches($formatString, '\{(\d+)\}')
+        $indices = @()
+        $maxIndex = -1
+        foreach ($im in $indexMatches) {
+            $idx = [int]$im.Groups[1].Value
+            $indices += $idx
+            if ($idx -gt $maxIndex) { $maxIndex = $idx }
+        }
+        $numArgs = $maxIndex + 1
+
+        $resolved = $null
+
+        if ($argsText.Contains(',')) {
+            # Case 1: Has commas - split and resolve
+            $argParts = $argsText -split ','
+            if ($argParts.Count -ge $numArgs) {
+                try {
+                    $resolved = $formatString -f $argParts
+                } catch { }
+            }
+        }
+        else {
+            # No commas - check if format is sequential ({0}{1}{2}...)
+            $isSequential = ($indices.Count -eq $numArgs)
+            if ($isSequential) {
+                for ($i = 0; $i -lt $indices.Count; $i++) {
+                    if ($indices[$i] -ne $i) {
+                        $isSequential = $false
+                        break
+                    }
+                }
+            }
+
+            if ($isSequential -or $numArgs -eq 1) {
+                # For sequential formats or single arg, the bareword text IS the result
+                # because concatenating args in order produces the same string
+                $resolved = $argsText
+            }
+            # For non-sequential formats without commas: skip (can't determine arg boundaries)
+        }
+
+        if ($resolved) {
+            $start = $m.Index
+            $length = $m.Length
+            $result = $result.Substring(0, $start) + "'$resolved'" + $result.Substring($start + $length)
+            $changed = $true
         }
     }
 
