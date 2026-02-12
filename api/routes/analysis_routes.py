@@ -276,8 +276,14 @@ async def analyze_command_endpoint(
             analysis_id = db_result.get("short_id")
 
             # Submit deobfuscation to background queue only for low-score (likely obfuscated) payloads
-            cached_score = float(results_blob.get("risk_score", 0))
-            should_deobfuscate = AST_SERVICE_ENABLED and not deobfuscated_cmd and db_result.get("success") and cached_score < 10
+            # Use raw score (before san_regex/san_score adjustments)
+            cached_sigs = results_blob.get("signatures_detected", results_blob.get("detected_signatures", []))
+            raw_score = sum(
+                sig.get("total_score", 0)
+                for sig in cached_sigs
+                if not sig.get("san_score_applied", False)
+            )
+            should_deobfuscate = AST_SERVICE_ENABLED and not deobfuscated_cmd and db_result.get("success") and raw_score < 10
             if should_deobfuscate:
                 from services.deobfuscation_queue import deobfuscation_queue, DeobfuscationJob
                 first_decoded = results_blob.get("decoded_command")
@@ -436,9 +442,12 @@ async def analyze_command_endpoint(
             count_as_decode=allow_decoded_analysis
         )
 
-        # Submit deobfuscation to background queue only for low-score (likely obfuscated) payloads
-        original_score = analysis_result.get("total_score", 0)
-        should_deobfuscate = AST_SERVICE_ENABLED and db_result.get("success") and original_score < 10
+        raw_score = sum(
+            sig.get("total_score", 0)
+            for sig in analysis_result.get("detected_signatures", [])
+            if not sig.get("san_score_applied", False)
+        )
+        should_deobfuscate = AST_SERVICE_ENABLED and db_result.get("success") and raw_score < 10
         if should_deobfuscate:
             from services.deobfuscation_queue import deobfuscation_queue, DeobfuscationJob
             first_decoded = analysis_result.get("decoded_command")
@@ -618,12 +627,7 @@ async def get_deobfuscation_status_endpoint(
                 "deobfuscated_command": deobfuscated
             })
 
-        if AST_SERVICE_ENABLED:
-            return JSONResponse({
-                "status": "processing",
-                "short_id": short_id
-            })
-
+        # No queue result and no deobfuscated_command in DB = job was never submitted
         return JSONResponse({
             "status": "disabled",
             "short_id": short_id
@@ -974,17 +978,6 @@ async def get_analysis_by_id_endpoint(
             queue_result = deobfuscation_queue.get_status(short_id)
             if queue_result:
                 deob_status = queue_result.status
-            else:
-                # Not in queue - could be still processing or old analysis
-                # Check if analysis was created recently (within last 2 minutes)
-                import datetime
-                created_at = analysis_data.get("created_at", "")
-                try:
-                    created_time = datetime.datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-                    age_seconds = (datetime.datetime.now(datetime.timezone.utc) - created_time).total_seconds()
-                    deob_status = "processing" if age_seconds < 120 else "disabled"
-                except (ValueError, TypeError):
-                    deob_status = "disabled"
 
         return JSONResponse({
             "success": True,
