@@ -89,6 +89,12 @@ class DeobfuscationQueue:
     def get_status(self, short_id: str) -> Optional[DeobfuscationResult]:
         return self._results.get(short_id)
 
+    async def run_inline(self, job: DeobfuscationJob) -> DeobfuscationResult:
+        """Run deobfuscation synchronously (awaited) and return the result directly."""
+        self._results[job.short_id] = DeobfuscationResult(status="processing")
+        await self._process_job(job)
+        return self._results.get(job.short_id, DeobfuscationResult(status="failed", error="No result"))
+
     async def _worker(self):
         while self._running:
             try:
