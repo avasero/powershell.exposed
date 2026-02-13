@@ -55,8 +55,8 @@ export function useIpAddress() {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          setIpAddress('Unknown');
-          setIpCountry('Unknown');
+          setIpAddress(null);
+          setIpCountry(null);
           setLoading(false);
           return;
         }
@@ -64,16 +64,16 @@ export function useIpAddress() {
         const data = await response.json();
 
         if (!data.success) {
-          setIpAddress(data.ip || 'Unknown');
-          setIpCountry('Unknown');
+          setIpAddress(data.ip || null);
+          setIpCountry(null);
         } else {
           setIpAddress(data.ip);
           setIpCountry(data.country);
         }
 
         ipCache = {
-          ipAddress: data.ip || 'Unknown',
-          ipCountry: data.country || 'Unknown',
+          ipAddress: data.ip || null,
+          ipCountry: data.country || null,
           timestamp: Date.now(),
           error: null
         };
