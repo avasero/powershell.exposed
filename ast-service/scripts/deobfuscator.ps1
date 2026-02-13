@@ -474,36 +474,29 @@ function Resolve-IexWrapper {
     $result = $Code
     $changed = $false
     
-    Write-Host "[DEBUG] IexWrapper checking code starting with: $($Code.Substring(0, [Math]::Min(50, $Code.Length)))"
-    Write-Host "[DEBUG] IexWrapper code ending with: $($Code.Substring([Math]::Max(0, $Code.Length - 30)))"
-
     # Pattern 1: .( <expr> )( ('...payload...') )
     # The payload can contain newlines and spans multiple lines
     # Match: starts with .( and ends with ') - single quote then paren with optional whitespace
     $startsWithDot = $Code -match '^\s*\.\s*\('
     # Allow for just ') at the end with any whitespace/newlines before the final )
     $endsWithQuoteParen = $Code -match "'\s*\)\s*$"
-    Write-Host "[DEBUG] startsWithDot=$startsWithDot, endsWithQuoteParen=$endsWithQuoteParen"
     
     if ($startsWithDot -and $endsWithQuoteParen) {
         # Find the start of the payload - look for )( (' pattern
         $payloadStartPattern = "\)\s*\(\s*\(\s*'"
         $payloadStartMatch = [regex]::Match($Code, $payloadStartPattern)
-        Write-Host "[DEBUG] payloadStartMatch.Success=$($payloadStartMatch.Success)"
         if ($payloadStartMatch.Success) {
             $payloadStartIdx = $payloadStartMatch.Index + $payloadStartMatch.Length
             
             # Find the end - look for the ') at the end
             $payloadEndPattern = "'\s*\)\s*$"
             $payloadEndMatch = [regex]::Match($Code, $payloadEndPattern)
-            Write-Host "[DEBUG] payloadEndMatch.Success=$($payloadEndMatch.Success)"
             if ($payloadEndMatch.Success) {
                 $payloadEndIdx = $payloadEndMatch.Index
                 
                 if ($payloadEndIdx -gt $payloadStartIdx) {
                     $result = $Code.Substring($payloadStartIdx, $payloadEndIdx - $payloadStartIdx)
                     $changed = $true
-                    Write-Host "[DEBUG] IEX wrapper stripped via Pattern1 (position $payloadStartIdx to $payloadEndIdx)"
                 }
             }
         }
@@ -516,7 +509,6 @@ function Resolve-IexWrapper {
         if ($match2.Success) {
             $result = $match2.Groups[1].Value
             $changed = $true
-            Write-Host "[DEBUG] IEX wrapper stripped via Pattern2"
         }
     }
 
@@ -550,9 +542,7 @@ function Resolve-HexCharacterCodes {
                 return "'$([char]$charCode)'"
             }
         }
-        catch { 
-            Write-Host "[DEBUG] HexChar error: $_"
-        }
+        catch { }
         return $match.Value
     }, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
 
@@ -1063,21 +1053,10 @@ function Resolve-ReversedString {
                 $concatCount++
             }
             
-            Write-Host "[DEBUG] After concatenation resolution, length: $($deobfuscated.Length)"
-            Write-Host "[DEBUG] Replacements to apply:"
+            # Apply replacements
             foreach ($key in $replacements.Keys) {
-                Write-Host "[DEBUG]   '$key' -> '$($replacements[$key])'"
-            }
-            
-            # NOW apply replacements
-            foreach ($key in $replacements.Keys) {
-                $before = $deobfuscated
-                # Use regex for case-insensitive replacement to catch all occurrences
                 $escapedKey = [regex]::Escape($key)
                 $deobfuscated = [regex]::Replace($deobfuscated, $escapedKey, $replacements[$key])
-                if ($before -ne $deobfuscated) {
-                    Write-Host "[DEBUG] Applied: '$key' -> '$($replacements[$key])'"
-                }
             }
             
             # Handle \n -> actual newlines
@@ -1159,7 +1138,6 @@ function Resolve-Base64DeflateStream {
         if ($base64Match.Success) {
             # Remove any whitespace from the Base64 string
             $base64 = $base64Match.Groups[1].Value -replace '\s', ''
-            Write-Host "[DEBUG] DeflateStream: Extracted Base64 length: $($base64.Length)"
             
             try {
                 $bytes = [Convert]::FromBase64String($base64)
@@ -2000,7 +1978,6 @@ function Resolve-PowerShellLauncher {
             }
         }
         catch {
-            Write-Host "[DEBUG] PowerShellLauncher: Base64 decode failed: $_"
         }
     }
 
@@ -2113,7 +2090,6 @@ function Resolve-UnicodeBase64 {
             }
         }
         catch {
-            Write-Host "[DEBUG] UnicodeBase64: Decode failed: $_"
         }
         return $match.Value
     }, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
@@ -2263,13 +2239,11 @@ function Resolve-StringIndexSlicing {
                 }
             }
             catch {
-                Write-Host "[DEBUG] StringIndexSlicing node error: $($_.Exception.Message)"
                 continue
             }
         }
     }
     catch {
-        Write-Host "[DEBUG] StringIndexSlicing fatal error: $($_.Exception.Message)"
     }
 
     return @{
