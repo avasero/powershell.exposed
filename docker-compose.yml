@@ -1,0 +1,27 @@
+services:
+  # PowerShell AST Deobfuscation Service
+  ast-service:
+    build:
+      context: ./ast-service
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./ast-service/scripts:/app/scripts:ro
+    environment:
+      - MAX_INPUT_LENGTH=100000
+      - TIMEOUT_SECONDS=30
+      - MAX_ITERATIONS=10
+      - AST_API_KEY=${AST_API_KEY:-avasero220949}
+      - PORT=8081
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+    networks:
+      - ps-network
+    restart: unless-stopped
+
+networks:
+  ps-network:

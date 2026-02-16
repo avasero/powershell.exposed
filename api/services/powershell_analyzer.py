@@ -248,11 +248,12 @@ def decode_powershell(command: str) -> tuple:
     return command, 0, "none", []
 
 
-def analyze_command_patterns(command: str, signatures: list, allow_decoded_analysis: bool = True) -> dict:
+async def analyze_command_patterns(command: str, signatures: list, allow_decoded_analysis: bool = True) -> dict:
     """
     Analyzes PowerShell command for malicious patterns.
 
     Handles format string decoding and Base64 decoding before pattern matching.
+    Now also supports AST-based deobfuscation via external PowerShell service.
 
     Args:
         command: Raw PowerShell command to analyze
@@ -346,9 +347,10 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
     
    
     
-    # TODO: Add obfuscation detector here later (will be added via signatures database)
-    
-    
+    # AST-based deobfuscation results (populated if AST service is enabled)
+    ast_deobfuscated = None
+    ast_techniques = []
+
     if decode_iterations >= 2:
         double_encoded_sig = next((sig for sig in signatures if sig.get("name") == "Double Encoded Command Detected"), None)
         
@@ -397,24 +399,27 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
 
    
     if allow_decoded_analysis:
-        
+
         if decode_iterations >= 1 and fully_decoded and fully_decoded != command:
             commands_set.add(fully_decoded)
 
-      
+
         if first_decoded and first_decoded != command:
             commands_set.add(first_decoded)
 
-        
+
         if double_decoded:
             commands_set.add(double_decoded)
     else:
         print(f"[ANALYZE] Decode limit reached - analyzing RAW command only (no decoded content)")
 
+    # AST-based deobfuscation is now handled asynchronously via the deobfuscation queue.
+    # Results are populated later and the DB record is updated when processing completes.
+
     commands_to_analyze = list(commands_set)
     
     
-    skip_signatures = {"Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected"}
+    skip_signatures = {"Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected", "Heavily Obfuscated Command"}
     if has_encoded_command_indicator:
         skip_signatures.add("Long base64 strings")
     
@@ -569,7 +574,9 @@ def analyze_command_patterns(command: str, signatures: list, allow_decoded_analy
         "tactics": list(tactics_set),
         "techniques": list(techniques_set),
         "decoded_command": first_decoded if allow_decoded_analysis else None,
-        "double_decoded_command": double_decoded if allow_decoded_analysis else None
+        "double_decoded_command": double_decoded if allow_decoded_analysis else None,
+        "deobfuscated_command": ast_deobfuscated,
+        "deobfuscation_techniques": ast_techniques
     }
 
 
@@ -651,6 +658,10 @@ async def save_analysis_to_db(
         safe_decoded = truncate_if_needed(decoded_cmd, MAX_DECODED_LENGTH, "decoded_command")
         safe_double_decoded = truncate_if_needed(double_decoded_cmd, MAX_DECODED_LENGTH, "double_decoded_command")
 
+        deobfuscated_cmd = analysis_result.get("deobfuscated_command")
+        safe_deobfuscated = truncate_if_needed(deobfuscated_cmd, MAX_DECODED_LENGTH, "deobfuscated_command") if deobfuscated_cmd else None
+        deobfuscation_techniques = analysis_result.get("deobfuscation_techniques", [])
+
         # Cap risk_score to 999.9 (DB field has precision 4, scale 1)
         risk_score = min(round(analysis_result["total_score"], 1), 999.9)
 
@@ -658,6 +669,8 @@ async def save_analysis_to_db(
             "command": safe_command,
             "decoded_command": safe_decoded,
             "double_decoded_command": safe_double_decoded,
+            "deobfuscated_command": safe_deobfuscated,
+            "deobfuscation_techniques": deobfuscation_techniques if deobfuscation_techniques else None,
             "has_decoded_content": has_decoded_content,
             "risk_score": risk_score,
             "severity": analysis_result["severity"],

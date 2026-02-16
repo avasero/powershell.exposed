@@ -16,6 +16,7 @@ import CommandInput from "../../components/CommandInput";
 import { ErrorMessage, InfoMessage } from "../../components/Messages";
 import IndicatorsSummaryTable from "../../components/IndicatorsSummaryTable";
 import { RequestReviewButton } from "../../components/ReviewRequestModal";
+import AiOverviewCard from "../../components/AiOverviewCard";
 import { EXAMPLE_ENCODED_COMMAND, EXAMPLE_COMMAND_DESCRIPTION } from "../../../constants/examples";
 
 import { saveAnonymousAnalysis } from "../../../utils/cookies";
@@ -154,6 +155,7 @@ export default function AnalysisDetailsPage() {
   const [contentReady, setContentReady] = useState(false);
   const [decodeInfo, setDecodeInfo] = useState(null);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [aiOverview, setAiOverview] = useState(null);
   const analysisExecutedRef = useRef(false);
 
   useEffect(() => {
@@ -230,7 +232,7 @@ export default function AnalysisDetailsPage() {
       setCmd(analysis.command || analysisResult.command);
       setNewCommand(analysis.command || analysisResult.command);
 
-      const processedResult = {
+      let processedResult = {
         score: analysis.risk_score || analysisResult.risk_score || 0,
         severity: (analysis.risk_score || analysisResult.risk_score || 0) > 5 ? "malicious" : "safe",
         signatures: (analysis.signatures || analysis.signatures_detected || analysisResult.signatures || analysisResult.signatures_detected || []).sort((a, b) => (b.score || b.total_score || 0) - (a.score || a.total_score || 0)),
@@ -245,8 +247,44 @@ export default function AnalysisDetailsPage() {
         analysisId: params.id
       };
 
-      setResult(processedResult);
       setDecodeInfo(analysisData.decode_info);
+      setAiOverview(analysisData.ai_overview || null);
+
+      // If deobfuscation is still processing, wait for it then reload the full analysis
+      const deobStatus = analysis.deobfuscation_status || analysisResult.deobfuscation_status;
+      if (deobStatus === "processing" && !processedResult.deobfuscated) {
+        const deobDone = await waitForDeobfuscation(params.id, makeAuthenticatedRequest);
+
+        if (deobDone) {
+          // Reload the full analysis from DB (now has merged signatures, score, etc.)
+          const reloadRes = await makeAuthenticatedRequest(`/analysis/${params.id}`, {
+            headers: { 'X-Session-ID': sessionId }
+          });
+          if (reloadRes.ok) {
+            const reloadData = await reloadRes.json();
+            const ra = reloadData.analysis || reloadData;
+            const rr = ra.analysis_result || ra;
+            processedResult = {
+              score: ra.risk_score || rr.risk_score || 0,
+              severity: (ra.risk_score || rr.risk_score || 0) > 5 ? "malicious" : "safe",
+              signatures: (ra.signatures || ra.signatures_detected || rr.signatures || rr.signatures_detected || []).sort((a, b) => (b.score || b.total_score || 0) - (a.score || a.total_score || 0)),
+              decoded: ra.decoded_command || rr.decoded_command || null,
+              doubleDecoded: ra.double_decoded_command || rr.double_decoded_command || null,
+              deobfuscated: ra.deobfuscated_command || rr.deobfuscated_command || null,
+              decodeLimitReached: ra.decode_limit_reached || rr.decode_limit_reached || false,
+              indicators: rr.analysis_details?.indicators || [],
+              details: rr.analysis_details?.recommendations?.join(", ") || "",
+              tactics: ra.tactics || rr.tactics || [],
+              techniques: ra.techniques || rr.techniques || [],
+              analysisId: params.id
+            };
+            setDecodeInfo(reloadData.decode_info);
+            setAiOverview(reloadData.ai_overview || null);
+          }
+        }
+      }
+
+      setResult(processedResult);
 
       // Smooth transition delay
       setTimeout(() => {
@@ -261,6 +299,23 @@ export default function AnalysisDetailsPage() {
     }
   }, [params.id, isCacheRedirect]); // ✅ FIX: Remover cacheRedirectInfo da dependência
 
+  // Poll deobfuscation status until complete, failed, or timeout
+  const waitForDeobfuscation = async (analysisId, makeAuthenticatedRequest) => {
+    const maxAttempts = 60;
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      try {
+        const res = await makeAuthenticatedRequest(`/deobfuscation-status/${analysisId}`);
+        const data = await res.json();
+        if (data.status === "completed" || data.status === "failed" || data.status === "disabled") {
+          return data.status === "completed";
+        }
+      } catch (err) {
+        console.error('Deobfuscation poll error:', err);
+      }
+    }
+    return false;
+  };
 
   useEffect(() => {
     if (params.id) {
@@ -419,6 +474,7 @@ export default function AnalysisDetailsPage() {
 
         setResult(analysisResult);
         setDecodeInfo(data.decode_info);
+        setAiOverview(data.ai_overview || null);
         setCmd(command);
       } else {
         throw new Error(response.error || 'Analysis failed');
@@ -451,6 +507,7 @@ export default function AnalysisDetailsPage() {
       setError("");
       setResult(null);  // ✅ Clear old results immediately
       setDecodeInfo(null);  // ✅ Clear decode info
+      setAiOverview(null);  // ✅ Clear AI overview
       setContentReady(false);  // ✅ Hide content
       setLoading(true);  // ✅ Show loading state
 
@@ -469,13 +526,8 @@ export default function AnalysisDetailsPage() {
   // }
 
   if (!contentReady && loading) {
-    return <LoadingSpinner />; // Only show on initial page load
+    return <LoadingSpinner message="Loading" />;
   }
-
-  // ✅ Verificar se o indicador de obfuscação foi detectado
-  const hasObfuscationIndicator = result?.signatures?.some(
-    sig => sig.name === "Obfuscation Detected"
-  );
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 animate-fade-in">
@@ -621,22 +673,30 @@ export default function AnalysisDetailsPage() {
 
 
 
-      {result && result.deobfuscated && hasObfuscationIndicator && (
+      {result && aiOverview && (
+        <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
+          <AiOverviewCard overview={aiOverview} />
+        </div>
+      )}
+
+      {result && result.deobfuscated && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-purple-500/30">
-            <div className="flex justify-between items-center mb-3">
+            <div className="mb-3">
               <div className="font-mono text-sm font-bold" style={{ color: 'var(--accent)' }}>
                 Deobfuscated Command
               </div>
-              <DecodeUsageBadge decodeInfo={decodeInfo} />
             </div>
-            <ProtectedCodeBlock code={result.deobfuscated} borderColorClass="border-purple-500/20" limitReached={result.decodeLimitReached} decodeInfo={decodeInfo} />
+            <div className={`bg-black rounded p-3 border border-purple-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words`} style={{ color: 'var(--foreground)' }}>
+              <code>{result.deobfuscated}</code>
+            </div>
             <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
-              Format string obfuscation was removed (e.g., &#123;&quot;&#123;1&#125;&#123;0&#125;&quot; -f &apos;EX&apos;,&apos;I&apos;&#125; → &apos;IEX&apos;)
+              Obfuscation layers were removed using AST-based static analysis (no code execution).
             </div>
           </div>
         </div>
       )}
+
 
 
       {result && result.decoded && result.doubleDecoded && (

@@ -30,6 +30,8 @@ from services.session_manager import get_or_create_session, get_supabase_client
 from utils.geolocation import get_ip_location, get_client_ip_from_request
 from services.plan_service import can_user_decode_commands, get_user_plan_features, get_plan_by_name, check_session_rate_limit_from_db
 from services.api_key_manager import update_api_key_usage
+from services.ai_service import generate_ai_overview, is_ai_service_available
+from config.settings import AST_SERVICE_ENABLED
 
 
 def slim_signature(sig: dict) -> dict:
@@ -218,6 +220,7 @@ async def analyze_command_endpoint(
         
         if cached_result:
             results_blob = cached_result.get("results_blob", {})
+            cached_ai_overview = cached_result.get("ai_overview")
 
             if "total_score" not in results_blob:
                 results_blob["total_score"] = results_blob.get("risk_score", 0.0)
@@ -238,8 +241,9 @@ async def analyze_command_endpoint(
             
             decoded_cmd = results_blob.get("decoded_command")
             double_decoded_cmd = results_blob.get("double_decoded_command")
+            deobfuscated_cmd = results_blob.get("deobfuscated_command")
 
-            
+
             results_blob_for_save = results_blob.copy()
 
            
@@ -271,7 +275,29 @@ async def analyze_command_endpoint(
                 )
             analysis_id = db_result.get("short_id")
 
-           
+            # Submit deobfuscation to background queue only for low-score (likely obfuscated) payloads
+            # Use raw score (before san_regex/san_score adjustments)
+            cached_sigs = results_blob.get("signatures_detected", results_blob.get("detected_signatures", []))
+            raw_score = sum(
+                sig.get("total_score", 0)
+                for sig in cached_sigs
+                if not sig.get("san_score_applied", False)
+            )
+            should_deobfuscate = AST_SERVICE_ENABLED and not deobfuscated_cmd and db_result.get("success") and raw_score < 10
+            deob_result = None
+            if should_deobfuscate:
+                from services.deobfuscation_queue import deobfuscation_queue, DeobfuscationJob
+                first_decoded = results_blob.get("decoded_command")
+                job = DeobfuscationJob(
+                    short_id=analysis_id,
+                    command=command,
+                    first_decoded=first_decoded
+                )
+                deob_result = await deobfuscation_queue.run_inline(job)
+                if deob_result and deob_result.status == "completed" and deob_result.deobfuscated_command:
+                    deobfuscated_cmd = deob_result.deobfuscated_command
+
+
             if session_id:
                 rate_limit_info = await check_session_rate_limit_from_db(
                     session_id=session_id,
@@ -289,7 +315,7 @@ async def analyze_command_endpoint(
                 if double_decoded_cmd:
                     double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
 
-               
+
                 signatures_detected = results_blob.get("signatures_detected", [])
                 filtered_signatures = []
                 recalculated_score = 0.0
@@ -333,20 +359,40 @@ async def analyze_command_endpoint(
         
             decode_was_used_this_request = allow_decoded_for_cache and (decoded_cmd is not None and decoded_cmd != "[PREMIUM_PROTECTED_CONTENT]")
 
+            # Merge deobfuscation results into response
+            response_sigs = results_blob.get("signatures_detected", [])
+            response_score = results_blob.get("risk_score", 0.0)
+            response_severity = results_blob.get("severity", "very_low")
+            response_tactics = results_blob.get("tactics", [])
+            response_techniques = results_blob.get("techniques", [])
+            if deob_result and deob_result.status == "completed" and deob_result.new_signatures:
+                response_sigs = response_sigs + deob_result.new_signatures
+                response_score = min(round(response_score + deob_result.added_score, 1), 999.9)
+                response_severity = calculate_severity_and_risk(response_score)
+                tactics_set = set(response_tactics)
+                techniques_set = set(response_techniques)
+                tactics_set.update(deob_result.new_tactics or [])
+                techniques_set.update(deob_result.new_techniques or [])
+                response_tactics = list(tactics_set)
+                response_techniques = list(techniques_set)
+
             return JSONResponse({
                 "success": True,
                 "analysis": {
                     "command": command,
-                    "risk_score": results_blob.get("risk_score", 0.0),
-                    "severity": results_blob.get("severity", "very_low"),
-                    "signatures": slim_signatures(results_blob.get("signatures_detected", [])),
-                    "tactics": results_blob.get("tactics", []),
-                    "techniques": results_blob.get("techniques", []),
+                    "risk_score": response_score,
+                    "severity": response_severity,
+                    "signatures": slim_signatures(response_sigs),
+                    "tactics": response_tactics,
+                    "techniques": response_techniques,
                     "decoded_command": decoded_cmd,
-                    "double_decoded_command": double_decoded_cmd
+                    "double_decoded_command": double_decoded_cmd,
+                    "deobfuscated_command": deobfuscated_cmd,
+                    "deobfuscation_status": "completed" if deobfuscated_cmd else "disabled"
                 },
                 "analysis_id": analysis_id,
                 "session_id": session_id,
+                "ai_overview": cached_ai_overview,
                 "decode_info": {
                     "current_usage": decode_info["current_usage"],
                     "limit": decode_info["limit"],
@@ -378,7 +424,7 @@ async def analyze_command_endpoint(
        
         decode_info_before = await can_user_decode_commands(user_id, session_id=session_id, command=command)
         allow_decoded_analysis = decode_info_before["can_decode"]
-        analysis_result = analyze_command_patterns(command, signatures, allow_decoded_analysis)
+        analysis_result = await analyze_command_patterns(command, signatures, allow_decoded_analysis)
         severity = calculate_severity_and_risk(analysis_result["total_score"])
         
         analysis_result.update({
@@ -388,14 +434,19 @@ async def analyze_command_endpoint(
         })
         
         analysis_result["detected_signatures"].sort(key=lambda x: x["total_score"], reverse=True)
-        
+
+        # Generate AI overview if service is available
+        ai_overview = None
+        if is_ai_service_available():
+            ai_overview = await generate_ai_overview(command, analysis_result)
+
         cache_saved = False
         if should_cache_result(analysis_result):
-            
+
             indicators_matched = extract_indicators_matched(analysis_result)
             cache_compatible_result = create_cache_compatible_result(analysis_result)
-            
-            cache_saved = await save_to_cache(phash, indicators_matched, cache_compatible_result)
+
+            cache_saved = await save_to_cache(phash, indicators_matched, cache_compatible_result, ai_overview)
         
         
         db_result = await save_analysis_to_db(
@@ -408,23 +459,57 @@ async def analyze_command_endpoint(
             search_type=search_type,
             user_agent=user_agent,
             is_cache=False,
-            count_as_decode=allow_decoded_analysis 
+            count_as_decode=allow_decoded_analysis
         )
 
-        
+        raw_score = sum(
+            sig.get("total_score", 0)
+            for sig in analysis_result.get("detected_signatures", [])
+            if not sig.get("san_score_applied", False)
+        )
+        should_deobfuscate = AST_SERVICE_ENABLED and db_result.get("success") and raw_score < 10
+        deob_result = None
+        if should_deobfuscate:
+            from services.deobfuscation_queue import deobfuscation_queue, DeobfuscationJob
+            first_decoded = analysis_result.get("decoded_command")
+            job = DeobfuscationJob(
+                short_id=db_result.get("short_id"),
+                command=command,
+                first_decoded=first_decoded
+            )
+            deob_result = await deobfuscation_queue.run_inline(job)
+
+
         decode_info = await can_user_decode_commands(user_id, session_id=session_id, command=command)
 
        
         decoded_cmd = analysis_result.get("decoded_command")
         double_decoded_cmd = analysis_result.get("double_decoded_command")
+        deobfuscated_cmd = analysis_result.get("deobfuscated_command")
 
-        
+        # Merge inline deobfuscation results
+        if deob_result and deob_result.status == "completed":
+            if deob_result.deobfuscated_command:
+                deobfuscated_cmd = deob_result.deobfuscated_command
+
         decode_limit_reached = False
         final_signatures = analysis_result["detected_signatures"]
         final_score = analysis_result["total_score"]
         final_severity = severity
         final_tactics = analysis_result["tactics"]
         final_techniques = analysis_result["techniques"]
+
+        # Merge deobfuscation signatures into final results
+        if deob_result and deob_result.status == "completed" and deob_result.new_signatures:
+            final_signatures = final_signatures + deob_result.new_signatures
+            final_score = min(round(final_score + deob_result.added_score, 1), 999.9)
+            final_severity = calculate_severity_and_risk(final_score)
+            tactics_set = set(final_tactics)
+            techniques_set = set(final_techniques)
+            tactics_set.update(deob_result.new_tactics or [])
+            techniques_set.update(deob_result.new_techniques or [])
+            final_tactics = list(tactics_set)
+            final_techniques = list(techniques_set)
 
         if not decode_info_before["can_decode"]:
             decode_limit_reached = True
@@ -441,7 +526,6 @@ async def analyze_command_endpoint(
             if double_decoded_cmd:
                 double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
 
-        
             filtered_signatures = []
             recalculated_score = 0.0
             filtered_tactics = set()
@@ -493,10 +577,13 @@ async def analyze_command_endpoint(
                 "tactics": final_tactics,
                 "techniques": final_techniques,
                 "decoded_command": decoded_cmd,
-                "double_decoded_command": double_decoded_cmd
+                "double_decoded_command": double_decoded_cmd,
+                "deobfuscated_command": deobfuscated_cmd,
+                "deobfuscation_status": "completed" if deobfuscated_cmd else "disabled"
             },
             "analysis_id": db_result.get("short_id") if db_result.get("success") else None,
             "session_id": session_id,
+            "ai_overview": ai_overview,
             "decode_info": {
                 "current_usage": decode_info["current_usage"],
                 "limit": decode_info["limit"],
@@ -521,6 +608,74 @@ async def analyze_command_endpoint(
             },
             status_code=503
         )
+
+async def get_deobfuscation_status_endpoint(
+    request: Request,
+    short_id: str,
+):
+    """Poll for the deobfuscation status of an analysis."""
+    try:
+        if not short_id or len(short_id) != 8 or not short_id.isalnum():
+            return JSONResponse(
+                {"error": {"code": "InvalidArgumentError", "message": "Invalid short_id"}},
+                status_code=400
+            )
+
+        # Check in-memory queue store first (fast path)
+        if AST_SERVICE_ENABLED:
+            from services.deobfuscation_queue import deobfuscation_queue
+            result = deobfuscation_queue.get_status(short_id)
+
+            if result:
+                response_data = {
+                    "status": result.status,
+                    "short_id": short_id,
+                }
+                if result.status == "completed":
+                    response_data["deobfuscated_command"] = result.deobfuscated_command
+                    response_data["new_signatures"] = slim_signatures(result.new_signatures) if result.new_signatures else []
+                    response_data["added_score"] = result.added_score
+                    response_data["new_tactics"] = result.new_tactics
+                    response_data["new_techniques"] = result.new_techniques
+                elif result.status == "failed":
+                    response_data["error"] = result.error
+                return JSONResponse(response_data)
+
+        # Fallback: check database
+        supabase = get_supabase_client()
+        db_response = supabase.table('powershell_analyses') \
+            .select('deobfuscated_command') \
+            .eq('short_id', short_id) \
+            .single() \
+            .execute()
+
+        if not db_response.data:
+            return JSONResponse(
+                {"error": {"code": "NotFoundError", "message": "Analysis not found"}},
+                status_code=404
+            )
+
+        deobfuscated = db_response.data.get("deobfuscated_command")
+
+        if deobfuscated:
+            return JSONResponse({
+                "status": "completed",
+                "short_id": short_id,
+                "deobfuscated_command": deobfuscated
+            })
+
+        # No queue result and no deobfuscated_command in DB = job was never submitted
+        return JSONResponse({
+            "status": "disabled",
+            "short_id": short_id
+        })
+
+    except Exception as e:
+        return JSONResponse(
+            {"error": {"code": "TransientError", "message": str(e)}},
+            status_code=503
+        )
+
 
 async def get_user_analyses_endpoint(
     request: Request,
@@ -627,7 +782,7 @@ async def get_user_analyses_endpoint(
                     "created_at": analysis.get("created_at"),
                     "is_cache": analysis.get("is_cache", False),
                     "decoded_command": analysis.get("decoded_command"),
-                    "deobfuscated_command": analysis.get("obfuscated_command")
+                    "deobfuscated_command": analysis.get("deobfuscated_command")
                 })
             
             return JSONResponse({
@@ -766,7 +921,7 @@ async def get_analysis_by_id_endpoint(
 
         decoded_cmd = analysis_data.get("decoded_command")
         double_decoded_cmd = analysis_data.get("double_decoded_command")
-        deobfuscated_cmd = analysis_data.get("obfuscated_command")
+        deobfuscated_cmd = analysis_data.get("deobfuscated_command")
 
         
        
@@ -809,10 +964,8 @@ async def get_analysis_by_id_endpoint(
 
             if double_decoded_cmd:
                 double_decoded_cmd = "[PREMIUM_PROTECTED_CONTENT]"
-            if deobfuscated_cmd:
-                deobfuscated_cmd = "[PREMIUM_PROTECTED_CONTENT]"
 
-           
+
             signatures_detected = analysis_data.get("signatures_detected", [])
             filtered_signatures = []
             recalculated_score = 0.0
@@ -852,6 +1005,17 @@ async def get_analysis_by_id_endpoint(
         
         showing_decoded_content = should_show_decoded or (decode_info["can_decode"] and decoded_cmd and decoded_cmd != "[PREMIUM_PROTECTED_CONTENT]")
 
+        # Determine deobfuscation status
+        deob_status = "disabled"
+        if deobfuscated_cmd:
+            deob_status = "completed"
+        elif AST_SERVICE_ENABLED:
+            from services.deobfuscation_queue import deobfuscation_queue
+            short_id = analysis_data.get("short_id", "")
+            queue_result = deobfuscation_queue.get_status(short_id)
+            if queue_result:
+                deob_status = queue_result.status
+
         return JSONResponse({
             "success": True,
             "analysis": {
@@ -863,7 +1027,8 @@ async def get_analysis_by_id_endpoint(
                 "techniques": final_techniques,
                 "decoded_command": decoded_cmd,
                 "double_decoded_command": double_decoded_cmd,
-                "deobfuscated_command": deobfuscated_cmd
+                "deobfuscated_command": deobfuscated_cmd,
+                "deobfuscation_status": deob_status
             },
             "decode_info": {
                 "current_usage": decode_info["current_usage"],
