@@ -129,6 +129,35 @@ const DecodeUsageBadge = ({ decodeInfo }) => {
   );
 };
 
+const DeobfuscationUsageBadge = ({ deobfuscationInfo }) => {
+  if (!deobfuscationInfo) return null;
+
+  const isUnlimited = deobfuscationInfo.limit === null || deobfuscationInfo.limit === -1 || deobfuscationInfo.limit > 1000;
+  if (isUnlimited) {
+    return (
+      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 mb-4">
+        <span className="text-xs font-mono font-bold text-purple-400">Unlimited Deobfuscations</span>
+      </div>
+    );
+  }
+
+  const current = deobfuscationInfo.current_usage || 0;
+  const limit = deobfuscationInfo.limit || 5;
+  const remaining = deobfuscationInfo.remaining ?? Math.max(0, limit - current);
+
+  let colorClass = "text-green-400 border-green-500/30 bg-green-500/10";
+  if (remaining === 0) colorClass = "text-red-400 border-red-500/30 bg-red-500/10";
+  else if (remaining <= 2) colorClass = "text-yellow-400 border-yellow-500/30 bg-yellow-500/10";
+
+  return (
+    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border ${colorClass} mb-4`}>
+      <span className="text-xs font-mono font-bold">
+        Deobfuscation {Math.min(current, limit)} of {limit}/hr ({remaining} remaining)
+      </span>
+    </div>
+  );
+};
+
 export default function AnalysisDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -154,6 +183,7 @@ export default function AnalysisDetailsPage() {
   const [cacheRedirectInfo, setCacheRedirectInfo] = useState(null);
   const [contentReady, setContentReady] = useState(false);
   const [decodeInfo, setDecodeInfo] = useState(null);
+  const [deobfuscationInfo, setDeobfuscationInfo] = useState(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [aiOverview, setAiOverview] = useState(null);
   const analysisExecutedRef = useRef(false);
@@ -248,6 +278,7 @@ export default function AnalysisDetailsPage() {
       };
 
       setDecodeInfo(analysisData.decode_info);
+      setDeobfuscationInfo(analysisData.deobfuscation_info);
       setAiOverview(analysisData.ai_overview || null);
 
       // If deobfuscation is still processing, wait for it then reload the full analysis
@@ -279,6 +310,7 @@ export default function AnalysisDetailsPage() {
               analysisId: params.id
             };
             setDecodeInfo(reloadData.decode_info);
+            setDeobfuscationInfo(reloadData.deobfuscation_info);
             setAiOverview(reloadData.ai_overview || null);
           }
         }
@@ -474,6 +506,7 @@ export default function AnalysisDetailsPage() {
 
         setResult(analysisResult);
         setDecodeInfo(data.decode_info);
+        setDeobfuscationInfo(data.deobfuscation_info);
         setAiOverview(data.ai_overview || null);
         setCmd(command);
       } else {
@@ -679,20 +712,45 @@ export default function AnalysisDetailsPage() {
         </div>
       )}
 
-      {result && result.deobfuscated && (
+      {result && (result.deobfuscated || (deobfuscationInfo && !deobfuscationInfo.can_deobfuscate)) && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-purple-500/30">
-            <div className="mb-3">
+            <div className="flex justify-between items-center mb-3">
               <div className="font-mono text-sm font-bold" style={{ color: 'var(--accent)' }}>
                 Deobfuscated Command
               </div>
+              <DeobfuscationUsageBadge deobfuscationInfo={deobfuscationInfo} />
             </div>
-            <div className={`bg-black rounded p-3 border border-purple-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words`} style={{ color: 'var(--foreground)' }}>
-              <code>{result.deobfuscated}</code>
-            </div>
-            <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
-              Obfuscation layers were removed using AST-based static analysis (no code execution).
-            </div>
+            {result.deobfuscated ? (
+              <>
+                <div className={`bg-black rounded p-3 border border-purple-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words`} style={{ color: 'var(--foreground)' }}>
+                  <code>{result.deobfuscated}</code>
+                </div>
+                <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
+                  Obfuscation layers were removed using AST-based static analysis (no code execution).
+                </div>
+              </>
+            ) : (
+              <div className="relative rounded-lg overflow-hidden">
+                <div className="bg-black rounded p-3 border border-purple-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words blur-sm select-none" style={{ color: 'var(--foreground)' }}>
+                  <code>{`$deobfuscated = [System.Text.Encoding]::UTF8.GetString($bytes)\nInvoke-Expression $deobfuscated\n# Deobfuscation limit reached\n# ...`}</code>
+                </div>
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/60 backdrop-blur-xl backdrop-saturate-150 border border-purple-500/20 rounded-lg">
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent rounded-lg"></div>
+                  <div className="relative rounded-xl p-6 flex flex-col items-center gap-3 shadow-2xl">
+                    <span className="font-mono font-bold text-purple-400 text-lg tracking-wide drop-shadow-lg text-center" style={{ filter: 'drop-shadow(0 0 8px rgba(168, 85, 247, 0.6))' }}>
+                      Deobfuscation Limit Reached
+                    </span>
+                    <span className="text-sm text-gray-300 text-center leading-relaxed font-mono px-4">
+                      Your {deobfuscationInfo?.limit || 5} deobfuscations/hour limit was reached and it will reset in the next cycle.
+                    </span>
+                    <span className="text-xs text-gray-400 text-center font-mono mt-2">
+                      Upgrade to Premium for unlimited deobfuscations
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

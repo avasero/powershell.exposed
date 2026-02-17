@@ -111,7 +111,7 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
         
         # Get user profile with plan information
         response = supabase.table('profiles')\
-            .select('plan_id, plans(name, can_decode_commands, request_limit_per_hour, decode_limit_per_hour)')\
+            .select('plan_id, plans(name, can_decode_commands, request_limit_per_hour, decode_limit_per_hour, deobfuscation_limit_per_hour)')\
             .eq('id', user_id)\
             .single()\
             .execute()
@@ -125,7 +125,8 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
                 "plan_name": "free",
                 "can_decode_commands": False,
                 "request_limit_per_minute": 10,
-                "decode_limit_per_minute": 5
+                "decode_limit_per_minute": 5,
+                "deobfuscation_limit_per_hour": 5
             }
         
         plan_data = response.data.get('plans', {})
@@ -135,7 +136,8 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
             "plan_name": plan_data.get('name', 'free'),
             "can_decode_commands": plan_data.get('can_decode_commands', False),
             "request_limit_per_minute": plan_data.get('request_limit_per_hour', 10),
-            "decode_limit_per_minute": plan_data.get('decode_limit_per_hour', 5)
+            "decode_limit_per_minute": plan_data.get('decode_limit_per_hour', 5),
+            "deobfuscation_limit_per_hour": plan_data.get('deobfuscation_limit_per_hour', 5)
         }
         
        
@@ -293,6 +295,93 @@ async def can_user_decode_commands(user_id: Optional[str], session_id: Optional[
         "current_usage": current_usage,
         "limit": limit,
         "remaining": max(0, limit - current_usage),
+        "seconds_until_reset": seconds_until_reset
+    }
+
+
+async def can_user_deobfuscate(user_id: Optional[str], session_id: Optional[str] = None) -> dict:
+    """
+    Check if user has remaining deobfuscation quota (per hour).
+
+    Returns:
+        Dictionary with deobfuscation permission and usage details
+    """
+    # Get the limit from the user's plan
+    if user_id:
+        plan_features = await get_user_plan_features(user_id)
+        deob_limit = plan_features.get("deobfuscation_limit_per_hour", 5)
+    else:
+        guest_plan = await get_plan_by_name("guest")
+        if guest_plan:
+            deob_limit = guest_plan.get("deobfuscation_limit_per_hour", 5)
+        else:
+            deob_limit = 5
+
+    # Unlimited
+    if deob_limit is None:
+        return {
+            "can_deobfuscate": True,
+            "current_usage": 0,
+            "limit": None,
+            "remaining": None,
+            "seconds_until_reset": None
+        }
+
+    from datetime import datetime, timedelta
+
+    window_start = datetime.utcnow() - timedelta(hours=1)
+    supabase = get_supabase_client()
+
+    query = supabase.table('powershell_analyses')\
+        .select('id, created_at', count='exact')\
+        .gte('created_at', window_start.isoformat())\
+        .not_.is_('deobfuscated_command', 'null')
+
+    if user_id:
+        query = query.eq('user_id', user_id)
+    elif session_id:
+        query = query.eq('session_id', session_id)
+    else:
+        return {
+            "can_deobfuscate": False,
+            "current_usage": 0,
+            "limit": deob_limit,
+            "remaining": 0,
+            "seconds_until_reset": 0
+        }
+
+    result = query.execute()
+    current_usage = result.count or 0
+    can_deob = current_usage < deob_limit
+
+    seconds_until_reset = None
+    if not can_deob:
+        records_query = supabase.table('powershell_analyses')\
+            .select('created_at')\
+            .gte('created_at', window_start.isoformat())\
+            .not_.is_('deobfuscated_command', 'null')
+
+        if user_id:
+            records_query = records_query.eq('user_id', user_id)
+        elif session_id:
+            records_query = records_query.eq('session_id', session_id)
+
+        records_result = records_query.order('created_at', desc=False).limit(1).execute()
+
+        if records_result.data and len(records_result.data) > 0:
+            oldest_created_at = records_result.data[0]['created_at']
+            oldest_time = datetime.fromisoformat(oldest_created_at.replace('Z', '+00:00'))
+            reset_time = oldest_time + timedelta(hours=1)
+            current_time = datetime.now(reset_time.tzinfo)
+            seconds_until_reset = max(0, int((reset_time - current_time).total_seconds()))
+        else:
+            seconds_until_reset = 3600
+
+    return {
+        "can_deobfuscate": can_deob,
+        "current_usage": current_usage,
+        "limit": deob_limit,
+        "remaining": max(0, deob_limit - current_usage),
         "seconds_until_reset": seconds_until_reset
     }
 
