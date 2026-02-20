@@ -99,19 +99,6 @@ function Invoke-AstDeobfuscation {
                 })
             }
 
-            # Pass 0.1: Remove pipeline noise (identity ForEach-Object pass-throughs)
-            $pipelineNoiseResult = Resolve-PipelineNoise -Code $current
-            if ($pipelineNoiseResult.changed) {
-                $current = $pipelineNoiseResult.result
-                [void]$iterationTechniques.Add('pipeline_noise')
-                [void]$result.transformations.Add(@{
-                    iteration = $iteration
-                    technique = 'pipeline_noise'
-                    before = (Get-TruncatedString $previous 200)
-                    after = (Get-TruncatedString $current 200)
-                })
-            }
-
             # Pass 1: Resolve tick/backtick obfuscation (simplest, do first)
             $tickResult = Resolve-TickObfuscation -Code $current
             if ($tickResult.changed) {
@@ -216,21 +203,7 @@ function Invoke-AstDeobfuscation {
                 })
             }
 
-            # Pass 2: Resolve arithmetic inside [char] casts: [char](47*83/47) -> 'S'
-            # NOTE: Must run BEFORE simple char codes to prevent [char](47*83/47) being partially matched as [char](47)
-            $arithCharResult = Resolve-ArithmeticCharCodes -Code $current
-            if ($arithCharResult.changed) {
-                $current = $arithCharResult.result
-                [void]$iterationTechniques.Add('arithmetic_char_codes')
-                [void]$result.transformations.Add(@{
-                    iteration = $iteration
-                    technique = 'arithmetic_char_codes'
-                    before = (Get-TruncatedString $previous 200)
-                    after = (Get-TruncatedString $current 200)
-                })
-            }
-
-            # Pass 2.1: Resolve simple character codes [char]65 -> 'A'
+            # Pass 2: Resolve character codes [char]65 -> 'A'
             $charResult = Resolve-CharacterCodes -Code $current
             if ($charResult.changed) {
                 $current = $charResult.result
@@ -238,19 +211,6 @@ function Invoke-AstDeobfuscation {
                 [void]$result.transformations.Add(@{
                     iteration = $iteration
                     technique = 'character_codes'
-                    before = (Get-TruncatedString $previous 200)
-                    after = (Get-TruncatedString $current 200)
-                })
-            }
-
-            # Pass 2.7: Resolve [string]::join with integer-to-char pipeline
-            $stringJoinResult = Resolve-StringJoinCharPipeline -Code $current
-            if ($stringJoinResult.changed) {
-                $current = $stringJoinResult.result
-                [void]$iterationTechniques.Add('string_join_char_pipeline')
-                [void]$result.transformations.Add(@{
-                    iteration = $iteration
-                    technique = 'string_join_char_pipeline'
                     before = (Get-TruncatedString $previous 200)
                     after = (Get-TruncatedString $current 200)
                 })
@@ -308,19 +268,6 @@ function Invoke-AstDeobfuscation {
                 })
             }
 
-            # Pass 5.5: Resolve scalar string -join identity ('str' -join '' -> 'str')
-            $scalarJoinResult = Resolve-ScalarJoinIdentity -Code $current
-            if ($scalarJoinResult.changed) {
-                $current = $scalarJoinResult.result
-                [void]$iterationTechniques.Add('scalar_join_identity')
-                [void]$result.transformations.Add(@{
-                    iteration = $iteration
-                    technique = 'scalar_join_identity'
-                    before = (Get-TruncatedString $previous 200)
-                    after = (Get-TruncatedString $current 200)
-                })
-            }
-
             # Pass 6: Resolve string replace methods
             $replaceResult = Resolve-StringReplace -Code $current
             if ($replaceResult.changed) {
@@ -342,19 +289,6 @@ function Invoke-AstDeobfuscation {
                 [void]$result.transformations.Add(@{
                     iteration = $iteration
                     technique = 'variable_substitution'
-                    before = (Get-TruncatedString $previous 200)
-                    after = (Get-TruncatedString $current 200)
-                })
-            }
-
-            # Pass 7.5: Resolve string methods and indexing on variables with known values
-            $varStringResult = Resolve-VariableStringOperations -Code $current
-            if ($varStringResult.changed) {
-                $current = $varStringResult.result
-                [void]$iterationTechniques.Add('variable_string_ops')
-                [void]$result.transformations.Add(@{
-                    iteration = $iteration
-                    technique = 'variable_string_ops'
                     before = (Get-TruncatedString $previous 200)
                     after = (Get-TruncatedString $current 200)
                 })
@@ -472,19 +406,6 @@ function Invoke-AstDeobfuscation {
                 [void]$result.transformations.Add(@{
                     iteration = $iteration
                     technique = 'disguised_iex'
-                    before = (Get-TruncatedString $previous 200)
-                    after = (Get-TruncatedString $current 200)
-                })
-            }
-
-            # Pass 14.5: Resolve invocation with string literal & ('CmdletName') -> CmdletName
-            $invocationResult = Resolve-InvocationStringLiteral -Code $current
-            if ($invocationResult.changed) {
-                $current = $invocationResult.result
-                [void]$iterationTechniques.Add('invocation_string_literal')
-                [void]$result.transformations.Add(@{
-                    iteration = $iteration
-                    technique = 'invocation_string_literal'
                     before = (Get-TruncatedString $previous 200)
                     after = (Get-TruncatedString $current 200)
                 })
@@ -1771,20 +1692,6 @@ function Resolve-StringConcatenation {
         }
     }
 
-    # Regex fallback: resolve remaining chained single-quoted string concatenations
-    # Handles 'a'+'b'+'c'+... chains that AST only resolves one pair at a time
-    $concatPattern = "'([^']*)'\s*\+\s*'([^']*)'"
-    $maxPasses = 50
-    $passCount = 0
-    while ($result -match $concatPattern -and $passCount -lt $maxPasses) {
-        $result = [regex]::Replace($result, $concatPattern, {
-            param($m)
-            "'" + $m.Groups[1].Value + $m.Groups[2].Value + "'"
-        })
-        $changed = $true
-        $passCount++
-    }
-
     return @{
         result = $result
         changed = $changed
@@ -1943,47 +1850,13 @@ function Resolve-VariableSubstitution {
     }, $true)
 
     foreach ($assignment in $assignments) {
-        if ($assignment.Left -is [System.Management.Automation.Language.VariableExpressionAst]) {
+        if ($assignment.Left -is [System.Management.Automation.Language.VariableExpressionAst] -and
+            $assignment.Right -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
             $varName = $assignment.Left.VariablePath.UserPath
+            $varValue = $assignment.Right.Value
             # Only track short, simple variable names
             if ($varName.Length -le 20 -and $varName -match '^[a-zA-Z_][a-zA-Z0-9_]*$') {
-                $varValue = $null
-                $rhs = $assignment.Right
-                # Direct string constant: $var = 'literal'
-                if ($rhs -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
-                    $varValue = $rhs.Value
-                }
-                # Unwrap pipeline/command/paren wrappers: $var = ('literal')
-                elseif ($rhs -is [System.Management.Automation.Language.PipelineAst] -or
-                        $rhs -is [System.Management.Automation.Language.CommandExpressionAst]) {
-                    $inner = $rhs
-                    # Unwrap PipelineAst -> single CommandExpressionAst
-                    if ($inner -is [System.Management.Automation.Language.PipelineAst] -and
-                        $inner.PipelineElements.Count -eq 1) {
-                        $inner = $inner.PipelineElements[0]
-                    }
-                    # Unwrap CommandExpressionAst -> Expression
-                    if ($inner -is [System.Management.Automation.Language.CommandExpressionAst]) {
-                        $inner = $inner.Expression
-                    }
-                    # Unwrap ParenExpressionAst -> Pipeline -> CommandExpressionAst -> Expression
-                    if ($inner -is [System.Management.Automation.Language.ParenExpressionAst]) {
-                        $inner = $inner.Pipeline
-                        if ($inner -is [System.Management.Automation.Language.PipelineAst] -and
-                            $inner.PipelineElements.Count -eq 1) {
-                            $inner = $inner.PipelineElements[0]
-                        }
-                        if ($inner -is [System.Management.Automation.Language.CommandExpressionAst]) {
-                            $inner = $inner.Expression
-                        }
-                    }
-                    if ($inner -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
-                        $varValue = $inner.Value
-                    }
-                }
-                if ($null -ne $varValue) {
-                    $varMap[$varName] = $varValue
-                }
+                $varMap[$varName] = $varValue
             }
         }
     }
@@ -2065,11 +1938,9 @@ function Resolve-PowerShellLauncher {
     .SYNOPSIS
         Extract command from powershell.exe launcher wrappers
     .DESCRIPTION
-        Handles four patterns:
+        Handles two patterns:
         1. powershell[.exe] [-flags] -Command "actual command" -> extracts the command
         2. powershell[.exe] -e[ncodedcommand] "base64" -> decodes UTF-16LE base64
-        3. powershell[.exe] -e base64 (simple, no quotes)
-        4. powershell[.exe] -WindowStyle Min <code> (implicit command, no -c/-e flag)
         Flags like -NoP, -NonI, -W Hidden, -Exec Bypass are stripped.
     #>
     param([string]$Code)
@@ -2134,45 +2005,6 @@ function Resolve-PowerShellLauncher {
             }
         }
         catch { }
-    }
-
-    # Pattern 4: Implicit command - powershell[.exe] with flags but no -c/-e
-    # e.g., powershell.exe -WInDo Min $RdLU='...';$OnRa=...
-    if (-not $changed) {
-        $implicitMatch = [regex]::Match($Code, '^\s*(?:powershell(?:\.exe)?)\s+(.+)$', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [System.Text.RegularExpressions.RegexOptions]::Singleline)
-        if ($implicitMatch.Success) {
-            $remainder = $implicitMatch.Groups[1].Value
-            # Skip if it looks like patterns 1-3 already handled (has -c or -e followed by content)
-            if ($remainder -match '(?i)^-(?:c(?:ommand)?|e(?:nc(?:odedcommand)?)?)\s') {
-                # Already handled above, skip
-            }
-            else {
-                # Strip known flags (PowerShell allows any unique prefix, e.g. -WInDo for -WindowStyle)
-                # Flags with values: -W[...] (WindowStyle), -Ex[...] (ExecutionPolicy)
-                $flagsWithValue = '(?i)-(?:W(?:i(?:n(?:d(?:o(?:w(?:S(?:t(?:y(?:l(?:e)?)?)?)?)?)?)?)?)?)?|Ex(?:e(?:c(?:u(?:t(?:i(?:o(?:n(?:P(?:o(?:l(?:i(?:c(?:y)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+\w+'
-                # Flags without values: -NoP[rofile], -NonI[nteractive], -Sta, -NoL[ogo], -NoE[xit], -Mta
-                $flagsNoValue = '(?i)-(?:NoP(?:r(?:o(?:f(?:i(?:l(?:e)?)?)?)?)?)?|NonI(?:n(?:t(?:e(?:r(?:a(?:c(?:t(?:i(?:v(?:e)?)?)?)?)?)?)?)?)?)?|Sta|NoL(?:o(?:g(?:o)?)?)?|NoE(?:x(?:i(?:t)?)?)?|Mta)'
-                $stripped = $remainder
-                # Remove flags with values
-                $stripped = [regex]::Replace($stripped, $flagsWithValue, '').Trim()
-                # Remove flags without values
-                $stripped = [regex]::Replace($stripped, $flagsNoValue, '').Trim()
-                # Clean up extra whitespace
-                $stripped = [regex]::Replace($stripped, '\s+', ' ').Trim()
-
-                if ($stripped.Length -gt 0 -and $stripped -ne $remainder) {
-                    # Validate remaining text is valid PowerShell
-                    try {
-                        $testParse = Get-SafeAst -Code $stripped
-                        if ($testParse.Ast -and (-not $testParse.Errors -or $testParse.Errors.Count -eq 0)) {
-                            $result = $stripped
-                            $changed = $true
-                        }
-                    }
-                    catch { }
-                }
-            }
-        }
     }
 
     return @{
@@ -2325,20 +2157,6 @@ function Resolve-StringIndexSlicing {
                         $stringValue = $targetNode.Value
                     }
                 }
-                elseif ($targetNode -is [System.Management.Automation.Language.ParenExpressionAst]) {
-                    # Handle ("string")[indices] - string wrapped in parentheses
-                    try {
-                        $innerExpr = $targetNode.Pipeline.PipelineElements[0].Expression
-                        if ($innerExpr -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
-                            $stringValue = $innerExpr.Value
-                        }
-                        elseif ($innerExpr -is [System.Management.Automation.Language.ExpandableStringExpressionAst]) {
-                            if ($null -ne $innerExpr.NestedExpressions -and $innerExpr.NestedExpressions.Count -eq 0) {
-                                $stringValue = $innerExpr.Value
-                            }
-                        }
-                    } catch { }
-                }
 
                 if (-not $stringValue -or $stringValue.Length -eq 0) { continue }
 
@@ -2427,495 +2245,6 @@ function Resolve-StringIndexSlicing {
     }
     catch {
     }
-
-    return @{
-        result = $result
-        changed = $changed
-    }
-}
-
-function Resolve-PipelineNoise {
-    <#
-    .SYNOPSIS
-        Remove identity pipeline pass-through expressions
-    .DESCRIPTION
-        Strips no-op pipeline segments that pass $_ through unchanged.
-        Example: |%{;$_} -> (removed)
-        Example: | ForEach-Object {$_} -> (removed)
-    #>
-    param([string]$Code)
-
-    $result = $Code
-
-    # Pattern: pipe into ForEach-Object / % with body that is just $_ (optionally with leading semicolons)
-    # Handles: |%{$_}  |%{;$_}  | % { $_ }  | ForEach-Object { $_ }  | ForEach-Object{;$_}
-    $pattern = '\s*\|\s*(?:%|ForEach-Object)\s*\{\s*;?\s*\$_\s*\}'
-
-    $result = [regex]::Replace($result, $pattern, '', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-
-    return @{
-        result = $result
-        changed = ($result -ne $Code)
-    }
-}
-
-function Resolve-ArithmeticCharCodes {
-    <#
-    .SYNOPSIS
-        Resolve character codes with arithmetic expressions
-    .DESCRIPTION
-        Converts [char](arithmetic) to the actual character, where the arithmetic
-        involves only literal integers and +-*/ operators.
-        Example: [char](47*83/47) -> 'S'
-        Example: [char](0+115-0) -> 's'
-        Safety: Only evaluates expressions containing digits, +, -, *, /, spaces.
-        NEVER executes arbitrary code.
-    #>
-    param([string]$Code)
-
-    $result = $Code
-
-    # Pattern: [char]( <arithmetic expression> ) where expression contains at least one operator
-    $pattern = '\[char\]\s*\(\s*((?:\d+\s*[+\-*/]\s*)+\d+)\s*\)'
-
-    $result = [regex]::Replace($result, $pattern, {
-        param($match)
-        $expr = $match.Groups[1].Value
-
-        # Safety: verify expression contains ONLY digits, whitespace, +, -, *, /
-        if ($expr -notmatch '^[\d\s+\-*/]+$') {
-            return $match.Value
-        }
-
-        try {
-            # Tokenize into numbers and operators
-            $tokens = [regex]::Matches($expr, '(\d+|[+\-*/])')
-            if ($tokens.Count -lt 3) { return $match.Value }
-
-            $values = [System.Collections.ArrayList]::new()
-            $ops = [System.Collections.ArrayList]::new()
-
-            [void]$values.Add([double]$tokens[0].Value)
-            for ($i = 1; $i -lt $tokens.Count; $i += 2) {
-                if ($i + 1 -ge $tokens.Count) { return $match.Value }
-                $op = $tokens[$i].Value
-                $num = [double]$tokens[$i + 1].Value
-                [void]$ops.Add($op)
-                [void]$values.Add($num)
-            }
-
-            # Evaluate * and / first (left to right)
-            $j = 0
-            while ($j -lt $ops.Count) {
-                if ($ops[$j] -eq '*' -or $ops[$j] -eq '/') {
-                    if ($ops[$j] -eq '*') {
-                        $values[$j] = $values[$j] * $values[$j + 1]
-                    } else {
-                        if ($values[$j + 1] -eq 0) { return $match.Value }
-                        $values[$j] = $values[$j] / $values[$j + 1]
-                    }
-                    $values.RemoveAt($j + 1)
-                    $ops.RemoveAt($j)
-                } else {
-                    $j++
-                }
-            }
-
-            # Evaluate + and - (left to right)
-            $finalResult = $values[0]
-            for ($j = 0; $j -lt $ops.Count; $j++) {
-                if ($ops[$j] -eq '+') {
-                    $finalResult += $values[$j + 1]
-                } else {
-                    $finalResult -= $values[$j + 1]
-                }
-            }
-
-            $charCode = [int][math]::Round($finalResult)
-            if ($charCode -ge 0 -and $charCode -le 65535) {
-                return "'$([char]$charCode)'"
-            }
-        }
-        catch { }
-
-        return $match.Value
-    }, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-
-    return @{
-        result = $result
-        changed = ($result -ne $Code)
-    }
-}
-
-function Resolve-StringJoinCharPipeline {
-    <#
-    .SYNOPSIS
-        Resolve [string]::join with integer-to-char pipeline
-    .DESCRIPTION
-        Handles patterns like:
-        [string]::join('', ( (83,121,115,...) |%{ ( [char][int] $_)}))
-        Extracts the integer array, converts each to [char], and joins into a string.
-        Only processes literal integer arrays - NEVER executes code.
-    #>
-    param([string]$Code)
-
-    $result = $Code
-
-    # Pattern: [string]::join('', ( (N1,N2,...) |%{ [char][int]$_ }))
-    # Allow optional parens around [char][int]$_, optional [int] cast, flexible whitespace
-    $pattern = '\[string\]::join\s*\(\s*[''""]\s*[''""]\s*,\s*\(\s*\(\s*([\d,\s]+)\s*\)\s*\|\s*(?:%|ForEach-Object)\s*\{\s*\(?\s*\[char\]\s*(?:\[int\]\s*)?\$_\s*\)?\s*\}\s*\)\s*\)'
-
-    $result = [regex]::Replace($result, $pattern, {
-        param($match)
-        $intList = $match.Groups[1].Value
-
-        try {
-            $chars = @()
-            $nums = $intList -split '\s*,\s*'
-            foreach ($n in $nums) {
-                $n = $n.Trim()
-                if ($n -match '^\d+$') {
-                    $code = [int]$n
-                    if ($code -ge 0 -and $code -le 65535) {
-                        $chars += [char]$code
-                    } else {
-                        return $match.Value
-                    }
-                } else {
-                    return $match.Value
-                }
-            }
-            $joined = -join $chars
-            return "'$joined'"
-        }
-        catch { }
-
-        return $match.Value
-    }, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-
-    return @{
-        result = $result
-        changed = ($result -ne $Code)
-    }
-}
-
-function Resolve-ScalarJoinIdentity {
-    <#
-    .SYNOPSIS
-        Resolve scalar string -join identity operations
-    .DESCRIPTION
-        When -join is applied to a scalar string (not an array), it is a no-op.
-        Example: 'New-Object' -join '' -> 'New-Object'
-    #>
-    param([string]$Code)
-
-    $result = $Code
-    $changed = $false
-
-    # AST approach: find BinaryExpressionAst with Join operator where left is string constant
-    $parseResult = Get-SafeAst -Code $Code
-    $ast = $parseResult.Ast
-
-    if ($ast) {
-        $joinNodes = $ast.FindAll({
-            param($node)
-            $node -is [System.Management.Automation.Language.BinaryExpressionAst] -and
-            $node.Operator -eq 'Join'
-        }, $true)
-
-        $joinNodes = @($joinNodes | Sort-Object { $_.Extent.StartOffset } -Descending)
-
-        foreach ($node in $joinNodes) {
-            try {
-                $leftNode = $node.Left
-                $stringValue = $null
-
-                if ($leftNode -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
-                    $stringValue = $leftNode.Value
-                }
-                elseif ($leftNode -is [System.Management.Automation.Language.ParenExpressionAst]) {
-                    $inner = $leftNode.Pipeline.PipelineElements[0].Expression
-                    if ($inner -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
-                        $stringValue = $inner.Value
-                    }
-                }
-
-                if ($null -eq $stringValue) { continue }
-
-                # Right side should be a string constant (the separator)
-                if ($node.Right -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
-                    $start = $node.Extent.StartOffset
-                    $length = $node.Extent.EndOffset - $start
-                    $result = $result.Substring(0, $start) + "'$stringValue'" + $result.Substring($start + $length)
-                    $changed = $true
-                }
-            }
-            catch {
-                continue
-            }
-        }
-    }
-
-    # Regex fallback for cases AST cannot parse
-    if (-not $changed) {
-        $pattern = "'([^']*)'\s*-join\s*'[^']*'"
-        $newResult = [regex]::Replace($result, $pattern, {
-            param($match)
-            return "'$($match.Groups[1].Value)'"
-        }, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-
-        if ($newResult -ne $result) {
-            $result = $newResult
-            $changed = $true
-        }
-    }
-
-    return @{
-        result = $result
-        changed = $changed
-    }
-}
-
-function Resolve-InvocationStringLiteral {
-    <#
-    .SYNOPSIS
-        Resolve invocation operator with string literal argument
-    .DESCRIPTION
-        When & or . invoke a simple string literal containing a cmdlet name,
-        replace with just the cmdlet name.
-        Example: & ('New-Object') -> New-Object
-        Example: . ('Write-Host') -> Write-Host
-        Does NOT resolve IEX/Invoke-Expression (handled by other passes).
-    #>
-    param([string]$Code)
-
-    $result = $Code
-
-    # Pattern: & ('CmdletName') or . ('CmdletName') with parens around the quoted string
-    $pattern = '([&\.])\s*\(\s*([''"])([a-zA-Z][a-zA-Z0-9\-\.]*)\2\s*\)'
-
-    $result = [regex]::Replace($result, $pattern, {
-        param($match)
-        return $match.Groups[3].Value
-    }, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-
-    # Also handle: & 'CmdletName' (without outer parens)
-    $pattern2 = '([&\.])\s+([''"])([a-zA-Z][a-zA-Z0-9\-\.]*)\2(?=\s|$|;)'
-
-    $result = [regex]::Replace($result, $pattern2, {
-        param($match)
-        return $match.Groups[3].Value
-    }, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-
-    return @{
-        result = $result
-        changed = ($result -ne $Code)
-    }
-}
-
-function Invoke-SafeArithmetic {
-    <#
-    .SYNOPSIS
-        Safely evaluate a simple arithmetic expression containing only integers and +-*/
-    .DESCRIPTION
-        Returns [int] result or $null if the expression is invalid.
-        NEVER uses Invoke-Expression.
-    #>
-    param([string]$Expr)
-
-    $expr = $Expr.Trim()
-    # Remove outer parens if present
-    while ($expr -match '^\((.+)\)$') {
-        $expr = $Matches[1].Trim()
-    }
-
-    if ($expr -notmatch '^[\d\s+\-*/().]+$') { return $null }
-
-    try {
-        $tokens = [regex]::Matches($expr, '(\d+|[+\-*/])')
-        if ($tokens.Count -lt 1) { return $null }
-
-        $values = [System.Collections.ArrayList]::new()
-        $ops = [System.Collections.ArrayList]::new()
-
-        [void]$values.Add([double]$tokens[0].Value)
-        for ($i = 1; $i -lt $tokens.Count; $i += 2) {
-            if ($i + 1 -ge $tokens.Count) { return $null }
-            [void]$ops.Add($tokens[$i].Value)
-            [void]$values.Add([double]$tokens[$i + 1].Value)
-        }
-
-        # * and / first
-        $j = 0
-        while ($j -lt $ops.Count) {
-            if ($ops[$j] -eq '*' -or $ops[$j] -eq '/') {
-                if ($ops[$j] -eq '*') { $values[$j] = $values[$j] * $values[$j + 1] }
-                else {
-                    if ($values[$j + 1] -eq 0) { return $null }
-                    $values[$j] = $values[$j] / $values[$j + 1]
-                }
-                $values.RemoveAt($j + 1)
-                $ops.RemoveAt($j)
-            } else { $j++ }
-        }
-
-        # + and -
-        $finalResult = $values[0]
-        for ($j = 0; $j -lt $ops.Count; $j++) {
-            if ($ops[$j] -eq '+') { $finalResult += $values[$j + 1] }
-            else { $finalResult -= $values[$j + 1] }
-        }
-
-        return [int][math]::Round($finalResult)
-    }
-    catch { return $null }
-}
-
-function Resolve-VariableStringOperations {
-    <#
-    .SYNOPSIS
-        Resolve string method calls and indexing on variables with known string values
-    .DESCRIPTION
-        Tracks $var = 'literal' assignments, then resolves:
-        - $var.Substring(start, len)
-        - $var.Remove(start[, count])
-        - $var[N] (single char indexing)
-        - $var[(arithmetic)] (arithmetic in index)
-        - Chained methods: $var.Remove(0,3).Remove(3)
-        NEVER executes code. Only operates on known constant string values.
-    #>
-    param([string]$Code)
-
-    $result = $Code
-    $changed = $false
-
-    # Build variable map from constant string assignments
-    $parseResult = Get-SafeAst -Code $Code
-    $ast = $parseResult.Ast
-    if (-not $ast) {
-        return @{ result = $Code; changed = $false }
-    }
-
-    $varMap = @{}
-
-    # Find all assignments: $var = 'literal'
-    $assignments = $ast.FindAll({
-        param($node)
-        $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and
-        $node.Operator -eq 'Equals'
-    }, $true)
-
-    foreach ($assignment in $assignments) {
-        if ($assignment.Left -is [System.Management.Automation.Language.VariableExpressionAst]) {
-            $varName = $assignment.Left.VariablePath.UserPath
-            # Only track reasonable variable names
-            if ($varName.Length -le 30 -and $varName -match '^[a-zA-Z_][a-zA-Z0-9_]*$') {
-                $rightSide = $assignment.Right
-                # Handle direct string constant: $var = 'literal'
-                if ($rightSide -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
-                    $varMap[$varName] = $rightSide.Value
-                }
-                # Handle CommandExpressionAst wrapping a string (pipeline expression)
-                elseif ($rightSide -is [System.Management.Automation.Language.CommandExpressionAst]) {
-                    $innerExpr = $rightSide.Expression
-                    if ($innerExpr -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
-                        $varMap[$varName] = $innerExpr.Value
-                    }
-                }
-                # Handle PipelineAst -> CommandExpressionAst -> StringConstantExpressionAst
-                elseif ($rightSide -is [System.Management.Automation.Language.PipelineAst]) {
-                    if ($rightSide.PipelineElements.Count -eq 1) {
-                        $pipeElem = $rightSide.PipelineElements[0]
-                        if ($pipeElem -is [System.Management.Automation.Language.CommandExpressionAst]) {
-                            $innerExpr = $pipeElem.Expression
-                            if ($innerExpr -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
-                                $varMap[$varName] = $innerExpr.Value
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if ($varMap.Count -eq 0) {
-        return @{ result = $Code; changed = $false }
-    }
-
-    # Resolve $var.Substring(start, len) and $var.Remove(start[, count])
-    # Including chained calls: $var.Remove(0,3).Remove(3)
-    foreach ($var in $varMap.Keys) {
-        $varValue = $varMap[$var]
-        $escapedVar = [regex]::Escape($var)
-
-        # Pattern for chained method calls: $var.Method(args)[.Method(args)]*
-        $chainPattern = '\$' + $escapedVar + '((?:\s*\.\s*(?:Substring|Remove)\s*\(\s*\d+(?:\s*,\s*\d+)?\s*\))+)'
-
-        $result = [regex]::Replace($result, $chainPattern, {
-            param($match)
-            $methodChain = $match.Groups[1].Value
-            $currentValue = $varValue
-
-            # Extract each .Method(args) call
-            $methodCalls = [regex]::Matches($methodChain, '\.\s*(Substring|Remove)\s*\(\s*(\d+)(?:\s*,\s*(\d+))?\s*\)')
-
-            foreach ($call in $methodCalls) {
-                $methodName = $call.Groups[1].Value
-                $arg1 = [int]$call.Groups[2].Value
-                $arg2 = if ($call.Groups[3].Success) { [int]$call.Groups[3].Value } else { $null }
-
-                try {
-                    if ($methodName -ieq 'Substring') {
-                        if ($null -ne $arg2) {
-                            $currentValue = $currentValue.Substring($arg1, $arg2)
-                        } else {
-                            $currentValue = $currentValue.Substring($arg1)
-                        }
-                    }
-                    elseif ($methodName -ieq 'Remove') {
-                        if ($null -ne $arg2) {
-                            $currentValue = $currentValue.Remove($arg1, $arg2)
-                        } else {
-                            $currentValue = $currentValue.Remove($arg1)
-                        }
-                    }
-                }
-                catch {
-                    # Index out of range or similar - return original
-                    return $match.Value
-                }
-            }
-
-            return "'$currentValue'"
-        }, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-    }
-
-    # Resolve $var[N] and $var[(arithmetic)] - single character indexing
-    foreach ($var in $varMap.Keys) {
-        $varValue = $varMap[$var]
-        $escapedVar = [regex]::Escape($var)
-
-        # Pattern: $var[N] or $var[(expr)] - allows parens around sub-expressions like (87)/(3)
-        $indexPattern = '\$' + $escapedVar + '\[\s*([\d\s+\-*/()]+)\s*\]'
-
-        $result = [regex]::Replace($result, $indexPattern, {
-            param($match)
-            $indexExpr = $match.Groups[1].Value
-
-            $index = Invoke-SafeArithmetic -Expr $indexExpr
-            if ($null -eq $index) { return $match.Value }
-
-            # Handle negative indices
-            if ($index -lt 0) { $index = $varValue.Length + $index }
-            if ($index -ge 0 -and $index -lt $varValue.Length) {
-                return "'$($varValue[$index])'"
-            }
-
-            return $match.Value
-        }, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-    }
-
-    $changed = ($result -ne $Code)
 
     return @{
         result = $result
