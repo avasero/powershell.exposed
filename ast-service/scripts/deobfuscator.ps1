@@ -347,19 +347,6 @@ function Invoke-AstDeobfuscation {
                 })
             }
 
-            # Pass 7.5: Resolve string methods and indexing on variables with known values
-            $varStringResult = Resolve-VariableStringOperations -Code $current
-            if ($varStringResult.changed) {
-                $current = $varStringResult.result
-                [void]$iterationTechniques.Add('variable_string_ops')
-                [void]$result.transformations.Add(@{
-                    iteration = $iteration
-                    technique = 'variable_string_ops'
-                    before = (Get-TruncatedString $previous 200)
-                    after = (Get-TruncatedString $current 200)
-                })
-            }
-
             # Pass 8: Resolve Base64+DeflateStream payloads
             $deflateResult = Resolve-Base64DeflateStream -Code $current
             if ($deflateResult.changed) {
@@ -1943,47 +1930,13 @@ function Resolve-VariableSubstitution {
     }, $true)
 
     foreach ($assignment in $assignments) {
-        if ($assignment.Left -is [System.Management.Automation.Language.VariableExpressionAst]) {
+        if ($assignment.Left -is [System.Management.Automation.Language.VariableExpressionAst] -and
+            $assignment.Right -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
             $varName = $assignment.Left.VariablePath.UserPath
+            $varValue = $assignment.Right.Value
             # Only track short, simple variable names
             if ($varName.Length -le 20 -and $varName -match '^[a-zA-Z_][a-zA-Z0-9_]*$') {
-                $varValue = $null
-                $rhs = $assignment.Right
-                # Direct string constant: $var = 'literal'
-                if ($rhs -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
-                    $varValue = $rhs.Value
-                }
-                # Unwrap pipeline/command/paren wrappers: $var = ('literal')
-                elseif ($rhs -is [System.Management.Automation.Language.PipelineAst] -or
-                        $rhs -is [System.Management.Automation.Language.CommandExpressionAst]) {
-                    $inner = $rhs
-                    # Unwrap PipelineAst -> single CommandExpressionAst
-                    if ($inner -is [System.Management.Automation.Language.PipelineAst] -and
-                        $inner.PipelineElements.Count -eq 1) {
-                        $inner = $inner.PipelineElements[0]
-                    }
-                    # Unwrap CommandExpressionAst -> Expression
-                    if ($inner -is [System.Management.Automation.Language.CommandExpressionAst]) {
-                        $inner = $inner.Expression
-                    }
-                    # Unwrap ParenExpressionAst -> Pipeline -> CommandExpressionAst -> Expression
-                    if ($inner -is [System.Management.Automation.Language.ParenExpressionAst]) {
-                        $inner = $inner.Pipeline
-                        if ($inner -is [System.Management.Automation.Language.PipelineAst] -and
-                            $inner.PipelineElements.Count -eq 1) {
-                            $inner = $inner.PipelineElements[0]
-                        }
-                        if ($inner -is [System.Management.Automation.Language.CommandExpressionAst]) {
-                            $inner = $inner.Expression
-                        }
-                    }
-                    if ($inner -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
-                        $varValue = $inner.Value
-                    }
-                }
-                if ($null -ne $varValue) {
-                    $varMap[$varName] = $varValue
-                }
+                $varMap[$varName] = $varValue
             }
         }
     }
@@ -2065,11 +2018,9 @@ function Resolve-PowerShellLauncher {
     .SYNOPSIS
         Extract command from powershell.exe launcher wrappers
     .DESCRIPTION
-        Handles four patterns:
+        Handles two patterns:
         1. powershell[.exe] [-flags] -Command "actual command" -> extracts the command
         2. powershell[.exe] -e[ncodedcommand] "base64" -> decodes UTF-16LE base64
-        3. powershell[.exe] -e base64 (simple, no quotes)
-        4. powershell[.exe] -WindowStyle Min <code> (implicit command, no -c/-e flag)
         Flags like -NoP, -NonI, -W Hidden, -Exec Bypass are stripped.
     #>
     param([string]$Code)
@@ -2134,45 +2085,6 @@ function Resolve-PowerShellLauncher {
             }
         }
         catch { }
-    }
-
-    # Pattern 4: Implicit command - powershell[.exe] with flags but no -c/-e
-    # e.g., powershell.exe -WInDo Min $RdLU='...';$OnRa=...
-    if (-not $changed) {
-        $implicitMatch = [regex]::Match($Code, '^\s*(?:powershell(?:\.exe)?)\s+(.+)$', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [System.Text.RegularExpressions.RegexOptions]::Singleline)
-        if ($implicitMatch.Success) {
-            $remainder = $implicitMatch.Groups[1].Value
-            # Skip if it looks like patterns 1-3 already handled (has -c or -e followed by content)
-            if ($remainder -match '(?i)^-(?:c(?:ommand)?|e(?:nc(?:odedcommand)?)?)\s') {
-                # Already handled above, skip
-            }
-            else {
-                # Strip known flags (PowerShell allows any unique prefix, e.g. -WInDo for -WindowStyle)
-                # Flags with values: -W[...] (WindowStyle), -Ex[...] (ExecutionPolicy)
-                $flagsWithValue = '(?i)-(?:W(?:i(?:n(?:d(?:o(?:w(?:S(?:t(?:y(?:l(?:e)?)?)?)?)?)?)?)?)?)?|Ex(?:e(?:c(?:u(?:t(?:i(?:o(?:n(?:P(?:o(?:l(?:i(?:c(?:y)?)?)?)?)?)?)?)?)?)?)?)?)?)\s+\w+'
-                # Flags without values: -NoP[rofile], -NonI[nteractive], -Sta, -NoL[ogo], -NoE[xit], -Mta
-                $flagsNoValue = '(?i)-(?:NoP(?:r(?:o(?:f(?:i(?:l(?:e)?)?)?)?)?)?|NonI(?:n(?:t(?:e(?:r(?:a(?:c(?:t(?:i(?:v(?:e)?)?)?)?)?)?)?)?)?)?|Sta|NoL(?:o(?:g(?:o)?)?)?|NoE(?:x(?:i(?:t)?)?)?|Mta)'
-                $stripped = $remainder
-                # Remove flags with values
-                $stripped = [regex]::Replace($stripped, $flagsWithValue, '').Trim()
-                # Remove flags without values
-                $stripped = [regex]::Replace($stripped, $flagsNoValue, '').Trim()
-                # Clean up extra whitespace
-                $stripped = [regex]::Replace($stripped, '\s+', ' ').Trim()
-
-                if ($stripped.Length -gt 0 -and $stripped -ne $remainder) {
-                    # Validate remaining text is valid PowerShell
-                    try {
-                        $testParse = Get-SafeAst -Code $stripped
-                        if ($testParse.Ast -and (-not $testParse.Errors -or $testParse.Errors.Count -eq 0)) {
-                            $result = $stripped
-                            $changed = $true
-                        }
-                    }
-                    catch { }
-                }
-            }
-        }
     }
 
     return @{
@@ -2710,215 +2622,5 @@ function Resolve-InvocationStringLiteral {
     return @{
         result = $result
         changed = ($result -ne $Code)
-    }
-}
-
-function Invoke-SafeArithmetic {
-    <#
-    .SYNOPSIS
-        Safely evaluate a simple arithmetic expression containing only integers and +-*/
-    .DESCRIPTION
-        Returns [int] result or $null if the expression is invalid.
-        NEVER uses Invoke-Expression.
-    #>
-    param([string]$Expr)
-
-    $expr = $Expr.Trim()
-    # Remove outer parens if present
-    while ($expr -match '^\((.+)\)$') {
-        $expr = $Matches[1].Trim()
-    }
-
-    if ($expr -notmatch '^[\d\s+\-*/().]+$') { return $null }
-
-    try {
-        $tokens = [regex]::Matches($expr, '(\d+|[+\-*/])')
-        if ($tokens.Count -lt 1) { return $null }
-
-        $values = [System.Collections.ArrayList]::new()
-        $ops = [System.Collections.ArrayList]::new()
-
-        [void]$values.Add([double]$tokens[0].Value)
-        for ($i = 1; $i -lt $tokens.Count; $i += 2) {
-            if ($i + 1 -ge $tokens.Count) { return $null }
-            [void]$ops.Add($tokens[$i].Value)
-            [void]$values.Add([double]$tokens[$i + 1].Value)
-        }
-
-        # * and / first
-        $j = 0
-        while ($j -lt $ops.Count) {
-            if ($ops[$j] -eq '*' -or $ops[$j] -eq '/') {
-                if ($ops[$j] -eq '*') { $values[$j] = $values[$j] * $values[$j + 1] }
-                else {
-                    if ($values[$j + 1] -eq 0) { return $null }
-                    $values[$j] = $values[$j] / $values[$j + 1]
-                }
-                $values.RemoveAt($j + 1)
-                $ops.RemoveAt($j)
-            } else { $j++ }
-        }
-
-        # + and -
-        $finalResult = $values[0]
-        for ($j = 0; $j -lt $ops.Count; $j++) {
-            if ($ops[$j] -eq '+') { $finalResult += $values[$j + 1] }
-            else { $finalResult -= $values[$j + 1] }
-        }
-
-        return [int][math]::Round($finalResult)
-    }
-    catch { return $null }
-}
-
-function Resolve-VariableStringOperations {
-    <#
-    .SYNOPSIS
-        Resolve string method calls and indexing on variables with known string values
-    .DESCRIPTION
-        Tracks $var = 'literal' assignments, then resolves:
-        - $var.Substring(start, len)
-        - $var.Remove(start[, count])
-        - $var[N] (single char indexing)
-        - $var[(arithmetic)] (arithmetic in index)
-        - Chained methods: $var.Remove(0,3).Remove(3)
-        NEVER executes code. Only operates on known constant string values.
-    #>
-    param([string]$Code)
-
-    $result = $Code
-    $changed = $false
-
-    # Build variable map from constant string assignments
-    $parseResult = Get-SafeAst -Code $Code
-    $ast = $parseResult.Ast
-    if (-not $ast) {
-        return @{ result = $Code; changed = $false }
-    }
-
-    $varMap = @{}
-
-    # Find all assignments: $var = 'literal'
-    $assignments = $ast.FindAll({
-        param($node)
-        $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and
-        $node.Operator -eq 'Equals'
-    }, $true)
-
-    foreach ($assignment in $assignments) {
-        if ($assignment.Left -is [System.Management.Automation.Language.VariableExpressionAst]) {
-            $varName = $assignment.Left.VariablePath.UserPath
-            # Only track reasonable variable names
-            if ($varName.Length -le 30 -and $varName -match '^[a-zA-Z_][a-zA-Z0-9_]*$') {
-                $rightSide = $assignment.Right
-                # Handle direct string constant: $var = 'literal'
-                if ($rightSide -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
-                    $varMap[$varName] = $rightSide.Value
-                }
-                # Handle CommandExpressionAst wrapping a string (pipeline expression)
-                elseif ($rightSide -is [System.Management.Automation.Language.CommandExpressionAst]) {
-                    $innerExpr = $rightSide.Expression
-                    if ($innerExpr -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
-                        $varMap[$varName] = $innerExpr.Value
-                    }
-                }
-                # Handle PipelineAst -> CommandExpressionAst -> StringConstantExpressionAst
-                elseif ($rightSide -is [System.Management.Automation.Language.PipelineAst]) {
-                    if ($rightSide.PipelineElements.Count -eq 1) {
-                        $pipeElem = $rightSide.PipelineElements[0]
-                        if ($pipeElem -is [System.Management.Automation.Language.CommandExpressionAst]) {
-                            $innerExpr = $pipeElem.Expression
-                            if ($innerExpr -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
-                                $varMap[$varName] = $innerExpr.Value
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if ($varMap.Count -eq 0) {
-        return @{ result = $Code; changed = $false }
-    }
-
-    # Resolve $var.Substring(start, len) and $var.Remove(start[, count])
-    # Including chained calls: $var.Remove(0,3).Remove(3)
-    foreach ($var in $varMap.Keys) {
-        $varValue = $varMap[$var]
-        $escapedVar = [regex]::Escape($var)
-
-        # Pattern for chained method calls: $var.Method(args)[.Method(args)]*
-        $chainPattern = '\$' + $escapedVar + '((?:\s*\.\s*(?:Substring|Remove)\s*\(\s*\d+(?:\s*,\s*\d+)?\s*\))+)'
-
-        $result = [regex]::Replace($result, $chainPattern, {
-            param($match)
-            $methodChain = $match.Groups[1].Value
-            $currentValue = $varValue
-
-            # Extract each .Method(args) call
-            $methodCalls = [regex]::Matches($methodChain, '\.\s*(Substring|Remove)\s*\(\s*(\d+)(?:\s*,\s*(\d+))?\s*\)')
-
-            foreach ($call in $methodCalls) {
-                $methodName = $call.Groups[1].Value
-                $arg1 = [int]$call.Groups[2].Value
-                $arg2 = if ($call.Groups[3].Success) { [int]$call.Groups[3].Value } else { $null }
-
-                try {
-                    if ($methodName -ieq 'Substring') {
-                        if ($null -ne $arg2) {
-                            $currentValue = $currentValue.Substring($arg1, $arg2)
-                        } else {
-                            $currentValue = $currentValue.Substring($arg1)
-                        }
-                    }
-                    elseif ($methodName -ieq 'Remove') {
-                        if ($null -ne $arg2) {
-                            $currentValue = $currentValue.Remove($arg1, $arg2)
-                        } else {
-                            $currentValue = $currentValue.Remove($arg1)
-                        }
-                    }
-                }
-                catch {
-                    # Index out of range or similar - return original
-                    return $match.Value
-                }
-            }
-
-            return "'$currentValue'"
-        }, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-    }
-
-    # Resolve $var[N] and $var[(arithmetic)] - single character indexing
-    foreach ($var in $varMap.Keys) {
-        $varValue = $varMap[$var]
-        $escapedVar = [regex]::Escape($var)
-
-        # Pattern: $var[N] or $var[(expr)] - allows parens around sub-expressions like (87)/(3)
-        $indexPattern = '\$' + $escapedVar + '\[\s*([\d\s+\-*/()]+)\s*\]'
-
-        $result = [regex]::Replace($result, $indexPattern, {
-            param($match)
-            $indexExpr = $match.Groups[1].Value
-
-            $index = Invoke-SafeArithmetic -Expr $indexExpr
-            if ($null -eq $index) { return $match.Value }
-
-            # Handle negative indices
-            if ($index -lt 0) { $index = $varValue.Length + $index }
-            if ($index -ge 0 -and $index -lt $varValue.Length) {
-                return "'$($varValue[$index])'"
-            }
-
-            return $match.Value
-        }, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-    }
-
-    $changed = ($result -ne $Code)
-
-    return @{
-        result = $result
-        changed = $changed
     }
 }
