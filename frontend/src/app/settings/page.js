@@ -211,7 +211,7 @@ export default function SettingsPage() {
                       const lowerName = (plan?.plan_name || 'free').toLowerCase();
                       if (lowerName === 'free') return 'Basic';
                       if (lowerName === 'standard') return 'Pro';
-                      if (lowerName === 'premium') return 'Enterprise';
+                      if (lowerName === 'premium') return 'Premium';
                       return plan?.plan_name || 'Basic';
                     })()}
                   </span>
