@@ -10,3 +10,4 @@ pydantic
 python-Levenshtein
 regex
 openai>=1.0.0
+stripe

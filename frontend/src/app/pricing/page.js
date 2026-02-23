@@ -1,11 +1,33 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import PricingCard from '../components/PricingCard';
 import { useAuth } from '../contexts/AuthContext';
+import { createCheckoutSession } from '../../lib/api';
 
 export default function PricingPage() {
     const { isAuthenticated } = useAuth();
+    const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+    const handleCheckout = async (priceId) => {
+        if (!isAuthenticated()) {
+            window.location.href = '/register';
+            return;
+        }
+        setCheckoutLoading(true);
+        try {
+            const data = await createCheckoutSession(priceId);
+            if (data.url) {
+                window.location.href = data.url;
+            }
+        } catch (err) {
+            console.error('Checkout error:', err);
+            alert('Failed to start checkout. Please try again.');
+        } finally {
+            setCheckoutLoading(false);
+        }
+    };
+
     const tiers = [
         {
             id: 'guest',
@@ -72,10 +94,10 @@ export default function PricingPage() {
         {
             id: 'enterprise',
             title: 'Premium',
-            price: '', // Shows 'Coming'
+            price: '$9.99/mo', // TODO: update with real price
             subtitle: 'Secure your organization',
-            buttonText: 'Get notified',
-            buttonAction: () => window.location.href = isAuthenticated() ? '/settings?notify=true' : '/register',
+            buttonText: checkoutLoading ? 'Loading...' : 'Upgrade Now',
+            buttonAction: () => handleCheckout('price_1T43Q1HrWYWWTND8D326kbsW'),
             isPopular: false,
             isPremium: true,
             summaryFeatures: [

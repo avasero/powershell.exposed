@@ -251,6 +251,14 @@ try:
 except ImportError as e:
     print(f"⚠️ Plan routes not available: {e}")
 
+try:
+    from routes.stripe_routes import create_checkout_session_endpoint
+
+    app.post("/stripe/create-checkout-session", tags=["Stripe"], summary="Create Checkout Session", include_in_schema=False)(create_checkout_session_endpoint)
+
+except ImportError as e:
+    print(f"⚠️ Stripe routes not available: {e}")
+
 
 @app.on_event("startup")
 async def startup_event():
