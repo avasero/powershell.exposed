@@ -63,4 +63,4 @@ AST_SERVICE_ENABLED = os.getenv("AST_SERVICE_ENABLED", "false").lower() == "true
 AST_API_KEY = os.getenv("AST_API_KEY", "")
 
 # Stripe Configuration
-STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_SECRET_KEY_SANDBOX = os.getenv("STRIPE_SECRET_KEY_SANDBOX", "")

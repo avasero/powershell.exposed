@@ -6,10 +6,10 @@ from typing import Optional, Dict, Any
 from fastapi import Request, Depends
 from fastapi.responses import JSONResponse
 from middleware.auth_middleware import get_current_user_optional
-from config.settings import STRIPE_SECRET_KEY
+from config.settings import STRIPE_SECRET_KEY_SANDBOX
 
 
-stripe.api_key = STRIPE_SECRET_KEY
+stripe.api_key = STRIPE_SECRET_KEY_SANDBOX
 
 # Fallback frontend URL for redirect after checkout
 DEFAULT_FRONTEND_URL = "https://powershell.exposed"
@@ -35,7 +35,7 @@ async def create_checkout_session_endpoint(
             status_code=401
         )
 
-    if not STRIPE_SECRET_KEY:
+    if not STRIPE_SECRET_KEY_SANDBOX:
         return JSONResponse(
             {
                 "error": {
