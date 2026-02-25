@@ -1,13 +1,35 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import PricingCard from '../components/PricingCard';
 import { useAuth } from '../contexts/AuthContext';
-import { createCheckoutSession } from '../../lib/api';
+import { createCheckoutSession, makeAuthenticatedJSONRequest } from '../../lib/api';
 
 export default function PricingPage() {
     const { isAuthenticated } = useAuth();
+    const searchParams = useSearchParams();
     const [checkoutLoading, setCheckoutLoading] = useState(false);
+    const [banner, setBanner] = useState(null);
+    const [userPlan, setUserPlan] = useState(null);
+
+    useEffect(() => {
+        if (searchParams.get('success') === 'true') {
+            setBanner({ type: 'success', message: 'Payment successful! Your plan has been upgraded.' });
+        } else if (searchParams.get('canceled') === 'true') {
+            setBanner({ type: 'canceled', message: 'Checkout canceled. No charges were made.' });
+        }
+    }, [searchParams]);
+
+    useEffect(() => {
+        if (isAuthenticated()) {
+            makeAuthenticatedJSONRequest('/user/plan')
+                .then(data => setUserPlan(data?.plan?.plan_name || null))
+                .catch(() => setUserPlan(null));
+        }
+    }, [isAuthenticated]);
+
+    const isPremiumUser = userPlan === 'premium' || userPlan === 'enterprise';
 
     const handleCheckout = async (priceId) => {
         if (!isAuthenticated()) {
@@ -50,11 +72,12 @@ export default function PricingPage() {
             id: 'basic',
             title: 'Basic',
             price: 'Free',
-            subtitle: 'Free forever, promised!',
-            buttonText: 'Signup Now',
-            buttonVariant: 'primary',
-            buttonAction: () => window.location.href = '/register',
-            isPopular: true,
+            subtitle: isAuthenticated() && !isPremiumUser ? 'You are on this plan' : 'Free forever, promised!',
+            buttonText: isAuthenticated() ? (isPremiumUser ? 'Start Analysis' : 'Your Tier') : 'Signup Now',
+            buttonVariant: isAuthenticated() ? 'default' : 'primary',
+            buttonAction: isAuthenticated() ? () => window.location.href = '/evaluate' : () => window.location.href = '/register',
+            buttonDisabled: isAuthenticated() && !isPremiumUser,
+            isPopular: !isPremiumUser,
             summaryFeatures: [
                 'Full access to evaluation engine',
                 '- 10 Requests / Minute',
@@ -95,9 +118,11 @@ export default function PricingPage() {
             id: 'enterprise',
             title: 'Premium',
             price: '$9.99/mo', // TODO: update with real price
-            subtitle: 'Secure your organization',
-            buttonText: checkoutLoading ? 'Loading...' : 'Upgrade Now',
-            buttonAction: () => handleCheckout('price_1T43Q1HrWYWWTND8D326kbsW'),
+            subtitle: isPremiumUser ? 'You are on this plan' : 'Secure your organization',
+            buttonText: isPremiumUser ? 'Current Plan' : (checkoutLoading ? 'Loading...' : 'Upgrade Now'),
+            buttonAction: isPremiumUser ? () => {} : () => handleCheckout('price_1T43Q1HrWYWWTND8D326kbsW'),
+            buttonDisabled: isPremiumUser,
+            isCurrentPlan: isPremiumUser,
             isPopular: false,
             isPremium: true,
             summaryFeatures: [
@@ -119,6 +144,25 @@ export default function PricingPage() {
 
     return (
         <div className="min-h-[calc(100vh-80px)] pt-24 pb-12 px-4 md:px-8 max-w-7xl mx-auto font-mono flex flex-col justify-center">
+            {banner && (
+                <div
+                    className="max-w-2xl mx-auto mb-8 px-6 py-4 rounded-lg border font-mono text-sm flex items-center justify-between"
+                    style={{
+                        backgroundColor: banner.type === 'success' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(234, 179, 8, 0.1)',
+                        borderColor: banner.type === 'success' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(234, 179, 8, 0.3)',
+                        color: banner.type === 'success' ? '#22c55e' : '#eab308',
+                    }}
+                >
+                    <span>{banner.message}</span>
+                    <button
+                        onClick={() => setBanner(null)}
+                        className="ml-4 hover:opacity-70 text-lg"
+                        style={{ color: 'inherit' }}
+                    >
+                        x
+                    </button>
+                </div>
+            )}
             <div className="text-center mb-16 space-y-4">
                 <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold break-words" style={{ color: 'var(--accent)' }}>
                     USAGE TIERS

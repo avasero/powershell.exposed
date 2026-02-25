@@ -11,9 +11,8 @@ from config.settings import STRIPE_SECRET_KEY
 
 stripe.api_key = STRIPE_SECRET_KEY
 
-# Frontend URLs for redirect after checkout
-SUCCESS_URL = "https://powershell.exposed/pricing?success=true"
-CANCEL_URL = "https://powershell.exposed/pricing?canceled=true"
+# Fallback frontend URL for redirect after checkout
+DEFAULT_FRONTEND_URL = "https://powershell.exposed"
 
 
 async def create_checkout_session_endpoint(
@@ -67,11 +66,15 @@ async def create_checkout_session_endpoint(
         user_id = current_user.get("id")
         user_email = current_user.get("email")
 
+        origin = request.headers.get("origin") or request.headers.get("referer", "").rstrip("/") or DEFAULT_FRONTEND_URL
+        success_url = f"{origin}/pricing?success=true"
+        cancel_url = f"{origin}/pricing?canceled=true"
+
         session_params = {
             "mode": "subscription",
             "line_items": [{"price": price_id, "quantity": 1}],
-            "success_url": SUCCESS_URL,
-            "cancel_url": CANCEL_URL,
+            "success_url": success_url,
+            "cancel_url": cancel_url,
             "metadata": {
                 "supabase_user_id": user_id,
                 "price_id": price_id,

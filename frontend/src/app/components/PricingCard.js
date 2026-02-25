@@ -10,7 +10,9 @@ const PricingCard = ({
     isPremium = false,
     features,
     buttonVariant = 'default',
-    isUserAuthenticated = false
+    isUserAuthenticated = false,
+    buttonDisabled = false,
+    isCurrentPlan = false
 }) => {
     const isSignupButton = buttonText === 'Signup Now';
 
@@ -26,9 +28,19 @@ const PricingCard = ({
                 ? 'shadow-[0_0_15px_rgba(77,156,247,0.1)]'
                 : 'border-green-500/30'
             }`}
-            style={isPremium ? { borderColor: premiumBlueBorder } : {}}
+            style={isPremium ? {
+                borderColor: isCurrentPlan ? premiumBlue : premiumBlueBorder,
+                boxShadow: isCurrentPlan ? '0 0 20px rgba(77, 156, 247, 0.2)' : undefined
+            } : {}}
         >
-            {isPopular && (
+            {isCurrentPlan && isPremium && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-white text-xs font-mono font-bold px-3 py-1 rounded-full uppercase tracking-wider"
+                    style={{ backgroundColor: premiumBlue }}
+                >
+                    Your Plan
+                </div>
+            )}
+            {isPopular && !isCurrentPlan && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-green-600 text-black text-xs font-mono font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                     Most Popular
                 </div>
@@ -47,7 +59,7 @@ const PricingCard = ({
                 {price ? (
                     <div className="flex items-center justify-center gap-1">
                         <span className="text-3xl font-mono font-bold text-white">{price}</span>
-                        {price !== 'Free' && <span className="text-sm font-mono text-gray-400">/mo</span>}
+                        {price !== 'Free' && <span className="text-sm font-mono text-gray-400"></span>}
                     </div>
                 ) : (
                     <div className="text-3xl font-mono font-bold text-white">Coming</div>
@@ -56,12 +68,12 @@ const PricingCard = ({
             </div>
 
             <div className="mb-8">
-                {isSignupButton && isUserAuthenticated ? (
+                {(isSignupButton && isUserAuthenticated) || buttonDisabled ? (
                     <button
                         disabled
                         className="w-full py-2 px-4 rounded font-mono font-bold uppercase tracking-wider transition-all duration-300 bg-gray-600/20 border border-gray-500/50 text-gray-500 cursor-not-allowed opacity-60"
                     >
-                        Your Tier
+                        {buttonDisabled ? buttonText : 'Your Tier'}
                     </button>
                 ) : (
                     <button
