@@ -15,6 +15,11 @@ stripe.api_key = STRIPE_SECRET_KEY_SANDBOX
 
 DEFAULT_FRONTEND_URL = "https://powershell.exposed"
 
+# Whitelist of allowed Stripe price IDs mapped to plan names
+ALLOWED_PRICE_IDS = {
+    "price_1T43Q1HrWYWWTND8D326kbsW",  # premium
+}
+
 
 async def create_checkout_session_endpoint(
     request: Request,
@@ -48,13 +53,13 @@ async def create_checkout_session_endpoint(
         body = await request.json()
         price_id = body.get("price_id")
 
-        if not price_id or not price_id.startswith("price_"):
+        if not price_id or price_id not in ALLOWED_PRICE_IDS:
             return JSONResponse(
                 {
                     "error": {
                         "code": "ValidationError",
-                        "message": "A valid Stripe price_id is required.",
-                        "details": "Missing or invalid price_id"
+                        "message": "Invalid pricing plan.",
+                        "details": "Unknown or disallowed price_id"
                     }
                 },
                 status_code=400
@@ -132,14 +137,27 @@ async def cancel_subscription_endpoint(
         user_id = current_user.get("id")
         supabase = get_supabase_client()
 
-        # Get user's stripe_subscription_id
+        # Get user's stripe_subscription_id and current status
         profile = supabase.table("profiles")\
-            .select("stripe_subscription_id")\
+            .select("stripe_subscription_id, subscription_status")\
             .eq("id", user_id)\
             .single()\
             .execute()
 
         subscription_id = profile.data.get("stripe_subscription_id") if profile.data else None
+        current_status = profile.data.get("subscription_status") if profile.data else None
+
+        if current_status == "canceling":
+            return JSONResponse(
+                {
+                    "error": {
+                        "code": "ValidationError",
+                        "message": "Subscription is already being canceled.",
+                        "details": "Subscription already set to cancel at period end"
+                    }
+                },
+                status_code=400
+            )
 
         if not subscription_id:
             return JSONResponse(
