@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep -l \"subscription\\\\|stripe\\\\|plan\")",
+      "Bash(xargs grep -l \"webhook\\\\|customer\\\\.subscription\")",
+      "Bash(xargs grep -l \"cancel.*subscription\\\\|subscription.*cancel\\\\|stripe.*webhook\")",
+      "Bash(xargs cat)",
+      "Bash(find /c/Users/solte/powershell.exposed -type f -name \"*.sql\" -exec grep -l \"stripe_customer_id\" {} ;)",
+      "Bash(xargs grep -l \"stripe_customer_id\")",
+      "Bash(xargs grep -l \"stripe\")",
+      "Bash(ls /c/Users/solte/powershell.exposed/supabase/migrations/*.sql)",
+      "Bash(xargs grep -l \"period_end\\\\|subscription_end\\\\|ended_at\")"
+    ]
+  }
+}

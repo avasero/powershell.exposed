@@ -111,7 +111,7 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
         
         # Get user profile with plan information
         response = supabase.table('profiles')\
-            .select('plan_id, plans(name, can_decode_commands, request_limit_per_hour, decode_limit_per_hour)')\
+            .select('plan_id, subscription_status, subscription_period_end, plans(name, can_decode_commands, request_limit_per_hour, decode_limit_per_hour)')\
             .eq('id', user_id)\
             .single()\
             .execute()
@@ -129,13 +129,15 @@ async def get_user_plan_features(user_id: str) -> Dict[str, Any]:
             }
         
         plan_data = response.data.get('plans', {})
-        
-        
+
+
         result = {
             "plan_name": plan_data.get('name', 'free'),
             "can_decode_commands": plan_data.get('can_decode_commands', False),
             "request_limit_per_minute": plan_data.get('request_limit_per_hour', 10),
-            "decode_limit_per_minute": plan_data.get('decode_limit_per_hour', 5)
+            "decode_limit_per_minute": plan_data.get('decode_limit_per_hour', 5),
+            "subscription_status": response.data.get('subscription_status'),
+            "subscription_period_end": response.data.get('subscription_period_end'),
         }
         
        

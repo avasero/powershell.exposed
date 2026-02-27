@@ -46,6 +46,7 @@ serve(async (req) => {
       const userId = session.metadata?.supabase_user_id;
       const priceId = session.metadata?.price_id;
       const customerId = session.customer as string;
+      const subscriptionId = session.subscription as string;
 
       if (!userId || !priceId) {
         console.error("Missing metadata:", { userId, priceId });
@@ -63,30 +64,78 @@ serve(async (req) => {
         .update({
           plan_id: planId,
           stripe_customer_id: customerId,
+          stripe_subscription_id: subscriptionId,
+          subscription_status: "active",
+          subscription_period_end: null,
         })
         .eq("id", userId);
 
       if (error) {
         console.error("Failed to update profile:", error);
       } else {
-        console.log(`Updated user ${userId} to plan ${planId}`);
+        console.log(`Updated user ${userId} to plan ${planId}, subscription ${subscriptionId}`);
+      }
+      break;
+    }
+
+    case "customer.subscription.updated": {
+      const subscription = event.data.object as Stripe.Subscription;
+      const customerId = subscription.customer as string;
+
+      if (subscription.cancel_at_period_end) {
+        // User cancelled — keep access until period ends
+        const periodEnd = new Date(subscription.current_period_end * 1000).toISOString();
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            subscription_status: "canceling",
+            subscription_period_end: periodEnd,
+          })
+          .eq("stripe_customer_id", customerId);
+
+        if (error) {
+          console.error("Failed to update canceling status:", error);
+        } else {
+          console.log(`Subscription canceling for customer ${customerId}, access until ${periodEnd}`);
+        }
+      } else {
+        // User reactivated or renewed — restore active status
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            subscription_status: "active",
+            subscription_period_end: null,
+          })
+          .eq("stripe_customer_id", customerId);
+
+        if (error) {
+          console.error("Failed to reactivate subscription:", error);
+        } else {
+          console.log(`Subscription reactivated for customer ${customerId}`);
+        }
       }
       break;
     }
 
     case "customer.subscription.deleted": {
+      // Fires when the subscription period actually ends — now downgrade
       const subscription = event.data.object as Stripe.Subscription;
       const customerId = subscription.customer as string;
 
       const { error } = await supabase
         .from("profiles")
-        .update({ plan_id: FREE_PLAN_ID })
+        .update({
+          plan_id: FREE_PLAN_ID,
+          subscription_status: "canceled",
+          subscription_period_end: null,
+          stripe_subscription_id: null,
+        })
         .eq("stripe_customer_id", customerId);
 
       if (error) {
         console.error("Failed to reset plan:", error);
       } else {
-        console.log(`Reset plan for customer ${customerId}`);
+        console.log(`Subscription ended, reset plan for customer ${customerId}`);
       }
       break;
     }

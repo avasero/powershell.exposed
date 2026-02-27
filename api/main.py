@@ -252,9 +252,10 @@ except ImportError as e:
     print(f"⚠️ Plan routes not available: {e}")
 
 try:
-    from routes.stripe_routes import create_checkout_session_endpoint
+    from routes.stripe_routes import create_checkout_session_endpoint, cancel_subscription_endpoint
 
     app.post("/stripe/create-checkout-session", tags=["Stripe"], summary="Create Checkout Session", include_in_schema=False)(create_checkout_session_endpoint)
+    app.post("/stripe/cancel-subscription", tags=["Stripe"], summary="Cancel Subscription", include_in_schema=False)(cancel_subscription_endpoint)
 
 except ImportError as e:
     print(f"⚠️ Stripe routes not available: {e}")
