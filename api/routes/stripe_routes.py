@@ -10,6 +10,7 @@ from config.settings import STRIPE_SECRET_KEY_SANDBOX
 from services.session_manager import get_supabase_client
 
 ##trigger rebuild comment
+##dont change this name just yet
 stripe.api_key = STRIPE_SECRET_KEY_SANDBOX
 
 
