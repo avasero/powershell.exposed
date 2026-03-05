@@ -15,8 +15,11 @@ import os
 import sys
 import time
 
-# Add the bin/lib directory to the path so we can import our client
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "lib"))
+# Add the bin/lib directory to the path so splunklib, requests, and our
+# client can be found by Splunk's embedded Python
+lib_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib")
+if lib_path not in sys.path:
+    sys.path.insert(0, lib_path)
 
 from splunklib.searchcommands import (
     dispatch,
@@ -29,7 +32,7 @@ from splunklib.searchcommands import (
 from psexposed_client import PsExposedClient
 
 # Default API base URL
-DEFAULT_BASE_URL = "https://powershell.exposed/api"
+DEFAULT_BASE_URL = "https://api.powershell.exposed"
 
 
 @Configuration()
