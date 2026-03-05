@@ -1,39 +1,37 @@
-<dashboard version="1.1" script="setup_page.js" hideEdit="true">
+<dashboard version="1.1" script="setup_v3.js" hideEdit="true">
   <label>PSExposed Setup</label>
   <row>
     <panel>
       <html>
-        <div id="psexposed-setup-container" style="max-width:600px;padding:20px;">
-          <h1 style="font-size:22px;margin-bottom:8px;color:#1a1c1e;">PSExposed Configuration</h1>
-          <p style="color:#6c7785;font-size:14px;margin-bottom:24px;line-height:1.5;">
-            Enter your powershell.exposed API key to enable PowerShell command analysis.
-            Each Splunk user needs their own API key.
-            Get yours at <a href="https://powershell.exposed" target="_blank">powershell.exposed</a>.
-          </p>
+        <div style="max-width:600px;margin:40px auto;padding:0 20px;">
+          <h2 style="font-size:20px;font-weight:600;margin-bottom:24px;color:#1a1c1e;">PSExposed API Key Configuration</h2>
 
-          <div id="status-container" style="margin-bottom:16px;"></div>
+          <div id="status-container" style="margin-bottom:20px;"></div>
 
-          <div style="margin-bottom:20px;">
-            <label style="display:block;font-weight:600;font-size:13px;margin-bottom:6px;">API Base URL</label>
-            <p style="font-size:12px;color:#6c7785;margin-bottom:6px;">Only change this if you are running a self-hosted instance.</p>
-            <input type="text" id="base_url" value="https://api.powershell.exposed"
-                   style="width:100%;max-width:500px;padding:10px 12px;border:1px solid #c3cbd4;border-radius:4px;font-size:14px;font-family:monospace;" />
-          </div>
-
-          <div style="margin-bottom:20px;">
-            <label style="display:block;font-weight:600;font-size:13px;margin-bottom:6px;">API Key</label>
-            <p style="font-size:12px;color:#6c7785;margin-bottom:6px;">Your personal API key (starts with pse_).</p>
-            <div id="current-key-display" style="font-size:13px;color:#6c7785;margin-bottom:4px;font-family:monospace;"></div>
-            <input type="password" id="api_key" placeholder="pse_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                   style="width:100%;max-width:500px;padding:10px 12px;border:1px solid #c3cbd4;border-radius:4px;font-size:14px;font-family:monospace;" />
+          <label style="display:block;font-weight:500;font-size:14px;margin-bottom:8px;color:#333;">API Key</label>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+            <input type="password" id="api_key" placeholder=""
+                   style="flex:1;max-width:460px;padding:8px 12px;border:1px solid #c3cbd4;border-radius:4px;font-size:14px;font-family:monospace;" />
+            <button type="button" id="toggle-visibility" title="Show/Hide"
+                    style="background:none;border:1px solid #c3cbd4;border-radius:4px;padding:6px 10px;cursor:pointer;font-size:16px;">
+              &#128065;
+            </button>
           </div>
 
           <button id="save-btn" type="button"
-                  style="padding:10px 24px;border:none;border-radius:4px;font-size:14px;font-weight:600;cursor:pointer;background:#5cc05c;color:#fff;">
-            Save Configuration
+                  style="padding:8px 20px;border:1px solid #5cc05c;border-radius:4px;font-size:14px;font-weight:500;cursor:pointer;background:#fff;color:#333;">
+            Save API Key
           </button>
 
           <div id="message" style="padding:12px 16px;border-radius:4px;margin-top:16px;font-size:13px;display:none;"></div>
+
+          <div style="margin-top:32px;padding:16px;border-left:3px solid #5cc05c;background:#f6fdf6;">
+            <p style="font-weight:600;font-size:14px;color:#333;margin-bottom:4px;">Help</p>
+            <p style="font-size:13px;color:#555;line-height:1.6;margin:0;">
+              Please enter your PSExposed API key above. You can find your API key in your
+              <a href="https://powershell.exposed" target="_blank" style="color:#006fba;">powershell.exposed</a> account settings.
+            </p>
+          </div>
         </div>
       </html>
     </panel>
