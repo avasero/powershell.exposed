@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PSExposed Setup</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: "Splunk Platform Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background: #f2f4f5;
+            color: #333;
+            padding: 40px;
+        }
+
+        .setup-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 32px;
+        }
+
+        h1 {
+            font-size: 22px;
+            margin-bottom: 8px;
+            color: #1a1c1e;
+        }
+
+        .subtitle {
+            color: #6c7785;
+            font-size: 14px;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 6px;
+            color: #1a1c1e;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #6c7785;
+            margin-bottom: 6px;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #c3cbd4;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            transition: border-color 0.15s;
+        }
+
+        input[type="text"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: #5cc05c;
+            box-shadow: 0 0 0 2px rgba(92,192,92,0.2);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .btn-primary {
+            background: #5cc05c;
+            color: #fff;
+        }
+
+        .btn-primary:hover { background: #4aa84a; }
+        .btn-primary:disabled { background: #c3cbd4; cursor: not-allowed; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .status-configured {
+            background: #e6f7e6;
+            color: #2d7d2d;
+        }
+
+        .status-not-configured {
+            background: #fff3e0;
+            color: #b36b00;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin-top: 16px;
+            font-size: 13px;
+            display: none;
+        }
+
+        .message-success {
+            background: #e6f7e6;
+            color: #2d7d2d;
+            border: 1px solid #b8e6b8;
+        }
+
+        .message-error {
+            background: #fde8e8;
+            color: #c62828;
+            border: 1px solid #f5c6c6;
+        }
+
+        .current-key {
+            font-size: 13px;
+            color: #6c7785;
+            margin-bottom: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <h1>PSExposed Configuration</h1>
+        <p class="subtitle">
+            Enter your powershell.exposed API key to enable PowerShell command analysis.
+            Each Splunk user needs their own API key.
+            Get yours at <a href="https://powershell.exposed" target="_blank">powershell.exposed</a>.
+        </p>
+
+        <div id="status-container"></div>
+
+        <form id="setup-form">
+            <div class="form-group">
+                <label for="base_url">API Base URL</label>
+                <p class="help-text">Only change this if you're running a self-hosted instance.</p>
+                <input type="text" id="base_url" value="https://powershell.exposed/api"
+                       placeholder="https://powershell.exposed/api">
+            </div>
+
+            <div class="form-group">
+                <label for="api_key">API Key</label>
+                <p class="help-text">Your personal API key (starts with pse_).</p>
+                <div id="current-key-display"></div>
+                <input type="password" id="api_key" placeholder="pse_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="save-btn">Save Configuration</button>
+        </form>
+
+        <div id="message" class="message"></div>
+    </div>
+
+    <script>
+        // Splunk provides session info via the global $C object
+        // and REST calls go through the splunkd proxy at /en-US/splunkd/__raw/
+
+        function getSplunkBaseUrl() {
+            // In Splunk Web, requests route through the proxy
+            var locale = (typeof $C !== "undefined" && $C.LOCALE) ? $C.LOCALE : "en-US";
+            return "/" + locale + "/splunkd/__raw";
+        }
+
+        function getSessionKey() {
+            // Splunk Web sets a session key cookie that's sent automatically
+            // We also try the $C object which Splunk exposes in the page
+            if (typeof $C !== "undefined" && $C.SPLUNKD_FREE_LICENSE !== undefined) {
+                return true; // Cookie-based auth, no explicit key needed
+            }
+            return true;
+        }
+
+        function showMessage(text, isError) {
+            var el = document.getElementById("message");
+            el.textContent = text;
+            el.className = "message " + (isError ? "message-error" : "message-success");
+            el.style.display = "block";
+            if (!isError) {
+                setTimeout(function() { el.style.display = "none"; }, 5000);
+            }
+        }
+
+        function loadExistingConfig() {
+            var baseUrl = getSplunkBaseUrl();
+            fetch(baseUrl + "/servicesNS/-/psexposed_app/admin/psexposed/setup/psexposed_setup", {
+                method: "GET",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include"  // Send session cookies
+            })
+            .then(function(resp) {
+                if (!resp.ok) return null;
+                return resp.json();
+            })
+            .then(function(data) {
+                if (!data || !data.entry || !data.entry.length) return;
+
+                var content = data.entry[0].content;
+                var statusContainer = document.getElementById("status-container");
+
+                if (content.base_url) {
+                    document.getElementById("base_url").value = content.base_url;
+                }
+
+                if (content.api_key_configured === "true") {
+                    statusContainer.innerHTML =
+                        '<span class="status-badge status-configured">Configured</span>';
+                    if (content.api_key_masked) {
+                        document.getElementById("current-key-display").innerHTML =
+                            '<p class="current-key">Current key: ' + content.api_key_masked + '</p>';
+                    }
+                } else {
+                    statusContainer.innerHTML =
+                        '<span class="status-badge status-not-configured">Not Configured</span>';
+                }
+            })
+            .catch(function() {
+                // First time setup — no config exists yet, that's fine
+            });
+        }
+
+        document.getElementById("setup-form").addEventListener("submit", function(e) {
+            e.preventDefault();
+
+            var apiKey = document.getElementById("api_key").value.trim();
+            var baseUrl = document.getElementById("base_url").value.trim();
+
+            if (!apiKey) {
+                showMessage("Please enter your API key.", true);
+                return;
+            }
+
+            var btn = document.getElementById("save-btn");
+            btn.disabled = true;
+            btn.textContent = "Saving...";
+
+            var splunkBase = getSplunkBaseUrl();
+            var formData = new URLSearchParams();
+            formData.append("api_key", apiKey);
+            formData.append("base_url", baseUrl);
+
+            fetch(splunkBase + "/servicesNS/-/psexposed_app/admin/psexposed/setup/psexposed_setup", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                credentials: "include",
+                body: formData.toString()
+            })
+            .then(function(resp) {
+                if (!resp.ok) throw new Error("HTTP " + resp.status);
+                return resp.json();
+            })
+            .then(function() {
+                showMessage("Configuration saved successfully!", false);
+                document.getElementById("api_key").value = "";
+                loadExistingConfig();
+            })
+            .catch(function(err) {
+                showMessage("Failed to save: " + err.message + ". Check your permissions.", true);
+            })
+            .finally(function() {
+                btn.disabled = false;
+                btn.textContent = "Save Configuration";
+            });
+        });
+
+        // Load existing config on page load
+        loadExistingConfig();
+    </script>
+</body>
+</html>

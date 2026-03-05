@@ -1,0 +1,105 @@
+<dashboard version="1.1" theme="dark">
+  <label>PSExposed - PowerShell Analyzer</label>
+  <description>Analyze and deobfuscate PowerShell commands using powershell.exposed</description>
+
+  <!-- ==================== Panel 1: Manual Analysis ==================== -->
+  <row>
+    <panel>
+      <title>Manual PowerShell Analysis</title>
+      <input type="text" token="user_input" searchWhenChanged="false">
+        <label>Paste a PowerShell command:</label>
+        <default></default>
+      </input>
+      <table>
+        <title>Analysis Results</title>
+        <search>
+          <query>
+            | makeresults
+            | eval ps_command="$user_input$"
+            | psexposed field=ps_command
+            | table ps_risk_level ps_risk_score ps_techniques ps_tactics ps_signatures ps_deobfuscated ps_decoded ps_summary ps_analysis_id ps_error
+          </query>
+          <earliest>-1m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="wrap">true</option>
+        <option name="rowNumbers">false</option>
+      </table>
+    </panel>
+  </row>
+
+  <!-- ==================== Panel 2: Bulk Analysis ==================== -->
+  <row>
+    <panel>
+      <title>Bulk PowerShell Log Analysis</title>
+      <input type="text" token="bulk_search" searchWhenChanged="false">
+        <label>Base search (should return a field with PowerShell commands):</label>
+        <default>index=windows sourcetype=WinEventLog:Security EventCode=4104</default>
+      </input>
+      <input type="text" token="bulk_field" searchWhenChanged="false">
+        <label>Field containing PowerShell command:</label>
+        <default>ScriptBlockText</default>
+      </input>
+      <input type="time" token="bulk_time" searchWhenChanged="false">
+        <label>Time Range</label>
+        <default>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </default>
+      </input>
+      <table id="bulk_results">
+        <title>Analyzed Events</title>
+        <search id="bulk_search_id">
+          <query>
+            $bulk_search$
+            | head 100
+            | psexposed field=$bulk_field$
+            | table _time $bulk_field$ ps_risk_level ps_risk_score ps_techniques ps_summary ps_error
+          </query>
+          <earliest>$bulk_time.earliest$</earliest>
+          <latest>$bulk_time.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="wrap">true</option>
+        <option name="rowNumbers">true</option>
+        <option name="count">20</option>
+      </table>
+    </panel>
+  </row>
+
+  <!-- ==================== Panel 3: Risk Overview ==================== -->
+  <row>
+    <panel>
+      <title>Risk Level Distribution</title>
+      <chart>
+        <search base="bulk_search_id">
+          <query>
+            | stats count by ps_risk_level
+          </query>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.chart.showPercent">true</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Top MITRE Techniques</title>
+      <chart>
+        <search base="bulk_search_id">
+          <query>
+            | mvexpand ps_techniques
+            | stats count by ps_techniques
+            | sort -count
+            | head 10
+          </query>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.chart.showDataLabels">all</option>
+      </chart>
+    </panel>
+  </row>
+
+</dashboard>
