@@ -12,6 +12,7 @@ Usage:
 """
 
 import os
+import re
 import sys
 import time
 
@@ -74,10 +75,25 @@ class PsExposedCommand(StreamingCommand):
                 pass
         return None
 
+    def _sanitize(self, command, sanitization_config):
+        """Apply sanitization regex to remove sensitive patterns from command."""
+        if not sanitization_config:
+            return command
+        if not sanitization_config.get("sanitization_enabled"):
+            return command
+        pattern = sanitization_config.get("sanitization_regex", "")
+        if not pattern:
+            return command
+        try:
+            return re.sub(pattern, "", command)
+        except re.error:
+            return command
+
     def stream(self, records):
         """Process each event, calling the API for analysis."""
         api_config = self._load_config("apikey")
         proxy_config = self._load_config("proxy")
+        sanitization_config = self._load_config("sanitization")
 
         if not api_config or not api_config.get("api_key"):
             for record in records:
@@ -113,6 +129,9 @@ class PsExposedCommand(StreamingCommand):
                 continue
 
             command = str(command).strip()
+
+            # Apply sanitization before sending to API
+            command = self._sanitize(command, sanitization_config)
 
             # Call the API (client handles caching internally)
             result = client.analyze(command)
