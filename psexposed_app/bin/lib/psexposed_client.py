@@ -29,17 +29,46 @@ SIGNATURE_FIELD = "ps_signatures"
 class PsExposedClient:
     """Client for the powershell.exposed analysis API."""
 
-    def __init__(self, base_url, api_key, timeout=30):
+    def __init__(self, base_url, api_key, timeout=30, proxy_config=None):
         """
         Args:
-            base_url: API base URL (e.g. "https://powershell.exposed/api")
-            api_key:  User's API key (pse_... format)
-            timeout:  Request timeout in seconds
+            base_url:     API base URL (e.g. "https://api.powershell.exposed")
+            api_key:      User's API key (pse_... format)
+            timeout:      Request timeout in seconds
+            proxy_config: Optional dict with proxy settings:
+                          {proxy_enabled, proxy_protocol, proxy_host, proxy_port,
+                           proxy_auth_enabled, proxy_username, proxy_password}
         """
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.timeout = timeout
+        self.proxies = self._build_proxies(proxy_config)
         self._cache = {}
+
+    @staticmethod
+    def _build_proxies(proxy_config):
+        """Build a requests-compatible proxies dict from proxy config."""
+        if not proxy_config or not proxy_config.get("proxy_enabled"):
+            return None
+
+        protocol = proxy_config.get("proxy_protocol", "http")
+        host = proxy_config.get("proxy_host", "")
+        port = proxy_config.get("proxy_port", "")
+        if not host:
+            return None
+
+        proxy_url = f"{protocol}://"
+        if proxy_config.get("proxy_auth_enabled"):
+            username = proxy_config.get("proxy_username", "")
+            password = proxy_config.get("proxy_password", "")
+            if username:
+                proxy_url += f"{username}:{password}@"
+
+        proxy_url += host
+        if port:
+            proxy_url += f":{port}"
+
+        return {"http": proxy_url, "https": proxy_url}
 
     def _cache_key(self, command):
         """SHA-256 hash of the command for cache lookups."""
@@ -85,7 +114,8 @@ class PsExposedClient:
 
         try:
             resp = requests.post(
-                url, json=payload, headers=headers, timeout=self.timeout
+                url, json=payload, headers=headers,
+                timeout=self.timeout, proxies=self.proxies
             )
 
             if resp.status_code == 429:

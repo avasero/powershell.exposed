@@ -9,7 +9,9 @@
       "Bash(xargs grep -l \"stripe_customer_id\")",
       "Bash(xargs grep -l \"stripe\")",
       "Bash(ls /c/Users/solte/powershell.exposed/supabase/migrations/*.sql)",
-      "Bash(xargs grep -l \"period_end\\\\|subscription_end\\\\|ended_at\")"
+      "Bash(xargs grep -l \"period_end\\\\|subscription_end\\\\|ended_at\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" --max-time 10 https://api.powershell.exposed/health)",
+      "Bash(curl -s -X POST https://api.powershell.exposed/evaluate -H \"Content-Type: application/json\" -H \"Authorization: Bearer test_fake_key\" -d '{\"\"command\"\":\"\"echo test\"\",\"\"search_type\"\":\"\"API\"\"}' --max-time 15 -w \"\\\\n%{http_code} %{time_total}s\")"
     ]
   }
 }

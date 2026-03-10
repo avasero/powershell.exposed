@@ -52,42 +52,34 @@ class PsExposedCommand(StreamingCommand):
         validate=validators.Float(minimum=0.0, maximum=10.0),
     )
 
-    def _get_credentials(self):
-        """
-        Retrieve the current user's API key and base URL from
-        Splunk's storage/passwords endpoint.
-
-        Returns:
-            tuple: (base_url, api_key) or (None, None) if not configured.
-        """
-        # Get the current Splunk user running this search
+    def _load_config(self, realm_suffix):
+        """Load a JSON config from storage/passwords by realm suffix."""
+        import json
         username = self._metadata.searchinfo.username
-
-        # Realm pattern: psexposed__<username>
-        realm = f"psexposed__{username}"
-
-        # Query storage/passwords for this user's credentials
-        service = self.service
+        realm = f"psexposed_{realm_suffix}_{username}"
         try:
-            for credential in service.storage_passwords:
+            for credential in self.service.storage_passwords:
                 if credential.realm == realm:
-                    # The password field holds our JSON config
-                    import json
-                    config = json.loads(credential.clear_password)
-                    base_url = config.get("base_url", DEFAULT_BASE_URL)
-                    api_key = config.get("api_key", "")
-                    return base_url, api_key
+                    return json.loads(credential.clear_password)
         except Exception:
             pass
-
-        return None, None
+        # Also check legacy realm format (psexposed__<username>)
+        if realm_suffix == "apikey":
+            legacy_realm = f"psexposed__{username}"
+            try:
+                for credential in self.service.storage_passwords:
+                    if credential.realm == legacy_realm:
+                        return json.loads(credential.clear_password)
+            except Exception:
+                pass
+        return None
 
     def stream(self, records):
         """Process each event, calling the API for analysis."""
-        base_url, api_key = self._get_credentials()
+        api_config = self._load_config("apikey")
+        proxy_config = self._load_config("proxy")
 
-        if not api_key:
-            # No API key configured — add error to every event
+        if not api_config or not api_config.get("api_key"):
             for record in records:
                 record["ps_error"] = (
                     "No API key configured. Go to the PSExposed app setup "
@@ -96,10 +88,14 @@ class PsExposedCommand(StreamingCommand):
                 yield record
             return
 
+        base_url = api_config.get("base_url", DEFAULT_BASE_URL)
+        api_key = api_config.get("api_key")
+
         client = PsExposedClient(
             base_url=base_url,
             api_key=api_key,
             timeout=30,
+            proxy_config=proxy_config,
         )
 
         first_event = True
