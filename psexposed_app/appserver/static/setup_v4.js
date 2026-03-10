@@ -231,57 +231,90 @@ require([
         if (btn) { btn.disabled = true; btn.textContent = "Checking..."; }
         if (result) result.innerHTML = '<div class="pse-health-checking">Connecting to API...</div>';
 
-        // Load API key config first
-        loadEntry(getRealm("apikey"), function(apiConfig) {
-            if (!apiConfig || !apiConfig.api_key) {
-                if (result) result.innerHTML = '<div class="pse-health-fail"><strong>Error:</strong> No API key configured. Go to the API Key tab first.</div>';
+        var searchQuery = '| makeresults | eval ps_command="echo test" | psexposed field=ps_command | fields ps_risk_level ps_error';
+
+        service.search(searchQuery, { exec_mode: "blocking", earliest_time: "-1m", latest_time: "now" }, function(err, job) {
+            if (err) {
                 if (btn) { btn.disabled = false; btn.textContent = "Run Health Check"; }
+                result.innerHTML = '<div class="pse-health-fail"><strong>Search Error:</strong> ' + (err.error || err.message || JSON.stringify(err)) + '</div>';
                 return;
             }
 
-            // Use a Splunk search to test connectivity (runs server-side, respects proxy)
-            var searchQuery = '| makeresults | eval ps_command="echo test" | psexposed field=ps_command | table ps_risk_level ps_error';
+            job.results({ output_mode: "json", count: 10 }, function(err2, results) {
+                if (btn) { btn.disabled = false; btn.textContent = "Run Health Check"; }
 
-            var searchParams = {
-                search: searchQuery,
-                earliest_time: "-1m",
-                latest_time: "now",
-                output_mode: "json",
-                exec_mode: "oneshot"
-            };
+                if (err2) {
+                    result.innerHTML = '<div class="pse-health-fail"><strong>Results Error:</strong> ' + (err2.error || err2.message || JSON.stringify(err2)) + '</div>';
+                    return;
+                }
 
-            service.request(
-                "/servicesNS/-/psexposed_app/search/jobs",
-                "POST", null, null, searchParams,
-                { "Content-Type": "application/x-www-form-urlencoded" },
-                function(err, response) {
-                    if (btn) { btn.disabled = false; btn.textContent = "Run Health Check"; }
+                try {
+                    var rows = (results && results.rows) ? results.rows : [];
+                    var fields = (results && results.fields) ? results.fields : [];
 
-                    if (err) {
-                        if (result) result.innerHTML = '<div class="pse-health-fail"><strong>Failed:</strong> Could not run health check search. Error: ' + (err.error || err.message || "unknown") + '</div>';
+                    if (rows.length === 0) {
+                        job.fetch(function(err3, j) {
+                            var messages = (j && j.properties && j.properties().messages) || [];
+                            var msgText = messages.map(function(m) { return m.text; }).join("; ");
+                            result.innerHTML = '<div class="pse-health-fail"><strong>No results returned.</strong>' + (msgText ? " " + msgText : " The psexposed command may have failed to load.") + "</div>";
+                        });
                         return;
                     }
 
-                    try {
-                        var data = response.data;
-                        var results = data.results || [];
-                        if (results.length > 0) {
-                            var row = results[0];
-                            if (row.ps_error) {
-                                result.innerHTML = '<div class="pse-health-fail"><strong>API Error:</strong> ' + row.ps_error + '</div>';
-                            } else if (row.ps_risk_level) {
-                                result.innerHTML = '<div class="pse-health-ok"><strong>Success!</strong> API is reachable and responding. Risk level returned: <code>' + row.ps_risk_level + '</code></div>';
-                            } else {
-                                result.innerHTML = '<div class="pse-health-ok"><strong>Success!</strong> API is reachable and responding.</div>';
-                            }
-                        } else {
-                            result.innerHTML = '<div class="pse-health-fail"><strong>No results returned.</strong> The search command may have failed.</div>';
-                        }
-                    } catch (e) {
-                        if (result) result.innerHTML = '<div class="pse-health-fail"><strong>Error parsing response:</strong> ' + e.message + '</div>';
+                    var row = rows[0];
+                    var errorIdx = fields.indexOf("ps_error");
+                    var riskIdx = fields.indexOf("ps_risk_level");
+
+                    if (errorIdx >= 0 && row[errorIdx]) {
+                        result.innerHTML = '<div class="pse-health-fail"><strong>API Error:</strong> ' + row[errorIdx] + '</div>';
+                    } else if (riskIdx >= 0 && row[riskIdx]) {
+                        result.innerHTML = '<div class="pse-health-ok"><strong>Success!</strong> API is reachable. Risk level: <code>' + row[riskIdx] + '</code></div>';
+                    } else {
+                        result.innerHTML = '<div class="pse-health-ok"><strong>Success!</strong> API is reachable and responding correctly.</div>';
                     }
+                } catch (e) {
+                    result.innerHTML = '<div class="pse-health-fail"><strong>Parse Error:</strong> ' + e.message + '</div>';
                 }
-            );
+            });
+        });
+    }
+
+    // ── Sanitization Tab ─────────────────────────────────────
+
+    function loadSanitizationConfig() {
+        loadEntry(getRealm("sanitization"), function(config) {
+            if (!config) return;
+            var cb = document.getElementById("sanitization_enabled");
+            if (cb && config.sanitization_enabled) { cb.checked = true; toggleSanitization(); }
+            if (config.sanitization_regex) setVal("sanitization_regex", config.sanitization_regex);
+        });
+    }
+
+    function toggleSanitization() {
+        var cb = document.getElementById("sanitization_enabled");
+        var fields = document.getElementById("sanitization-fields");
+        if (cb && fields) {
+            fields.style.opacity = cb.checked ? "1" : "0.5";
+            fields.style.pointerEvents = cb.checked ? "auto" : "none";
+        }
+    }
+
+    function saveSanitization() {
+        var btn = document.getElementById("save-sanitization-btn");
+        if (btn) { btn.disabled = true; btn.textContent = "Saving..."; }
+
+        var config = {
+            sanitization_enabled: !!(document.getElementById("sanitization_enabled") || {}).checked,
+            sanitization_regex: getVal("sanitization_regex")
+        };
+
+        saveEntry(getRealm("sanitization"), JSON.stringify(config), function(err) {
+            if (btn) { btn.disabled = false; btn.textContent = "Save Sanitization Settings"; }
+            if (err) {
+                showMsg("message-sanitization", "Failed to save: " + (err.error || err.message || "unknown error"), true);
+            } else {
+                showMsg("message-sanitization", "Sanitization settings saved successfully!", false);
+            }
         });
     }
 
@@ -318,6 +351,13 @@ require([
         // Health Check tab
         var healthBtn = document.getElementById("health-btn");
         if (healthBtn) healthBtn.addEventListener("click", function(e) { e.preventDefault(); runHealthCheck(); });
+
+        // Sanitization tab
+        var sanitizationCb = document.getElementById("sanitization_enabled");
+        if (sanitizationCb) sanitizationCb.addEventListener("change", toggleSanitization);
+        var saveSanitizationBtn = document.getElementById("save-sanitization-btn");
+        if (saveSanitizationBtn) saveSanitizationBtn.addEventListener("click", function(e) { e.preventDefault(); saveSanitization(); });
+        loadSanitizationConfig();
 
     }, 200);
 

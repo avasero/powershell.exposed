@@ -17,7 +17,14 @@
       "Bash(xargs grep:*)",
       "Read(//c/Program Files/Splunk/etc/apps/**)",
       "Read(//c/Program Files/SplunkForwarder/etc/**)",
-      "Bash(\"C:/Program Files/Splunk/bin/splunk\" restart)"
+      "Bash(\"C:/Program Files/Splunk/bin/splunk\" restart)",
+      "Read(//opt/splunk/**)",
+      "Bash(/dev/null -maxdepth 3 -name \"apps\" -type d)",
+      "Read(//opt/**)",
+      "Read(//home/en20/**)",
+      "Bash(sudo cp:*)",
+      "Bash(cp -r /home/en20/powershell.exposed/psexposed_app /opt/splunk/etc/apps/)",
+      "Bash(cat /home/en20/powershell.exposed/psexposed_app/bin/lib/psexposed_client.py 2>/dev/null || find /home/en20/powershell.exposed/psexposed_app/bin/lib -name \"*.py\" | head -10)"
     ]
   }
 }

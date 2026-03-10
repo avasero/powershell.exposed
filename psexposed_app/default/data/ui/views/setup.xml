@@ -9,6 +9,7 @@
             <div class="pse-tab pse-tab-active" data-tab="apikey">API Key</div>
             <div class="pse-tab" data-tab="proxy">Proxy</div>
             <div class="pse-tab" data-tab="health">Health Check</div>
+            <div class="pse-tab" data-tab="sanitization">Sanitization</div>
           </div>
 
           <div class="pse-content">
@@ -103,6 +104,35 @@
               <button id="health-btn" type="button" class="pse-btn-primary">Run Health Check</button>
               <div id="health-result" style="margin-top:20px;"></div>
               <div id="message-health" class="pse-message"></div>
+            </div>
+
+            <!-- Sanitization Tab -->
+            <div class="pse-panel" id="panel-sanitization">
+              <h2 class="pse-title">Sanitization Configuration</h2>
+
+              <div style="margin-bottom:16px;">
+                <label class="pse-label">
+                  <input type="checkbox" id="sanitization_enabled" /> Enable Sanitization?
+                </label>
+              </div>
+
+              <div id="sanitization-fields" style="opacity:0.5;pointer-events:none;">
+                <div style="margin-bottom:16px;">
+                  <label class="pse-label">Sanitization Regex</label>
+                  <input type="text" id="sanitization_regex" placeholder="e.g. t" class="pse-input" style="max-width:460px;" />
+                  <p style="font-size:12px;color:#777;margin-top:4px;">Any match of this regex will be removed from the command before it is sent to the API.</p>
+                </div>
+              </div>
+
+              <button id="save-sanitization-btn" type="button" class="pse-btn-primary">Save Sanitization Settings</button>
+              <div id="message-sanitization" class="pse-message"></div>
+              <div class="pse-help">
+                <p class="pse-help-title">Help</p>
+                <p class="pse-help-text">
+                  When sanitization is enabled, the regex is applied to every PowerShell command before it is sent to the API.
+                  Matches are replaced with an empty string. Example: the regex <code>t</code> turns <code>todos</code> into <code>odos</code>.
+                </p>
+              </div>
             </div>
 
           </div>
