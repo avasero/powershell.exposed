@@ -11,10 +11,25 @@ Usage:
     | psexposed field=ScriptBlockText rate_limit_delay=0.5
 """
 
+import logging
 import os
 import re
 import sys
 import time
+import traceback
+
+# Debug log file — check this if the command fails
+DEBUG_LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "psexposed_debug.log")
+logging.basicConfig(filename=DEBUG_LOG, level=logging.DEBUG,
+                    format="%(asctime)s %(levelname)s %(message)s")
+log = logging.getLogger("psexposed")
+
+log.debug("=== psexposed_command.py starting ===")
+log.debug("Python executable: %s", sys.executable)
+log.debug("Python version: %s", sys.version)
+log.debug("sys.path: %s", sys.path)
+log.debug("LD_LIBRARY_PATH: %s", os.environ.get("LD_LIBRARY_PATH", "(not set)"))
+log.debug("argv: %s", sys.argv)
 
 # Add the bin/lib directory to the path so splunklib, requests, and our
 # client can be found by Splunk's embedded Python
@@ -22,15 +37,35 @@ lib_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib")
 if lib_path not in sys.path:
     sys.path.insert(0, lib_path)
 
-from splunklib.searchcommands import (
-    dispatch,
-    StreamingCommand,
-    Configuration,
-    Option,
-    validators,
-)
+log.debug("lib_path added: %s", lib_path)
+log.debug("lib_path exists: %s", os.path.isdir(lib_path))
+log.debug("lib_path contents: %s", os.listdir(lib_path) if os.path.isdir(lib_path) else "N/A")
 
-from psexposed_client import PsExposedClient
+try:
+    import ssl
+    log.debug("ssl import OK — version: %s, openssl: %s", ssl.OPENSSL_VERSION, ssl.OPENSSL_VERSION_INFO)
+except Exception as e:
+    log.error("ssl import FAILED: %s", e)
+
+try:
+    from splunklib.searchcommands import (
+        dispatch,
+        StreamingCommand,
+        Configuration,
+        Option,
+        validators,
+    )
+    log.debug("splunklib import OK")
+except Exception as e:
+    log.error("splunklib import FAILED: %s\n%s", e, traceback.format_exc())
+    raise
+
+try:
+    from psexposed_client import PsExposedClient
+    log.debug("psexposed_client import OK")
+except Exception as e:
+    log.error("psexposed_client import FAILED: %s\n%s", e, traceback.format_exc())
+    raise
 
 # Default API base URL
 DEFAULT_BASE_URL = "https://api.powershell.exposed"

@@ -1,4 +1,4 @@
-<dashboard version="1.1" script="setup_v4.js" stylesheet="setup_v4.css" hideEdit="true">
+<dashboard version="1.1" script="setup_v6.js" stylesheet="setup_v5.css" hideEdit="true">
   <label>PSExposed Setup</label>
   <row>
     <panel>

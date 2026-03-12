@@ -231,52 +231,48 @@ require([
         if (btn) { btn.disabled = true; btn.textContent = "Checking..."; }
         if (result) result.innerHTML = '<div class="pse-health-checking">Connecting to API...</div>';
 
-        var searchQuery = '| makeresults | eval ps_command="echo test" | psexposed field=ps_command | fields ps_risk_level ps_error';
+        var endpoint = "/en-US/splunkd/__raw/servicesNS/nobody/psexposed_app/psexposed/health?output_mode=json";
 
-        service.search(searchQuery, { exec_mode: "blocking", earliest_time: "-1m", latest_time: "now" }, function(err, job) {
-            if (err) {
-                if (btn) { btn.disabled = false; btn.textContent = "Run Health Check"; }
-                result.innerHTML = '<div class="pse-health-fail"><strong>Search Error:</strong> ' + (err.error || err.message || JSON.stringify(err)) + '</div>';
-                return;
-            }
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", endpoint, true);
+        xhr.setRequestHeader("X-Splunk-Form-Key", utils.getFormKey());
+        xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
 
-            job.results({ output_mode: "json", count: 10 }, function(err2, results) {
-                if (btn) { btn.disabled = false; btn.textContent = "Run Health Check"; }
+        xhr.onload = function() {
+            if (btn) { btn.disabled = false; btn.textContent = "Run Health Check"; }
 
-                if (err2) {
-                    result.innerHTML = '<div class="pse-health-fail"><strong>Results Error:</strong> ' + (err2.error || err2.message || JSON.stringify(err2)) + '</div>';
+            try {
+                var data = JSON.parse(xhr.responseText);
+
+                if (xhr.status !== 200) {
+                    result.innerHTML = '<div class="pse-health-fail">'
+                        + '<strong>HTTP ' + xhr.status + '</strong><br/>'
+                        + '<details style="margin-top:8px;"><summary style="cursor:pointer;color:#1a73e8;">Show details</summary>'
+                        + '<pre style="white-space:pre-wrap;font-size:12px;margin-top:8px;background:#fff;padding:8px;border:1px solid #ddd;border-radius:4px;max-height:300px;overflow:auto;">' + JSON.stringify(data, null, 2) + '</pre>'
+                        + '</details></div>';
                     return;
                 }
 
-                try {
-                    var rows = (results && results.rows) ? results.rows : [];
-                    var fields = (results && results.fields) ? results.fields : [];
-
-                    if (rows.length === 0) {
-                        job.fetch(function(err3, j) {
-                            var messages = (j && j.properties && j.properties().messages) || [];
-                            var msgText = messages.map(function(m) { return m.text; }).join("; ");
-                            result.innerHTML = '<div class="pse-health-fail"><strong>No results returned.</strong>' + (msgText ? " " + msgText : " The psexposed command may have failed to load.") + "</div>";
-                        });
-                        return;
-                    }
-
-                    var row = rows[0];
-                    var errorIdx = fields.indexOf("ps_error");
-                    var riskIdx = fields.indexOf("ps_risk_level");
-
-                    if (errorIdx >= 0 && row[errorIdx]) {
-                        result.innerHTML = '<div class="pse-health-fail"><strong>API Error:</strong> ' + row[errorIdx] + '</div>';
-                    } else if (riskIdx >= 0 && row[riskIdx]) {
-                        result.innerHTML = '<div class="pse-health-ok"><strong>Success!</strong> API is reachable. Risk level: <code>' + row[riskIdx] + '</code></div>';
-                    } else {
-                        result.innerHTML = '<div class="pse-health-ok"><strong>Success!</strong> API is reachable and responding correctly.</div>';
-                    }
-                } catch (e) {
-                    result.innerHTML = '<div class="pse-health-fail"><strong>Parse Error:</strong> ' + e.message + '</div>';
+                if (data.status === "ok") {
+                    result.innerHTML = '<div class="pse-health-ok"><strong>Success!</strong> ' + (data.message || 'API is reachable and responding correctly.') + '</div>';
+                } else {
+                    result.innerHTML = '<div class="pse-health-fail"><strong>Error:</strong> ' + (data.message || 'Unknown error.') + '</div>';
                 }
-            });
-        });
+            } catch (e) {
+                result.innerHTML = '<div class="pse-health-fail">'
+                    + '<strong>Parse Error:</strong> ' + e.message + '<br/>'
+                    + '<details style="margin-top:8px;"><summary style="cursor:pointer;color:#1a73e8;">Show raw response</summary>'
+                    + '<pre style="white-space:pre-wrap;font-size:12px;margin-top:8px;background:#fff;padding:8px;border:1px solid #ddd;border-radius:4px;max-height:300px;overflow:auto;">' + xhr.responseText + '</pre>'
+                    + '</details></div>';
+            }
+        };
+
+        xhr.onerror = function() {
+            if (btn) { btn.disabled = false; btn.textContent = "Run Health Check"; }
+            result.innerHTML = '<div class="pse-health-fail"><strong>Network Error:</strong> Could not reach the Splunk REST endpoint.</div>';
+        };
+
+        xhr.send();
     }
 
     // ── Sanitization Tab ─────────────────────────────────────
