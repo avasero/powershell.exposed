@@ -120,7 +120,7 @@ require([
     }
 
     function done(err, apiKeyEl, btn) {
-        if (btn) { btn.disabled = false; btn.textContent = "Save API Key"; }
+        if (btn) { btn.disabled = false; btn.textContent = "Save"; }
         if (err) {
             showMessage("Failed to save: " + (err.error || err.message || "unknown error"), true);
             console.error("PSExposed save error:", err);

@@ -24,7 +24,7 @@
                        class="pse-input" style="flex:1;max-width:460px;" />
                 <button type="button" id="toggle-visibility" title="Show/Hide" class="pse-btn-icon">&#128065;</button>
               </div>
-              <button id="save-btn" type="button" class="pse-btn-primary">Save API Key</button>
+              <button id="save-btn" type="button" class="pse-btn-primary">Save</button>
               <div id="message-apikey" class="pse-message"></div>
               <div class="pse-help">
                 <p class="pse-help-title">Help</p>
@@ -84,7 +84,7 @@
                 </div>
               </div>
 
-              <button id="save-proxy-btn" type="button" class="pse-btn-primary">Save Proxy Settings</button>
+              <button id="save-proxy-btn" type="button" class="pse-btn-primary">Save</button>
               <div id="message-proxy" class="pse-message"></div>
               <div class="pse-help">
                 <p class="pse-help-title">Help</p>
@@ -124,7 +124,7 @@
                 </div>
               </div>
 
-              <button id="save-sanitization-btn" type="button" class="pse-btn-primary">Save Sanitization Settings</button>
+              <button id="save-sanitization-btn" type="button" class="pse-btn-primary">Save</button>
               <div id="message-sanitization" class="pse-message"></div>
               <div class="pse-help">
                 <p class="pse-help-title">Help</p>

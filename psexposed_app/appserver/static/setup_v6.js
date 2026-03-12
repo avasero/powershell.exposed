@@ -138,7 +138,7 @@ require([
 
         var configJson = JSON.stringify({ base_url: BASE_URL, api_key: apiKey });
         saveEntry(getRealm("apikey"), configJson, function(err) {
-            if (btn) { btn.disabled = false; btn.textContent = "Save API Key"; }
+            if (btn) { btn.disabled = false; btn.textContent = "Save"; }
             if (err) {
                 showMsg("message-apikey", "Failed to save: " + (err.error || err.message || "unknown error"), true);
             } else {
@@ -214,7 +214,7 @@ require([
         };
 
         saveEntry(getRealm("proxy"), JSON.stringify(config), function(err) {
-            if (btn) { btn.disabled = false; btn.textContent = "Save Proxy Settings"; }
+            if (btn) { btn.disabled = false; btn.textContent = "Save"; }
             if (err) {
                 showMsg("message-proxy", "Failed to save: " + (err.error || err.message || "unknown error"), true);
             } else {
@@ -296,7 +296,7 @@ require([
         };
 
         saveEntry(getRealm("sanitization"), JSON.stringify(config), function(err) {
-            if (btn) { btn.disabled = false; btn.textContent = "Save Sanitization Settings"; }
+            if (btn) { btn.disabled = false; btn.textContent = "Save"; }
             if (err) {
                 showMsg("message-sanitization", "Failed to save: " + (err.error || err.message || "unknown error"), true);
             } else {
