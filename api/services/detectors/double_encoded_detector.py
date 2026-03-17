@@ -62,13 +62,38 @@ def detect_double_encoded_command(
                     "second_level_decoded": None
                 }
         
+        # Check for FromBase64String with a double-encoded payload
+        from_b64_match = regex.search(
+            r"""FromBase64String\(\s*['"]([A-Za-z0-9+/]+={0,2})['"]""",
+            decoded_command,
+            regex.IGNORECASE
+        )
+
+        if from_b64_match:
+            b64_payload = from_b64_match.group(1)
+            if b64_payload.startswith('JA'):
+                try:
+                    # Add proper padding
+                    padding_needed = (4 - len(b64_payload) % 4) % 4
+                    padded_payload = b64_payload + ('=' * padding_needed)
+                    decoded_inner = base64.b64decode(padded_payload, validate=False)
+                    inner_text = decoded_inner.decode('utf-16-le', errors='ignore')
+                    return {
+                        "is_double_encoded": True,
+                        "encoding_layers": 2,
+                        "indicator": "Double-Encoded Payload via FromBase64String",
+                        "second_level_decoded": inner_text if inner_text else None
+                    }
+                except Exception:
+                    pass
+
         return {
             "is_double_encoded": False,
             "encoding_layers": 1,
             "indicator": None,
             "second_level_decoded": None
         }
-        
+
     except Exception as e:
         return {
             "is_double_encoded": False,
