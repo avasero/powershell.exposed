@@ -43,3 +43,4 @@ Thumbs.db
 node_modules/ 
 .next
 .vercel
+psexposed_app/bin/lib/
