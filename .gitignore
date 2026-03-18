@@ -43,6 +43,4 @@ Thumbs.db
 node_modules/
 .next
 .vercel
-
-# Splunk app vendored libs
 psexposed_app/bin/lib/

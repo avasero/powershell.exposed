@@ -28,7 +28,7 @@ from services.cache_service import (
 )
 from services.session_manager import get_or_create_session, get_supabase_client
 from utils.geolocation import get_ip_location, get_client_ip_from_request
-from services.plan_service import can_user_decode_commands, get_user_plan_features, get_plan_by_name, check_session_rate_limit_from_db
+from services.plan_service import can_user_decode_commands, can_user_deobfuscate, get_user_plan_features, get_plan_by_name, check_session_rate_limit_from_db
 from services.api_key_manager import update_api_key_usage
 from services.ai_service import generate_ai_overview, is_ai_service_available
 from config.settings import AST_SERVICE_ENABLED
@@ -283,7 +283,8 @@ async def analyze_command_endpoint(
                 for sig in cached_sigs
                 if not sig.get("san_score_applied", False)
             )
-            should_deobfuscate = AST_SERVICE_ENABLED and not deobfuscated_cmd and db_result.get("success") and raw_score < 10
+            deob_info = await can_user_deobfuscate(user_id, session_id=session_id)
+            should_deobfuscate = AST_SERVICE_ENABLED and not deobfuscated_cmd and db_result.get("success") and raw_score < 10 and deob_info["can_deobfuscate"]
             deob_result = None
             if should_deobfuscate:
                 from services.deobfuscation_queue import deobfuscation_queue, DeobfuscationJob
@@ -403,10 +404,16 @@ async def analyze_command_endpoint(
                     "within_limit": rate_limit_info.get("within_limit", True),
                     "current_count": rate_limit_info.get("current_count", 0),
                     "limit": rate_limit_info.get("limit")
+                },
+                "deobfuscation_info": {
+                    "current_usage": deob_info["current_usage"],
+                    "limit": deob_info["limit"],
+                    "remaining": deob_info["remaining"],
+                    "can_deobfuscate": deob_info["can_deobfuscate"]
                 }
             })
-        
-       
+
+
         signatures = await load_signatures_from_db(user_id=user_id)
 
         if not signatures:
@@ -467,7 +474,8 @@ async def analyze_command_endpoint(
             for sig in analysis_result.get("detected_signatures", [])
             if not sig.get("san_score_applied", False)
         )
-        should_deobfuscate = AST_SERVICE_ENABLED and db_result.get("success") and raw_score < 10
+        deob_info = await can_user_deobfuscate(user_id, session_id=session_id)
+        should_deobfuscate = AST_SERVICE_ENABLED and db_result.get("success") and raw_score < 10 and deob_info["can_deobfuscate"]
         deob_result = None
         if should_deobfuscate:
             from services.deobfuscation_queue import deobfuscation_queue, DeobfuscationJob
@@ -594,9 +602,15 @@ async def analyze_command_endpoint(
                 "within_limit": rate_limit_info.get("within_limit", True),
                 "current_count": rate_limit_info.get("current_count", 0),
                 "limit": rate_limit_info.get("limit")
+            },
+            "deobfuscation_info": {
+                "current_usage": deob_info["current_usage"],
+                "limit": deob_info["limit"],
+                "remaining": deob_info["remaining"],
+                "can_deobfuscate": deob_info["can_deobfuscate"]
             }
         })
-        
+
     except Exception as error:
         return JSONResponse(
             {
@@ -1005,6 +1019,8 @@ async def get_analysis_by_id_endpoint(
         
         showing_decoded_content = should_show_decoded or (decode_info["can_decode"] and decoded_cmd and decoded_cmd != "[PREMIUM_PROTECTED_CONTENT]")
 
+        deob_info = await can_user_deobfuscate(user_id, session_id=session_id)
+
         # Determine deobfuscation status
         deob_status = "disabled"
         if deobfuscated_cmd:
@@ -1036,6 +1052,12 @@ async def get_analysis_by_id_endpoint(
                 "is_example": decode_info.get("is_example", False),
                 "decode_used_this_request": showing_decoded_content,
                 "is_owner": is_owner
+            },
+            "deobfuscation_info": {
+                "current_usage": deob_info["current_usage"],
+                "limit": deob_info["limit"],
+                "remaining": deob_info["remaining"],
+                "can_deobfuscate": deob_info["can_deobfuscate"]
             }
         })
     except Exception as error:
