@@ -1,6 +1,6 @@
 "use client";
 
-import { FaStar } from "react-icons/fa";
+
 
 // Severity color mapping
 // Score Ranges:
@@ -72,36 +72,14 @@ export default function IndicatorsSummaryTable({ signatures }) {
                       // If san_score_applied, upgrade to premium regardless of original type
                       const isPremium = sig.san_score_applied || type === 'private' || type === 'premium';
                       if (type === 'community' || type === 'private' || type === 'premium') {
-                        return isPremium ? (
+                        return (
                           <span
-                            className="inline-flex rounded-lg"
-                            style={{
-                              background: 'linear-gradient(135deg, #C084FC, #7B2FBF, #C084FC, #6B1FA0, #C084FC)',
-                              padding: '1.3px',
-                              boxShadow: '0 0 6px rgba(155, 89, 182, 0.6), 0 0 15px rgba(155, 89, 182, 0.4), 0 0 30px rgba(130, 60, 200, 0.25)',
-                            }}
+                            className={`inline-flex items-center px-2 py-1 rounded text-xs font-bold border ${!isPremium
+                              ? 'border-blue-400 text-blue-300 bg-blue-950'
+                              : 'border-purple-400 text-purple-300 bg-purple-950'
+                              }`}
                           >
-                            <span
-                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[calc(0.5rem-1.5px)] text-xs font-bold text-white"
-                              style={{
-                                background: 'linear-gradient(135deg, #8B2FC9 0%, #6B1FA0 40%, #4A1578 100%)',
-                                backgroundImage: `linear-gradient(110deg, transparent 6%, rgba(255,255,255,0.06) 8%, rgba(255,255,255,0.06) 15%, transparent 17%, transparent 31%, rgba(255,255,255,0.04) 33%, rgba(255,255,255,0.04) 39%, transparent 41%, transparent 55%, rgba(255,255,255,0.07) 58%, rgba(255,255,255,0.07) 62%, transparent 64%, transparent 80%, rgba(255,255,255,0.05) 83%, rgba(255,255,255,0.05) 91%, transparent 93%), linear-gradient(135deg, #8B2FC9 0%, #6B1FA0 40%, #4A1578 100%)`,
-                                textShadow: '0 0 6px rgba(200, 150, 255, 0.5)',
-                              }}
-                            >
-                              <FaStar size={14} style={{ marginBottom: '2px', filter: 'drop-shadow(0 0 3px rgba(200, 150, 255, 0.6))', color: '#D8B4FE' }} /><span>PREMIUM</span>
-                            </span>
-                          </span>
-                        ) : (
-                          <span
-                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold text-blue-400"
-                            style={{
-                              background: 'rgba(59, 130, 246, 0.08)',
-                              border: '1px solid rgba(59, 130, 246, 0.4)',
-                            }}
-                          >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                            COMMUNITY
+                            {!isPremium ? 'COMMUNITY' : 'PREMIUM'}
                           </span>
                         );
                       }
