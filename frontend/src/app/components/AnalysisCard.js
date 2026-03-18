@@ -146,7 +146,7 @@ export default function AnalysisCard({
               if (type === 'community' || type === 'private' || type === 'premium') {
                 return (
                   <span
-                    className={`font-mono text-xs px-2 py-1 rounded border ${!isPremium
+                    className={`font-mono text-xs px-2 py-1 rounded border font-bold ${!isPremium
                       ? 'border-blue-400 text-blue-300 bg-blue-950'
                       : 'border-purple-400 text-purple-300 bg-purple-950'
                       }`}
