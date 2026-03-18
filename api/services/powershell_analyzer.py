@@ -392,7 +392,7 @@ async def analyze_command_patterns(command: str, signatures: list, allow_decoded
         if frombase64_sig:
             detected_signatures.append({
                 "name": "Notable base64 in encoded command",
-                "description": "FromBase64String contains a base64 string starting with JA (UTF-16LE encoded PowerShell), indicating a double-encoded payload",
+                "description": "A notable string was observed inside a decoded PS command as a parameter for FromBase64String method",
                 "severity": frombase64_sig["severity"],
                 "base_score": frombase64_sig["score"],
                 "matches_found": 1,
