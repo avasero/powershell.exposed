@@ -1,0 +1,143 @@
+<dashboard version="1.1" script="setup_v6.js" stylesheet="setup_v5.css" hideEdit="true">
+  <label>PSExposed Setup</label>
+  <row>
+    <panel>
+      <html>
+        <div class="pse-setup">
+          <!-- Tabs -->
+          <div class="pse-tabs">
+            <div class="pse-tab pse-tab-active" data-tab="apikey">API Key</div>
+            <div class="pse-tab" data-tab="proxy">Proxy</div>
+            <div class="pse-tab" data-tab="health">Health Check</div>
+            <div class="pse-tab" data-tab="sanitization">Sanitization</div>
+          </div>
+
+          <div class="pse-content">
+
+            <!-- API Key Tab -->
+            <div class="pse-panel pse-panel-active" id="panel-apikey">
+              <h2 class="pse-title">PSExposed API Key Configuration</h2>
+              <div id="status-container" style="margin-bottom:20px;"></div>
+              <label class="pse-label">API Key</label>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+                <input type="password" id="api_key" placeholder=""
+                       class="pse-input" style="flex:1;max-width:460px;" />
+                <button type="button" id="toggle-visibility" title="Show/Hide" class="pse-btn-icon">&#128065;</button>
+              </div>
+              <button id="save-btn" type="button" class="pse-btn-primary">Save</button>
+              <div id="message-apikey" class="pse-message"></div>
+              <div class="pse-help">
+                <p class="pse-help-title">Help</p>
+                <p class="pse-help-text">
+                  Please enter your PSExposed API key above. You can find your API key in your
+                  <a href="https://powershell.exposed" target="_blank">powershell.exposed</a> account settings.
+                </p>
+              </div>
+            </div>
+
+            <!-- Proxy Tab -->
+            <div class="pse-panel" id="panel-proxy">
+              <h2 class="pse-title">Proxy Configuration</h2>
+
+              <div style="margin-bottom:16px;">
+                <label class="pse-label">
+                  <input type="checkbox" id="proxy_enabled" /> Use Proxy?
+                </label>
+              </div>
+
+              <div id="proxy-fields" style="opacity:0.5;pointer-events:none;">
+                <div style="margin-bottom:16px;">
+                  <label class="pse-label">Proxy Protocol</label>
+                  <select id="proxy_protocol" class="pse-input" style="max-width:200px;">
+                    <option value="http">http</option>
+                    <option value="https">https</option>
+                    <option value="socks5">socks5</option>
+                  </select>
+                </div>
+
+                <div style="display:flex;gap:16px;margin-bottom:16px;">
+                  <div style="flex:3;">
+                    <label class="pse-label">Proxy Host</label>
+                    <input type="text" id="proxy_host" placeholder="proxy.example.com" class="pse-input" />
+                  </div>
+                  <div style="flex:1;">
+                    <label class="pse-label">Proxy Port</label>
+                    <input type="text" id="proxy_port" placeholder="8080" class="pse-input" />
+                  </div>
+                </div>
+
+                <div style="margin-bottom:16px;">
+                  <label class="pse-label">
+                    <input type="checkbox" id="proxy_auth_enabled" /> Use Proxy Authentication?
+                  </label>
+                </div>
+
+                <div id="proxy-auth-fields" style="opacity:0.5;pointer-events:none;">
+                  <div style="margin-bottom:16px;">
+                    <label class="pse-label">Proxy Username</label>
+                    <input type="text" id="proxy_username" placeholder="" class="pse-input" style="max-width:300px;" />
+                  </div>
+                  <div style="margin-bottom:16px;">
+                    <label class="pse-label">Proxy Password</label>
+                    <input type="password" id="proxy_password" placeholder="" class="pse-input" style="max-width:300px;" />
+                  </div>
+                </div>
+              </div>
+
+              <button id="save-proxy-btn" type="button" class="pse-btn-primary">Save</button>
+              <div id="message-proxy" class="pse-message"></div>
+              <div class="pse-help">
+                <p class="pse-help-title">Help</p>
+                <p class="pse-help-text">
+                  Proxy configuration is optional. If you need to route traffic through a proxy, enable the proxy settings above.
+                  You can also optionally provide a username and password if your proxy requires authentication.
+                </p>
+              </div>
+            </div>
+
+            <!-- Health Check Tab -->
+            <div class="pse-panel" id="panel-health">
+              <h2 class="pse-title">API Health Check</h2>
+              <p style="font-size:14px;color:#555;margin-bottom:20px;">
+                Test connectivity to the powershell.exposed API using your configured API key and proxy settings.
+              </p>
+              <button id="health-btn" type="button" class="pse-btn-primary">Run Health Check</button>
+              <div id="health-result" style="margin-top:20px;"></div>
+              <div id="message-health" class="pse-message"></div>
+            </div>
+
+            <!-- Sanitization Tab -->
+            <div class="pse-panel" id="panel-sanitization">
+              <h2 class="pse-title">Sanitization Configuration</h2>
+
+              <div style="margin-bottom:16px;">
+                <label class="pse-label">
+                  <input type="checkbox" id="sanitization_enabled" /> Enable Sanitization?
+                </label>
+              </div>
+
+              <div id="sanitization-fields" style="opacity:0.5;pointer-events:none;">
+                <div style="margin-bottom:16px;">
+                  <label class="pse-label">Sanitization Regex</label>
+                  <input type="text" id="sanitization_regex" placeholder="e.g. t" class="pse-input" style="max-width:460px;" />
+                  <p style="font-size:12px;color:#777;margin-top:4px;">Any match of this regex will be removed from the command before it is sent to the API.</p>
+                </div>
+              </div>
+
+              <button id="save-sanitization-btn" type="button" class="pse-btn-primary">Save</button>
+              <div id="message-sanitization" class="pse-message"></div>
+              <div class="pse-help">
+                <p class="pse-help-title">Help</p>
+                <p class="pse-help-text">
+                  When sanitization is enabled, the regex is applied to every PowerShell command before it is sent to the API.
+                  Matches are replaced with an empty string. Example: the regex <code>t</code> turns <code>todos</code> into <code>odos</code>.
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </html>
+    </panel>
+  </row>
+</dashboard>

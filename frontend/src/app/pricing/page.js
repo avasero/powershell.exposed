@@ -1,11 +1,57 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+// STRIPE DISABLED: import { useSearchParams } from 'next/navigation';
 import PricingCard from '../components/PricingCard';
 import { useAuth } from '../contexts/AuthContext';
+// STRIPE DISABLED: import { createCheckoutSession, makeAuthenticatedJSONRequest } from '../../lib/api';
 
 export default function PricingPage() {
     const { isAuthenticated } = useAuth();
+    // STRIPE DISABLED: const searchParams = useSearchParams();
+    // STRIPE DISABLED: const [checkoutLoading, setCheckoutLoading] = useState(false);
+    const [banner, setBanner] = useState(null);
+    // STRIPE DISABLED: const [userPlan, setUserPlan] = useState(null);
+
+    /* --- STRIPE/PLAN INTEGRATION DISABLED ---
+    useEffect(() => {
+        if (searchParams.get('success') === 'true') {
+            setBanner({ type: 'success', message: 'Payment successful! Your plan has been upgraded.' });
+        } else if (searchParams.get('canceled') === 'true') {
+            setBanner({ type: 'canceled', message: 'Checkout canceled. No charges were made.' });
+        }
+    }, [searchParams]);
+
+    useEffect(() => {
+        if (isAuthenticated()) {
+            makeAuthenticatedJSONRequest('/user/plan')
+                .then(data => setUserPlan(data?.plan?.plan_name || null))
+                .catch(() => setUserPlan(null));
+        }
+    }, [isAuthenticated]);
+
+    const isPremiumUser = userPlan === 'premium' || userPlan === 'enterprise';
+
+    const handleCheckout = async (priceId) => {
+        if (!isAuthenticated()) {
+            window.location.href = '/register';
+            return;
+        }
+        setCheckoutLoading(true);
+        try {
+            const data = await createCheckoutSession(priceId);
+            if (data.url) {
+                window.location.href = data.url;
+            }
+        } catch (err) {
+            console.error('Checkout error:', err);
+            alert('Failed to start checkout. Please try again.');
+        } finally {
+            setCheckoutLoading(false);
+        }
+    };
+    --- END STRIPE/PLAN INTEGRATION DISABLED --- */
+
     const tiers = [
         {
             id: 'guest',
@@ -28,10 +74,11 @@ export default function PricingPage() {
             id: 'basic',
             title: 'Basic',
             price: 'Free',
-            subtitle: 'Free forever, promised!',
-            buttonText: 'Signup Now',
-            buttonVariant: 'primary',
-            buttonAction: () => window.location.href = '/register',
+            subtitle: isAuthenticated() ? 'You are on this plan' : 'Free forever, promised!',
+            buttonText: isAuthenticated() ? 'Your Tier' : 'Signup Now',
+            buttonVariant: isAuthenticated() ? 'default' : 'primary',
+            buttonAction: isAuthenticated() ? () => window.location.href = '/evaluate' : () => window.location.href = '/register',
+            buttonDisabled: isAuthenticated(),
             isPopular: true,
             summaryFeatures: [
                 'Full access to evaluation engine',
@@ -72,10 +119,11 @@ export default function PricingPage() {
         {
             id: 'enterprise',
             title: 'Premium',
-            price: '', // Shows 'Coming'
+            price: '$9.99/mo',
             subtitle: 'Secure your organization',
-            buttonText: 'Get notified',
-            buttonAction: () => window.location.href = isAuthenticated() ? '/settings?notify=true' : '/register',
+            buttonText: 'Coming Soon',
+            buttonAction: () => {},
+            buttonDisabled: true,
             isPopular: false,
             isPremium: true,
             summaryFeatures: [
@@ -97,6 +145,25 @@ export default function PricingPage() {
 
     return (
         <div className="min-h-[calc(100vh-80px)] pt-24 pb-12 px-4 md:px-8 max-w-7xl mx-auto font-mono flex flex-col justify-center">
+            {banner && (
+                <div
+                    className="max-w-2xl mx-auto mb-8 px-6 py-4 rounded-lg border font-mono text-sm flex items-center justify-between"
+                    style={{
+                        backgroundColor: banner.type === 'success' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(234, 179, 8, 0.1)',
+                        borderColor: banner.type === 'success' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(234, 179, 8, 0.3)',
+                        color: banner.type === 'success' ? '#22c55e' : '#eab308',
+                    }}
+                >
+                    <span>{banner.message}</span>
+                    <button
+                        onClick={() => setBanner(null)}
+                        className="ml-4 hover:opacity-70 text-lg"
+                        style={{ color: 'inherit' }}
+                    >
+                        x
+                    </button>
+                </div>
+            )}
             <div className="text-center mb-16 space-y-4">
                 <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold break-words" style={{ color: 'var(--accent)' }}>
                     USAGE TIERS

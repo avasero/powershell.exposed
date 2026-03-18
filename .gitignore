@@ -40,7 +40,7 @@ Thumbs.db
 *.swp
 
 # Node.js
-node_modules/ 
+node_modules/
 .next
 .vercel
 psexposed_app/bin/lib/

@@ -300,6 +300,7 @@ async def analyze_command_patterns(command: str, signatures: list, allow_decoded
     
     first_decoded = None
     double_decoded = None
+    double_encoding_indicator = None
 
   
 
@@ -316,6 +317,7 @@ async def analyze_command_patterns(command: str, signatures: list, allow_decoded
 
             if double_encoding_result["is_double_encoded"]:
                 double_decoded = double_encoding_result.get("second_level_decoded")
+                double_encoding_indicator = double_encoding_result.get("indicator")
                 print(f"[DEBUG analyze_command_patterns] double_decoded: {double_decoded[:200] if double_decoded else 'None'}")
     else:
         print(f"[DEBUG analyze_command_patterns] encoding_result['is_encoded'] is False - NO DECODING WILL HAPPEN")
@@ -384,6 +386,37 @@ async def analyze_command_patterns(command: str, signatures: list, allow_decoded
             techniques_set.update(double_encoded_sig.get("techniques", ["T1027.010", "T1140"]))
             total_score += double_encoded_sig["score"]
 
+    # Check for double-encoding via FromBase64String (detected in first decoded layer)
+    if double_encoding_indicator == "Notable base64 in encoded command" and decode_iterations < 2:
+        frombase64_sig = next((sig for sig in signatures if sig.get("name") == "Notable base64 in encoded command"), None)
+        if frombase64_sig:
+            detected_signatures.append({
+                "name": "Notable base64 in encoded command",
+                "description": "FromBase64String contains a base64 string starting with JA (UTF-16LE encoded PowerShell), indicating a double-encoded payload",
+                "severity": frombase64_sig["severity"],
+                "base_score": frombase64_sig["score"],
+                "matches_found": 1,
+                "total_score": frombase64_sig["score"],
+                "max_match_allowed": frombase64_sig["max_match"],
+                "pattern": "FromBase64String_double_encoding",
+                "matches_details": [{
+                    "matched_text": f"FromBase64String payload decoded: {double_decoded[:80] if double_decoded else 'N/A'}...",
+                    "position": {"start": 0, "end": len(raw_command)},
+                    "match_number": 1,
+                    "matched_in": "decoded"
+                }],
+                "tactics": frombase64_sig.get("tactics", ["Defense Evasion", "Execution"]),
+                "techniques": frombase64_sig.get("techniques", ["T1027.001", "T1140", "T1059.001"]),
+                "reference": frombase64_sig.get("reference", []),
+                "link": frombase64_sig.get("link"),
+                "is_premium_indicator": frombase64_sig.get("is_premium_indicator", False),
+                "indicator_type": frombase64_sig.get("indicator_type", "community"),
+                "found_in_decoded": True
+            })
+            tactics_set.update(frombase64_sig.get("tactics", ["Defense Evasion", "Execution"]))
+            techniques_set.update(frombase64_sig.get("techniques", ["T1027.001", "T1140", "T1059.001"]))
+            total_score += frombase64_sig["score"]
+
     encoding_detection = detectors.detect_encoded_command(raw_command)
 
     # Note: We detect encoded commands for decoding purposes but don't display them as indicators
@@ -419,7 +452,7 @@ async def analyze_command_patterns(command: str, signatures: list, allow_decoded
     commands_to_analyze = list(commands_set)
     
     
-    skip_signatures = {"Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected", "Heavily Obfuscated Command"}
+    skip_signatures = {"Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected", "Heavily Obfuscated Command", "Notable base64 in encoded command"}
     if has_encoded_command_indicator:
         skip_signatures.add("Long base64 strings")
     

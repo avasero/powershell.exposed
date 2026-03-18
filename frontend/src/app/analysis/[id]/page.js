@@ -762,7 +762,7 @@ export default function AnalysisDetailsPage() {
           <div className="border rounded-lg p-4 bg-black/80 border-blue-500/30">
             <div className="flex justify-between items-center mb-3">
               <div className="font-mono text-sm font-bold" style={{ color: 'var(--accent)' }}>
-                First Decoded Layer (Iteration 1)
+                Initial Decoded Payload
               </div>
               <DecodeUsageBadge decodeInfo={decodeInfo} />
             </div>
@@ -793,7 +793,7 @@ export default function AnalysisDetailsPage() {
           <div className="border rounded-lg p-4 bg-black/80 border-yellow-500/30">
             <div className="flex justify-between items-center mb-3">
               <div className="font-mono text-sm font-bold" style={{ color: 'var(--accent)' }}>
-                Final Decoded Command (Iteration 2)
+                Additional Decoded Payload
               </div>
               <DecodeUsageBadge decodeInfo={decodeInfo} />
             </div>

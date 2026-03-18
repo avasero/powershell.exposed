@@ -242,14 +242,28 @@ except ImportError as e:
             "error": "Command evaluations endpoint temporarily unavailable"
         }, status_code=503)
 
-try:
-    from routes.plan_routes import get_user_plan_endpoint, get_all_plans_endpoint
-    
-    app.get("/user/plan", tags=["Plans"], summary="Get User Plan", include_in_schema=False)(get_user_plan_endpoint)
-    app.get("/plans", tags=["Plans"], summary="Get All Plans", include_in_schema=False)(get_all_plans_endpoint)
-    
-except ImportError as e:
-    print(f"⚠️ Plan routes not available: {e}")
+# --- STRIPE/PLAN ROUTES DISABLED ---
+# Stripe/plan integration commented out for production shipping.
+# Do not uncomment until live Stripe credentials are configured.
+#
+# try:
+#     from routes.plan_routes import get_user_plan_endpoint, get_all_plans_endpoint
+#
+#     app.get("/user/plan", tags=["Plans"], summary="Get User Plan", include_in_schema=False)(get_user_plan_endpoint)
+#     app.get("/plans", tags=["Plans"], summary="Get All Plans", include_in_schema=False)(get_all_plans_endpoint)
+#
+# except ImportError as e:
+#     print(f"⚠️ Plan routes not available: {e}")
+#
+# try:
+#     from routes.stripe_routes import create_checkout_session_endpoint, cancel_subscription_endpoint
+#
+#     app.post("/stripe/create-checkout-session", tags=["Stripe"], summary="Create Checkout Session", include_in_schema=False)(create_checkout_session_endpoint)
+#     app.post("/stripe/cancel-subscription", tags=["Stripe"], summary="Cancel Subscription", include_in_schema=False)(cancel_subscription_endpoint)
+#
+# except ImportError as e:
+#     print(f"⚠️ Stripe routes not available: {e}")
+# --- END STRIPE/PLAN ROUTES DISABLED ---
 
 
 @app.on_event("startup")

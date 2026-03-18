@@ -75,8 +75,8 @@ export default function IndicatorsSummaryTable({ signatures }) {
                         return (
                           <span
                             className={`inline-flex items-center px-2 py-1 rounded text-xs font-bold border ${!isPremium
-                              ? 'border-blue-500/30 text-blue-400 bg-blue-500/10'
-                              : 'bg-orange-500/20 text-orange-400 border-orange-500/50'
+                              ? 'border-blue-400 text-blue-300 bg-blue-950'
+                              : 'border-purple-400 text-purple-300 bg-purple-950'
                               }`}
                           >
                             {!isPremium ? 'COMMUNITY' : 'PREMIUM'}

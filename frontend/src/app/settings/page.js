@@ -10,12 +10,14 @@ export default function SettingsPage() {
   const { user, isAuthenticated } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [plan, setPlan] = useState(null);
-  const [loadingPlan, setLoadingPlan] = useState(true);
+  // STRIPE DISABLED: const [plan, setPlan] = useState(null);
+  // STRIPE DISABLED: const [loadingPlan, setLoadingPlan] = useState(true);
   const [notifyUser, setNotifyUser] = useState(null); // null = not loaded yet
   const [updatingNotify, setUpdatingNotify] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastVariant, setToastVariant] = useState('info');
+  // STRIPE DISABLED: const [showCancelDialog, setShowCancelDialog] = useState(false);
+  // STRIPE DISABLED: const [cancelingSubscription, setCancelingSubscription] = useState(false);
   const hasFetched = useRef(false);
   const hasCheckedNotifyParam = useRef(false);
 
@@ -50,11 +52,12 @@ export default function SettingsPage() {
     // Only fetch once per mount
     if (!hasFetched.current) {
       hasFetched.current = true;
-      fetchUserPlan();
+      // STRIPE DISABLED: fetchUserPlan();
       fetchUserProfile();
     }
   }, [isAuthenticated]);
 
+  /* --- STRIPE/PLAN INTEGRATION DISABLED ---
   const fetchUserPlan = async () => {
     try {
       const { makeAuthenticatedRequest } = await import('../../lib/api');
@@ -74,6 +77,7 @@ export default function SettingsPage() {
       setLoadingPlan(false);
     }
   };
+  --- END STRIPE/PLAN INTEGRATION DISABLED --- */
 
   const fetchUserProfile = async () => {
     try {
@@ -118,6 +122,40 @@ export default function SettingsPage() {
       setUpdatingNotify(false);
     }
   };
+
+  /* --- STRIPE/PLAN INTEGRATION DISABLED ---
+  const handleCancelSubscription = async () => {
+    setCancelingSubscription(true);
+    try {
+      const { makeAuthenticatedRequest } = await import('../../lib/api');
+      const response = await makeAuthenticatedRequest('/stripe/cancel-subscription', {
+        method: 'POST'
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setShowCancelDialog(false);
+        setToastVariant('info');
+        setToastMessage(`Subscription canceled. You'll keep Premium access until ${new Date(data.period_end).toLocaleDateString()}.`);
+        fetchUserPlan();
+      } else {
+        setToastVariant('error');
+        setToastMessage(data.error?.message || 'Failed to cancel subscription.');
+      }
+    } catch (error) {
+      console.error('Error canceling subscription:', error);
+      setToastVariant('error');
+      setToastMessage('Failed to cancel subscription. Please try again.');
+    } finally {
+      setCancelingSubscription(false);
+    }
+  };
+
+  const isPremium = plan?.plan_name?.toLowerCase() === 'premium';
+  const isCanceling = plan?.subscription_status === 'canceling';
+  const periodEnd = plan?.subscription_period_end ? new Date(plan.subscription_period_end) : null;
+  --- END STRIPE/PLAN INTEGRATION DISABLED --- */
 
   if (!isAuthenticated()) {
     return (
@@ -203,19 +241,9 @@ export default function SettingsPage() {
                 Current Plan
               </div>
               <div className="flex items-center gap-2">
-                {loadingPlan ? (
-                  <div className="h-5 w-20 bg-white/10 animate-pulse rounded"></div>
-                ) : (
-                  <span className="font-mono text-sm font-bold text-green-400 uppercase">
-                    {(() => {
-                      const lowerName = (plan?.plan_name || 'free').toLowerCase();
-                      if (lowerName === 'free') return 'Basic';
-                      if (lowerName === 'standard') return 'Pro';
-                      if (lowerName === 'premium') return 'Enterprise';
-                      return plan?.plan_name || 'Basic';
-                    })()}
-                  </span>
-                )}
+                <span className="font-mono text-sm font-bold text-green-400 uppercase">
+                  Basic
+                </span>
               </div>
             </div>
           </div>
@@ -318,6 +346,43 @@ export default function SettingsPage() {
           </Link>
         </div>
       </div>
+
+      {/* --- STRIPE/PLAN INTEGRATION DISABLED ---
+      {showCancelDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="mx-4 max-w-md w-full p-6 rounded-xl border border-white/10 bg-zinc-900">
+            <h3 className="font-mono font-bold text-lg text-white mb-3">
+              Cancel Subscription
+            </h3>
+            <p className="font-mono text-sm text-white/70 mb-2">
+              Are you sure you want to cancel your Premium subscription?
+            </p>
+            <p className="font-mono text-sm text-white/50 mb-6">
+              You will keep Premium access until the end of your current billing period. After that, your account will be downgraded to the Basic plan.
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setShowCancelDialog(false)}
+                disabled={cancelingSubscription}
+                className="px-4 py-2 rounded-lg border border-white/20 font-mono text-sm text-white/70 hover:bg-white/10 transition-all"
+              >
+                Keep Plan
+              </button>
+              <button
+                onClick={handleCancelSubscription}
+                disabled={cancelingSubscription}
+                className={`px-4 py-2 rounded-lg border font-mono text-sm transition-all ${cancelingSubscription
+                  ? 'bg-white/5 border-white/20 text-white/50 cursor-wait'
+                  : 'bg-red-600/20 border-red-500/40 text-red-400 hover:bg-red-600/30 hover:border-red-500/60'
+                  }`}
+              >
+                {cancelingSubscription ? 'Canceling...' : 'Yes, Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      --- END STRIPE/PLAN INTEGRATION DISABLED --- */}
 
       {/* Toast notification for already subscribed */}
       <Toast
