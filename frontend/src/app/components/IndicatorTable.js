@@ -60,7 +60,7 @@ export default function IndicatorTable({ signatures = [] }) {
                         <span
                           className={`text-[10px] w-fit px-1.5 py-0.5 rounded border leading-none font-bold ml-[44px] ${isCommunity
                             ? 'border-blue-500/30 text-blue-400 bg-blue-500/10'
-                            : 'bg-orange-500/20 text-orange-400 border-orange-500/50'
+                            : 'bg-[#9B59B6]/20 text-[#9B59B6] border-[#9B59B6]/50'
                             }`}
                         >
                           {isCommunity ? 'COMMUNITY' : 'PREMIUM'}

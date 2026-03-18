@@ -148,7 +148,7 @@ export default function AnalysisCard({
                   <span
                     className={`font-mono text-xs px-2 py-1 rounded border ${!isPremium
                       ? 'border-blue-500/50 text-blue-400 bg-blue-500/20'
-                      : 'bg-orange-500/20 text-orange-400 border-orange-500/50'
+                      : 'bg-[#9B59B6]/20 text-[#9B59B6] border-[#9B59B6]/50'
                       }`}
                     title={!isPremium ? 'Community indicator' : (sanScoreApplied ? 'Upgraded to Premium due to evasion detection' : 'Private/Premium indicator')}
                   >

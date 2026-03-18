@@ -10,14 +10,14 @@ export default function SettingsPage() {
   const { user, isAuthenticated } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [plan, setPlan] = useState(null);
-  const [loadingPlan, setLoadingPlan] = useState(true);
+  // STRIPE DISABLED: const [plan, setPlan] = useState(null);
+  // STRIPE DISABLED: const [loadingPlan, setLoadingPlan] = useState(true);
   const [notifyUser, setNotifyUser] = useState(null); // null = not loaded yet
   const [updatingNotify, setUpdatingNotify] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastVariant, setToastVariant] = useState('info');
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [cancelingSubscription, setCancelingSubscription] = useState(false);
+  // STRIPE DISABLED: const [showCancelDialog, setShowCancelDialog] = useState(false);
+  // STRIPE DISABLED: const [cancelingSubscription, setCancelingSubscription] = useState(false);
   const hasFetched = useRef(false);
   const hasCheckedNotifyParam = useRef(false);
 
@@ -52,11 +52,12 @@ export default function SettingsPage() {
     // Only fetch once per mount
     if (!hasFetched.current) {
       hasFetched.current = true;
-      fetchUserPlan();
+      // STRIPE DISABLED: fetchUserPlan();
       fetchUserProfile();
     }
   }, [isAuthenticated]);
 
+  /* --- STRIPE/PLAN INTEGRATION DISABLED ---
   const fetchUserPlan = async () => {
     try {
       const { makeAuthenticatedRequest } = await import('../../lib/api');
@@ -76,6 +77,7 @@ export default function SettingsPage() {
       setLoadingPlan(false);
     }
   };
+  --- END STRIPE/PLAN INTEGRATION DISABLED --- */
 
   const fetchUserProfile = async () => {
     try {
@@ -121,6 +123,7 @@ export default function SettingsPage() {
     }
   };
 
+  /* --- STRIPE/PLAN INTEGRATION DISABLED ---
   const handleCancelSubscription = async () => {
     setCancelingSubscription(true);
     try {
@@ -152,6 +155,7 @@ export default function SettingsPage() {
   const isPremium = plan?.plan_name?.toLowerCase() === 'premium';
   const isCanceling = plan?.subscription_status === 'canceling';
   const periodEnd = plan?.subscription_period_end ? new Date(plan.subscription_period_end) : null;
+  --- END STRIPE/PLAN INTEGRATION DISABLED --- */
 
   if (!isAuthenticated()) {
     return (
@@ -237,35 +241,10 @@ export default function SettingsPage() {
                 Current Plan
               </div>
               <div className="flex items-center gap-2">
-                {loadingPlan ? (
-                  <div className="h-5 w-20 bg-white/10 animate-pulse rounded"></div>
-                ) : (
-                  <>
-                    <span className="font-mono text-sm font-bold text-green-400 uppercase">
-                      {(() => {
-                        const lowerName = (plan?.plan_name || 'free').toLowerCase();
-                        if (lowerName === 'free') return 'Basic';
-                        if (lowerName === 'standard') return 'Pro';
-                        if (lowerName === 'premium') return 'Premium';
-                        return plan?.plan_name || 'Basic';
-                      })()}
-                    </span>
-                    {isCanceling && (
-                      <span className="font-mono text-xs text-amber-400 bg-amber-600/15 border border-amber-500/30 px-2 py-0.5 rounded">
-                        Ending {periodEnd?.toLocaleDateString()}
-                      </span>
-                    )}
-                  </>
-                )}
+                <span className="font-mono text-sm font-bold text-green-400 uppercase">
+                  Basic
+                </span>
               </div>
-              {!loadingPlan && isPremium && !isCanceling && (
-                <button
-                  onClick={() => setShowCancelDialog(true)}
-                  className="mt-2 font-mono text-xs text-red-400/70 hover:text-red-400 transition-colors underline underline-offset-2"
-                >
-                  Cancel subscription
-                </button>
-              )}
             </div>
           </div>
 
@@ -368,7 +347,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Cancel subscription confirmation dialog */}
+      {/* --- STRIPE/PLAN INTEGRATION DISABLED ---
       {showCancelDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <div className="mx-4 max-w-md w-full p-6 rounded-xl border border-white/10 bg-zinc-900">
@@ -403,6 +382,7 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+      --- END STRIPE/PLAN INTEGRATION DISABLED --- */}
 
       {/* Toast notification for already subscribed */}
       <Toast

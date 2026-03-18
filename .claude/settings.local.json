@@ -41,7 +41,8 @@
       "Bash(chmod +x /home/en20/powershell.exposed/psexposed_app/bin/psexposed_command.sh)",
       "Bash(chmod +x /home/en20/powershell.exposed/deploy.sh)",
       "Bash(git -C /home/en20/powershell.exposed status --short | wc -l)",
-      "Bash(bash /home/en20/powershell.exposed/deploy.sh)"
+      "Bash(bash /home/en20/powershell.exposed/deploy.sh)",
+      "Bash(find 'C:/Program Files/Splunk/etc/apps/psexposed_app/bin' -name *.pyc -o -name __pycache__)"
     ]
   }
 }

@@ -1,18 +1,19 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import React, { useState } from 'react';
+// STRIPE DISABLED: import { useSearchParams } from 'next/navigation';
 import PricingCard from '../components/PricingCard';
 import { useAuth } from '../contexts/AuthContext';
-import { createCheckoutSession, makeAuthenticatedJSONRequest } from '../../lib/api';
+// STRIPE DISABLED: import { createCheckoutSession, makeAuthenticatedJSONRequest } from '../../lib/api';
 
 export default function PricingPage() {
     const { isAuthenticated } = useAuth();
-    const searchParams = useSearchParams();
-    const [checkoutLoading, setCheckoutLoading] = useState(false);
+    // STRIPE DISABLED: const searchParams = useSearchParams();
+    // STRIPE DISABLED: const [checkoutLoading, setCheckoutLoading] = useState(false);
     const [banner, setBanner] = useState(null);
-    const [userPlan, setUserPlan] = useState(null);
+    // STRIPE DISABLED: const [userPlan, setUserPlan] = useState(null);
 
+    /* --- STRIPE/PLAN INTEGRATION DISABLED ---
     useEffect(() => {
         if (searchParams.get('success') === 'true') {
             setBanner({ type: 'success', message: 'Payment successful! Your plan has been upgraded.' });
@@ -49,6 +50,7 @@ export default function PricingPage() {
             setCheckoutLoading(false);
         }
     };
+    --- END STRIPE/PLAN INTEGRATION DISABLED --- */
 
     const tiers = [
         {
@@ -72,12 +74,12 @@ export default function PricingPage() {
             id: 'basic',
             title: 'Basic',
             price: 'Free',
-            subtitle: isAuthenticated() && !isPremiumUser ? 'You are on this plan' : 'Free forever, promised!',
-            buttonText: isAuthenticated() ? (isPremiumUser ? 'Start Analysis' : 'Your Tier') : 'Signup Now',
+            subtitle: isAuthenticated() ? 'You are on this plan' : 'Free forever, promised!',
+            buttonText: isAuthenticated() ? 'Your Tier' : 'Signup Now',
             buttonVariant: isAuthenticated() ? 'default' : 'primary',
             buttonAction: isAuthenticated() ? () => window.location.href = '/evaluate' : () => window.location.href = '/register',
-            buttonDisabled: isAuthenticated() && !isPremiumUser,
-            isPopular: !isPremiumUser,
+            buttonDisabled: isAuthenticated(),
+            isPopular: true,
             summaryFeatures: [
                 'Full access to evaluation engine',
                 '- 10 Requests / Minute',
@@ -117,12 +119,11 @@ export default function PricingPage() {
         {
             id: 'enterprise',
             title: 'Premium',
-            price: '$9.99/mo', // TODO: update with real price
-            subtitle: isPremiumUser ? 'You are on this plan' : 'Secure your organization',
-            buttonText: isPremiumUser ? 'Current Plan' : (checkoutLoading ? 'Loading...' : 'Upgrade Now'),
-            buttonAction: isPremiumUser ? () => {} : () => handleCheckout('price_1T43Q1HrWYWWTND8D326kbsW'),
-            buttonDisabled: isPremiumUser,
-            isCurrentPlan: isPremiumUser,
+            price: '$9.99/mo',
+            subtitle: 'Secure your organization',
+            buttonText: 'Coming Soon',
+            buttonAction: () => {},
+            buttonDisabled: true,
             isPopular: false,
             isPremium: true,
             summaryFeatures: [
