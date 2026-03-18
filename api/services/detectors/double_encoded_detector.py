@@ -71,7 +71,7 @@ def detect_double_encoded_command(
 
         if from_b64_match:
             b64_payload = from_b64_match.group(1)
-            if b64_payload.startswith('JA'):
+            if regex.match(r'^(JA|cABvAHcAZQByAHMAaABlAGwAbAA|cAB3AHMAaAA)', b64_payload):
                 try:
                     # Add proper padding
                     padding_needed = (4 - len(b64_payload) % 4) % 4
