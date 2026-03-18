@@ -81,7 +81,7 @@ def detect_double_encoded_command(
                     return {
                         "is_double_encoded": True,
                         "encoding_layers": 2,
-                        "indicator": "Double-Encoded Payload via FromBase64String",
+                        "indicator": "Notable base64 in encoded command",
                         "second_level_decoded": inner_text if inner_text else None
                     }
                 except Exception:
