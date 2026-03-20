@@ -4,24 +4,13 @@
 CREATE OR REPLACE FUNCTION public.clear_cache_on_indicator_change()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Check if it's a delete or if relevant fields changed
-    IF (TG_OP = 'DELETE') OR
-       (OLD.name <> NEW.name) OR
-       (OLD.patterns IS DISTINCT FROM NEW.patterns) OR
-       (OLD.basescore IS DISTINCT FROM NEW.basescore) OR
-       (OLD.severity IS DISTINCT FROM NEW.severity) OR
-       (OLD.is_active IS DISTINCT FROM NEW.is_active) OR
-       (OLD.max_match IS DISTINCT FROM NEW.max_match) THEN
-       
-        -- Delete from cache where the indicator name is present in indicators_matched
-        -- Note: indicators_matched is json, so we use json_array_elements
-        DELETE FROM public.cache_results
-        WHERE EXISTS (
-            SELECT 1 FROM json_array_elements(indicators_matched) AS elem
-            WHERE elem->>'name' = OLD.name
-        );
-    END IF;
-    
+    -- Delete cache entries that contain this indicator on any update or delete
+    DELETE FROM public.cache_results
+    WHERE EXISTS (
+        SELECT 1 FROM json_array_elements(indicators_matched) AS elem
+        WHERE elem->>'name' = OLD.name
+    );
+
     IF (TG_OP = 'DELETE') THEN
         RETURN OLD;
     END IF;
