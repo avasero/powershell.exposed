@@ -456,7 +456,7 @@ async def analyze_command_patterns(command: str, signatures: list, allow_decoded
     char_freq_result = detectors.detect_high_symbol_density(raw_command)
     if char_freq_result:
         char_freq_sig = next(
-            (sig for sig in signatures if sig.get("name") == "High Symbol Density"), None
+            (sig for sig in signatures if sig.get("name") == "Highly Obfuscated Command"), None
         )
         if char_freq_sig:
             dom_sym = char_freq_result["dominant_symbol"]
@@ -465,7 +465,7 @@ async def analyze_command_patterns(command: str, signatures: list, allow_decoded
             ratio = char_freq_result["ratio"]
 
             detected_signatures.append({
-                "name": "High Symbol Density",
+                "name": "Highly Obfuscated Command",
                 "description": (
                     f"Character frequency analysis: '{dom_sym}' appears {dom_cnt}\u00d7 "
                     f"vs {non_sym} alphanumeric chars (ratio {ratio:.2f})"
@@ -496,7 +496,7 @@ async def analyze_command_patterns(command: str, signatures: list, allow_decoded
             techniques_set.update(char_freq_sig.get("techniques", ["T1027", "T1027.010"]))
             total_score += char_freq_sig["score"]
 
-    skip_signatures = {"Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected", "Heavily Obfuscated Command", "Notable base64 in encoded command", "High Symbol Density"}
+    skip_signatures = {"Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected", "Heavily Obfuscated Command", "Notable base64 in encoded command", "Highly Obfuscated Command"}
     if has_encoded_command_indicator:
         skip_signatures.add("Long base64 strings")
     

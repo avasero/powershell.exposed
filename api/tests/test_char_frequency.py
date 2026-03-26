@@ -1,5 +1,5 @@
 """
-Teste para o detector de High Symbol Density (análise de frequência de caracteres).
+Teste para o detector de Highly Obfuscated Command (análise de frequência de caracteres).
 Verifica se comandos com alta densidade de símbolos são detectados corretamente.
 """
 import sys
@@ -59,7 +59,7 @@ test_cases = [
 
 def run_tests():
     print("=" * 70)
-    print("TEST: High Symbol Density detector")
+    print("TEST: Highly Obfuscated Command detector")
     print("=" * 70)
 
     passed = 0

@@ -1,4 +1,4 @@
--- Migration: Add High Symbol Density to public_indicators
+-- Migration: Add Highly Obfuscated Command to public_indicators
 -- This indicator is detected via character frequency analysis in Python (not regex),
 -- but requires an entry in public_indicators to be marked as a community indicator
 -- and in powershell_signatures for the analyzer to load its metadata (score, tactics, etc.).
@@ -18,7 +18,7 @@ INSERT INTO public.public_indicators (
     is_active,
     is_premium_indicator
 ) VALUES (
-    'High Symbol Density',
+    'Highly Obfuscated Command',
     'Detects PowerShell commands with a disproportionately high frequency of a single symbol character relative to all alphanumeric characters, indicating symbol-heavy obfuscation (e.g. ${;}, ${=}, ${+} style variable names).',
     '["\\$\\{[^\\w\\s]\\}"]'::jsonb,
     7.0,
