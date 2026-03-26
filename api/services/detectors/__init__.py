@@ -10,6 +10,7 @@ To add a new detector:
 from .encoded_command_detector import detect_encoded_command
 from .double_encoded_detector import detect_double_encoded_command
 from .patterns import ENCODED_COMMAND_PATTERN
+from .char_frequency_detector import detect_high_symbol_density
 from .evasion_detector import (
     apply_san_regex,
     count_pattern_matches,
@@ -33,6 +34,10 @@ DETECTORS = {
         "function": detect_double_encoded_command,
         "description": "Detects nested encoding layers"
     },
+    "char_frequency": {
+        "function": detect_high_symbol_density,
+        "description": "Detects disproportionate single-symbol character density indicating obfuscation"
+    },
 }
 
 # Convenience exports for direct imports
@@ -41,6 +46,7 @@ __all__ = [
     # "deobfuscate",
     "detect_encoded_command",
     "detect_double_encoded_command",
+    "detect_high_symbol_density",
     "ENCODED_COMMAND_PATTERN",
     # Evasion detector exports
     "apply_san_regex",
