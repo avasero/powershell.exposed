@@ -11,7 +11,7 @@ import regex
 from typing import Dict, List, Optional
 from dataclasses import dataclass, field
 
-from services.ast_client import ast_client
+from services.runpod_client import runpod_client
 from services.session_manager import get_supabase_client
 from services.detectors import (
     process_command_for_evasion,
@@ -108,32 +108,57 @@ class DeobfuscationQueue:
                 print(f"[DEOBFUSCATION_QUEUE] Worker error: {e}")
 
     async def _process_job(self, job: DeobfuscationJob):
+        """
+        Process a deobfuscation job with cold-start resilience:
+          1. Submit to RunPod and persist job_id in DB immediately
+          2. Poll with adaptive intervals (handles cold starts up to 10 min)
+          3. On completion, run signature matching and update DB
+        """
         async with self._semaphore:
             try:
                 ast_deobfuscated = None
                 ast_techniques = []
 
-                ast_result = await ast_client.deobfuscate(job.command)
+                # Step 1: Submit job and persist job_id before polling starts
+                job_id, submit_err = await runpod_client.submit_job(job.command)
+                if submit_err or not job_id:
+                    err_msg = submit_err.get("error", "Submit failed") if submit_err else "No job_id returned"
+                    self._results[job.short_id] = DeobfuscationResult(
+                        status="failed", error=err_msg, completed_at=time.time()
+                    )
+                    return
+
+                await self._persist_runpod_job_id(job.short_id, job_id)
+
+                # Step 2: Poll — may wait up to 10 min during cold start
+                ast_result = await runpod_client.poll_job(job_id, job.command)
                 if ast_result["success"] and ast_result.get("techniques_found"):
                     ast_deobfuscated = ast_result["deobfuscated"]
                     ast_techniques = ast_result.get("techniques_found", [])
 
+                # Step 3: Optionally deobfuscate the decoded layer too
                 if job.first_decoded and job.first_decoded != job.command:
-                    decoded_result = await ast_client.deobfuscate(job.first_decoded)
-                    if decoded_result["success"] and decoded_result.get("techniques_found"):
-                        decoded_deobfuscated = decoded_result["deobfuscated"]
-                        if decoded_deobfuscated and decoded_deobfuscated != job.first_decoded:
-                            for tech in decoded_result.get("techniques_found", []):
-                                if tech not in ast_techniques:
-                                    ast_techniques.append(tech)
-                            if not ast_deobfuscated:
-                                ast_deobfuscated = decoded_deobfuscated
+                    dec_job_id, dec_err = await runpod_client.submit_job(job.first_decoded)
+                    if dec_job_id:
+                        await self._persist_runpod_job_id(job.short_id, dec_job_id)
+                        decoded_result = await runpod_client.poll_job(dec_job_id, job.first_decoded)
+                        if decoded_result["success"] and decoded_result.get("techniques_found"):
+                            decoded_deobfuscated = decoded_result["deobfuscated"]
+                            if decoded_deobfuscated and decoded_deobfuscated != job.first_decoded:
+                                for tech in decoded_result.get("techniques_found", []):
+                                    if tech not in ast_techniques:
+                                        ast_techniques.append(tech)
+                                if not ast_deobfuscated:
+                                    ast_deobfuscated = decoded_deobfuscated
 
-                # Run signature matching on the deobfuscated content
+                # Step 4: Signature matching on deobfuscated content
                 new_signatures, added_score, new_tactics, new_techniques = await self._match_deobfuscated_signatures(
                     job.short_id, job.command, ast_deobfuscated, ast_techniques
                 )
 
+                # Write to DB first — frontend reloads from DB as soon as it
+                # sees "completed" in memory, so the DB must be ready before that.
+                await self._update_db(job.short_id, ast_deobfuscated, ast_techniques, new_signatures, added_score)
                 self._results[job.short_id] = DeobfuscationResult(
                     status="completed",
                     deobfuscated_command=ast_deobfuscated,
@@ -144,8 +169,6 @@ class DeobfuscationQueue:
                     new_techniques=new_techniques,
                     completed_at=time.time()
                 )
-
-                await self._update_db(job.short_id, ast_deobfuscated, ast_techniques, new_signatures, added_score)
                 print(f"[DEOBFUSCATION_QUEUE] Job completed: {job.short_id} "
                       f"(techniques: {ast_techniques}, new sigs: {len(new_signatures)}, added score: {added_score})")
 
@@ -368,10 +391,123 @@ class DeobfuscationQueue:
                 update_data["techniques"] = list(existing_techniques)
 
             if update_data:
+                # Clear runpod_job_id now that deobfuscation is done
+                update_data["runpod_job_id"] = None
                 supabase.table('powershell_analyses').update(update_data).eq('short_id', short_id).execute()
 
         except Exception as e:
             print(f"[DEOBFUSCATION_QUEUE] DB update failed for {short_id}: {e}")
+
+    async def _persist_runpod_job_id(self, short_id: str, job_id: str):
+        """Store the RunPod job_id in DB so it survives server restarts."""
+        try:
+            supabase = get_supabase_client()
+            supabase.table('powershell_analyses') \
+                .update({"runpod_job_id": job_id}) \
+                .eq('short_id', short_id) \
+                .execute()
+        except Exception as e:
+            print(f"[DEOBFUSCATION_QUEUE] Failed to persist runpod_job_id for {short_id}: {e}")
+
+    async def _clear_runpod_job_id(self, short_id: str):
+        """Null out runpod_job_id so an expired/unknown job isn't resurrected on restart."""
+        try:
+            supabase = get_supabase_client()
+            supabase.table('powershell_analyses') \
+                .update({"runpod_job_id": None}) \
+                .eq('short_id', short_id) \
+                .execute()
+        except Exception as e:
+            print(f"[DEOBFUSCATION_QUEUE] Failed to clear runpod_job_id for {short_id}: {e}")
+
+    async def recover_orphaned_jobs(self):
+        """
+        On server startup, find analyses with a runpod_job_id but no deobfuscated_command.
+        These are jobs submitted before the last server restart (cold start or crash).
+        Re-submit them for polling so their results are not lost.
+        """
+        try:
+            supabase = get_supabase_client()
+            response = supabase.table('powershell_analyses') \
+                .select('short_id, command, decoded_command, runpod_job_id') \
+                .not_.is_('runpod_job_id', 'null') \
+                .is_('deobfuscated_command', 'null') \
+                .limit(20) \
+                .execute()
+
+            orphans = response.data or []
+            if not orphans:
+                return
+
+            print(f"[DEOBFUSCATION_QUEUE] Recovering {len(orphans)} orphaned RunPod jobs")
+            for row in orphans:
+                short_id = row.get("short_id")
+                command = row.get("command")
+                if not short_id or not command:
+                    continue
+
+                # Mark as processing in memory
+                self._results[short_id] = DeobfuscationResult(status="processing")
+
+                job = DeobfuscationJob(
+                    short_id=short_id,
+                    command=command,
+                    first_decoded=row.get("decoded_command"),
+                )
+                # Re-use existing job_id to resume polling instead of submitting again
+                job._resume_job_id = row.get("runpod_job_id")
+                asyncio.create_task(self._resume_orphan(job))
+
+        except Exception as e:
+            print(f"[DEOBFUSCATION_QUEUE] Orphan recovery error: {e}")
+
+    async def _resume_orphan(self, job: DeobfuscationJob):
+        """Resume polling an orphaned job using its stored RunPod job_id."""
+        async with self._semaphore:
+            try:
+                resume_job_id = getattr(job, "_resume_job_id", None)
+                if not resume_job_id:
+                    return
+
+                print(f"[DEOBFUSCATION_QUEUE] Resuming orphan: short_id={job.short_id}, runpod_job_id={resume_job_id}")
+                ast_result = await runpod_client.poll_job(resume_job_id, job.command)
+
+                ast_deobfuscated = None
+                ast_techniques = []
+                if ast_result["success"] and ast_result.get("techniques_found"):
+                    ast_deobfuscated = ast_result["deobfuscated"]
+                    ast_techniques = ast_result.get("techniques_found", [])
+
+                new_signatures, added_score, new_tactics, new_techniques = await self._match_deobfuscated_signatures(
+                    job.short_id, job.command, ast_deobfuscated, ast_techniques
+                )
+
+                await self._update_db(job.short_id, ast_deobfuscated, ast_techniques, new_signatures, added_score)
+
+                # If the poll returned nothing usable (stale/expired job, 404, etc),
+                # the DB update above may not have cleared runpod_job_id — clear it
+                # explicitly so this orphan doesn't resurface on every restart.
+                if not ast_deobfuscated and not ast_techniques:
+                    await self._clear_runpod_job_id(job.short_id)
+
+                self._results[job.short_id] = DeobfuscationResult(
+                    status="completed",
+                    deobfuscated_command=ast_deobfuscated,
+                    deobfuscation_techniques=ast_techniques,
+                    new_signatures=new_signatures,
+                    added_score=added_score,
+                    new_tactics=new_tactics,
+                    new_techniques=new_techniques,
+                    completed_at=time.time()
+                )
+                print(f"[DEOBFUSCATION_QUEUE] Orphan recovered: {job.short_id}")
+
+            except Exception as e:
+                print(f"[DEOBFUSCATION_QUEUE] Orphan resume failed: {job.short_id} - {e}")
+                await self._clear_runpod_job_id(job.short_id)
+                self._results[job.short_id] = DeobfuscationResult(
+                    status="failed", error=str(e), completed_at=time.time()
+                )
 
     def _cleanup_expired(self):
         now = time.time()

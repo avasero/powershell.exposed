@@ -184,6 +184,7 @@ export default function AnalysisDetailsPage() {
   const [contentReady, setContentReady] = useState(false);
   const [decodeInfo, setDecodeInfo] = useState(null);
   const [deobfuscationInfo, setDeobfuscationInfo] = useState(null);
+  const [isDeobfuscating, setIsDeobfuscating] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [aiOverview, setAiOverview] = useState(null);
   const analysisExecutedRef = useRef(false);
@@ -211,6 +212,7 @@ export default function AnalysisDetailsPage() {
       setLoading(true);
       setContentReady(false);
       setError("");
+      setIsDeobfuscating(false);
 
       const loadStartTime = performance.now();
 
@@ -281,9 +283,17 @@ export default function AnalysisDetailsPage() {
       setDeobfuscationInfo(analysisData.deobfuscation_info);
       setAiOverview(analysisData.ai_overview || null);
 
-      // If deobfuscation is still processing, wait for it then reload the full analysis
+      // Show results immediately — don't block on deobfuscation
+      setResult(processedResult);
+      setTimeout(() => {
+        setContentReady(true);
+        setLoading(false);
+      }, 150);
+
+      // If deobfuscation is running in background, poll and update in-place
       const deobStatus = analysis.deobfuscation_status || analysisResult.deobfuscation_status;
       if (deobStatus === "processing" && !processedResult.deobfuscated) {
+        setIsDeobfuscating(true);
         const deobDone = await waitForDeobfuscation(params.id, makeAuthenticatedRequest);
 
         if (deobDone) {
@@ -295,7 +305,7 @@ export default function AnalysisDetailsPage() {
             const reloadData = await reloadRes.json();
             const ra = reloadData.analysis || reloadData;
             const rr = ra.analysis_result || ra;
-            processedResult = {
+            setResult({
               score: ra.risk_score || rr.risk_score || 0,
               severity: (ra.risk_score || rr.risk_score || 0) > 5 ? "malicious" : "safe",
               signatures: (ra.signatures || ra.signatures_detected || rr.signatures || rr.signatures_detected || []).sort((a, b) => (b.score || b.total_score || 0) - (a.score || a.total_score || 0)),
@@ -308,21 +318,14 @@ export default function AnalysisDetailsPage() {
               tactics: ra.tactics || rr.tactics || [],
               techniques: ra.techniques || rr.techniques || [],
               analysisId: params.id
-            };
+            });
             setDecodeInfo(reloadData.decode_info);
             setDeobfuscationInfo(reloadData.deobfuscation_info);
             setAiOverview(reloadData.ai_overview || null);
           }
         }
+        setIsDeobfuscating(false);
       }
-
-      setResult(processedResult);
-
-      // Smooth transition delay
-      setTimeout(() => {
-        setContentReady(true);
-        setLoading(false);
-      }, 150);
 
     } catch (err) {
       setError(err.message || "Failed to load analysis");
@@ -712,7 +715,7 @@ export default function AnalysisDetailsPage() {
         </div>
       )}
 
-      {result && (result.deobfuscated || (deobfuscationInfo && !deobfuscationInfo.can_deobfuscate)) && (
+      {result && (isDeobfuscating || result.deobfuscated || (deobfuscationInfo && !deobfuscationInfo.can_deobfuscate)) && (
         <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl mb-6 sm:mb-8">
           <div className="border rounded-lg p-4 bg-black/80 border-purple-500/30">
             <div className="flex justify-between items-center mb-3">
@@ -721,13 +724,24 @@ export default function AnalysisDetailsPage() {
               </div>
               <DeobfuscationUsageBadge deobfuscationInfo={deobfuscationInfo} />
             </div>
-            {result.deobfuscated ? (
+            {isDeobfuscating && !result.deobfuscated ? (
+              <div className="flex flex-col items-center justify-center py-6 gap-3">
+                <div className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                  </svg>
+                  <span className="font-mono text-sm text-purple-400">LLM deobfuscation in progress...</span>
+                </div>
+                <span className="text-xs font-mono text-gray-500">Resolving obfuscation layers using AI analysis</span>
+              </div>
+            ) : result.deobfuscated ? (
               <>
                 <div className={`bg-black rounded p-3 border border-purple-500/20 text-xs sm:text-sm font-mono overflow-x-auto max-h-40 whitespace-pre-wrap break-words`} style={{ color: 'var(--foreground)' }}>
                   <code>{result.deobfuscated}</code>
                 </div>
                 <div className="text-xs font-mono mt-2" style={{ color: 'var(--muted-foreground)' }}>
-                  Obfuscation layers were removed using AST-based static analysis (no code execution).
+                  Obfuscation layers were removed using LLM-based static analysis (no code execution).
                 </div>
               </>
             ) : (

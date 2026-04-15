@@ -268,22 +268,22 @@ except ImportError as e:
 
 @app.on_event("startup")
 async def startup_event():
-    from config.settings import AST_SERVICE_ENABLED
-    if AST_SERVICE_ENABLED:
+    from config.settings import RUNPOD_ENABLED
+    if RUNPOD_ENABLED:
         from services.deobfuscation_queue import deobfuscation_queue
         await deobfuscation_queue.start()
-        print("[STARTUP] Deobfuscation queue worker started")
+        print("[STARTUP] Deobfuscation queue worker started (RunPod LLM)")
+        # Resume any jobs that were in-flight before the last server restart
+        await deobfuscation_queue.recover_orphaned_jobs()
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    from config.settings import AST_SERVICE_ENABLED
-    if AST_SERVICE_ENABLED:
+    from config.settings import RUNPOD_ENABLED
+    if RUNPOD_ENABLED:
         from services.deobfuscation_queue import deobfuscation_queue
         await deobfuscation_queue.stop()
         print("[SHUTDOWN] Deobfuscation queue worker stopped")
-    from services.ast_client import ast_client
-    await ast_client.close()
 
 
 if __name__ == "__main__":

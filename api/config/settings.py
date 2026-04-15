@@ -62,5 +62,11 @@ AST_SERVICE_TIMEOUT = int(os.getenv("AST_SERVICE_TIMEOUT", "35"))
 AST_SERVICE_ENABLED = os.getenv("AST_SERVICE_ENABLED", "false").lower() == "true"
 AST_API_KEY = os.getenv("AST_API_KEY", "")
 
+# RunPod LLM Deobfuscation Configuration
+# GPU-hosted Qwen model for PowerShell deobfuscation via RunPod serverless
+RUNPOD_API_KEY = os.getenv("RUNPOD_API_KEY", "")
+RUNPOD_ENDPOINT_ID = os.getenv("RUNPOD_ENDPOINT_ID", "")
+RUNPOD_ENABLED = os.getenv("RUNPOD_ENABLED", "false").lower() == "true"
+
 # Stripe Configuration — DISABLED for production shipping
 # STRIPE_SECRET_KEY_SANDBOX = os.getenv("STRIPE_SECRET_KEY_SANDBOX", "")

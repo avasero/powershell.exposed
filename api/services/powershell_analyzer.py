@@ -450,53 +450,8 @@ async def analyze_command_patterns(command: str, signatures: list, allow_decoded
     # Results are populated later and the DB record is updated when processing completes.
 
     commands_to_analyze = list(commands_set)
-    
-    
-    # Character frequency analysis: detect high symbol density obfuscation
-    char_freq_result = detectors.detect_high_symbol_density(raw_command)
-    if char_freq_result:
-        char_freq_sig = next(
-            (sig for sig in signatures if sig.get("name") == "Highly obfuscated command"), None
-        )
-        if char_freq_sig:
-            dom_sym = char_freq_result["dominant_symbol"]
-            dom_cnt = char_freq_result["dominant_count"]
-            non_sym = char_freq_result["non_symbol_count"]
-            ratio = char_freq_result["ratio"]
 
-            detected_signatures.append({
-                "name": "Highly obfuscated command",
-                "description": (
-                    f"Character frequency analysis: '{dom_sym}' appears {dom_cnt}\u00d7 "
-                    f"vs {non_sym} alphanumeric chars (ratio {ratio:.2f})"
-                ),
-                "severity": char_freq_sig["severity"],
-                "base_score": char_freq_sig["score"],
-                "matches_found": 1,
-                "total_score": char_freq_sig["score"],
-                "max_match_allowed": 1,
-                "pattern": "__CHAR_FREQUENCY_ANALYSIS__",
-                "matches_details": [{
-                    "matched_text": f"'{dom_sym}' \u00d7{dom_cnt} / {non_sym} alnum (ratio {ratio:.2f})",
-                    "position": {"start": 0, "end": len(raw_command)},
-                    "match_number": 1,
-                    "matched_in": "original"
-                }],
-                "tactics": char_freq_sig.get("tactics", ["TA0005"]),
-                "techniques": char_freq_sig.get("techniques", ["T1027", "T1027.010"]),
-                "reference": char_freq_sig.get("reference", []),
-                "link": char_freq_sig.get("link"),
-                "is_premium_indicator": char_freq_sig.get("is_premium_indicator", False),
-                "indicator_type": char_freq_sig.get("indicator_type", "community"),
-                "found_in_decoded": False,
-                "san_score_applied": False,
-                "san_score": None,
-            })
-            tactics_set.update(char_freq_sig.get("tactics", ["TA0005"]))
-            techniques_set.update(char_freq_sig.get("techniques", ["T1027", "T1027.010"]))
-            total_score += char_freq_sig["score"]
-
-    skip_signatures = {"Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected", "Heavily Obfuscated Command", "Notable base64 in encoded command", "Highly obfuscated command"}
+    skip_signatures = {"Obfuscation Detected", "Encoded Command Detected", "Double Encoded Command Detected", "Heavily Obfuscated Command", "Notable base64 in encoded command"}
     if has_encoded_command_indicator:
         skip_signatures.add("Long base64 strings")
     
