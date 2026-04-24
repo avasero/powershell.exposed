@@ -62,13 +62,22 @@ def slim_signatures(signatures: list) -> list:
 
 
 _DEOBFUSCATE_MIN_LENGTH = 250
+_DEOBFUSCATE_MIN_SYMBOLS = 17
+
+
+def _count_symbols(command: str) -> int:
+    """Count non-alphanumeric, non-whitespace characters in a command."""
+    return sum(1 for c in command if not c.isalnum() and not c.isspace())
 
 
 def _should_deobfuscate(command: str, detected_signatures: list) -> bool:
     """Send to AI deobfuscation by default — skip only when the existing
     signatures already paint a clear picture (>=1 critical or >=2 high),
-    and only consider commands of at least _DEOBFUSCATE_MIN_LENGTH chars."""
+    the command is too short, or it lacks enough symbols to suggest obfuscation."""
     if len(command) < _DEOBFUSCATE_MIN_LENGTH:
+        return False
+
+    if _count_symbols(command) < _DEOBFUSCATE_MIN_SYMBOLS:
         return False
 
     high_count = 0

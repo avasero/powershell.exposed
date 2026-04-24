@@ -129,6 +129,7 @@ class DeobfuscationQueue:
                     return
 
                 await self._persist_runpod_job_id(job.short_id, job_id)
+                await self._mark_llm_analyzed(job.short_id)
 
                 # Step 2: Poll — may wait up to 10 min during cold start
                 ast_result = await runpod_client.poll_job(job_id, job.command)
@@ -408,6 +409,17 @@ class DeobfuscationQueue:
                 .execute()
         except Exception as e:
             print(f"[DEOBFUSCATION_QUEUE] Failed to persist runpod_job_id for {short_id}: {e}")
+
+    async def _mark_llm_analyzed(self, short_id: str):
+        """Permanently flag this analysis as having been sent to RunPod/LLM."""
+        try:
+            supabase = get_supabase_client()
+            supabase.table('powershell_analyses') \
+                .update({"llm_analyzed": True}) \
+                .eq('short_id', short_id) \
+                .execute()
+        except Exception as e:
+            print(f"[DEOBFUSCATION_QUEUE] Failed to mark llm_analyzed for {short_id}: {e}")
 
     async def _clear_runpod_job_id(self, short_id: str):
         """Null out runpod_job_id so an expired/unknown job isn't resurrected on restart."""
