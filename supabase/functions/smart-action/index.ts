@@ -1,9 +1,3 @@
-/* --- STRIPE WEBHOOK INTEGRATION DISABLED ---
- * All Stripe webhook processing commented out for production shipping.
- * Do not uncomment until live Stripe credentials are configured.
- */
-
-/*
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@13.0.0?target=deno";
@@ -16,11 +10,11 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const WEBHOOK_SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET")!;
+const PREMIUM_PRICE_ID = Deno.env.get("STRIPE_PREMIUM_PRICE_ID") ?? "";
 
-// Map your Stripe price IDs to your plans table IDs
-const PRICE_TO_PLAN: Record<string, number> = {
-  "price_1T43Q1HrWYWWTND8D326kbsW": 2,  // premium
-};
+const PRICE_TO_PLAN: Record<string, number> = PREMIUM_PRICE_ID
+  ? { [PREMIUM_PRICE_ID]: 2 }
+  : {};
 
 const FREE_PLAN_ID = 1;
 
@@ -89,7 +83,6 @@ serve(async (req) => {
       const customerId = subscription.customer as string;
 
       if (subscription.cancel_at_period_end) {
-        // User cancelled — keep access until period ends
         const periodEnd = new Date(subscription.current_period_end * 1000).toISOString();
         const { error } = await supabase
           .from("profiles")
@@ -105,7 +98,6 @@ serve(async (req) => {
           console.log(`Subscription canceling for customer ${customerId}, access until ${periodEnd}`);
         }
       } else {
-        // User reactivated or renewed — restore active status
         const { error } = await supabase
           .from("profiles")
           .update({
@@ -124,7 +116,6 @@ serve(async (req) => {
     }
 
     case "customer.subscription.deleted": {
-      // Fires when the subscription period actually ends — now downgrade
       const subscription = event.data.object as Stripe.Subscription;
       const customerId = subscription.customer as string;
 
@@ -155,4 +146,3 @@ serve(async (req) => {
     headers: { "Content-Type": "application/json" },
   });
 });
-*/

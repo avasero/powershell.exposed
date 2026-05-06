@@ -62,5 +62,6 @@ AST_SERVICE_TIMEOUT = int(os.getenv("AST_SERVICE_TIMEOUT", "35"))
 AST_SERVICE_ENABLED = os.getenv("AST_SERVICE_ENABLED", "false").lower() == "true"
 AST_API_KEY = os.getenv("AST_API_KEY", "")
 
-# Stripe Configuration — DISABLED for production shipping
-# STRIPE_SECRET_KEY_SANDBOX = os.getenv("STRIPE_SECRET_KEY_SANDBOX", "")
+# Stripe Configuration
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_PREMIUM_PRICE_ID = os.getenv("STRIPE_PREMIUM_PRICE_ID", "")

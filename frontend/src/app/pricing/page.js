@@ -1,19 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
-// STRIPE DISABLED: import { useSearchParams } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import PricingCard from '../components/PricingCard';
 import { useAuth } from '../contexts/AuthContext';
-// STRIPE DISABLED: import { createCheckoutSession, makeAuthenticatedJSONRequest } from '../../lib/api';
+import { createCheckoutSession, makeAuthenticatedJSONRequest } from '../../lib/api';
+
+const PREMIUM_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID || '';
 
 export default function PricingPage() {
     const { isAuthenticated } = useAuth();
-    // STRIPE DISABLED: const searchParams = useSearchParams();
-    // STRIPE DISABLED: const [checkoutLoading, setCheckoutLoading] = useState(false);
+    const searchParams = useSearchParams();
+    const [checkoutLoading, setCheckoutLoading] = useState(false);
     const [banner, setBanner] = useState(null);
-    // STRIPE DISABLED: const [userPlan, setUserPlan] = useState(null);
+    const [userPlan, setUserPlan] = useState(null);
 
-    /* --- STRIPE/PLAN INTEGRATION DISABLED ---
     useEffect(() => {
         if (searchParams.get('success') === 'true') {
             setBanner({ type: 'success', message: 'Payment successful! Your plan has been upgraded.' });
@@ -50,7 +51,6 @@ export default function PricingPage() {
             setCheckoutLoading(false);
         }
     };
-    --- END STRIPE/PLAN INTEGRATION DISABLED --- */
 
     const tiers = [
         {
@@ -121,9 +121,9 @@ export default function PricingPage() {
             title: 'Premium',
             price: '$9.99/mo',
             subtitle: 'Secure your organization',
-            buttonText: 'Coming Soon',
-            buttonAction: () => {},
-            buttonDisabled: true,
+            buttonText: isPremiumUser ? 'Your Tier' : (checkoutLoading ? 'Loading...' : 'Upgrade'),
+            buttonAction: () => handleCheckout(PREMIUM_PRICE_ID),
+            buttonDisabled: isPremiumUser || checkoutLoading || !PREMIUM_PRICE_ID,
             isPopular: false,
             isPremium: true,
             summaryFeatures: [

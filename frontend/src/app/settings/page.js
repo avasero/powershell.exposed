@@ -10,14 +10,14 @@ export default function SettingsPage() {
   const { user, isAuthenticated } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  // STRIPE DISABLED: const [plan, setPlan] = useState(null);
-  // STRIPE DISABLED: const [loadingPlan, setLoadingPlan] = useState(true);
+  const [plan, setPlan] = useState(null);
+  const [loadingPlan, setLoadingPlan] = useState(true);
   const [notifyUser, setNotifyUser] = useState(null); // null = not loaded yet
   const [updatingNotify, setUpdatingNotify] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastVariant, setToastVariant] = useState('info');
-  // STRIPE DISABLED: const [showCancelDialog, setShowCancelDialog] = useState(false);
-  // STRIPE DISABLED: const [cancelingSubscription, setCancelingSubscription] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelingSubscription, setCancelingSubscription] = useState(false);
   const hasFetched = useRef(false);
   const hasCheckedNotifyParam = useRef(false);
 
@@ -52,12 +52,11 @@ export default function SettingsPage() {
     // Only fetch once per mount
     if (!hasFetched.current) {
       hasFetched.current = true;
-      // STRIPE DISABLED: fetchUserPlan();
+      fetchUserPlan();
       fetchUserProfile();
     }
   }, [isAuthenticated]);
 
-  /* --- STRIPE/PLAN INTEGRATION DISABLED ---
   const fetchUserPlan = async () => {
     try {
       const { makeAuthenticatedRequest } = await import('../../lib/api');
@@ -77,7 +76,6 @@ export default function SettingsPage() {
       setLoadingPlan(false);
     }
   };
-  --- END STRIPE/PLAN INTEGRATION DISABLED --- */
 
   const fetchUserProfile = async () => {
     try {
@@ -123,7 +121,6 @@ export default function SettingsPage() {
     }
   };
 
-  /* --- STRIPE/PLAN INTEGRATION DISABLED ---
   const handleCancelSubscription = async () => {
     setCancelingSubscription(true);
     try {
@@ -155,7 +152,6 @@ export default function SettingsPage() {
   const isPremium = plan?.plan_name?.toLowerCase() === 'premium';
   const isCanceling = plan?.subscription_status === 'canceling';
   const periodEnd = plan?.subscription_period_end ? new Date(plan.subscription_period_end) : null;
-  --- END STRIPE/PLAN INTEGRATION DISABLED --- */
 
   if (!isAuthenticated()) {
     return (
@@ -240,11 +236,28 @@ export default function SettingsPage() {
               <div className="text-xs font-mono uppercase tracking-wider text-white/40 mb-1">
                 Current Plan
               </div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-sm font-bold text-green-400 uppercase">
-                  Basic
-                </span>
-              </div>
+              {loadingPlan ? (
+                <div className="h-5 w-20 bg-white/10 animate-pulse rounded" />
+              ) : (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-sm font-bold text-green-400 uppercase">
+                    {plan?.plan_name || 'Basic'}
+                  </span>
+                  {isPremium && !isCanceling && (
+                    <button
+                      onClick={() => setShowCancelDialog(true)}
+                      className="px-2 py-1 rounded border border-red-500/30 bg-red-600/10 text-red-400 hover:bg-red-600/20 hover:border-red-500/50 font-mono text-xs transition-all"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  {isCanceling && periodEnd && (
+                    <span className="font-mono text-xs text-yellow-400/80">
+                      ends {periodEnd.toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -347,7 +360,6 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* --- STRIPE/PLAN INTEGRATION DISABLED ---
       {showCancelDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <div className="mx-4 max-w-md w-full p-6 rounded-xl border border-white/10 bg-zinc-900">
@@ -382,7 +394,6 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
-      --- END STRIPE/PLAN INTEGRATION DISABLED --- */}
 
       {/* Toast notification for already subscribed */}
       <Toast

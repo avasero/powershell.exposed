@@ -171,15 +171,14 @@ export async function revokeUserApiKey() {
   })
 }
 
-/* --- STRIPE INTEGRATION DISABLED ---
+/**
  * Create a Stripe Checkout Session for plan upgrade
  * @param {string} priceId - Stripe price ID (e.g., "price_xxx")
  * @returns {Promise<object>} - { success: true, url: "https://checkout.stripe.com/..." }
  */
-// export async function createCheckoutSession(priceId) {
-//   return await makeAuthenticatedJSONRequest('/stripe/create-checkout-session', {
-//     method: 'POST',
-//     body: JSON.stringify({ price_id: priceId })
-//   })
-// }
-/* --- END STRIPE INTEGRATION DISABLED --- */
+export async function createCheckoutSession(priceId) {
+  return await makeAuthenticatedJSONRequest('/stripe/create-checkout-session', {
+    method: 'POST',
+    body: JSON.stringify({ price_id: priceId })
+  })
+}

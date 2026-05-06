@@ -42,7 +42,15 @@
       "Bash(chmod +x /home/en20/powershell.exposed/deploy.sh)",
       "Bash(git -C /home/en20/powershell.exposed status --short | wc -l)",
       "Bash(bash /home/en20/powershell.exposed/deploy.sh)",
-      "Bash(find 'C:/Program Files/Splunk/etc/apps/psexposed_app/bin' -name *.pyc -o -name __pycache__)"
+      "Bash(find 'C:/Program Files/Splunk/etc/apps/psexposed_app/bin' -name *.pyc -o -name __pycache__)",
+      "Bash(git *)",
+      "Bash(python3 -c \"import ast; [ast.parse\\(open\\(f\\).read\\(\\)\\) for f in ['main.py','config/settings.py','routes/stripe_routes.py','routes/plan_routes.py']]; print\\('OK'\\)\")",
+      "Bash(npx --no-install next build)",
+      "Bash(supabase --version)",
+      "Bash(supabase projects *)",
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "Bash(npx supabase *)"
     ]
   }
 }

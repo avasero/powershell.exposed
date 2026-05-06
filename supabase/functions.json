@@ -19,11 +19,19 @@
       "name": "parse-yaml-indicator",
       "source": "parse-yaml-indicator/index.ts",
       "verify_jwt": false
+    },
+    {
+      "name": "smart-action",
+      "source": "smart-action/index.ts",
+      "verify_jwt": false
     }
   ],
   "env_vars": {
     "SUPABASE_URL": "{{SUPABASE_URL}}",
     "SUPABASE_ANON_KEY": "{{SUPABASE_ANON_KEY}}",
-    "SUPABASE_SERVICE_ROLE_KEY": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+    "SUPABASE_SERVICE_ROLE_KEY": "{{SUPABASE_SERVICE_ROLE_KEY}}",
+    "STRIPE_SECRET_KEY": "{{STRIPE_SECRET_KEY}}",
+    "STRIPE_WEBHOOK_SECRET": "{{STRIPE_WEBHOOK_SECRET}}",
+    "STRIPE_PREMIUM_PRICE_ID": "{{STRIPE_PREMIUM_PRICE_ID}}"
   }
 }
